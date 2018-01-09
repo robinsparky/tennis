@@ -1,0 +1,391 @@
+<?php
+
+
+/**
+ * Installation related functions and actions.
+ *
+ * @author   Robin Smith
+ * @category Admin
+ * @package  Tennis Events
+ * @version  1.0.0
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+require('./ wp-load.php');
+require_once( ABSPATH . 'wp-admin/ includes/ upgrade.php');
+
+/**
+ * TE_Install Class.
+ */
+class TE_Install {
+
+	const OPTION_NAME_VERSION = 'tennis_version';
+
+	/**
+	 * A reference to an instance of this class.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @var   TE_Install singleton
+	 */
+	private static $instance;
+
+    /**
+    * TE_Install Singleton
+    *
+    * @return   TE_Install
+    * @since    1.0.0
+    */
+    public static function get_instance()
+    {
+        if (null == self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+	} // end getInstance
+	
+	private function __construct()	{
+		$this->includes();
+		
+        add_filter('query_vars', array($this,'add_query_vars_filter'));
+
+        add_action('wp_enqueue_scripts', array( $this,'enqueue_script'));
+
+        add_action('wp_enqueue_scripts', array( $this,'enqueue_style'));
+
+        //add_action('wp_head', array( $this,'add_event_product_selection'));
+
+        // Action hook to create the  shortcode
+        add_shortcode('tennis_shorts', array( $this,'do_shortcode'));
+
+	}
+
+	protected function includes() {
+		include_once('gw-support.php');
+	}
+	
+	/**
+	 * Activate Tennis Events.
+	 */
+	public function on_activate() {
+		// Ensure needed classes are loaded
+		//add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
+
+		$this->create_options();
+		$this->createSchema();
+		add_filter('wp_nav_menu_items',array($this,'add_todaysdate_in_menu'), 10, 2);
+	}
+	
+	
+	public function on_deactivate() {
+	}
+
+	public function on_uninstall() {
+		$this->delete_options();
+		$this->dropSchema();
+	}
+	
+	protected function create_options() {
+		add_option( self::OPTION_NAME_VERSION , TennisEvents::VERSION, false );
+	}
+	
+	protected function delete_options() {
+		delete_option(self::OPTION_NAME_VERSION );
+	}
+
+	private function createSchema() {
+		global $wpdb;
+		//$wpdb->show_errors(); 
+
+		$club_table = $wpdb->prefix . "tennis_club";
+		$sql = "CREATE TABLE `$club_table` ( 
+				`ID` INT NOT NULL AUTO_INCREMENT,
+				`name` VARCHAR(100) NOT NULL,
+				PRIMARY KEY (`ID`) );";
+		dbDelta( $sql ); 
+
+		$court_table = $wpdb->prefix . "tennis_court";
+		$sql = "CREATE TABLE `$court_table` (
+				`ID` INT NOT NULL COMMENT 'Same as Court Number',
+				`club_ID` INT NOT NULL,
+				`court_type` VARCHAR(45) NOT NULL DEFAULT 'hardcourt',
+				PRIMARY KEY (`ID`, `club_ID`),
+				CONSTRAINT `fk_Court_Club1`
+				  FOREIGN KEY (`club_ID`)
+				  REFERENCES `$club_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		
+		$event_table = $wpdb->prefix . "tennis_event";
+		$sql = "  CREATE TABLE `$event_table` (
+				`ID` INT NOT NULL AUTO_INCREMENT,
+				`name` VARCHAR(100) NOT NULL,
+				`club_ID` INT NOT NULL,
+				PRIMARY KEY (`ID`),
+				INDEX `fk_Event_Club_idx` (`club_ID` ASC),
+				CONSTRAINT `fk_Event_Club`
+				  FOREIGN KEY (`club_ID`)
+				  REFERENCES `$club_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		
+		$draw_table = $wpdb->prefix . "tennis_draw";
+		$sql = "CREATE TABLE `$draw_table` (
+				`ID` INT NOT NULL AUTO_INCREMENT,
+				`name` VARCHAR(45) NOT NULL,
+				`elimination` VARCHAR(45) NOT NULL DEFAULT 'single',
+				`event_ID` INT NOT NULL,
+				PRIMARY KEY (`ID`),
+				INDEX `fk_Draw_Event1_idx` (`event_ID` ASC),
+				CONSTRAINT `fk_Draw_Event1`
+				  FOREIGN KEY (`event_ID`)
+				  REFERENCES `$event_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		
+		$round_table = $wpdb->prefix . "tennis_round";
+		$sql = "CREATE TABLE `$round_table` (
+				`ID` INT NOT NULL AUTO_INCREMENT,
+				`owner_type` VARCHAR(45) NOT NULL,
+				`owner_ID` INT NOT NULL,
+				PRIMARY KEY (`ID`),
+				CONSTRAINT `fk_Round_Draw1`
+				  FOREIGN KEY (`owner_ID`)
+				  REFERENCES `$draw_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		
+		$match_table = $wpdb->prefix . "tennis_match";
+		$sql = "CREATE TABLE `$match_table` (
+				`ID` INT NOT NULL COMMENT 'Same as Match number',
+				`round_ID` INT NOT NULL,
+				PRIMARY KEY (`ID`, `round_ID`),
+				INDEX `fk_Match_Round1_idx` (`round_ID` ASC),
+				CONSTRAINT `fk_Match_Round1`
+				  FOREIGN KEY (`round_ID`)
+				  REFERENCES `$round_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		
+		$entry_table = $wpdb->prefix . "tennis_entry";
+		$sql = "CREATE TABLE `$entry_table` (
+				`ID` INT NOT NULL AUTO_INCREMENT,
+				`draw_ID` INT NOT NULL,
+				`match_ID` INT NULL,
+				`name` VARCHAR(45) NOT NULL,
+				`position` INT NOT NULL,
+				`seed` INT NULL,
+				PRIMARY KEY (`ID`, `draw_ID`),
+				INDEX `fk_Entry_Match1_idx` (`match_ID` ASC),
+				INDEX `fk_Entry_Draw1_idx` (`draw_ID` ASC),
+				CONSTRAINT `fk_Entry_Match1`
+				  FOREIGN KEY (`match_ID`)
+				  REFERENCES `$match_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION,
+				CONSTRAINT `fk_Entry_Draw1`
+				  FOREIGN KEY (`draw_ID`)
+				  REFERENCES `$draw_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		 
+		$team_table = $wpdb->prefix . "tennis_team";
+		$sql = "CREATE TABLE `$team_table` (
+		  `ID` INT NOT NULL AUTO_INCREMENT,
+		  `name` VARCHAR(45) NULL,
+		  `event_ID` INT NULL,
+		  `tennis_event_ID` INT NOT NULL,
+		  PRIMARY KEY (`ID`),
+		  INDEX `fk_tennis_team_tennis_event1_idx` (`tennis_event_ID` ASC),
+		  CONSTRAINT `fk_tennis_team_tennis_event1`
+			FOREIGN KEY (`tennis_event_ID`)
+			REFERENCES `$event_table` (`ID`)
+			ON DELETE NO ACTION
+			ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		
+		$squad_table = $wpdb->prefix . "tennis_squad";
+		$sql = "CREATE TABLE `$squad_table` (
+		  `ID` INT NOT NULL AUTO_INCREMENT,
+		  `name` VARCHAR(25) NOT NULL,
+		  `tennis_team_ID` INT NOT NULL,
+		  PRIMARY KEY (`ID`),
+		  INDEX `fk_tennis_squad_tennis_team1_idx` (`tennis_team_ID` ASC),
+		  CONSTRAINT `fk_tennis_squad_tennis_team1`
+			FOREIGN KEY (`tennis_team_ID`)
+			REFERENCES `$team_table` (`ID`)
+			ON DELETE NO ACTION
+			ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		
+		$game_table = $wpdb->prefix . "tennis_game";
+		$sql = "CREATE TABLE `$game_table` (
+				`ID` INT NOT NULL COMMENT 'Same as game number',
+				`match_ID` INT NOT NULL,
+				`set_number` INT NOT NULL,
+				`entry_ID` INT NOT NULL,
+				PRIMARY KEY (`ID`, `match_ID`),
+				INDEX `fk_Game_Entry1_idx` (`entry_ID` ASC),
+				INDEX `fk_Game_Match1_idx` (`match_ID` ASC),
+				CONSTRAINT `fk_Game_Entry1`
+				  FOREIGN KEY (`entry_ID`)
+				  REFERENCES `$entry_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION,
+				CONSTRAINT `fk_Game_Match1`
+				  FOREIGN KEY (`match_ID`)
+				  REFERENCES `$match_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+		
+		$player_table = $wpdb->prefix . "tennis_player";
+		$sql = "CREATE TABLE `$player_table` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `first_name` VARCHAR(45) NULL,
+			  `last_name` VARCHAR(45) NOT NULL,
+			  `skill_level` DECIMAL(4,1) NULL DEFAULT 3.0,
+			  `tennis_squad_ID` INT NOT NULL,
+			  `tennis_entry_ID` INT NOT NULL,
+			  `tennis_entry_draw_ID` INT NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  INDEX `fk_tennis_player_tennis_squad1_idx` (`tennis_squad_ID` ASC),
+			  INDEX `fk_tennis_player_tennis_entry1_idx` (`tennis_entry_ID` ASC, `tennis_entry_draw_ID` ASC),
+			  CONSTRAINT `fk_tennis_player_tennis_squad1`
+				FOREIGN KEY (`tennis_squad_ID`)
+				REFERENCES `$squad_table` (`ID`)
+				ON DELETE NO ACTION
+				ON UPDATE NO ACTION,
+			  CONSTRAINT `fk_tennis_player_tennis_entry1`
+				FOREIGN KEY (`tennis_entry_ID` , `tennis_entry_draw_ID`)
+				REFERENCES `$entry_table` (`ID` , `draw_ID`)
+				ON DELETE NO ACTION
+				ON UPDATE NO ACTION);";
+		dbDelta( $sql );
+		
+		$booking_table = $wpdb->prefix . "tennis_court_booking";
+		$sql = "CREATE TABLE `$booking_table` (
+				`court_Court_ID` INT NOT NULL,
+				`court_Club_ID` INT NOT NULL,
+				`book_date` DATE NULL,
+				`book_time` TIME(6) NULL,
+				PRIMARY KEY (`court_Court_ID`, `court_Club_ID`),
+				INDEX `fk_TimeSlot_Court1_idx` (`court_Court_ID` ASC, `court_Club_ID` ASC),
+				CONSTRAINT `fk_TimeSlot_Court1`
+				  FOREIGN KEY (`court_Court_ID` , `court_Club_ID`)
+				  REFERENCES `$court_table` (`ID` , `club_ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION,
+				CONSTRAINT `fk_tennis_court_booking_tennis_match1`
+				  FOREIGN KEY (`court_Court_ID`)
+				  REFERENCES `$match_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		dbDelta( $sql ); 
+	}
+	
+	private function dropSchema() {
+		global $wpdb;
+		$tablenames = "`%tennis_player`,`%tennis_court_booking`,`%tennis_game`,`%tennis_entry`,`%tennis_squad`,`%tennis_team`,`%tennis_match`,`%tennis_round`,`%tennis_draw`,`%tennis_court`,`%tennis_event`,`%tennis_club`;";
+		$sql = "DROP TABLE IF EXISTS " . str_replace("%", $wpdb->prefix, $tablenames);
+		return $wpdb->query($sql);
+	}
+
+	/**
+	 * Check version and run the updater if required.
+	 * This check is done on all requests and runs if the versions do not match.
+	 */
+	public function check_version() {
+		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisEvents::VERSION ) {
+			//TODO: Do Something???
+		}
+	}
+	
+	//shortcode: rts_prod_cat orderby="name" order="asc"
+	public function do_shortcode( $atts, $content = null )
+    {
+		$myshorts = shortcode_atts(array("hierarchy" => 0, "orderby" => "name", "order"=>"ASC", "parent"=>0), $atts,'rts_prod_cat');
+		extract($myshorts);
+		$out = '';
+
+		//Want woocommerce product categories
+		$categories = get_terms(array('taxonomy' => 'product_cat',
+				'orderby' => $orderby,
+    			'order'   => $order,
+				'parent'  => $parent
+
+		));
+
+		if ( empty( $categories ) || is_wp_error( $categories ) ){
+		    return $out;
+		}
+        $out = '<ul class="sbc-container gallery product-category">';
+
+		foreach( $categories as $category ) {
+			// get the thumbnail id using the queried category term_id
+			$thumbnail_id = get_woocommerce_term_meta( $category->term_id, 'thumbnail_id', true );
+
+			// get the image URL
+			$cat_image_url = wp_get_attachment_url( $thumbnail_id );
+
+			$cat_image_url = (isset($cat_image_url) && $cat_image_url != '') ? $cat_image_url : plugin_dir_path(__FILE__) . '/../img/placeholder.png';
+
+			$image_link = sprintf('<a href="%1$s" alt="%2$s">%3$s</a>'
+										,esc_url(get_category_link( $category->term_id ) )
+										,esc_attr(sprintf(__('View all products in %s', 'xlc' ), $category->name))
+										,sprintf('<img src="%s" />', $cat_image_url));
+
+			$name_link = sprintf('<a href="%1$s" alt="%2$s">%3$s</a>'
+										,esc_url( get_category_link( $category->term_id))
+										,esc_attr(sprintf(__('View all products in %s', 'xlc' ), $category->name))
+										,sprintf('<h3>%s</h3>', $category->name));
+
+			$inner  = '<li class="product sbc-item">';
+			$inner .= $image_link;
+			$inner .= $name_link;
+			$inner .= '</li>';
+            $out .= $inner;
+		}
+
+		$out .= '</ul>';
+        //$out .= '</div>';
+
+        return $out;
+	}
+
+	protected function enqueue_style() {
+		// guess current plugin directory URL
+		$plugin_url = plugin_dir_url(__FILE__);
+		wp_enqueue_style('tennis_css',$plugin_url . '../css/tennisevents.css');
+	}
+
+	protected function enqueue_script() {
+		// guess current plugin directory URL
+		$plugin_url = plugin_dir_url(__FILE__);
+		wp_register_script( 'tennis_js', $plugin_url . 'js/te-support.js', array('jquery'),false,true );
+	}
+
+	//Need one extra query parameter
+	protected function add_query_vars_filter( $vars ) {
+		$vars[] = "te_vars";
+		return $vars;
+	}
+
+	protected function add_todaysdate_in_menu( $items, $args ) {
+		if( $args->theme_location == 'primary')  {
+			$todaysdate = date('l jS F Y');
+			$items .=  '<li>' . $todaysdate .  '</li>';
+		}
+		return $items;
+	}
+	
+}

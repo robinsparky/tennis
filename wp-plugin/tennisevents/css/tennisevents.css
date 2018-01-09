@@ -1,0 +1,120 @@
+caption {
+    display: table-caption;
+    text-align: center;
+    font-size: 150%;
+}
+
+datalist#emaildata {
+    display: none;
+}
+
+.xlc-error {
+    color: red;
+}
+
+.sbc-container {
+    display: block;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    text-align: center;
+    text-decoration: none;
+}
+
+.sbc-item {
+    text-decoration: none;
+    list-style: none;
+    flex: 1 1 auto;
+    width: auto;
+    height: auto;
+    margin: 0 0 2rem 0;
+    font-size: 1em !important;
+}
+
+.sbc-container img {
+    width: 350px;
+    margin: 0 0 0 0 !important;
+}
+
+.sbc-item>a:link {
+    /* Applies to unvisited links of class mainNav */
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1em !important;
+    background-color: inherit;
+    color: purple;
+}
+
+.sbc-item>a:visited {
+    /* Applies to visited links of class mainNav */
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1em !important;
+    background-color: inherit;
+    color: purple;
+}
+
+.sbc-item>a:hover {
+    /* Applies to links under the pointer of class mainNav */
+    text-decoration: underline;
+    font-weight: bold;
+    font-size: 1em !important;
+    background-color: inherit;
+    color: purple;
+}
+
+.sbc-item>a:active {
+    /* Applies to activated links of class mainNav */
+    text-decoration: underline;
+    font-weight: bold;
+    font-size: 1em !important;
+    background-color: inherit;
+    color: purple;
+}
+
+
+/*------------------------------------------------------------------------------------
+                          iPhone 2 3 4 4s
+-------------------------------------------------------------------------------------------------------------*/
+
+@media only screen and (min-width: 320px) and (max-width: 480px) and (orientation: portrait) {
+    /*.sbc-item img {
+        width: 100px;
+    }*/
+    .sbc-item a h3 {
+        font-size: small !important;
+    }
+}
+
+@media only screen and (min-width: 320px) and (max-width: 480px) and (orientation: landscape) {
+    /*.sbc-item img {
+        width: 100px;
+    }*/
+    .sbc-item a h3 {
+        font-size: small !important;
+    }
+}
+
+
+/*----------------------------------------------------------------------
+             iPhone 6,
+             iPhone 6 Plus,
+             Galaxy S6 & Galaxy S6 Edge 
+------------------------------------------------------------------------------------*/
+
+@media only screen and (min-width: 375px) and (max-width: 667px) and (orientation: portrait),
+only screen and (min-width: 414px) and (max-width: 736px) and (orientation: portrait),
+only screen and (min-width: 380px) and (max-width: 640px) and (orientation: portrait) {
+    .sbc-item img {
+        width: 150px;
+    }
+}
+
+@media only screen and (min-width: 375px) and (max-width: 667px) and (orientation: landscape),
+only screen and (min-width: 414px) and (max-width: 736px) and (orientation: landscape),
+only screen and (min-width: 380px) and (max-width: 640px) and (orientation: landscape) {
+    .sbc-item img {
+        width: 200px;
+    }
+}
