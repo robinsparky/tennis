@@ -123,7 +123,7 @@ class Club extends AbstractData
 
     public function save() {
 		if($this->isnew) $this->create();
-		elseif ($this->isdrity) $this->update();
+		elseif ($this->isdirty) $this->update();
 	}
 
 	private function create() {
