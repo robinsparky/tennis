@@ -19,7 +19,6 @@ class Event extends AbstractData
 { 
     private static $tablename = 'tennis_event';
     
-    private $ID;
 	private $name;
     private $club_ID;
     

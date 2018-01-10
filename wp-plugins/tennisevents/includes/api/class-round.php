@@ -18,7 +18,6 @@ class Round extends AbstractData
 { 
     private static $tablename = 'tennis_round';
     
-    private $ID;
     private $owner_ID;
     private $owner_type;
     

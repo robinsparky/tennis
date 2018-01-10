@@ -19,7 +19,6 @@ class Draw extends AbstractData
 { 
     private static $tablename = 'tennis_draw';
     
-    private $ID;
     private $event_ID;
     private $name;
     private $elimination;

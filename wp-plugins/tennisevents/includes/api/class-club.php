@@ -20,7 +20,6 @@ class Club extends AbstractData
 	//table name
 	private static $tablename = 'tennis_club';
 	private $name;
-	private $ID;
 
 	private $courts;
 	private $events;

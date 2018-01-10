@@ -18,7 +18,6 @@ class Match extends AbstractData
 { 
     private static $tablename = 'tennis_match';
     
-    private $ID;
     private $round_ID;
     
     private $home;

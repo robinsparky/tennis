@@ -24,7 +24,8 @@ abstract class AbstractData
     abstract public function delete();
 
 	private $isdirty = FALSE;
-	private $isnew   = TRUE;
+    private $isnew   = TRUE;
+    private $ID;
 
 } //end class
  
