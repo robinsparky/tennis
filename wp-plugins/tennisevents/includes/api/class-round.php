@@ -24,20 +24,20 @@ class Round extends AbstractData
 	private $matches;
     
     /**
-     * Search for Draws that have a name 'like' the provided criteria
+     * Search for Rounds that have a name 'like' the provided criteria
      */
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where name like '%%s%'";
+		$sql = "select * from $table where owner_type like '%%s%'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Draw::search $wpdb->num_rows rows returned using criteria: $criteria");
+		error_log("Round::search $wpdb->num_rows rows returned using criteria: $criteria");
 
 		$col = array();
 		foreach($rows as $row) {
-            $obj = new Draw;
+            $obj = new Round;
             self::mapData($obj,$row);
 			$obj->isnew = FALSE;
 			$col[] = $obj;
@@ -47,20 +47,20 @@ class Round extends AbstractData
     }
     
     /**
-     * Find all Events belonging to a specific club;
+     * Find all Rounds belonging to a specific Draw;
      */
     public static function find($fk_id) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where event_ID = %d";
+		$sql = "select * from $table where draw_ID = %d";
 		$safe = $wpdb->prepare($sql,$fk_id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Draw::find $wpdb->num_rows rows returned using event_ID=$fk_id");
+		error_log("Round::find $wpdb->num_rows rows returned using event_ID=$fk_id");
 
 		$col = array();
 		foreach($rows as $row) {
-            $obj = new Draw;
+            $obj = new Round;
             self::mapData($obj,$row);
 			$obj->isnew = FALSE;
 			$col[] = $obj;
@@ -69,7 +69,7 @@ class Round extends AbstractData
     }
 
 	/**
-	 * Get instance of a Event using it's ID
+	 * Get instance of a Round using it's ID
 	 */
     static public function get($id) {
 		global $wpdb;
@@ -78,12 +78,12 @@ class Round extends AbstractData
 		$safe = $wpdb->prepare($sql,$id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
-		error_log("Draw::get(id) $wpdb->num_rows rows returned.");
+		error_log("Round::get(id) $wpdb->num_rows rows returned.");
 
 		if($rows.length !== 1) {
 			$obj = NULL;
 		} else {
-			$obj = new Draw;
+			$obj = new Round;
 			foreach($rows as $row) {
                 self::mapData($obj,$row);
 				$obj->isnew = FALSE;
@@ -96,12 +96,13 @@ class Round extends AbstractData
 	public function _construct() {
         $this->isnew = TRUE;
         $this->owner_ID = -1;
-        $this->owner_type = 'draw';
+        $this->owner_type = 'draw'; //Other posibility is 'robin'
     }
     
     public function getRoundNumber(){
-        return $this->ID;
+        return $this->getID();
     }
+
 
     /**
      * Set this Round's owner type: draw or robin
@@ -123,7 +124,7 @@ class Round extends AbstractData
      */
     public function setOwnerId($owner) {
         if(!is_numeric($owner) || $owner < 1) return;
-        $this->owner_ID = $event;
+        $this->owner_ID = $owner;
         $this->isdirty = TRUE;
     }
 
@@ -144,7 +145,7 @@ class Round extends AbstractData
     }
     
     /**
-     * Save this Draw to the daatabase
+     * Save this Round to the database
      */
     public function save() {
 		if($this->isnew) $this->create();
@@ -154,7 +155,7 @@ class Round extends AbstractData
 	private function create() {
         global $wpdb;
         
-        if($this->event_ID < 1) return;
+        if(!$this->isValid()) return;
 
         $values         = array('owner_type' => $this->owner_type
                                ,'owner_ID' => $this->owner_ID);
@@ -171,7 +172,7 @@ class Round extends AbstractData
 	private function update() {
 		global $wpdb;
 
-        if($this->club_ID <= 0) return;
+        if(!$this->isValid()) return;
 
         $values         = array('owner_type' => $this->owner_type
                                ,'owner_ID' => $this->owner_ID);
@@ -188,6 +189,14 @@ class Round extends AbstractData
 
     public function delete() {
 
+    }
+
+    protected function isValid() {
+        $isvalid = TRUE;
+        if(!isset($this->owner_ID)) $isvalid = FALSE;
+        if(!isset($this->owner_type)) $isvalid = FALSE;
+        
+        return $isvalid;
     }
     
     /**

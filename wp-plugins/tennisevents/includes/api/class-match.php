@@ -5,11 +5,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require('abstract-class-data.php');
-require('class-entry.php');
+require('class-entrant.php');
+require('class-game.php');
 
 /** 
- * Data and functions for Tennis Event Round(s)
- * @class  Round
+ * Data and functions for Tennis Event Match(es)
+ * @class  Match
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
@@ -20,17 +21,19 @@ class Match extends AbstractData
     
     private $round_ID;
     
+    //Games
+    private $games;
+
+    //Match needs 2 entrants: home and visitor
     private $home;
     private $visitor;
     
     /**
-     * Search for Draws that have a name 'like' the provided criteria
+     * Search for Matches that have a name 'like' the provided criteria
      */
     public static function search($criteria) {
 		$col = array();
-
 		return $col;
-
     }
     
     /**
@@ -43,7 +46,7 @@ class Match extends AbstractData
 		$safe = $wpdb->prepare($sql,$fk_id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Match::find $wpdb->num_rows rows returned using event_ID=$fk_id");
+		error_log("Match::find $wpdb->num_rows rows returned using round_ID=$fk_id");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -82,18 +85,18 @@ class Match extends AbstractData
 	/*************** Instance Methods ****************/
 	public function _construct() {
         $this->isnew = TRUE;
-        $this->round_ID = -1;
+        $this->init();
     }
     
     public function getMatchNumber(){
-        return $this->ID;
+        return $this->getID();
     }
 
     /**
      * Set the Home opponent for this match
      */
     public function setHomeEntrant($h) {
-        if($h instanceof Entry ) {
+        if($h instanceof Entrant ) {
             $this->home = $h;
             $this->isdirty = TRUE;
         }
@@ -107,8 +110,8 @@ class Match extends AbstractData
      * Set the Visitor opponent for this match
      */
     public function setVisitorEntrant($v) {
-        if($v instanceof Entry ) {
-            $this->visitor = $h;
+        if($v instanceof Entrant ) {
+            $this->visitor = $v;
             $this->isdirty = TRUE;
         }
     }
@@ -117,16 +120,29 @@ class Match extends AbstractData
         return $this->visitor;
     }
 
-    public function getOwnerType() {
-        return $this->owner_type;
-    }
-
 	/**
 	 * Get all my children!
-	 * 1. Matches
+	 * 1. Entrants
+     * 2. Games
 	 */
     public function getChildren() {
-        if(count($this->matches) === 0) $this->matches = Match::find($this->ID);
+        $this->getEntrants();
+        $this->getGames();
+    }
+
+    private function getEntrants() {
+        $entrants = Entrant::find($this->ID,'match');
+        $ents = count($entrants);
+        error_log("Match::getEntrants found $ents");
+        if($ents === 2) {
+            $entrants = $this->objSort($entrants,$this->getIndex());
+            $this->setHomeEntrant($entrants[0]);
+            $this->setVisitorEntrant($entrants[1]);
+        }
+    }
+
+    private function getGames() {
+        $this->games = Game::find($this->ID);
     }
     
     /**
@@ -135,21 +151,27 @@ class Match extends AbstractData
     public function save() {
 		if($this->isnew) $this->create();
 		elseif ($this->isdirty) $this->update();
-	}
+    }
+    
+    public function isValid() {
+        $isvalid = TRUE;
+        if(!isset($this->round_ID)) $isvalid = FALSE;
+
+        return $isvalid;
+    }
 
 	private function create() {
         global $wpdb;
         
-        if($this->event_ID < 1) return;
+        if(!$this->isValid()) return;
 
-        $values         = array('owner_type' => $this->owner_type
-                               ,'owner_ID' => $this->owner_ID);
-		$formats_values = array('%s','%d');
+        $values         = array('round_ID' => $this->round_ID);
+		$formats_values = array('%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
 
-		error_log("Round::create $wpdb->rows_affected rows affected.");
+		error_log("Match::create $wpdb->rows_affected rows affected.");
 
 		return $wpdb->rows_affected;
 	}
@@ -157,17 +179,16 @@ class Match extends AbstractData
 	private function update() {
 		global $wpdb;
 
-        if($this->club_ID <= 0) return;
+        if($this->isValid()) return;
 
-        $values         = array('owner_type' => $this->owner_type
-                               ,'owner_ID' => $this->owner_ID);
-		$formats_values = array('%s','%d');
+        $values         = array('round_ID' => $this->owner_ID);
+		$formats_values = array('%d');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
 
-		error_log("Round::update $wpdb->rows_affected rows affected.");
+		error_log("Match::update $wpdb->rows_affected rows affected.");
 
 		return $wpdb->rows_affected;
 	}
@@ -177,12 +198,22 @@ class Match extends AbstractData
     }
     
     /**
-     * Map incoming data to an instance of Round
+     * Map incoming data to an instance of Match
      */
     protected static function mapData($obj,$row) {
         $obj->ID = $row["ID"];
-        $obj->owner_type = $row["owner_type"];
-        $obj->owner_ID = $row["owner_ID"];
+        $obj->round_ID = $row["round_ID"];
+    }
+    
+    private function getIndex($obj) {
+        return $obj->getPosition();
+    }
+
+    private function init() {
+        $this->round_ID = NULL;
+        $this->home = NULL;
+        $this->visitor = NULL;
+        $this->games = NULL;
     }
 
 

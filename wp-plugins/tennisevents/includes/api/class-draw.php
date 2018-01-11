@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require('abstract-class-data.php');
-require('class-entry.php');
+require('class-entrant.php');
 require('class-round.php');
 
 /** 
@@ -55,11 +55,13 @@ class Draw extends AbstractData
     public static function find($fk_id) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where event_ID = %d";
+		//Context not really used here
+		$col = 'event_ID';
+		$sql = "select * from $table where $col = %d";
 		$safe = $wpdb->prepare($sql,$fk_id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Draw::find $wpdb->num_rows rows returned using event_ID=$fk_id");
+		error_log("Draw::find $wpdb->num_rows rows returned using $col=$fk_id");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -161,7 +163,7 @@ class Draw extends AbstractData
 	 * Get all entries for this Draw.
 	 */
 	public function getEntries() {
-        if(count($this->entries) === 0) $this->entries = Entry::find($this->ID);
+        if(count($this->entries) === 0) $this->entries = Entrant::find($this->ID,'draw');
 	}
 
 	/**
@@ -172,7 +174,7 @@ class Draw extends AbstractData
 	}
 
     /**
-     * Save this Draw to the daatabase
+     * Save this Draw to the database
      */
     public function save() {
 		if($this->isnew) $this->create();

@@ -24,6 +24,10 @@ class Court extends AbstractData
     
 	private $bookings;
 
+	public static $Hard = 'hard';
+	public static $Clay = 'clay';
+	public static $HardTrue = 'true';
+
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -90,13 +94,15 @@ class Court extends AbstractData
 	/*************** Instance Methods ****************/
 	public function _construct() {
         $this->isnew = TRUE;
-        $this->club_ID = -1;
+        $this->init();
 	}
 
 	public function setCourtType($courtType) {
-        if(strlen($courtType) < 2) return;
-		$this->court_type = $courtType;
-		$this->isdirty = TRUE;
+		if(!is_string($courtType)) return;
+		if($courtType === Court::$Hard || $courtType === Court::$Clay || $courType = Court::$HardTrue) {
+			$this->court_type = $courtType;
+			$this->isdirty = TRUE;
+		}
     }
 
     public function getCourtType() {
@@ -126,6 +132,14 @@ class Court extends AbstractData
         if(count($this->bookings) === 0) $this->bookings = array(); //CourtBooking::find($this->ID);
 	}
 
+	public function isValid() {
+		$isvalid = TRUE;
+		if(!isset($this->club_ID)) $isvalid = FALSE;
+
+
+		return $isvalid;
+	}
+
     public function save() {
 		if($this->isnew) $this->create();
 		elseif ($this->isdirty) $this->update();
@@ -134,7 +148,7 @@ class Court extends AbstractData
 	private function create() {
 		global $wpdb;
 
-        if($this->club_ID < 1) return;
+        if(!$this->isValid()) return;
 
         $values  = array('court_type' => $this->court_type
                         ,'club_ID'    => $this->club_ID);
@@ -151,7 +165,7 @@ class Court extends AbstractData
 	private function update() {
         global $wpdb;
         
-        if($this->club_ID < 1) return;
+        if(!$this->isValid()) return;
 
         $values         = array('name'    => $this->name
                                ,'club_ID' => $this->club_ID);
@@ -168,7 +182,12 @@ class Court extends AbstractData
 
     public function delete() {
 
-    }
+	}
+	
+	private function init() {
+		$this->club_ID = NULL;
+		$this->court_type = Court::$Hard;
+	}
     
     /**
      * Map incoming data to an instance of Court
