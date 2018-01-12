@@ -25,7 +25,9 @@ class Match extends AbstractData
     private $games;
 
     //Match needs 2 entrants: home and visitor
+    private $home_ID;
     private $home;
+    private $visitor_ID;
     private $visitor;
     
     /**
@@ -39,7 +41,7 @@ class Match extends AbstractData
     /**
      * Find all Matches belonging to a specific Round;
      */
-    public static function find($fk_id) {
+    public static function find($fk_id, $context=NULL) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select * from $table where round_ID = %d";
@@ -52,7 +54,6 @@ class Match extends AbstractData
 		foreach($rows as $row) {
             $obj = new Match;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -70,14 +71,10 @@ class Match extends AbstractData
 
 		error_log("Match::get(id) $wpdb->num_rows rows returned.");
 
-		if($rows.length !== 1) {
-			$obj = NULL;
-		} else {
+        $obj = NULL;
+		if($rows.length === 1) {
 			$obj = new Match;
-			foreach($rows as $row) {
-                self::mapData($obj,$row);
-				$obj->isnew = FALSE;
-			}
+            self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -98,6 +95,7 @@ class Match extends AbstractData
     public function setHomeEntrant($h) {
         if($h instanceof Entrant ) {
             $this->home = $h;
+            $this->home_ID = $h->getID();
             $this->isdirty = TRUE;
         }
     }
@@ -112,6 +110,7 @@ class Match extends AbstractData
     public function setVisitorEntrant($v) {
         if($v instanceof Entrant ) {
             $this->visitor = $v;
+            $this->visitor_ID = $v->getID();
             $this->isdirty = TRUE;
         }
     }
@@ -125,37 +124,29 @@ class Match extends AbstractData
 	 * 1. Entrants
      * 2. Games
 	 */
-    public function getChildren() {
-        $this->getEntrants();
-        $this->getGames();
+    public function getChildren($force=FALSE) {
+        $this->getEntrants($force);
+        $this->getGames($force);
     }
 
-    private function getEntrants() {
-        $entrants = Entrant::find($this->ID,'match');
-        $ents = count($entrants);
-        error_log("Match::getEntrants found $ents");
-        if($ents === 2) {
-            $entrants = $this->objSort($entrants,$this->getIndex());
-            $this->setHomeEntrant($entrants[0]);
-            $this->setVisitorEntrant($entrants[1]);
+    private function getEntrants($force) {
+        if(!isset($this->home_ID) || !isset($this->visitor_ID)) return;
+        
+        if(!isset($this->home) || !isset($this->visitor) || $force) {
+            $this->home = Entrant::get($this->home_ID,'match');
+            $this->visitor = Entrant::get($this->visitor_ID,'match');
         }
     }
 
-    private function getGames() {
-        $this->games = Game::find($this->ID);
-    }
-    
-    /**
-     * Save this Draw to the daatabase
-     */
-    public function save() {
-		if($this->isnew) $this->create();
-		elseif ($this->isdirty) $this->update();
+    private function getGames($force) {
+        if(count($this->games) === 0 || $force) $this->games = Game::find($this->ID);
     }
     
     public function isValid() {
         $isvalid = TRUE;
         if(!isset($this->round_ID)) $isvalid = FALSE;
+        if(!isset($this->home)) $isvalid = FALSE;
+        if(!isset($this->visitor)) $isvalid = FALSE;
 
         return $isvalid;
     }
@@ -165,8 +156,10 @@ class Match extends AbstractData
         
         if(!$this->isValid()) return;
 
-        $values         = array('round_ID' => $this->round_ID);
-		$formats_values = array('%d');
+        $values         = array('round_ID'   => $this->round_ID
+                               ,'home_ID'    => $this->home->ID
+                               ,'visitor_ID' => $this->visitor->ID);
+		$formats_values = array('%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
@@ -181,8 +174,10 @@ class Match extends AbstractData
 
         if($this->isValid()) return;
 
-        $values         = array('round_ID' => $this->owner_ID);
-		$formats_values = array('%d');
+        $values         = array('round_ID'    => $this->owner_ID
+                                ,'home_ID'    => $this->home->ID
+                                ,'visitor_ID' => $this->visitor->ID);
+		$formats_values = array('%d','%d','%d');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
@@ -193,6 +188,7 @@ class Match extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
+    //TODO: Complete the delete logic
     public function delete() {
 
     }
@@ -201,8 +197,10 @@ class Match extends AbstractData
      * Map incoming data to an instance of Match
      */
     protected static function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
+        parent::mapData($obj,$row);
         $obj->round_ID = $row["round_ID"];
+        $obj->home_ID = $row["home_ID"];
+        $obj->visitor_ID = $row["visitor_ID"];
     }
     
     private function getIndex($obj) {
@@ -211,7 +209,9 @@ class Match extends AbstractData
 
     private function init() {
         $this->round_ID = NULL;
+        $this->home_ID = NULL;
         $this->home = NULL;
+        $this->visitor_ID = NULL;
         $this->visitor = NULL;
         $this->games = NULL;
     }

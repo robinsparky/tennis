@@ -7,7 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 require('abstract-class-data.php');
 require('class-entrant.php');
 
-
 /** 
  * Data and functions for Tennis Game(s)
  * @class  Match
@@ -20,7 +19,7 @@ class Game extends AbstractData
     private static $tablename = 'tennis_game';
     
     private $match_ID;
-    private $entry_ID;
+    private $entrant_ID;
     private $entrant;
     private $score;
     private $set_number;
@@ -29,7 +28,20 @@ class Game extends AbstractData
      * Search for Matches that have a name 'like' the provided criteria
      */
     public static function search($criteria) {
+		global $wpdb;
+		$table = $wpdb->prefix . self::$tablename;
+		$sql = "select * from $table where $criteria";
+		$safe = $wpdb->prepare($sql,$criteria);
+		$rows = $wpdb->get_results($safe, ARRAY_A);
+		
+		error_log("Round::search $wpdb->num_rows rows returned where $criteria");
+
 		$col = array();
+		foreach($rows as $row) {
+            $obj = new Game;
+            self::mapData($obj,$row);
+			$col[] = $obj;
+		}
 		return $col;
     }
     
@@ -41,7 +53,7 @@ class Game extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
 
-        if(!isset($context) || !is_string($context)) return $col;
+        if(!is_string($context)) return $col;
 
         if($context === 'match') $column = 'match_ID';
         elseif($context === 'entrant') $column = 'entrant_ID';
@@ -56,7 +68,6 @@ class Game extends AbstractData
 		foreach($rows as $row) {
             $obj = new Game;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -74,14 +85,10 @@ class Game extends AbstractData
 
 		error_log("Game::get(id) $wpdb->num_rows rows returned.");
 
-		if($rows.length !== 1) {
-			$obj = NULL;
-		} else {
-			$obj = new Game;
-			foreach($rows as $row) {
-                self::mapData($obj,$row);
-				$obj->isnew = FALSE;
-			}
+        $obj = NULL;
+		if($rows.length === 1) {
+            $obj = new Game;
+            self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -102,7 +109,7 @@ class Game extends AbstractData
     public function setEntrant($h) {
         if($h instanceof Entrant ) {
             $this->entrant = $h;
-            $this->entry_ID = $h->getID();
+            $this->entrant_ID = $h->getID();
             $this->isdirty = TRUE;
         }
     }
@@ -114,14 +121,20 @@ class Game extends AbstractData
 	/**
 	 * Get all my children!
 	 */
-    public function getChildren() {
+    public function getChildren($force=FALSE) {
+        $this->getEntrant($force);
+    }
 
+    private function getEntrant($force) {
+        if(!isset($this->entrant_ID)) return;
+
+        if(!isset($this->entrant) || $force) $this->entrant = Entrant::get($this->entrant_ID);
     }
     
     public function isValid() {
         $isvalid = TRUE;
         if(!isset($this->match_ID)) $isvalid = FALSE;
-        if(!isset($this->entry_ID)) $isvalid = FALSE;
+        if(!isset($this->entrant_ID)) $isvalid = FALSE;
         if(!isset($this->score))  $isvalid = FALSE;
         if(!isset($this->set_number)) $isvalid = FALSE;
 
@@ -134,7 +147,7 @@ class Game extends AbstractData
         if(!$this->isValid()) return;
 
         $values         = array('match_ID' => $this->match_ID
-                               ,'entry_ID' => $this->entry_ID
+                               ,'entrant_ID' => $this->entrant_ID
                                ,'set_number' => $this->set_number
                                ,'score' => $this->score);
 		$formats_values = array('%d','%d','%d','%d');
@@ -153,7 +166,7 @@ class Game extends AbstractData
         if($this->isValid()) return;
 
         $values         = array('match_ID' => $this->match_ID
-                               ,'entry_ID' => $this->entry_ID
+                               ,'entrant_ID' => $this->entrant_ID
                                ,'set_number' => $this->set_number
                                ,'score' => $this->score);
 		$formats_values = array('%d','%d','%d','%d');
@@ -167,6 +180,7 @@ class Game extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
+    //TODO: Complete the delete logic
     public function delete() {
 
     }
@@ -175,9 +189,9 @@ class Game extends AbstractData
      * Map incoming data to an instance of Game
      */
     protected static function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
+        parent::mapData($obj,$row);
         $obj->match_ID = $row["match_ID"];
-        $obj->entry_ID = $row["entry_ID"];
+        $obj->entry_ID = $row["entrant_ID"];
         $obj->set_number = $row["set_number"];
         $obj->score = $row["score"];
     }
@@ -188,7 +202,7 @@ class Game extends AbstractData
 
     private function init() {
         $this->match_ID = NULL;
-        $this->entry_ID = NULL;
+        $this->entrant_ID = NULL;
         $this->entrant = NULL;
         $this->set_number = NULL;
         $this->score = NULL;

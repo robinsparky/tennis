@@ -16,12 +16,21 @@ abstract class AbstractData
 { 
     abstract static public function search($criteria);
     abstract static public function find($fk_id,$context=NULL);
-    abstract static public function get($id);
-    abstract static protected function mapData($obj,$row);
 
     abstract public function isValid();
-    abstract public function getChildren();
+    abstract public function getChildren($force=FALSE);
     abstract public function delete();
+
+    
+    /**
+     * Map incoming row of data to an object
+     * This function s/b called from child object's
+     * implemetation as parent::mapData
+     */
+    static protected function mapData($obj,$row) {
+        $obj->ID = $row["ID"];
+        $obj->isnew = FALSE;
+    }
     
     /**
      * Save this Object to the database
@@ -31,18 +40,31 @@ abstract class AbstractData
 		elseif ($this->isdirty) $this->update();
     }
 
+    /**
+     * Have there been changes to this object?
+     */
     public function isDirty() {
         return $this->isdirty;
     }
 
+    /**
+     * Is this a new object?
+     */
     public function isNew() {
-        return $isnew;
+        return $this->isnew;
     }
 
+    /**
+     * Get the ID of this object
+     */
     public function getID() {
         return $this->ID;
     }
 
+    /**
+     * Support for sorting array of objects
+     * The object needs to supply the "indexFunction"
+     */
     protected function objSort(&$objArray,$indexFunction,$sort_flags=0) {
         $indices = array();
         foreach($objArray as $obj) {
@@ -51,9 +73,9 @@ abstract class AbstractData
         return array_multisort($indeces,$objArray,$sort_flags);
     }  
 
-	private $isdirty = FALSE;
-    private $isnew   = TRUE;
-    private $ID;
+	protected $isdirty = FALSE;
+    protected $isnew   = TRUE;
+    protected $ID;
 
 } //end class
  

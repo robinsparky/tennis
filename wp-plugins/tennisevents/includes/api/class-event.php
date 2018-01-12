@@ -41,15 +41,14 @@ class Event extends AbstractData
 		foreach($rows as $row) {
             $obj = new Event;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
-
     }
     
     /**
-     * Find all Events belonging to a specific club;
+     * Find all Events belonging to a specific club.
+	 * i.e. club_ID is a foreign key reference to a club
      */
     public static function find($fk_id) {
 		global $wpdb;
@@ -64,7 +63,6 @@ class Event extends AbstractData
 		foreach($rows as $row) {
             $obj = new Event;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -88,7 +86,6 @@ class Event extends AbstractData
 			$obj = new Event;
 			foreach($rows as $row) {
                 self::mapData($obj,$row);
-				$obj->isnew = FALSE;
 			}
 		}
 		return $obj;
@@ -96,15 +93,15 @@ class Event extends AbstractData
 
 	/*************** Instance Methods ****************/
 	public function _construct() {
-        $this->isnew = TRUE;
-        $this->club_ID = -1;
+		$this->isnew = TRUE;
+		$this->init();
 	}
 
     /**
      * Set a new value for a name of an Event
      */
 	public function setName($name) {
-        if(strlen($name) < 2) return;
+        if(!is_string($name) || strlen($name) < 2) return;
 		$this->name = $name;
 		$this->dirty = TRUE;
     }
@@ -134,37 +131,29 @@ class Event extends AbstractData
 	 * 1. Draws
 	 * 2. Teams
 	 */
-    public function getChildren() {
-		$this->getDraws();
-		$this->getTeams();
+    public function getChildren($force=FALSE) {
+		$this->getDraws($force);
+		$this->getTeams($force);
 	}
 
 	/**
 	 * Get all events for this club.
 	 */
-	public function getDraws() {
-        if(count($this->draws) === 0) $this->draws = Draw::find($this->ID);
+	public function getDraws($force) {
+        if(count($this->draws) === 0 || $force) $this->draws = Draw::find($this->ID);
 	}
 
 	/**
 	 * Get all courts in this club.
 	 */
-	public function getTeams() {
-        if(count($this->teams) === 0) $this->teams = Team::find($this->ID);
+	public function getTeams($force) {
+        if(count($this->teams) === 0 || $force) $this->teams = Team::find($this->ID);
 	}
 
-    /**
-     * Save this Event to the daatabase
-     */
-    public function save() {
-		if($this->isnew) $this->create();
-		elseif ($this->isdirty) $this->update();
-	}
-
-	private function create() {
+	protected function create() {
         global $wpdb;
         
-        if($this->club_ID < 1) return;
+        if(!$this->isValid()) return;
 
         $values         = array('name'=>$this->name
                                ,'club_ID'=>$this->club_ID);
@@ -178,10 +167,10 @@ class Event extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
-	private function update() {
+	protected function update() {
 		global $wpdb;
 
-        if($this->club_ID <= 0) return;
+        if(!$this->isValid()) return;
 
         $values         = array('name' => $this->name
                                ,'club_ID' => $this->club_ID);
@@ -196,18 +185,31 @@ class Event extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
+	//TODO: Complete the delete logic
     public function delete() {
 
-    }
-    
+	}
+	
+	public function isValid() {
+		$isvalid = TRUE;
+		if(!isset($this->clubID)) $isvalid = FALSE;
+		if(!isset($this->name)) $isvalid = FALSE;
+
+		return $isvalid;
+	}
+
     /**
      * Map incoming data to an instance of Event
      */
     protected static function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
+		parent::mapData($obj,$row);
         $obj->name = $row["name"];
         $obj->club_ID = $row["club_ID"];
-    }
-
+	}
+	
+	private function init() {
+		$this->club_ID = NULL;
+		$this->name    = NULL;
+	}
 
 } //end class

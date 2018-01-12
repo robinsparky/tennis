@@ -8,7 +8,7 @@ require('abstract-class-data.php');
 
 /** 
  * Data and functions for Tennis Player(s)
- * @class  Match
+ * @class  Player
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
@@ -17,9 +17,9 @@ class Player extends AbstractData
 { 
     private static $tablename = 'tennis_player';
     
-    private $tennis_entry_ID; //NOT NULL
-    private $tennis_squad_ID; //NOT NULL
-    private $tennis_entry_draw_ID; //NOT NULL
+    private $entrant_ID; //NOT NULL
+    private $squad_ID; //NOT NULL
+    private $entrant_draw_ID; //NOT NULL
 
     private $last_name; //NOT NULL
     private $first_name;
@@ -36,7 +36,7 @@ class Player extends AbstractData
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Entrant::search $wpdb->num_rows rows returned using criteria: $criteria");
+		error_log("Player::search $wpdb->num_rows rows returned using criteria: $criteria");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -58,13 +58,12 @@ class Player extends AbstractData
 		$safe = $wpdb->prepare($sql,$fk_id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Match::find $wpdb->num_rows rows returned using entry_ID=$fk_id");
+		error_log("Player::find $wpdb->num_rows rows returned using entry_ID=$fk_id");
 
 		$col = array();
 		foreach($rows as $row) {
             $obj = new Player;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -82,14 +81,10 @@ class Player extends AbstractData
 
 		error_log("Player::get(id) $wpdb->num_rows rows returned.");
 
-		if($rows.length !== 1) {
-			$obj = NULL;
-		} else {
+        $obj = NULL;
+		if($rows.length === 1) {
 			$obj = new Player;
-			foreach($rows as $row) {
-                self::mapData($obj,$row);
-				$obj->isnew = FALSE;
-			}
+            self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -97,6 +92,7 @@ class Player extends AbstractData
 	/*************** Instance Methods ****************/
 	public function _construct() {
         $this->isnew = TRUE;
+        $this->init();
     }
     
 
@@ -122,7 +118,7 @@ class Player extends AbstractData
     
     public function setSkillLevel($skill) {
         if(!is_nan($skill)) return;
-        if($skill < 1.0 || $skill > 7.0) return;
+        if($skill < 1.0 || $skill > 7.5) return;
         $this->skill_level = $skill;
         $this->isdirty = TRUE;
     }
@@ -131,22 +127,22 @@ class Player extends AbstractData
         return $this->skill;
     }
 
-    public function setEntryID($id) {
+    public function setEntrantID($id) {
         if(!is_numeric($id) || $id < 1) return;
-        $this->tennis_entry_ID = $id;
+        $this->tennis_entrant_ID = $id;
     }
 
-    public function getEntryID() {
-        return $this->tennis_entry_ID;
+    public function getEntrantID() {
+        return $this->tennis_entrant_ID;
     }
     
     public function setDrawID($id) {
         if(!is_numeric($id) || $id < 1) return;
-        $this->tennis_entry_draw_ID = $id;
+        $this->tennis_entrant_draw_ID = $id;
     }
 
     public function getDrawID() {
-        return $this->tennis_entry_draw_ID;
+        return $this->tennis_entrant_draw_ID;
     }
     
     public function setSquadID($id) {
@@ -173,10 +169,10 @@ class Player extends AbstractData
         $values         = array('last_name' => $this->last_name
                                ,'first_name' => $this->last_name
                                ,'skill_level' => $this->skill_level
-                               ,'tennis_entry_ID' => $this->tennis_entry_ID
-                               ,'tennis_entry_draw_ID' => $this->tennis_entry_draw_ID
-                               ,'tennis_squad_ID' => $this->$tennis_squad_ID);
-		$formats_values = array('%s','%s','%s','%d','%d','%d');
+                               ,'entrant_ID' => $this->entrant_ID
+                               ,'entrant_draw_ID' => $this->entry_draw_ID
+                               ,'squad_ID' => $this->$squad_ID);
+		$formats_values = array('%s','%s','%d','%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
@@ -194,10 +190,10 @@ class Player extends AbstractData
         $values         = array('last_name' => $this->last_name
                                ,'first_name' => $this->last_name
                                ,'skill_level' => $this->skill_level
-                               ,'tennis_entry_ID' => $this->tennis_entry_ID
-                               ,'tennis_entry_draw_ID' => $this->tennis_entry_draw_ID
-                               ,'tennis_squad_ID' => $this->$tennis_squad_ID);
-        $formats_values = array('%s','%s','%s','%d','%d','%d');
+                               ,'entrant_ID' => $this->entrant_ID
+                               ,'entrant_draw_ID' => $this->entrant_draw_ID
+                               ,'squad_ID' => $this->$tennis_squad_ID);
+        $formats_values = array('%s','%s','%d','%d','%d','%d');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
@@ -214,10 +210,10 @@ class Player extends AbstractData
 
     public function isValid() {
         $isvalid = TRUE;
-        if(!isset($this->tennis_entry_ID) || !is_numeric($this->tennis_entry_ID)) $isvalid = FALSE;
-        if(!isset($this->tennis_entry_draw_ID) || !is_numeric($this->tennis_entry_draw_ID)) $isvalid = FALSE;
+        if(!isset($this->entrant_ID) || !is_numeric($this->entrant_ID)) $isvalid = FALSE;
+        if(!isset($this->entrant_draw_ID) || !is_numeric($this->entrant_draw_ID)) $isvalid = FALSE;
         if(!isset($this->last_name) || !is_string($this->last_name)) $isvalid = FALSE;
-        if(!is_nan($skill)) $isvalid = FALSE;
+        if(isset($this->skill) && is_nan($skill)) $isvalid = FALSE;
         
         return $isvalid;
     }
@@ -226,10 +222,10 @@ class Player extends AbstractData
      * Map incoming data to an instance of Round
      */
     protected static function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
-        $obj->tennis_entry_ID = $row["tennis_entry_ID "];
-        $obj->tennis_entry_draw_ID  = $row["tennis_entry_draw_ID"];
-        $obj->tennis_squad_ID   = $row["tennis_squad_ID "];
+        parent::mapData($obj,$row);
+        $obj->entrant_ID = $row["entrant_ID "];
+        $obj->entrant_draw_ID  = $row["entrant_draw_ID"];
+        $obj->squad_ID   = $row["squad_ID "];
         $obj->last_name  = $row["last_name"];
         $obj->first_name  = $row["first_name"];
         $obj->skill_level =$row["skill_level"];
@@ -239,13 +235,12 @@ class Player extends AbstractData
      * Initialize this instance;
      */
     private function init() {
-        $this->tennis_entry_ID = NULL;
-        $this->tennis_entry_draw_ID = NULL;
-        $this->tennis_squad_ID = NULL;
+        $this->entrant_ID = NULL;
+        $this->entrant_draw_ID = NULL;
+        $this->squad_ID = NULL;
         $this->last_name = NULL;
         $this->first_name = NULL;
         $this->skill_level = NULL;
     }
-
 
 } //end class

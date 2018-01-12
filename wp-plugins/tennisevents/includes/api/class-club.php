@@ -21,7 +21,15 @@ class Club extends AbstractData
 	private static $tablename = 'tennis_club';
 	private $name;
 
+	/**
+	 * Collection of tennis courts
+	 */
 	private $courts;
+
+	/**
+	 * Collection of tennis events
+	 * such as Leagues, Tournaments and Round Robins
+	 */
 	private $events;
 	
 	/*************** Static methods ******************/
@@ -47,7 +55,11 @@ class Club extends AbstractData
 		return $col;
 	}
 
-	static public function find($fk_id) {
+	/**
+	 * Find Clubs referenced 
+	 * as a foreign key in some other object
+	 */
+	static public function find($fk_id,$context=NULL) {
 		return array();
 	}
 
@@ -62,10 +74,8 @@ class Club extends AbstractData
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		error_log("Club::get(id) $wpdb->num_rows rows returned.");
-
-		if($rows.length !== 1) {
-			$obj = NULL;
-		} else {
+		$obj = NULL;
+		if( $rows.length === 1 ) {
 			$obj = new Club;
 			foreach($rows as $row) {
 				self::mapData($obj,$row);
@@ -81,8 +91,7 @@ class Club extends AbstractData
 	}
 
 	public function setName($name) {
-		if(strlen($name) < 2) return;
-		
+		if(!is_string($name) || strlen($name) < 2) return;
 		$this->name = $name;
 		$this->isdirty = TRUE;
 	}
@@ -99,33 +108,40 @@ class Club extends AbstractData
 	 * 1. Events
 	 * 2. Courts
 	 */
-    public function getChildren() {
-		$this->events = $this->getEvents();
-		$this->courts = $this->getCourts();
+    public function getChildren($force=FALSE) {
+		$this->events = $this->getEvents($force);
+		$this->courts = $this->getCourts($force);
 	}
 
 	/**
 	 * Get all events for this club.
 	 */
-	public function getEvents() {
-		if(count($this->events) === 0) $this->events = Event::find($this->ID);
-		return $this->events;
+	public function getEvents($force) {
+		$events;
+		if(count($this->events) === 0) {
+			$events = Event::find($this->ID);
+		}
+		elseif($force) {			
+			$events = Event::find($this->ID);
+		}
+		return $events;
 	}
 
 	/**
 	 * Get all courts in this club.
 	 */
-	public function getCourts() {
-		if(count($this->courts) === 0) $this->events = Court::find($this->ID);
-		return $this->courts;
+	public function getCourts($force) {
+		$courts;
+		if(count($this->courts) === 0) {
+			$courts = Court::find($this->ID);
+		}
+		elseif($force) {
+			$courts = Court::find($this->ID);			
+		}
+		return $courts;
 	}
 
-    public function save() {
-		if($this->isnew) $this->create();
-		elseif ($this->isdirty) $this->update();
-	}
-
-	private function create() {
+	protected function create() {
 		global $wpdb;
 
 		$values         = array('name'=>$this->name);
@@ -142,7 +158,7 @@ class Club extends AbstractData
 	/**
 	 * Update the Club in the database
 	 */
-	private function update() {
+	protected function update() {
 		global $wpdb;
 
 		$values         = array('name'=>$this->name);

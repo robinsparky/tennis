@@ -48,7 +48,7 @@ class Court extends AbstractData
 
     }
     
-    public static function find($fk_id) {
+    public static function find($fk_id,$context=NULL) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select * from $table where club_ID = %d";
@@ -125,27 +125,27 @@ class Court extends AbstractData
 
 	/**
 	 * Get all my children!
-	 * 1. Events
-	 * 2. Courts
+	 * 1. Bookings
 	 */
-    public function getChildren() {
-        if(count($this->bookings) === 0) $this->bookings = array(); //CourtBooking::find($this->ID);
+    public function getChildren($force=FALSE) {
+		$this->getBookings($force);
+	}
+
+	private function getBookings($force) {
+        if(count($this->bookings) === 0 || $force) {
+			$this->bookings = array(); //CourtBooking::find($this->ID);
+		}
 	}
 
 	public function isValid() {
 		$isvalid = TRUE;
 		if(!isset($this->club_ID)) $isvalid = FALSE;
-
+		if(!isset($this->name)) $invalid = FALSE;
 
 		return $isvalid;
 	}
 
-    public function save() {
-		if($this->isnew) $this->create();
-		elseif ($this->isdirty) $this->update();
-	}
-
-	private function create() {
+	protected function create() {
 		global $wpdb;
 
         if(!$this->isValid()) return;
@@ -162,7 +162,7 @@ class Court extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
-	private function update() {
+	protected function update() {
         global $wpdb;
         
         if(!$this->isValid()) return;

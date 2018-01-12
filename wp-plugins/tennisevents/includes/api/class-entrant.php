@@ -16,7 +16,7 @@ require('class-player.php');
 */
 class Entrant extends AbstractData
 { 
-    private static $tablename = 'tennis_entry';
+    private static $tablename = 'tennis_entrant';
 	
 	//Foreign keys
     private $draw_ID;
@@ -59,7 +59,6 @@ class Entrant extends AbstractData
 		foreach($rows as $row) {
             $obj = new Entrant;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -68,27 +67,27 @@ class Entrant extends AbstractData
     /**
      * Find all Entrants belonging to a specific Draw or Match
      */
-    public static function find($fk_id, $context) {
+    public static function find($fk_id, $context='draw') {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
 
-		if(!isset($context) || !is_string($context)) return $col;
+		if(!is_string($context)) return $col;
+
 		if($context === 'draw') $column = 'draw_ID';
 		elseif($context === 'match') $column = 'match_ID';
 		elseif($context === 'game') $column = 'game_ID';
 		else return $col;
 
-		$sql = "select * from $table where $column = %d";
+		$sql = "select * from $table where $column = %d order by position";
 		$safe = $wpdb->prepare($sql,$fk_id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Draw::find $wpdb->num_rows rows returned using draw_ID=$fk_id");
+		error_log("Draw::find $wpdb->num_rows rows returned using $column=$fk_id");
 
 		foreach($rows as $row) {
             $obj = new Entrant;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -106,14 +105,10 @@ class Entrant extends AbstractData
 
 		error_log("Draw::get(id) $wpdb->num_rows rows returned.");
 
-		if($rows.length !== 1) {
-			$obj = NULL;
-		} else {
+		$obj = NULL;
+		if($rows.length === 1) {
 			$obj = new Entrant;
-			foreach($rows as $row) {
-                self::mapData($obj,$row);
-				$obj->isnew = FALSE;
-			}
+			self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -128,7 +123,7 @@ class Entrant extends AbstractData
      * Set a new value for a name of this Draw
      */
 	public function setName($name) {
-        if(!is_string($name) || strlen($name) < 1) return;
+        if(!is_string($name)) return;
 		$this->name = $name;
 		$this->dirty = TRUE;
     }
@@ -208,23 +203,15 @@ class Entrant extends AbstractData
 	 * Get all my children!
 	 * 1. Players
 	 */
-    public function getChildren() {
-		$this->getPlayers();
+    public function getChildren($force=FALSE) {
+		$this->getPlayers($force);
 	}
 
 	/**
 	 * Get all Players for this Entrant.
 	 */
-	public function getPlayers() {
-        if(count($this->players) === 0) $this->players = Player::find($this->ID);
-	}
-
-    /**
-     * Save this Draw to the daatabase
-     */
-    public function save() {
-		if($this->isnew) $this->create();
-		elseif ($this->isdirty) $this->update();
+	public function getPlayers($force) {
+        if(count($this->players) === 0 || $force) $this->players = Player::find($this->ID);
 	}
 
 	public function isValid() {
@@ -236,7 +223,7 @@ class Entrant extends AbstractData
 		return $isvalid;
 	}
 
-	private function create() {
+	protected function create() {
 		global $wpdb;
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
@@ -259,7 +246,7 @@ class Entrant extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
-	private function update() {
+	protected function update() {
 		global $wpdb;
 		$values;
 		$formats_values;
@@ -291,11 +278,13 @@ class Entrant extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
+	//TODO: Complete the delete logic
     public function delete() {
 
 	}
 	
 	private function init() {
+		$this->name = NULL;
 		$this->draw_ID = NULL;
 		$this->match_ID = NULL;
 		$this->position = NULL;
@@ -309,7 +298,7 @@ class Entrant extends AbstractData
 		error_log("Entrant::mapData:");
 		error_log(var_dump($row));
 
-        $obj->ID = $row["ID"];
+		parent::mapData($obj,$row);
         $obj->name = $row["name"];
 		$obj->draw_ID = $row["draw_ID"];
 		$obj->match_ID = $row["match_ID"];

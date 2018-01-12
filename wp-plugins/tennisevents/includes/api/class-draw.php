@@ -23,7 +23,7 @@ class Draw extends AbstractData
     private $name;
     private $elimination;
     
-	private $entries;
+	private $entrants;
     private $rounds;
     
     /**
@@ -42,7 +42,6 @@ class Draw extends AbstractData
 		foreach($rows as $row) {
             $obj = new Draw;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -50,7 +49,7 @@ class Draw extends AbstractData
     }
     
     /**
-     * Find all Events belonging to a specific club;
+     * Find all Draws belonging to a specific Event;
      */
     public static function find($fk_id) {
 		global $wpdb;
@@ -67,7 +66,6 @@ class Draw extends AbstractData
 		foreach($rows as $row) {
             $obj = new Draw;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -85,14 +83,10 @@ class Draw extends AbstractData
 
 		error_log("Draw::get(id) $wpdb->num_rows rows returned.");
 
-		if($rows.length !== 1) {
-			$obj = NULL;
-		} else {
+		$obj = NULL;
+		if($rows.length === 1) {
 			$obj = new Draw;
-			foreach($rows as $row) {
-                self::mapData($obj,$row);
-				$obj->isnew = FALSE;
-			}
+			self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -100,14 +94,14 @@ class Draw extends AbstractData
 	/*************** Instance Methods ****************/
 	public function _construct() {
         $this->isnew = TRUE;
-        $this->event_ID = -1;
+        $this->init();
 	}
 
     /**
      * Set a new value for a name of this Draw
      */
 	public function setName($name) {
-        if(strlen($name) < 1) return;
+        if(!is_string($name) || strlen($name) < 5) return;
 		$this->name = $name;
 		$this->dirty = TRUE;
     }
@@ -139,7 +133,7 @@ class Draw extends AbstractData
      * Set the elimination type for this Draw
      */
     public function setEliminationType($elim) {
-        if(strlen($elim) < 2) return;
+        if(!is_string($elim) || strlen($elim) < 6) return;
 		$this->elimination = $elim;
 		$this->dirty = TRUE;
 
@@ -154,37 +148,29 @@ class Draw extends AbstractData
 	 * 1. Draws
 	 * 2. Courts
 	 */
-    public function getChildren() {
-		$this->getEntries();
-		$this->getRounds();
+    public function getChildren($force=FALSE) {
+		$this->getEntrants($force);
+		$this->getRounds($force);
 	}
 
 	/**
 	 * Get all entries for this Draw.
 	 */
-	public function getEntries() {
-        if(count($this->entries) === 0) $this->entries = Entrant::find($this->ID,'draw');
+	public function getEntrants() {
+        if(count($this->entrants) === 0 || $force) $this->entrants = Entrant::find($this->ID,'draw');
 	}
 
 	/**
 	 * Get all Rounds in this Draw.
 	 */
-	public function getRounds() {
-        if(count($this->rounds) === 0) $this->rounds = Round::find($this->ID);
-	}
-
-    /**
-     * Save this Draw to the database
-     */
-    public function save() {
-		if($this->isnew) $this->create();
-		elseif ($this->isdirty) $this->update();
+	public function getRounds($force) {
+        if(count($this->rounds) === 0 || $force) $this->rounds = Round::find($this->ID);
 	}
 
 	private function create() {
         global $wpdb;
         
-        if($this->event_ID < 1) return;
+        if(!$this->isValid()) return;
 
         $values         = array('name' => $this->name
                                ,'event_ID' => $this->event_ID
@@ -202,7 +188,7 @@ class Draw extends AbstractData
 	private function update() {
 		global $wpdb;
 
-        if($this->club_ID <= 0) return;
+        if(!$this->isValid()) return;
 
         $values         = array('name' => $this->name
                                ,'event_ID' => $this->event_ID
@@ -218,6 +204,16 @@ class Draw extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
+	public function isValid() {
+		$isvalid = TRUE;
+		if(!isset($this->name)) $isvalid = FALSE;
+		if(!issest($this->event_ID)) $isvalid = FALSE;
+		if(!isset($this->elimination)) $isvalid = FALSE;
+
+		return $isvalid;
+	}
+
+	//TODO: Complete the delete logic
     public function delete() {
 
     }
@@ -226,11 +222,17 @@ class Draw extends AbstractData
      * Map incoming data to an instance of Event
      */
     protected static function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
+        parent::mapData($obj,$row);
         $obj->name = $row["name"];
         $obj->event_ID = $row["event_ID"];
         $obj->elimination = $row["elimination"];
-    }
+	}
+	
+	private function init() {
+		$this->name = NULL;
+		$this->event_ID = NULL;
+		$this->elimination = NULL;
+	}
 
 
 } //end class

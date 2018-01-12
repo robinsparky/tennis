@@ -39,7 +39,6 @@ class Round extends AbstractData
 		foreach($rows as $row) {
             $obj = new Round;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -49,20 +48,19 @@ class Round extends AbstractData
     /**
      * Find all Rounds belonging to a specific Draw;
      */
-    public static function find($fk_id) {
+    public static function find($fk_id, $context=NULL) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select * from $table where draw_ID = %d";
 		$safe = $wpdb->prepare($sql,$fk_id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Round::find $wpdb->num_rows rows returned using event_ID=$fk_id");
+		error_log("Round::find $wpdb->num_rows rows returned using draw_ID=$fk_id");
 
 		$col = array();
 		foreach($rows as $row) {
             $obj = new Round;
             self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -80,14 +78,10 @@ class Round extends AbstractData
 
 		error_log("Round::get(id) $wpdb->num_rows rows returned.");
 
-		if($rows.length !== 1) {
-			$obj = NULL;
-		} else {
-			$obj = new Round;
-			foreach($rows as $row) {
-                self::mapData($obj,$row);
-				$obj->isnew = FALSE;
-			}
+        $obj = NULL;
+		if($rows.length === 1) {
+            $obj = new Round;
+            self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -95,8 +89,7 @@ class Round extends AbstractData
 	/*************** Instance Methods ****************/
 	public function _construct() {
         $this->isnew = TRUE;
-        $this->owner_ID = -1;
-        $this->owner_type = 'draw'; //Other posibility is 'robin'
+        $this->init();
     }
     
     public function getRoundNumber(){
@@ -108,7 +101,7 @@ class Round extends AbstractData
      * Set this Round's owner type: draw or robin
      */
     public function setOwnerType($ot) {
-        if(!is_string($ot) || strlen($ot) < 1 ) return;
+        if(!is_string($ot)) return;
         if($ot === 'draw' || $ot === 'robin'){
             $this->owner_type = $ot;
             $this->isdirty = TRUE;
@@ -140,8 +133,8 @@ class Round extends AbstractData
 	 * Get all my children!
 	 * 1. Matches
 	 */
-    public function getChildren() {
-        if(count($this->matches) === 0) $this->matches = Match::find($this->ID);
+    public function getChildren($force) {
+        if(count($this->matches) === 0  || $force) $this->matches = Match::find($this->ID);
     }
     
     /**
@@ -203,9 +196,14 @@ class Round extends AbstractData
      * Map incoming data to an instance of Round
      */
     protected static function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
+        parent::mapData($obj,$row);
         $obj->owner_type = $row["owner_type"];
         $obj->owner_ID = $row["owner_ID"];
+    }
+
+    private function init() {
+        $this->owner_type = NULL;
+        $this->owner_ID = NULL;
     }
 
 
