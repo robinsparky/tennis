@@ -98,27 +98,28 @@ class TE_Install {
 
 	private function createSchema() {
 		global $wpdb;
-		//$wpdb->show_errors(); 
+		$wpdb->show_errors(); 
 
 		$club_table = $wpdb->prefix . "tennis_club";
 		$sql = "CREATE TABLE `$club_table` ( 
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(100) NOT NULL,
 				PRIMARY KEY (`ID`) );";
-		dbDelta( $sql ); 
-
+		var_dump( dbDelta( $sql) );
+		$wpdb->print_error();
+		
 		$court_table = $wpdb->prefix . "tennis_court";
 		$sql = "CREATE TABLE `$court_table` (
 				`ID` INT NOT NULL COMMENT 'Same as Court Number',
 				`club_ID` INT NOT NULL,
 				`court_type` VARCHAR(45) NOT NULL DEFAULT 'hard',
-				PRIMARY KEY (`ID`, `club_ID`),
-				CONSTRAINT `fk_Court_Club1`
-				  FOREIGN KEY (`club_ID`)
+				PRIMARY KEY (`club_ID`,`ID`),
+				FOREIGN KEY (`club_ID`)
 				  REFERENCES `$club_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
 		$event_table = $wpdb->prefix . "tennis_event";
 		$sql = "  CREATE TABLE `$event_table` (
@@ -127,12 +128,12 @@ class TE_Install {
 				`club_ID` INT NOT NULL,
 				PRIMARY KEY (`ID`),
 				INDEX `fk_Event_Club_idx` (`club_ID` ASC),
-				CONSTRAINT `fk_Event_Club`
-				  FOREIGN KEY (`club_ID`)
+				FOREIGN KEY (`club_ID`)
 				  REFERENCES `$club_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
 		$draw_table = $wpdb->prefix . "tennis_draw";
 		$sql = "CREATE TABLE `$draw_table` (
@@ -141,185 +142,162 @@ class TE_Install {
 				`name` VARCHAR(45) NOT NULL,
 				`elimination` VARCHAR(45) NOT NULL DEFAULT 'single',
 				PRIMARY KEY (`ID`),
-				INDEX `fk_Draw_Event1_idx` (`event_ID` ASC),
-				CONSTRAINT `fk_Draw_Event1`
-				  FOREIGN KEY (`event_ID`)
+				FOREIGN KEY (`event_ID`)
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
 		$round_table = $wpdb->prefix . "tennis_round";
 		$sql = "CREATE TABLE `$round_table` (
-				`ID` INT NOT NULL,
-				`owner_type` VARCHAR(45) NOT NULL,
+				`ID` INT NOT NULL COMMENT 'Same as Round Number',
 				`owner_ID` INT NOT NULL,
-				PRIMARY KEY (`ID`),
-				CONSTRAINT `fk_Round_Draw1`
-				  FOREIGN KEY (`owner_ID`)
+				`owner_type` VARCHAR(45) NOT NULL,
+				PRIMARY KEY (`owner_ID`, `ID`),
+				FOREIGN KEY (`owner_ID`)
 				  REFERENCES `$draw_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
 		$entrant_table = $wpdb->prefix . "tennis_entrant";
+		$sql = "CREATE TABLE `$entrant_table` (
+				`ID` INT NOT NULL,
+				`draw_ID` INT NOT NULL,
+				`name` VARCHAR(45) NOT NULL,
+				`position` INT NOT NULL,
+				`seed` INT NULL,
+				PRIMARY KEY (`draw_ID`,`ID`),
+				INDEX (`draw_ID` ASC, `ID` ASC),
+				FOREIGN KEY (`draw_ID`)
+				  REFERENCES `$draw_table` (`ID`)
+				  ON DELETE NO ACTION
+				  ON UPDATE NO ACTION);";
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
+		
 		$match_table = $wpdb->prefix . "tennis_match";
 		$sql = "CREATE TABLE `$match_table` (
 				`ID` INT NOT NULL COMMENT 'Same as Match number',
 				`round_ID` INT NOT NULL,
 				`home_ID` INT NOT NULL,
 				`visitor_ID` INT NOT NULL,
-				PRIMARY KEY (`ID`, `round_ID`),
-				INDEX `fk_Match_Round1_idx` (`round_ID` ASC),
-
-				CONSTRAINT `fk_Match_Round1`
-				  FOREIGN KEY (`round_ID`)
+				PRIMARY KEY (`round_ID`,`ID`),
+				INDEX (`round_ID` ASC),
+				INDEX (`home_ID` ASC),
+				INDEX (`visitor_ID` ASC),
+				FOREIGN KEY (`round_ID`)
 				  REFERENCES `$round_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION,
-				  
-				CONSTRAINT `fk_Match_Entrant1`
-				  FOREIGN KEY (`home_ID`)
+				FOREIGN KEY (`home_ID`) 
 				  REFERENCES `$entrant_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION,
-				  
-				CONSTRAINT `fk_Match_Entrant2`
-				  FOREIGN KEY (`visitor_ID`)
+				FOREIGN KEY (`visitor_ID`) 
 				  REFERENCES `$entrant_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
-
-		$sql = "ALTER TABLE `$match_table` 
-				ADD CONSTRAINT `fk_Match_Entrant1`  FOREIGN KEY (`home_ID`) REFERENCES `$entrant_table` (`ID`);
-				ADD CONSTRAINT `fk_Match_Entrant2`  FOREIGN KEY (`visitor_ID`) REFERENCES `$entrant_table` (`ID`);";
-		dbDelta( $sql ); 
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
-		$sql = "CREATE TABLE `$entrant_table` (
-				`ID` INT NOT NULL AUTO_INCREMENT,
-				`draw_ID` INT NOT NULL,
-				`match_ID` INT NULL,
-				`name` VARCHAR(45) NOT NULL,
-				`position` INT NOT NULL,
-				`seed` INT NULL,
-				PRIMARY KEY (`ID`, `draw_ID`),
-				INDEX `fk_Entrant_Match1_idx` (`match_ID` ASC),
-				INDEX `fk_Entrant_Draw1_idx` (`draw_ID` ASC),
-
-				CONSTRAINT `fk_Entry_Match1`
-				  FOREIGN KEY (`match_ID`)
-				  REFERENCES `$match_table` (`ID`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION,
-
-				CONSTRAINT `fk_Entry_Draw1`
-				  FOREIGN KEY (`draw_ID`)
-				  REFERENCES `$draw_table` (`ID`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
-		 
 		$team_table = $wpdb->prefix . "tennis_team";
 		$sql = "CREATE TABLE `$team_table` (
-		  `ID` INT NOT NULL,
-		  `event_ID` INT NOT NULL,
-		  `name` VARCHAR(45) NOT NULL,
-		  PRIMARY KEY (`ID`,'event_ID'),
-		  INDEX `fk_team_event1_idx` (`event_ID` ASC),
-
-		  CONSTRAINT `fk_tennis_team_event1`
-			FOREIGN KEY (`event_ID`)
-			REFERENCES `$event_table` (`ID`)
-			ON DELETE NO ACTION
-			ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
+			  `ID` INT NOT NULL,
+			  `event_ID` INT NOT NULL,
+			  `name` VARCHAR(45) NOT NULL,
+			  PRIMARY KEY (`event_ID`,`ID`),
+			  INDEX (`event_ID` ASC),
+			  FOREIGN KEY (`event_ID`)
+				REFERENCES `$event_table` (`ID`)
+				ON DELETE NO ACTION
+				ON UPDATE NO ACTION);";
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
 		$squad_table = $wpdb->prefix . "tennis_squad";
 		$sql = "CREATE TABLE `$squad_table` (
-		  `ID` INT NOT NULL,
-		  `team_ID` INT NOT NULL,
-		  `name` VARCHAR(25) NOT NULL,
-		  PRIMARY KEY (`team_ID`,`ID`),
-		  INDEX `fk_tennis_squad_tennis_team1_idx` (`team_ID` ASC),
-
-		  CONSTRAINT `fk_tennis_squad_team1`
-			FOREIGN KEY (`team_ID`)
-			REFERENCES `$team_table` (`ID`)
-			ON DELETE NO ACTION
-			ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
+			  `ID` INT NOT NULL,
+			  `team_ID` INT NOT NULL,
+			  `name` VARCHAR(25) NOT NULL,
+			  PRIMARY KEY (`team_ID`,`ID`),
+			  INDEX (`team_ID` ASC),
+			  FOREIGN KEY (`team_ID`)
+				REFERENCES `$team_table` (`ID`)
+				ON DELETE NO ACTION
+				ON UPDATE NO ACTION);";
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
 		$game_table = $wpdb->prefix . "tennis_game";
 		$sql = "CREATE TABLE `$game_table` (
 				`ID` INT NOT NULL COMMENT 'Same as game number',
 				`match_ID` INT NOT NULL,
-				`entrant_ID` INT NOT NULL,
 				`set_number` INT NOT NULL,
-				`score`      INT NOT NULL,
-				PRIMARY KEY (`ID`, `match_ID`,`entrant_ID`),
-				INDEX `fk_Game_Entrant1_Match1_idx` (`entrant_ID` ASC, `match_ID` ASC),
-
-				CONSTRAINT `fk_Game_Entrant1`
-				  FOREIGN KEY (`entrant_ID`)
+				`home_score` INT NOT NULL DEFAULT 0,
+				`visitor_score` INT NOT NULL DEFAULT 0,
+				PRIMARY KEY (`match_ID`, `entrant_ID`, `ID`),
+				INDEX (`entrant_ID` ASC, `match_ID` ASC),
+				FOREIGN KEY (`entrant_ID`)
 				  REFERENCES `$entrant_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION,
-				CONSTRAINT `fk_Game_Match1`
-				  FOREIGN KEY (`match_ID`)
+				FOREIGN KEY (`match_ID`)
 				  REFERENCES `$match_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
 		$player_table = $wpdb->prefix . "tennis_player";
 		$sql = "CREATE TABLE `$player_table` (
 			  `ID` INT NOT NULL AUTO_INCREMENT,
 			  `first_name` VARCHAR(45) NULL,
 			  `last_name` VARCHAR(45) NOT NULL,
-			  `skill_level` DECIMAL(4,1) NULL DEFAULT 3.0,
-			  `squad_ID` INT NOT NULL,
-			  `entrant_ID` INT NOT NULL,
-			  `entrant_draw_ID` INT NOT NULL,
+			  `skill_level` DECIMAL(4,1) NULL DEFAULT 2.5,
+			  `emailHome`  VARCHAR(100),
+			  `emailBusiness` VARCHAR(100),
+			  `phoneHome` VARCHAR(45),
+			  `phoneMobile` VARCHAR(45),
+			  `phoneBusiness` VARCHAR(45),
+			  `squad_ID` INT,
+			  `entrant_ID` INT,
+			  `entrant_draw_ID` INT,
 			  PRIMARY KEY (`ID`),
-			  INDEX `fk_tennis_player_squad1_idx` (`squad_ID` ASC),
-			  INDEX `fk_tennis_player_entrant1_idx` (`entrant_ID` ASC, `entrant_draw_ID` ASC),
-
-			  CONSTRAINT `fk_tennis_player_squad1`
-				FOREIGN KEY (`squad_ID`)
+			  INDEX (`squad_ID` ASC),
+			  INDEX (`entrant_ID` ASC, `entrant_draw_ID` ASC),
+			  FOREIGN KEY (`squad_ID`)
 				REFERENCES `$squad_table` (`ID`)
 				ON DELETE NO ACTION
 				ON UPDATE NO ACTION,
-
-			  CONSTRAINT `fk_tennis_player_entrant1`
-				FOREIGN KEY (`entrant_ID` , `entrant_draw_ID`)
-				REFERENCES `$entrant_table` (`ID` , `draw_ID`)
+			  FOREIGN KEY (`entrant_draw_ID`, `entrant_ID`)
+				REFERENCES `$entrant_table` (`draw_ID`, `ID`)
 				ON DELETE NO ACTION
 				ON UPDATE NO ACTION);";
-		dbDelta( $sql );
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 		
 		$booking_table = $wpdb->prefix . "tennis_court_booking";
 		$sql = "CREATE TABLE `$booking_table` (
-				`court_ID` INT NOT NULL,
 				`club_ID` INT NOT NULL,
-				`match_ID` INT NOT NULL,
+						`match_ID` INT NOT NULL,
+				`court_ID` INT NOT NULL,
 				`book_date` DATE NULL,
 				`book_time` TIME(6) NULL,
-				PRIMARY KEY (`court_ID`, `club_ID`, `match_ID`),
-				INDEX `fk_TimeSlot_Court1_idx` (`court_ID` ASC, `club_ID` ASC, 'match_ID' ASC),
-
-				CONSTRAINT `fk_TimeSlot_Court1`
-				  FOREIGN KEY (`court_ID` , `club_ID`)
-				  REFERENCES `$court_table` (`ID` , `club_ID`)
+				PRIMARY KEY (`club_ID`, `match_ID`, `court_ID`),
+				INDEX (`club_ID` ASC, `match_ID` ASC, `court_ID` ASC),
+				FOREIGN KEY (`club_ID`, `court_ID`)
+				  REFERENCES `$court_table` (`club_ID`, `ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION,
-
-				CONSTRAINT `fk_tennis_court_booking_tennis_match1`
-				  FOREIGN KEY (`match_ID`)
+				FOREIGN KEY (`match_ID`)
 				  REFERENCES `$match_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql ); 
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
 	}
 	
 	private function dropSchema() {

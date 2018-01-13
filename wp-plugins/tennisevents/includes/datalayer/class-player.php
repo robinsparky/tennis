@@ -16,16 +16,23 @@ require('abstract-class-data.php');
 class Player extends AbstractData
 { 
     private static $tablename = 'tennis_player';
+
+    const MAXSKILL = 7.0;
+    const MINSKILL = 2.5;
     
-    private $entrant_ID; //NOT NULL
-    private $squad_ID; //NOT NULL
-    private $entrant_draw_ID; //NOT NULL
+    private $entrant_ID;
+    private $squad_ID;
+    private $entrant_draw_ID;
 
     private $last_name; //NOT NULL
     private $first_name;
-    private $skill_level;
-    
-    
+    private $skill_level; //NOT NULL
+    private $homePhone;
+    private $mobilePhone;
+    private $businessPhone;
+    private $homeEmail;
+    private $businessEmail;
+
     /**
      * Search for Players that have a name 'like' the provided criteria
      */
@@ -51,7 +58,7 @@ class Player extends AbstractData
     /**
      * Find all Players belonging to a specific Entry;
      */
-    public static function find($fk_id) {
+    public static function find($fk_id,$context) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select * from $table where entry_ID = %d";
@@ -117,8 +124,8 @@ class Player extends AbstractData
     }
     
     public function setSkillLevel($skill) {
-        if(!is_nan($skill)) return;
-        if($skill < 1.0 || $skill > 7.5) return;
+        if(is_nan($skill)) return;
+        if($skill < self::MINSKILL || $skill > self::MAXSKILL) return;
         $this->skill_level = $skill;
         $this->isdirty = TRUE;
     }
@@ -128,7 +135,7 @@ class Player extends AbstractData
     }
 
     public function setEntrantID($id) {
-        if(!is_numeric($id) || $id < 1) return;
+        if(!is_numeric($id) || $id < 0) return;
         $this->tennis_entrant_ID = $id;
     }
 
@@ -137,7 +144,7 @@ class Player extends AbstractData
     }
     
     public function setDrawID($id) {
-        if(!is_numeric($id) || $id < 1) return;
+        if(!is_numeric($id) || $id < 0) return;
         $this->tennis_entrant_draw_ID = $id;
     }
 
@@ -146,13 +153,64 @@ class Player extends AbstractData
     }
     
     public function setSquadID($id) {
-        if(!is_numeric($id) || $id < 1) return;
+        if(!is_numeric($id) || $id < 0) return;
         $this->tennis_squad_ID = $id;
     }
 
     public function getSquadID() {
         return $this->tennis_squad_ID;
     }
+
+    public function setHomePhone($phone) {
+        if(!is_string($phone)) return;
+        $this->homePhone = $phone;
+        $this->isdirty = TRUE;
+    }
+
+    public function getHomePhone() {
+        return $this->homePhone;
+    }
+    
+    public function setMobilePhone($phone) {
+        if(!is_string($phone)) return;
+        $this->mobilePhone = $phone;
+        $this->isdirty = TRUE;
+    }
+
+    public function getMobilePhone() {
+        return $this->mobilePhone;
+    }
+
+    public function setBusinessPhone($phone) {
+        if(!is_string($phone)) return;
+        $this->businessPhone = $phone;
+        $this->isdirty = TRUE;
+    }
+
+    public function getBusinessPhone() {
+        return $this->businessPhone;
+    }
+    
+    public function setHomeEmail($email) {
+        if(!is_string($email)) return;
+        $this->homeEmail = $email;
+        $this->isdirty = TRUE;
+    }
+
+    public function getHomeEmail() {
+        return $this->homeEmail;
+    }
+    
+    public function setBusinessEmail($email) {
+        if(!is_string($email)) return;
+        $this->businessEmail = $email;
+        $this->isdirty = TRUE;
+    }
+
+    public function getBusinessEmail() {
+        return $this->businessEmail;
+    }
+
 
 	/**
 	 * Get all my children!
@@ -169,10 +227,15 @@ class Player extends AbstractData
         $values         = array('last_name' => $this->last_name
                                ,'first_name' => $this->last_name
                                ,'skill_level' => $this->skill_level
+                               ,'homePhone' => $this->homePhone
+                               ,'businessPhone' => $this->businessPhone
+                               ,'mobilePhone' => $this->mobilePhone                               
+                               ,'homeEmail' => $this->homeEmail                              
+                               ,'businessEmail' => $this->businessEmail
                                ,'entrant_ID' => $this->entrant_ID
                                ,'entrant_draw_ID' => $this->entry_draw_ID
                                ,'squad_ID' => $this->$squad_ID);
-		$formats_values = array('%s','%s','%d','%d','%d','%d');
+		$formats_values = array('%s','%s','%d','%s','%s','%s','%s','%s','%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
@@ -190,10 +253,15 @@ class Player extends AbstractData
         $values         = array('last_name' => $this->last_name
                                ,'first_name' => $this->last_name
                                ,'skill_level' => $this->skill_level
+                               ,'homePhone' => $this->homePhone
+                               ,'businessPhone' => $this->businessPhone
+                               ,'mobilePhone' => $this->mobilePhone                               
+                               ,'homeEmail' => $this->homeEmail                              
+                               ,'businessEmail' => $this->businessEmail
                                ,'entrant_ID' => $this->entrant_ID
                                ,'entrant_draw_ID' => $this->entrant_draw_ID
                                ,'squad_ID' => $this->$tennis_squad_ID);
-        $formats_values = array('%s','%s','%d','%d','%d','%d');
+        $formats_values = array('%s','%s','%d','%s','%s','%s','%s','%s','%d','%d','%d');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
@@ -204,14 +272,13 @@ class Player extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
+    //TODO: Add delete logic
     public function delete() {
 
     }
 
     public function isValid() {
         $isvalid = TRUE;
-        if(!isset($this->entrant_ID) || !is_numeric($this->entrant_ID)) $isvalid = FALSE;
-        if(!isset($this->entrant_draw_ID) || !is_numeric($this->entrant_draw_ID)) $isvalid = FALSE;
         if(!isset($this->last_name) || !is_string($this->last_name)) $isvalid = FALSE;
         if(isset($this->skill) && is_nan($skill)) $isvalid = FALSE;
         
@@ -223,12 +290,17 @@ class Player extends AbstractData
      */
     protected static function mapData($obj,$row) {
         parent::mapData($obj,$row);
-        $obj->entrant_ID = $row["entrant_ID "];
+        $obj->entrant_ID       = $row["entrant_ID "];
         $obj->entrant_draw_ID  = $row["entrant_draw_ID"];
-        $obj->squad_ID   = $row["squad_ID "];
-        $obj->last_name  = $row["last_name"];
-        $obj->first_name  = $row["first_name"];
-        $obj->skill_level =$row["skill_level"];
+        $obj->squad_ID         = $row["squad_ID "];
+        $obj->last_name        = $row["last_name"];
+        $obj->first_name       = $row["first_name"];
+        $obj->skill_level      = $row["skill_level"];
+        $obj->homeEmail        = $row["homeEmail"];
+        $obj->businessEmail    = $row["businessEmail"];
+        $obj->homePhone        = $row["homePhone"];
+        $obj->mobilePhone      = $row["mobilePhone"];
+        $obj->businessPhone    = $row["businessPhone"];
     }
 
     /**
@@ -241,6 +313,11 @@ class Player extends AbstractData
         $this->last_name = NULL;
         $this->first_name = NULL;
         $this->skill_level = NULL;
+        $this->homePhone = NULL;
+        $this->mobilePhone = NULL;
+        $this->businessPhone = NULL;
+        $this->homeEmail = NULL;
+        $this->businessEmail = NULL;
     }
 
 } //end class

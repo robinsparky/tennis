@@ -133,8 +133,8 @@ class Match extends AbstractData
         if(!isset($this->home_ID) || !isset($this->visitor_ID)) return;
         
         if(!isset($this->home) || !isset($this->visitor) || $force) {
-            $this->home = Entrant::get($this->home_ID,'match');
-            $this->visitor = Entrant::get($this->visitor_ID,'match');
+            $this->home = Entrant::get($this->home_ID);
+            $this->visitor = Entrant::get($this->visitor_ID);
         }
     }
 
@@ -145,8 +145,8 @@ class Match extends AbstractData
     public function isValid() {
         $isvalid = TRUE;
         if(!isset($this->round_ID)) $isvalid = FALSE;
-        if(!isset($this->home)) $isvalid = FALSE;
-        if(!isset($this->visitor)) $isvalid = FALSE;
+        if(!isset($this->home_ID)) $isvalid = FALSE;
+        if(!isset($this->visitor_ID)) $isvalid = FALSE;
 
         return $isvalid;
     }
@@ -157,8 +157,8 @@ class Match extends AbstractData
         if(!$this->isValid()) return;
 
         $values         = array('round_ID'   => $this->round_ID
-                               ,'home_ID'    => $this->home->ID
-                               ,'visitor_ID' => $this->visitor->ID);
+                               ,'home_ID'    => $this->home_ID
+                               ,'visitor_ID' => $this->visitor_ID);
 		$formats_values = array('%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
@@ -175,8 +175,8 @@ class Match extends AbstractData
         if($this->isValid()) return;
 
         $values         = array('round_ID'    => $this->owner_ID
-                                ,'home_ID'    => $this->home->ID
-                                ,'visitor_ID' => $this->visitor->ID);
+                                ,'home_ID'    => $this->home_ID
+                                ,'visitor_ID' => $this->visitor_ID);
 		$formats_values = array('%d','%d','%d');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');

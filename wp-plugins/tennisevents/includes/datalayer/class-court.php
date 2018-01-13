@@ -24,9 +24,9 @@ class Court extends AbstractData
     
 	private $bookings;
 
-	public static $Hard = 'hard';
-	public static $Clay = 'clay';
-	public static $HardTrue = 'true';
+	public static $Hard = 'hardcourt';
+	public static $Clay = 'claycourt';
+	public static $HardTrue = 'hardtrue';
 
     public static function search($criteria) {
 		global $wpdb;

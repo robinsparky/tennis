@@ -20,7 +20,6 @@ class Entrant extends AbstractData
 	
 	//Foreign keys
     private $draw_ID;
-	private $match_ID;
 
 	/** 
 	 * Name of the single player or the doubles team
@@ -67,23 +66,16 @@ class Entrant extends AbstractData
     /**
      * Find all Entrants belonging to a specific Draw or Match
      */
-    public static function find($fk_id, $context='draw') {
+    public static function find($fk_id, $context) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
 
-		if(!is_string($context)) return $col;
-
-		if($context === 'draw') $column = 'draw_ID';
-		elseif($context === 'match') $column = 'match_ID';
-		elseif($context === 'game') $column = 'game_ID';
-		else return $col;
-
-		$sql = "select * from $table where $column = %d order by position";
+		$sql = "select * from $table where draw_ID = %d order by position";
 		$safe = $wpdb->prepare($sql,$fk_id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Draw::find $wpdb->num_rows rows returned using $column=$fk_id");
+		error_log("Draw::find $wpdb->num_rows rows returned using draw_ID=$fk_id");
 
 		foreach($rows as $row) {
             $obj = new Entrant;
@@ -150,22 +142,6 @@ class Entrant extends AbstractData
     public function getDrawId() {
         return $this->draw_ID;
     }
-	
-    /**
-     * Assign this Entrant to a Match
-     */
-    public function setMatchId($match) {
-        if(!is_numeric($match) || $match < 1) return;
-        $this->match_ID = $match;
-        $this->isdirty = TRUE;
-    }
-
-    /**
-     * Get this Entrant's Match id.
-     */
-    public function getMatchId() {
-        return $this->match_ID;
-	}
 	
 	/**
 	 * Assign a position
@@ -286,7 +262,6 @@ class Entrant extends AbstractData
 	private function init() {
 		$this->name = NULL;
 		$this->draw_ID = NULL;
-		$this->match_ID = NULL;
 		$this->position = NULL;
 		$this->seed = NULL;
 	}
@@ -295,16 +270,11 @@ class Entrant extends AbstractData
      * Map incoming data to an instance of Entrant
      */
     protected static function mapData($obj,$row) {
-		error_log("Entrant::mapData:");
-		error_log(var_dump($row));
-
 		parent::mapData($obj,$row);
         $obj->name = $row["name"];
 		$obj->draw_ID = $row["draw_ID"];
-		$obj->match_ID = $row["match_ID"];
 		$obj->position = $row["position"];
         $obj->seed = $row["seed"];		
     }
-
 
 } //end class

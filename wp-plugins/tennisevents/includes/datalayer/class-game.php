@@ -17,12 +17,16 @@ require('class-entrant.php');
 class Game extends AbstractData
 { 
     private static $tablename = 'tennis_game';
+
+    const MAXSETS = 5;
+    const MINSETS = 1;
     
+    //Foreign Keys
     private $match_ID;
-    private $entrant_ID;
-    private $entrant;
-    private $score;
+
     private $set_number;
+    private $homescore;
+    private $visitorscore;
     
     /**
      * Search for Matches that have a name 'like' the provided criteria
@@ -98,24 +102,39 @@ class Game extends AbstractData
         $this->isnew = TRUE;
         $this->init();
     }
+
+    public function setSetNumber($set) {
+        if(!is_numeric($set) || $set < self::MINSETS || $set > self::MAXSETS) return;
+        $this->set_number = $set;
+        $this->isdirty = TRUE;
+    }
+
+    public function getSetNumber() {
+        return $this->set_number;
+    }
     
     public function getGameNumber(){
         return $this->getID();
     }
 
-    /**
-     * Set the Entrant for this Game
-     */
-    public function setEntrant($h) {
-        if($h instanceof Entrant ) {
-            $this->entrant = $h;
-            $this->entrant_ID = $h->getID();
-            $this->isdirty = TRUE;
-        }
+    public function setHomeScore($score) {
+        if(!is_numeric($score) || $score < 0) return;
+        $this->homescore = $score;
+        $this->isdirty = TRUE;
     }
 
-    public function geEntrant() {
-        return $this->entrant;
+    public function getHomeScore() {
+        return $this->homescore;
+    }
+
+    public function setVisitorScore($score) {
+        if(!is_numeric($score) || $score < 0) return;
+        $this->visitorscore = $score;
+        $this->isdirty = TRUE;
+    }
+
+    public function getVisitorScore() {
+        return $this->visitorscore;
     }
     
 	/**
@@ -134,8 +153,8 @@ class Game extends AbstractData
     public function isValid() {
         $isvalid = TRUE;
         if(!isset($this->match_ID)) $isvalid = FALSE;
-        if(!isset($this->entrant_ID)) $isvalid = FALSE;
-        if(!isset($this->score))  $isvalid = FALSE;
+        if(!isset($this->homescore))  $isvalid = FALSE;
+        if(!isset($this->visitorscore))  $isvalid = FALSE;
         if(!isset($this->set_number)) $isvalid = FALSE;
 
         return $isvalid;
@@ -147,9 +166,9 @@ class Game extends AbstractData
         if(!$this->isValid()) return;
 
         $values         = array('match_ID' => $this->match_ID
-                               ,'entrant_ID' => $this->entrant_ID
                                ,'set_number' => $this->set_number
-                               ,'score' => $this->score);
+                               ,'homescore' => $this->homescore
+                               ,'visitorscore' => $this->visitorscore);
 		$formats_values = array('%d','%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
@@ -166,9 +185,9 @@ class Game extends AbstractData
         if($this->isValid()) return;
 
         $values         = array('match_ID' => $this->match_ID
-                               ,'entrant_ID' => $this->entrant_ID
                                ,'set_number' => $this->set_number
-                               ,'score' => $this->score);
+                               ,'homescore' => $this->homescore
+                               ,'visitorscore' => $this->visitorscore);
 		$formats_values = array('%d','%d','%d','%d');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
@@ -191,9 +210,9 @@ class Game extends AbstractData
     protected static function mapData($obj,$row) {
         parent::mapData($obj,$row);
         $obj->match_ID = $row["match_ID"];
-        $obj->entry_ID = $row["entrant_ID"];
         $obj->set_number = $row["set_number"];
-        $obj->score = $row["score"];
+        $obj->homescore = $row["homescore"];
+        $obj->visitorscore = $row["visitorscore"];
     }
  
     private function getIndex($obj) {
@@ -202,10 +221,9 @@ class Game extends AbstractData
 
     private function init() {
         $this->match_ID = NULL;
-        $this->entrant_ID = NULL;
-        $this->entrant = NULL;
         $this->set_number = NULL;
-        $this->score = NULL;
+        $this->homescore = NULL;
+        $this->visitorscore = NULL;
     }
 
 

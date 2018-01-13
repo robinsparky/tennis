@@ -18,8 +18,11 @@ require('class-round.php');
 class Draw extends AbstractData
 { 
     private static $tablename = 'tennis_draw';
-    
-    private $event_ID;
+	
+	//Foreign keys
+	private $event_ID;
+	
+	//Attributes
     private $name;
     private $elimination;
     
@@ -51,7 +54,7 @@ class Draw extends AbstractData
     /**
      * Find all Draws belonging to a specific Event;
      */
-    public static function find($fk_id) {
+    public static function find($fk_id,$context) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		//Context not really used here
