@@ -19,6 +19,8 @@ class Club extends AbstractData
 { 
 	//table name
 	private static $tablename = 'tennis_club';
+
+	//Attributes
 	private $name;
 
 	/**
@@ -49,7 +51,6 @@ class Club extends AbstractData
 		foreach($rows as $row) {
 			$obj = new Club;
 			self::mapData($obj,$row);
-			$obj->isnew = FALSE;
 			$col[] = $obj;
 		}
 		return $col;
@@ -59,7 +60,7 @@ class Club extends AbstractData
 	 * Find Clubs referenced 
 	 * as a foreign key in some other object
 	 */
-	static public function find($fk_id,$context=NULL) {
+	static public function find($fk_id) {
 		return array();
 	}
 
@@ -77,10 +78,7 @@ class Club extends AbstractData
 		$obj = NULL;
 		if( $rows.length === 1 ) {
 			$obj = new Club;
-			foreach($rows as $row) {
-				self::mapData($obj,$row);
-				$obj->isnew = FALSE;
-			}
+			self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -88,10 +86,11 @@ class Club extends AbstractData
 	/*************** Instance Methods ****************/
 	public function _construct() {
 		$this->isnew = TRUE;
+		$this->init();
 	}
 
 	public function setName($name) {
-		if(!is_string($name) || strlen($name) < 2) return;
+		if(!is_string($name) || strlen($name) < 1) return;
 		$this->name = $name;
 		$this->isdirty = TRUE;
 	}
@@ -117,32 +116,26 @@ class Club extends AbstractData
 	 * Get all events for this club.
 	 */
 	public function getEvents($force) {
-		$events;
-		if(count($this->events) === 0) {
-			$events = Event::find($this->ID);
-		}
-		elseif($force) {			
-			$events = Event::find($this->ID);
-		}
-		return $events;
+		if(count($this->events) === 0 || $force) $this->events = Event::find($this->ID);
 	}
 
 	/**
 	 * Get all courts in this club.
 	 */
 	public function getCourts($force) {
-		$courts;
-		if(count($this->courts) === 0) {
-			$courts = Court::find($this->ID);
-		}
-		elseif($force) {
-			$courts = Court::find($this->ID);			
-		}
-		return $courts;
+		if(count($this->courts) === 0 || $force) $this->courts = Court::find($this->ID);
 	}
 
+	public function isValid() {
+		$isvalid = TRUE;
+		if(!isset($this->name)) $isvalid = TRUE;
+
+		return $isvalid;
+	}
 	protected function create() {
 		global $wpdb;
+
+		if(!$this->isValid()) return;
 
 		$values         = array('name'=>$this->name);
 		$formats_values = array('%s');
@@ -160,6 +153,8 @@ class Club extends AbstractData
 	 */
 	protected function update() {
 		global $wpdb;
+
+		if(!$this->isValid()) return;
 
 		$values         = array('name'=>$this->name);
 		$formats_values = array('%s');
@@ -180,9 +175,13 @@ class Club extends AbstractData
      * Map incoming data to an instance of Club
      */
     protected static function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
+        parent::mapData($obj,$row);
         $obj->name = $row["name"];
-    }
+	}
+	
+	private function init() {
+		$this->name = NULL;
+	}
 
 } //end class
  

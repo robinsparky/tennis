@@ -14,8 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('./ wp-load.php');
-require_once( ABSPATH . 'wp-admin/ includes/ upgrade.php');
+require_once( ABSPATH . 'wp-admin/includes/upgrade.php');
 
 /**
  * TE_Install Class.
@@ -76,6 +75,7 @@ class TE_Install {
 
 		$this->create_options();
 		$this->createSchema();
+		$this->seedData();
 		add_filter('wp_nav_menu_items',array($this,'add_todaysdate_in_menu'), 10, 2);
 	}
 	
@@ -96,7 +96,7 @@ class TE_Install {
 		delete_option(self::OPTION_NAME_VERSION );
 	}
 
-	private function createSchema() {
+	public function createSchema() {
 		global $wpdb;
 		$wpdb->show_errors(); 
 
@@ -127,7 +127,6 @@ class TE_Install {
 				`name` VARCHAR(100) NOT NULL,
 				`club_ID` INT NOT NULL,
 				PRIMARY KEY (`ID`),
-				INDEX `fk_Event_Club_idx` (`club_ID` ASC),
 				FOREIGN KEY (`club_ID`)
 				  REFERENCES `$club_table` (`ID`)
 				  ON DELETE NO ACTION
@@ -170,7 +169,6 @@ class TE_Install {
 				`position` INT NOT NULL,
 				`seed` INT NULL,
 				PRIMARY KEY (`draw_ID`,`ID`),
-				INDEX (`draw_ID` ASC, `ID` ASC),
 				FOREIGN KEY (`draw_ID`)
 				  REFERENCES `$draw_table` (`ID`)
 				  ON DELETE NO ACTION
@@ -179,25 +177,22 @@ class TE_Install {
 		$wpdb->print_error();
 		
 		$match_table = $wpdb->prefix . "tennis_match";
-		$sql = "CREATE TABLE `$match_table` (
-				`ID` INT NOT NULL COMMENT 'Same as Match number',
-				`round_ID` INT NOT NULL,
-				`home_ID` INT NOT NULL,
-				`visitor_ID` INT NOT NULL,
-				PRIMARY KEY (`round_ID`,`ID`),
-				INDEX (`round_ID` ASC),
-				INDEX (`home_ID` ASC),
-				INDEX (`visitor_ID` ASC),
-				FOREIGN KEY (`round_ID`)
-				  REFERENCES `$round_table` (`ID`)
+		$sql = "CREATE TABLE $match_table (
+				round_ID INT NOT NULL,
+				ID INT NOT NULL COMMENT 'Same as Match number',
+				home_ID INT NOT NULL,
+				visitor_ID INT NOT NULL,
+				PRIMARY KEY (round_ID,ID),
+				FOREIGN KEY (round_ID)
+				  REFERENCES $round_table (ID)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION,
-				FOREIGN KEY (`home_ID`) 
-				  REFERENCES `$entrant_table` (`ID`)
+				FOREIGN KEY (home_ID) 
+				  REFERENCES $entrant_table (ID)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION,
-				FOREIGN KEY (`visitor_ID`) 
-				  REFERENCES `$entrant_table` (`ID`)
+				FOREIGN KEY (visitor_ID) 
+				  REFERENCES $entrant_table (ID)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
 		var_dump( dbDelta( $sql) ); 
@@ -205,11 +200,10 @@ class TE_Install {
 		
 		$team_table = $wpdb->prefix . "tennis_team";
 		$sql = "CREATE TABLE `$team_table` (
-			  `ID` INT NOT NULL,
 			  `event_ID` INT NOT NULL,
+			  `ID` INT NOT NULL,
 			  `name` VARCHAR(45) NOT NULL,
 			  PRIMARY KEY (`event_ID`,`ID`),
-			  INDEX (`event_ID` ASC),
 			  FOREIGN KEY (`event_ID`)
 				REFERENCES `$event_table` (`ID`)
 				ON DELETE NO ACTION
@@ -219,11 +213,10 @@ class TE_Install {
 		
 		$squad_table = $wpdb->prefix . "tennis_squad";
 		$sql = "CREATE TABLE `$squad_table` (
-			  `ID` INT NOT NULL,
 			  `team_ID` INT NOT NULL,
+			  `ID` INT NOT NULL,
 			  `name` VARCHAR(25) NOT NULL,
 			  PRIMARY KEY (`team_ID`,`ID`),
-			  INDEX (`team_ID` ASC),
 			  FOREIGN KEY (`team_ID`)
 				REFERENCES `$team_table` (`ID`)
 				ON DELETE NO ACTION
@@ -238,12 +231,7 @@ class TE_Install {
 				`set_number` INT NOT NULL,
 				`home_score` INT NOT NULL DEFAULT 0,
 				`visitor_score` INT NOT NULL DEFAULT 0,
-				PRIMARY KEY (`match_ID`, `entrant_ID`, `ID`),
-				INDEX (`entrant_ID` ASC, `match_ID` ASC),
-				FOREIGN KEY (`entrant_ID`)
-				  REFERENCES `$entrant_table` (`ID`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION,
+				PRIMARY KEY (`match_ID`,`ID`),
 				FOREIGN KEY (`match_ID`)
 				  REFERENCES `$match_table` (`ID`)
 				  ON DELETE NO ACTION
@@ -266,8 +254,6 @@ class TE_Install {
 			  `entrant_ID` INT,
 			  `entrant_draw_ID` INT,
 			  PRIMARY KEY (`ID`),
-			  INDEX (`squad_ID` ASC),
-			  INDEX (`entrant_ID` ASC, `entrant_draw_ID` ASC),
 			  FOREIGN KEY (`squad_ID`)
 				REFERENCES `$squad_table` (`ID`)
 				ON DELETE NO ACTION
@@ -280,27 +266,36 @@ class TE_Install {
 		$wpdb->print_error();
 		
 		$booking_table = $wpdb->prefix . "tennis_court_booking";
-		$sql = "CREATE TABLE `$booking_table` (
-				`club_ID` INT NOT NULL,
-						`match_ID` INT NOT NULL,
-				`court_ID` INT NOT NULL,
-				`book_date` DATE NULL,
-				`book_time` TIME(6) NULL,
-				PRIMARY KEY (`club_ID`, `match_ID`, `court_ID`),
-				INDEX (`club_ID` ASC, `match_ID` ASC, `court_ID` ASC),
-				FOREIGN KEY (`club_ID`, `court_ID`)
-				  REFERENCES `$court_table` (`club_ID`, `ID`)
+		$sql = "CREATE TABLE $booking_table (
+				club_ID INT NOT NULL,
+				court_ID INT NOT NULL,
+				match_ID INT NOT NULL,
+				book_date DATE NULL,
+				book_time TIME(6) NULL,
+				PRIMARY KEY (club_ID,court_ID,match_ID),
+				FOREIGN KEY (club_ID,court_ID)
+				  REFERENCES $court_table (club_ID,ID)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION,
-				FOREIGN KEY (`match_ID`)
-				  REFERENCES `$match_table` (`ID`)
+				FOREIGN KEY (match_ID)
+				  REFERENCES $match_table (ID)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
 	}
+
+	public function seedData() {
+		global $wpdb;
+
+		$values = array("name" => "Tyandaga Tennis Club");
+		$formats_values = array('%s');
+		$table = $wpdb->prefix . "tennis_club";
+		$affected = $wpdb->insert($table,$values,$formats_values);
+		return $affected;
+	}
 	
-	private function dropSchema() {
+	public function dropSchema() {
 		global $wpdb;
 		$tablenames = "`%tennis_player`,`%tennis_court_booking`,`%tennis_game`,`%tennis_entrant`,`%tennis_squad`,`%tennis_team`,`%tennis_match`,`%tennis_round`,`%tennis_draw`,`%tennis_court`,`%tennis_event`,`%tennis_club`;";
 		$sql = "DROP TABLE IF EXISTS " . str_replace("%", $wpdb->prefix, $tablenames);

@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require('abstract-class-data.php');
-//require('class-tennis-court-booking.php');
+//require('class-court-booking.php');
 
 /** 
  * Data and functions for Tennis Court(s)
@@ -24,9 +24,9 @@ class Court extends AbstractData
     
 	private $bookings;
 
-	public static $Hard = 'hardcourt';
-	public static $Clay = 'claycourt';
-	public static $HardTrue = 'hardtrue';
+	const HARD = 'hardcourt';
+	const CLAY = 'claycourt';
+	const HARDTRUE = 'hardtrue';
 
     public static function search($criteria) {
 		global $wpdb;
@@ -45,7 +45,6 @@ class Court extends AbstractData
 			$col[] = $obj;
 		}
 		return $col;
-
     }
     
     public static function find($fk_id,$context=NULL) {
@@ -98,8 +97,7 @@ class Court extends AbstractData
 	}
 
 	public function setCourtType($courtType) {
-		if(!is_string($courtType)) return;
-		if($courtType === Court::$Hard || $courtType === Court::$Clay || $courType = Court::$HardTrue) {
+		if($courtType === self::HARD || $courtType === self::CLAY || $courType = self::HARDTRUE) {
 			$this->court_type = $courtType;
 			$this->isdirty = TRUE;
 		}
@@ -131,6 +129,7 @@ class Court extends AbstractData
 		$this->getBookings($force);
 	}
 
+	//TODO: Add court bookings...
 	private function getBookings($force) {
         if(count($this->bookings) === 0 || $force) {
 			$this->bookings = array(); //CourtBooking::find($this->ID);
@@ -140,7 +139,7 @@ class Court extends AbstractData
 	public function isValid() {
 		$isvalid = TRUE;
 		if(!isset($this->club_ID)) $isvalid = FALSE;
-		if(!isset($this->name)) $invalid = FALSE;
+		if(!isset($this->court_type)) $this->court_type = self::HARD;
 
 		return $isvalid;
 	}
@@ -167,7 +166,7 @@ class Court extends AbstractData
         
         if(!$this->isValid()) return;
 
-        $values         = array('name'    => $this->name
+        $values         = array('court_type' => $this->court_type
                                ,'club_ID' => $this->club_ID);
 		$formats_values = array('%s','%d');
 		$where          = array('ID' => $this->ID);
@@ -180,20 +179,21 @@ class Court extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
+	//TODO: Add delete logic
     public function delete() {
 
 	}
 	
 	private function init() {
 		$this->club_ID = NULL;
-		$this->court_type = Court::$Hard;
+		$this->court_type = self::HARD;
 	}
     
     /**
      * Map incoming data to an instance of Court
      */
     protected static function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
+        parent::mapData($obj,$row);
         $obj->club_ID = $row["club_ID"];
         $obj->court_type = $row["court_type"];
     }
