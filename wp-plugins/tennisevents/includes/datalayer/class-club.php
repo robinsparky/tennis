@@ -41,7 +41,7 @@ class Club extends AbstractData
 	static public function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where name like '%%s%'";
+		$sql = "select ID,name from $table where name like '%%s%'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
@@ -60,18 +60,18 @@ class Club extends AbstractData
 	 * Find Clubs referenced 
 	 * as a foreign key in some other object
 	 */
-	static public function find($fk_id) {
+	static public function find(... $fk_criteria) {
 		return array();
 	}
 
 	/**
-	 * Get instance of a Club using it's ID
+	 * Get instance of a Club using it's primary key: ID
 	 */
-    static public function get($id) {
+    static public function get(... $pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where ID=%d";
-		$safe = $wpdb->prepare($sql,$id);
+		$sql = "select ID,name from $table where ID=%d";
+		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		error_log("Club::get(id) $wpdb->num_rows rows returned.");
@@ -135,7 +135,7 @@ class Club extends AbstractData
 	protected function create() {
 		global $wpdb;
 
-		if(!$this->isValid()) return;
+		parent::create();
 
 		$values         = array('name'=>$this->name);
 		$formats_values = array('%s');
@@ -154,7 +154,7 @@ class Club extends AbstractData
 	protected function update() {
 		global $wpdb;
 
-		if(!$this->isValid()) return;
+		parent::update();
 
 		$values         = array('name'=>$this->name);
 		$formats_values = array('%s');

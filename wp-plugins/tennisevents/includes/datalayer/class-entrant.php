@@ -19,17 +19,18 @@ class Entrant extends AbstractData
     private static $tablename = 'tennis_entrant';
 	
 	//Foreign keys
-    private $draw_ID;
-
-	/** 
-	 * Name of the single player or the doubles team
-	 */
-	private $name;
+    private $event_ID;
 
 	/**
 	 * Position in the draw (not to be confused with seeding)
 	 */
 	private $position;
+
+	/** 
+	 * Name of the single player or the doubles pair
+	 */
+	private $name;
+
 
 	/**
 	 * The seeding of this player or team.
@@ -64,19 +65,68 @@ class Entrant extends AbstractData
     }
     
     /**
-     * Find all Entrants belonging to a specific Draw or Match
+     * Find all Entrants in order of position 
+	 * belonging to a specific Event (draw)
+	 * Or all Entrants in order of position
+	 * belonging to a specific Event and
+	 * assigned to any match
      */
-    public static function find($fk_id, $context) {
+    public static function find(... $fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
+		$where = array();
+		if(count($fk_criteria.keys) === 0) {
+			if(count($fk_criteria) === 1) {
+			$where[] = $fk_criteria[0];
+			$sql = "select event_ID,position,name,seed 
+					from $table where event_ID = %d order by position;";
+			}
+			elseif(count($fk_criteria) === 3) {
+				$where[] = $fk_criteria[0];
+				$where[] = $fk_criteria[1];
+				$where[] = $fk_criteria[2];
+				$joinTable = $wpdb->prefix . "tennis_match_entrant";
+				
+				$sql = "select   j.match_event_ID
+								,j.match_round_num
+								,j.match_num
+								,e.position
+								,e.name
+								,e.seed
+						from $table e 
+						inner join $joinTable j on j.match_event_ID = e.event_ID 
+												and j.entrant_position = e.position 
+						where e.event_ID=%d 
+						and   j.match_round_num=%d 
+						and   j.match_num=%d 
+						order by e.position;";
+			}
+		}
+		else {
+			$where[] = $fk_criteria["event_ID"];
+			$where[] = $fk_criteria["round_num"];
+			$where[] = $fk_criteria["match_num"];
+			$joinTable = $wpdb->prefix . "tennis_match_entrant";
+			
+			$sql = "select   j.match_event_ID
+							,j.match_round_num
+							,j.match_num
+							,e.position
+							,e.name
+							,e.seed
+					from $table e 
+					inner join $joinTable j on j.match_event_ID = e.event_ID 
+											and j.entrant_position = e.position 
+					where e.event_ID=%d 
+					and   j.match_round_num=%d 
+					and   j.match_num=%d 
+					order by e.position;";
+		}
 
-		$sql = "select * from $table where draw_ID = %d order by position";
-		$safe = $wpdb->prepare($sql,$fk_id);
+		$safe = $wpdb->prepare($sql,$where);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Draw::find $wpdb->num_rows rows returned using draw_ID=$fk_id");
-
 		foreach($rows as $row) {
             $obj = new Entrant;
             self::mapData($obj,$row);
@@ -86,18 +136,20 @@ class Entrant extends AbstractData
     }
 
 	/**
-	 * Get instance of a Entrant using it's ID
+	 * Get instance of a Entrant using it's primary key: event_ID, position
 	 */
-    static public function get($id) {
+    static public function get(... $pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where ID=%d";
-		$safe = $wpdb->prepare($sql,$id);
+		$obj = NULL;
+		if(count($pks) !== 2) return $obj;
+
+		$sql = "select event_ID,position,name,seed from $table where event_ID=%d and position=%d;";
+		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
-		error_log("Draw::get(id) $wpdb->num_rows rows returned.");
+		error_log("Entrant::get(id) $wpdb->num_rows rows returned.");
 
-		$obj = NULL;
 		if($rows.length === 1) {
 			$obj = new Entrant;
 			self::mapData($obj,$rows[0]);
@@ -128,19 +180,19 @@ class Entrant extends AbstractData
     }
 
     /**
-     * Assign this Entrant to a Draw
+     * Assign this Entrant to an Event
      */
-    public function setDrawId($draw) {
+    public function setEventId($draw) {
         if(!is_numeric($draw) || $draw < 1) return;
-        $this->draw_ID = $draw;
+        $this->event_ID = $draw;
         $this->isdirty = TRUE;
     }
 
     /**
      * Get this Entrant's Draw id.
      */
-    public function getDrawId() {
-        return $this->draw_ID;
+    public function getEventId() {
+        return $this->event_ID;
     }
 	
 	/**
@@ -192,29 +244,36 @@ class Entrant extends AbstractData
 
 	public function isValid() {
 		$isvalid = TRUE;
-		if(!isset($this->draw_ID)) $invalid = FALSE;
-		if(!isset($this->name))  $invalid = FALSE;
+		if(!isset($this->event_ID)) $invalid = FALSE;
 		if(!issest($this->position))  $invalid = FALSE;
+		if(!isset($this->name))  $invalid = FALSE;
 
 		return $isvalid;
 	}
 
 	protected function create() {
 		global $wpdb;
-		$where          = array('ID' => $this->ID);
-		$formats_where  = array('%d');
-        
-        if($this->isValid()) return;
 
-		$values         = array('name' => $this->name
-							,'draw_ID' => $this->draw_ID
-							,'match_ID' => $this->match_ID
-							,'position' => $this->position
-							,'seed' => $this->seed);
-		$formats_values = array('%s','%d','%d','%d','%d');
+		parent::create();
+
+		
+		$table = $wpdb->prefix . self::$tablename;
+		$wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE");
+		
+		$sql = "select max(position) from $table where club_ID=%d;";
+		$safe = $wpdb->prepare($sql,$this->club_ID);
+		$this->position = $wpdb->get_var($safe) + 1;
+
+		$values = array( 'event_ID' => $this->event_ID
+						,'position' => $this->position
+						,'name' => $this->name
+						,'seed' => $this->seed);
+		$formats_values = array('%d','%d','%s','%d');
 
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-		$this->ID = $wpdb->insert_id;
+		
+		$wpdb->query("UNLOCK TABLES");
+
 		$this->isnew = FALSE;
 
 		error_log("Entrant::create $wpdb->rows_affected rows affected.");
@@ -227,25 +286,17 @@ class Entrant extends AbstractData
 		$values;
 		$formats_values;
 
-        if($this->draw_ID < 1) return;
+		parent::update();
+		
+		$where = array( 'event_ID' => $this->ID
+					   ,'position' => $this->position);
+		$formats_where  = array('%d','%d');
 
-		if($this->match_ID > 0) {
-			$values         = array('name' => $this->name
-									,'draw_ID' => $this->draw_ID
-									,'match_ID' => $this->match_ID
-									,'position' => $this->position
-									,'seed' => $this->seed);
-			$formats_values = array('%s','%d','%d','%d','%d');
-			$where          = array('ID' => $this->ID);
-			$formats_where  = array('%d');
-		}
-		else {
-			$values         = array('name' => $this->name
-								,'draw_ID' => $this->draw_ID
-								,'position' => $this->position
-								,'seed' => $this->seed);
-			$formats_values = array('%s','%d','%d','%d');
-		}
+
+		$values = array( 'name' => $this->name
+						,'seed' => $this->seed);
+		$formats_values = array('%s','%d');
+		
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
 
@@ -260,9 +311,9 @@ class Entrant extends AbstractData
 	}
 	
 	private function init() {
-		$this->name = NULL;
-		$this->draw_ID = NULL;
+		$this->event_ID = NULL;
 		$this->position = NULL;
+		$this->name = NULL;
 		$this->seed = NULL;
 	}
     
@@ -271,9 +322,9 @@ class Entrant extends AbstractData
      */
     protected static function mapData($obj,$row) {
 		parent::mapData($obj,$row);
-        $obj->name = $row["name"];
-		$obj->draw_ID = $row["draw_ID"];
+		$obj->event_ID = $row["event_ID"];
 		$obj->position = $row["position"];
+        $obj->name = $row["name"];
         $obj->seed = $row["seed"];		
     }
 

@@ -18,8 +18,10 @@ class Round extends AbstractData
 { 
     private static $tablename = 'tennis_round';
     
-    private $owner_ID;
-    private $owner_type;
+    private $event_ID;
+    private $event;
+    private $round_num;
+    private $comments;
     
 	private $matches;
     
@@ -29,11 +31,11 @@ class Round extends AbstractData
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where owner_type like '%%s%'";
+		$sql = "select ID,event_ID,round_num,comments from $table where comments like '%%s%'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Round::search $wpdb->num_rows rows returned using criteria: $criteria");
+		error_log("Round::search $wpdb->num_rows rows returned using comments like: $criteria");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -46,16 +48,16 @@ class Round extends AbstractData
     }
     
     /**
-     * Find all Rounds belonging to a specific Draw;
+     * Find all Rounds belonging to a specific Event;
      */
-    public static function find($fk_id, $context=NULL) {
+    public static function find(... $fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where draw_ID = %d";
-		$safe = $wpdb->prepare($sql,$fk_id);
+		$sql = "select event_ID,round_num,comments from $table where event_ID = %d";
+		$safe = $wpdb->prepare($sql,$fk_criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Round::find $wpdb->num_rows rows returned using draw_ID=$fk_id");
+		error_log("Round::find $wpdb->num_rows rows returned using event_ID={$fk_criteria[0]}");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -67,13 +69,13 @@ class Round extends AbstractData
     }
 
 	/**
-	 * Get instance of a Round using it's ID
+	 * Get instance of a Round using it's primary key: event_ID, round_num
 	 */
-    static public function get($id) {
+    static public function get(... $pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where ID=%d";
-		$safe = $wpdb->prepare($sql,$id);
+		$sql = "select event_ID,round_num,comments from $table where event_ID=%d and round_num=%d;";
+		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		error_log("Round::get(id) $wpdb->num_rows rows returned.");
@@ -92,49 +94,51 @@ class Round extends AbstractData
         $this->init();
     }
     
-    public function getRoundNumber(){
-        return $this->getID();
-    }
-
-
     /**
-     * Set this Round's owner type: draw or robin
+     * Assign this Round to an Event
      */
-    public function setOwnerType($ot) {
-        if(!is_string($ot)) return;
-        if($ot === 'draw' || $ot === 'robin'){
-            $this->owner_type = $ot;
-            $this->isdirty = TRUE;
-        }
-    }
-
-    public function getOwnerType() {
-        return $this->owner_type;
-    }
-
-    /**
-     * Assign this Round to a Tennis Draw or a Round Robin
-     */
-    public function setOwnerId($owner) {
-        if(!is_numeric($owner) || $owner < 1) return;
-        $this->owner_ID = $owner;
+    public function setEvent($owner) {
+        if(! $owner instanceof Event) return;
+        $this->event = $owner;
+        $this->event_ID = $owner->ID;
         $this->isdirty = TRUE;
     }
 
-    /**
-     * Get this Round's owner id.
-     */
-    public function getOwnerId() {
-        return $this->owner_ID;
+    public function getEvent() {
+        return $this->event;
     }
 
+    /**
+     * Get this Round's Event id.
+     */
+    public function getEventId() {
+        return $this->event_ID;
+    }
+
+    public function getRoundNumber(){
+        return $this->round_num;
+    }
+
+    /**
+     * Set this Round's comments
+     */
+    public function setComments($ot) {
+        if(!is_string($ot)) return;
+        $this->comments = $ot;
+        $this->isdirty = TRUE;
+    }
+
+    public function getComments() {
+        return $this->comments;
+    }
 
 	/**
 	 * Get all my children!
 	 * 1. Matches
 	 */
     public function getChildren($force) {
-        if(count($this->matches) === 0  || $force) $this->matches = Match::find($this->ID);
+        if(!isset($this->round_num)) return;
+        if(count($this->matches) === 0  || $force) $this->matches = Match::find($this->event_ID,$this->round_num);
     }
     
     /**
@@ -145,33 +149,41 @@ class Round extends AbstractData
 		elseif ($this->isdirty) $this->update();
 	}
 
-	private function create() {
+	protected function create() {
         global $wpdb;
         
-        if(!$this->isValid()) return;
+        parent::create();
+        
+		$table = $wpdb->prefix . self::$tablename;
+        $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
+        
+		$sql = "select max(round_num) from $table where event_ID=%d;";
+        $safe = $wpdb->prepare($sql,$this->event_ID);
+        $this->round_num = $wpdb->get_var($safe) + 1;
 
-        $values         = array('owner_type' => $this->owner_type
-                               ,'owner_ID' => $this->owner_ID);
-		$formats_values = array('%s','%d');
+        $values = array( 'event_ID' => $this->event_ID
+                        ,'round_num' => $this->round_num
+                        ,'comments' => $this->comments);
+		$formats_values = array('%d','%d','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-		$this->ID = $wpdb->insert_id;
-		$this->isnew = FALSE;
-
 		error_log("Round::create $wpdb->rows_affected rows affected.");
+		
+		$wpdb->query("UNLOCK TABLES;");
+		$this->isnew = FALSE;
 
 		return $wpdb->rows_affected;
 	}
 
-	private function update() {
+	protected function update() {
 		global $wpdb;
 
-        if(!$this->isValid()) return;
+        parent::update();
 
-        $values         = array('owner_type' => $this->owner_type
-                               ,'owner_ID' => $this->owner_ID);
-		$formats_values = array('%s','%d');
-		$where          = array('ID' => $this->ID);
-		$formats_where  = array('%d');
+        $values = array( 'comments' => $this->comments);
+		$formats_values = array('%s');
+        $where          = array('event_ID' => $this->event_ID
+                               ,'round_num' => $this->round_num);
+		$formats_where  = array('%d','%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
 
@@ -180,14 +192,15 @@ class Round extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
+    //TODO: Add delete logic
     public function delete() {
 
     }
 
-    protected function isValid() {
+    public function isValid() {
         $isvalid = TRUE;
-        if(!isset($this->owner_ID)) $isvalid = FALSE;
-        if(!isset($this->owner_type)) $isvalid = FALSE;
+        if(!isset($this->evemt_ID)) $isvalid = FALSE;
+        if(!$this->isNew() && !isset($this->round_num)) $isvalid = FALSE;
         
         return $isvalid;
     }
@@ -197,13 +210,17 @@ class Round extends AbstractData
      */
     protected static function mapData($obj,$row) {
         parent::mapData($obj,$row);
-        $obj->owner_type = $row["owner_type"];
-        $obj->owner_ID = $row["owner_ID"];
+        $obj->event_ID = $row["event_ID"];
+        $obj->round_num = $row["round_num"];
+        $obj->comments = $row["comments"];
+        $obj->getChildren(TRUE);
     }
 
     private function init() {
-        $this->owner_type = NULL;
-        $this->owner_ID = NULL;
+        $this->event = NULL;
+        $this->event_ID = NULL;
+        $this->round_num = NULL;
+        $this->comments = NULL;
     }
 
 

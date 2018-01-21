@@ -65,8 +65,10 @@ class TE_Install {
 								   ,"squad"					=> $wpdb->prefix . "tennis_squad"
 								   ,"player_team"			=> $wpdb->prefix . "tennis_player_team_squad"
 								   ,"player_entrant"		=> $wpdb->prefix . "tennis_player_entrant"
+								   ,"match_entrant"			-> $wpdb->prefix . "tennis_match_entrant"
 								   ,"court_booking"			=> $wpdb->prefix . "tennis_court_booking"
 								   ,"match_court_booking"	=> $wpdb->prefix . "tennis_match_court_booking"
+								   ,"club_event"			=> $wpdb->prefix . "tennis_club_event"
 								);
 		
         add_filter('query_vars', array($this,'add_query_vars_filter'));
@@ -133,9 +135,14 @@ class TE_Install {
 		$squad_table 				= $this->dbTableNames["squad"];
 		$team_squad_player_table 	= $this->dbTableNames["player_team"];
 		$player_entrant_table 		= $this->dbTableNames["player_entrant"];
+		$match_entrant_table 		= $this->dbTableNames["match_entrant"];
 		$booking_table 				= $this->dbTableNames["court_booking"];
 		$booking_match_table 		= $this->dbTableNames["match_court_booking"];
+		$club_event_table			= $this->dbTableNames["club_event"];
 
+		/**
+		 * Club or venue that owns tennis courts
+		 */
 		$sql = "CREATE TABLE `$club_table` ( 
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(100) NOT NULL,
@@ -143,9 +150,12 @@ class TE_Install {
 		var_dump( dbDelta( $sql) );
 		$wpdb->print_error();
 		
+		/**
+		 * Court ... where you play tennis!
+		 */
 		$sql = "CREATE TABLE `$court_table` (
-				`ID` INT NOT NULL COMMENT 'Same as Court Number',
 				`club_ID` INT NOT NULL,
+				`court_num` INT NOT NULL,
 				`court_type` VARCHAR(45) NOT NULL DEFAULT 'hard',
 				PRIMARY KEY (`club_ID`,`ID`),
 				FOREIGN KEY (`club_ID`)
@@ -155,18 +165,46 @@ class TE_Install {
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
 		
-		$sql = "  CREATE TABLE `$event_table` (
+		/**
+		 * Events are hierarchical entities
+		 * representing leagues, tournaments, ladder, etc.
+		 * For example an event called 'Year End Tournament' 
+		 * having sub-events: 'Mens Singles', 'Mens Doubles', 'Womens Doubles', etc.
+		 */
+		$sql = "CREATE TABLE `$event_table` (
 				`ID` INT NOT NULL AUTO_INCREMENT,
-				`name` VARCHAR(100) NOT NULL,
-				`club_ID` INT NOT NULL,
+				`event_type` VARCHAR(50) NOT NULL COMMENT 'tournament, league, ladder',
+				`name` VARCHAR(256) NOT NULL,
+				`parent_ID` INT NULL COMMENT 'Parent event',
+				`format` VARCHAR(25) NULL COMMENT 'single elimination, double elimination, round robin',
 				PRIMARY KEY (`ID`),
-				FOREIGN KEY (`club_ID`)
-				  REFERENCES `$club_table` (`ID`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION);";
+				FOREIGN KEY (`event_ID`)
+				  REFERENCES `$event_table` (`ID`)
+				  ON DELETE CASCADE
+				  ON UPDATE SET NULL);";
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
-		
+
+		/**
+		 * This table enables a many-to-many relationship
+		 * between clubs and events 
+		 * paving the way for interclub leagues and tournaments
+		 */
+		$sql = "CREATE TABLE `$club_event_table` (
+				`club_ID` INT NOT NULL,
+				`event_ID` INT NOT NULL,
+				FOREIGN KEY (`club_ID`)
+					REFERENCES `$club_table` (`ID`)
+					ON DELETE CASCADE
+					ON UPDATE NO ACTION,
+				FOREIGN KEY (`event_ID`)
+					REFERENCES `$event_table` (`ID`)
+					ON DELETE CASCADE
+					ON UPDATE NO ACTION);";
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
+
+		/*
 		$sql = "CREATE TABLE `$draw_table` (
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`event_ID` INT NOT NULL,
@@ -179,63 +217,76 @@ class TE_Install {
 				  ON UPDATE NO ACTION);";
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
+		*/
 
 		/**
-		 * An entrant into a tournament draw.
-		 * This can be a single player or a doubles team.
+		 * An entrant into a tournament event.
+		 * The relationship between the event and all entrants is called a draw.
+		 * This can be a single player or a doubles pair.
 		 */
 		$sql = "CREATE TABLE `$entrant_table` (
-				`draw_ID` INT NOT NULL,
+				`event_ID` INT NOT NULL,
 				`position` INT NOT NULL,
 				`name` VARCHAR(100) NOT NULL,
 				`seed` INT NULL,
-				PRIMARY KEY (`draw_ID`,`position`),
-				FOREIGN KEY (`draw_ID`)
-				  REFERENCES `$draw_table` (`ID`)
+				PRIMARY KEY (`event_ID`,`position`),
+				FOREIGN KEY (`event_ID`)
+				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
 		
 		/**
-		 * A round in a tennis draw.
+		 * A round in a tennis child event.
 		 * The number of rounds depends on the number of entrants
 		 */
 		$sql = "CREATE TABLE `$round_table` (
-				`draw_ID` INT NOT NULL,
-				`round_num` INT NOT NULL COMMENT 'Round Number',
+				`event_ID` INT NOT NULL,
+				`round_num` INT NOT NULL,
 				`comments` VARCHAR(255) NOT NULL,
-				PRIMARY KEY (`draw_ID`, `round_num`),
-				FOREIGN KEY (`draw_ID`)
-				  REFERENCES `$draw_table` (`ID`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION);";
+				PRIMARY KEY (`event_ID`, `round_num`),
+				FOREIGN KEY (`event_ID`)
+				  REFERENCES `$event_table` (`ID`)
+				  ON DELETE CASCADE
+				  ON UPDATE CASCADE);";
+		var_dump( dbDelta( $sql) ); 
+		$wpdb->print_error();
+
+		/**
+		 * A tennis match within a round within an event
+		 */
+		$sql = "CREATE TABLE `$match_table` (
+				`event_ID` INT NOT NULL,
+				`round_num` INT NOT NULL,
+				`match_num` INT NOT NULL,
+				`match_type` VARCHAR(25) NOT NULL,
+				`match_date` DATE NULL,
+				`match_time` TIME(6) NULL,
+				PRIMARY KEY (`event_ID`,`round_num`,`match_num`),
+				FOREIGN KEY (`event_ID`,`round_num`)
+				  REFERENCES `$round_table` (`event_ID`,`round_num`)
+				  ON DELETE CASCADE
+				  ON UPDATE CASCADE);";
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
 		
 		/**
-		 * A tennis match that is played as part
-		 * of a tournament draw
+		 * Assigns entrants to a matches within a round within an event
 		 */
-		$sql = "CREATE TABLE $match_table (
-				`draw_ID` INT NOT NULL,
-				`round_num` INT NOT NULL,
-				`match_num` INT NOT NULL,
-				`home_position` INT NOT NULL,
-				`visitor_position` INT NOT NULL,
-				PRIMARY KEY (`draw_ID`,`round_num`,`match_num`),
-				FOREIGN KEY (`draw_ID`,`round_num`)
-				  REFERENCES $round_table (`draw_ID`,`round_num`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION,
-				FOREIGN KEY (`draw_ID`,`home_position`) 
-				  REFERENCES $entrant_table (`draw_ID`,`position`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION,
-				FOREIGN KEY (`draw_ID`,`visitor_position`) 
-				  REFERENCES $entrant_table (`draw_ID`,`position`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION);";
+		$sql = "CREATE TABLE `$match_entrant_table` (
+			`match_event_ID` INT NOT NULL,
+			`match_round_num` INT NOT NULL,
+			`match_num` INT NOT NULL,
+			`entrant_postion` INT NOT NULL,
+			FOREIGN KEY (`match_event_ID`,`match_round_num`,`match_num`)
+				REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)
+				ON DELETE CASCADE
+				ON UPDATE CASCADE,
+			FOREIGN KEY (`match_event_ID`,`entrant_position`)
+				REFERENCES `$entrant_table` (`event_ID`,`position')
+				ON DELETE CASCADE
+				ON UPDATE CASCADE);";
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
 		
@@ -243,18 +294,18 @@ class TE_Install {
 		 * Games scores are kept here.
 		 */
 		$sql = "CREATE TABLE `$game_table` (
-				`draw_ID` INT NOT NULL,
+				`event_ID` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
 				`set_num` INT NOT NULL,
 				`game_num` INT NOT NULL,
 				`home_score` INT NOT NULL DEFAULT 0,
 				`visitor_score` INT NOT NULL DEFAULT 0,
-				PRIMARY KEY (`draw_ID`,`round_num`,`match_num`,`set_num`,`game_num`),
-				FOREIGN KEY (`draw_ID`,`round_num`,`match_num`)
-				  REFERENCES `$match_table` (`draw_ID`,`round_num`,`match_num`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION);";
+				PRIMARY KEY (`event_ID`,`round_num`,`match_num`,`set_num`,`game_num`),
+				FOREIGN KEY (`event_ID`,`round_num`,`match_num`)
+				  REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)
+				  ON DELETE CASCADE
+				  ON UPDATE CASCADE);";
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
 		
@@ -265,11 +316,16 @@ class TE_Install {
 			  `event_ID` INT NOT NULL,
 			  `team_num` INT NOT NULL,
 			  `name` VARCHAR(100) NOT NULL,
+			  `club_ID' INT NULL,
 			  PRIMARY KEY (`event_ID`,`team_num`),
 			  FOREIGN KEY (`event_ID`)
 				REFERENCES `$event_table` (`ID`)
-				ON DELETE NO ACTION
-				ON UPDATE NO ACTION);";
+				ON DELETE CASCADE
+				ON UPDATE CASCADE,
+			FOREIGN KEY (`club_ID`)
+				REFERENCES `$club_table` (`ID`)
+				ON DELETE SET NULL
+				ON UPDATE CASCADE);";
 		var_dump( dbDelta( $sql) ); 
 		$wpdb->print_error();
 		
@@ -281,7 +337,7 @@ class TE_Install {
 		$sql = "CREATE TABLE `$squad_table` (
 				`event_ID` INT NOT NULL,
 			  	`team_num` INT NOT NULL,
-			  	`division` VARCHAR(2) NOT NULL,
+			  	`division` VARCHAR(25) NOT NULL,
 			  PRIMARY KEY (`event_ID`,`team_num`,`division`),
 			  FOREIGN KEY (`event_ID`,`team_num`)
 				REFERENCES `$team_table` (`event_ID`,`team_num`)
@@ -401,6 +457,7 @@ class TE_Install {
 	public function dropSchema() {
 		global $wpdb;
 
+		//NOTE: The order is important
 		$sql = "DROP TABLE IF EXISTS ";
 		$sql = $sql       . $this->dbTableNames["match_court_booking"];
 		$sql = $sql . "," . $this->dbTableNames["court_booking"];

@@ -5,8 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require('abstract-class-data.php');
-require('class-entrant.php');
-
 /** 
  * Data and functions for Tennis Game(s)
  * @class  Match
@@ -21,10 +19,13 @@ class Game extends AbstractData
     const MAXSETS = 5;
     const MINSETS = 1;
     
-    //Foreign Keys
-    private $match_ID;
+    //Primary Keys
+    private $event_ID;
+    private $round_num;
+    private $match_num;
+    private $set_num;
+    private $game_num;
 
-    private $set_number;
     private $homescore;
     private $visitorscore;
     
@@ -33,41 +34,40 @@ class Game extends AbstractData
      */
     public static function search($criteria) {
 		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where $criteria";
-		$safe = $wpdb->prepare($sql,$criteria);
-		$rows = $wpdb->get_results($safe, ARRAY_A);
-		
-		error_log("Round::search $wpdb->num_rows rows returned where $criteria");
-
-		$col = array();
-		foreach($rows as $row) {
-            $obj = new Game;
-            self::mapData($obj,$row);
-			$col[] = $obj;
-		}
-		return $col;
+		return array();
     }
     
     /**
-     * Find all Games belonging to a specific Match or Entrant;
+     * Find all Games belonging to a specific Match;
      */
-    public static function find($fk_id, $context) {
+    public static function find(... $fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$col = array();
+        $col = array();
+        $where = array();
 
-        if(!is_string($context)) return $col;
-
-        if($context === 'match') $column = 'match_ID';
-        elseif($context === 'entrant') $column = 'entrant_ID';
-        else return $col;
-
-		$sql = "select * from $table where $column = %d";
-		$safe = $wpdb->prepare($sql,$fk_id);
+        if(count($fk_criteria.keys) === 0) {
+            if(count($fk_criteria) === 3) {
+                $where[] = $fk_criteria[0];
+                $where[] = $fk_criteria[1];
+                $where[] = $fk_criteria[2];
+            }
+            else {
+                return $col;
+            }
+        }
+        else {
+            return $col;
+        }
+        $sql = "select event_ID,round_num,match_num,set_num,game_num,home_score,visitor_score
+                 from $table 
+                 where event_ID = %d 
+                 and   round_num = %d 
+                 and   match_num = %d;";
+		$safe = $wpdb->prepare($sql,$where);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Game::find $wpdb->num_rows rows returned using $column = $fk_id");
+		error_log("Game::find $wpdb->num_rows rows returned");
 
 		foreach($rows as $row) {
             $obj = new Game;
@@ -78,9 +78,9 @@ class Game extends AbstractData
     }
 
 	/**
-	 * Get instance of a Match using it's ID
+	 * Get instance of a Match using it's primary key: event_ID,round_num,match_num,set_num,game_num
 	 */
-    static public function get($id) {
+    static public function get(... $pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select * from $table where ID=%d";
@@ -113,8 +113,13 @@ class Game extends AbstractData
         return $this->set_number;
     }
     
+    public function setGameNumber($n) {
+        if(!is_numeric($n)) return;
+        $this->game_num = $n;
+        $this->isdirty = TRUE;
+    }
     public function getGameNumber(){
-        return $this->getID();
+        return $this->game_num;
     }
 
     public function setHomeScore($score) {
@@ -141,37 +146,49 @@ class Game extends AbstractData
 	 * Get all my children!
 	 */
     public function getChildren($force=FALSE) {
-        $this->getEntrant($force);
-    }
-
-    private function getEntrant($force) {
-        if(!isset($this->entrant_ID)) return;
-
-        if(!isset($this->entrant) || $force) $this->entrant = Entrant::get($this->entrant_ID);
+        
     }
     
     public function isValid() {
         $isvalid = TRUE;
-        if(!isset($this->match_ID)) $isvalid = FALSE;
+        if(!isset($this->event_ID)) $isvalid = FALSE;
+        if(!isset($this->round_num)) $isvalid = FALSE;
+        if(!isset($this->match_num)) $isvalid = FALSE;
+        if(!$this->isNew() && !isset($this->set_num)) $isvalid = FALSE;
+        if(!$this->isNew() && !isset($this->game_num)) $isvalid = FALSE;
         if(!isset($this->homescore))  $isvalid = FALSE;
         if(!isset($this->visitorscore))  $isvalid = FALSE;
-        if(!isset($this->set_number)) $isvalid = FALSE;
 
         return $isvalid;
     }
 
-	private function create() {
+	protected function create() {
         global $wpdb;
         
-        if(!$this->isValid()) return;
+        parent::create();
+        
+		$table = $wpdb->prefix . self::$tablename;
+        $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
+        
+		$sql = "select max(set_num),max(game_num) from $table where event_ID=%d and round_num=%d and match_num=%d;";
+        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num,$this->match_num);
+        $this->set_num = $wpdb->get_var($safe,0,0) + 1;
+        
+        if($this->set_num < self::MINSETS) $this->set_num = self::MINSETS;
+        if($this->set_num > self::MAXSETS) $this->set_num = self::MAXSETS;
+        
+        $this->game_num =  $wpdb->get_var($safe,0,1) + 1;
 
-        $values         = array('match_ID' => $this->match_ID
-                               ,'set_number' => $this->set_number
-                               ,'homescore' => $this->homescore
-                               ,'visitorscore' => $this->visitorscore);
-		$formats_values = array('%d','%d','%d','%d');
+        $values = array( 'event_ID' => $this->event_ID
+                        ,'round_num' => $this->round_num
+                        ,'match_num' => $this->match_num
+                        ,'set_num' => $this->set_number
+                        ,'game_num' => $this->game_num
+                        ,'homescore' => $this->homescore
+                        ,'visitorscore' => $this->visitorscore);
+		$formats_values = array('%d','%d','%d','%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-		$this->ID = $wpdb->insert_id;
+
 		$this->isnew = FALSE;
 
 		error_log("Game::create $wpdb->rows_affected rows affected.");
@@ -184,13 +201,15 @@ class Game extends AbstractData
 
         if($this->isValid()) return;
 
-        $values         = array('match_ID' => $this->match_ID
-                               ,'set_number' => $this->set_number
-                               ,'homescore' => $this->homescore
-                               ,'visitorscore' => $this->visitorscore);
-		$formats_values = array('%d','%d','%d','%d');
-		$where          = array('ID' => $this->ID);
-		$formats_where  = array('%d');
+        $values = array( 'homescore' => $this->homescore
+                        ,'visitorscore' => $this->visitorscore);
+		$formats_values = array('%d','%d');
+        $where = array('event_ID'  => $this->event_ID
+                      ,'round_num' => $this->round_num
+                      ,'match_num' => $this->match_num
+                      ,'set_num'   => $this->set_num
+                      ,'game_num'  => $this->game_num);
+		$formats_where  = array('%d','%d','%d','%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
 
@@ -209,8 +228,11 @@ class Game extends AbstractData
      */
     protected static function mapData($obj,$row) {
         parent::mapData($obj,$row);
-        $obj->match_ID = $row["match_ID"];
-        $obj->set_number = $row["set_number"];
+        $obj->event_ID  = $row["event_ID"];
+        $obj->round_num = $row["round_num"];
+        $obj->match_num = $row["match_num"];
+        $obj->set_num   = $row["set_num"];
+        $obj->game_num  = $row["game_num"];
         $obj->homescore = $row["homescore"];
         $obj->visitorscore = $row["visitorscore"];
     }
@@ -220,9 +242,12 @@ class Game extends AbstractData
     }
 
     private function init() {
-        $this->match_ID = NULL;
-        $this->set_number = NULL;
-        $this->homescore = NULL;
+        $this->event_ID     = NULL;
+        $this->round_num    = NULL;
+        $this->match_num    = NULL;
+        $this->set_number   = NULL;
+        $this->game_num     = NULL;
+        $this->homescore    = NULL;
         $this->visitorscore = NULL;
     }
 

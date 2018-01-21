@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class AbstractData
 { 
     abstract static public function search($criteria);
-    abstract static public function find($fk_id,$context=NULL);
+    abstract static public function find(... $fk_criteria);
 
     abstract public function isValid();
     abstract public function getChildren($force=FALSE);
@@ -28,7 +28,9 @@ abstract class AbstractData
      * implemetation as parent::mapData
      */
     static protected function mapData($obj,$row) {
-        $obj->ID = $row["ID"];
+        if(isset($row["ID"])) {
+            $obj->ID = $row["ID"];
+        }
         $obj->isnew = FALSE;
     }
     
@@ -59,6 +61,16 @@ abstract class AbstractData
      */
     public function getID() {
         return $this->ID;
+    }
+
+    protected function create() {
+        if(!$this->isNew()) return;
+        if(!$this->isValid()) return;
+    }
+
+    protected function update() {
+        if(!$this->isDirty()) return;
+        if(!$this->isValid()) return;
     }
 
     /**

@@ -18,43 +18,24 @@ class Court extends AbstractData
 { 
 	//table name
 	private static $tablename = 'tennis_court';
-    private $ID;
+
     private $club_ID;
 	private $court_type;
     
 	private $bookings;
 
-	const HARD = 'hardcourt';
+	const HARD = 'hardcourt'; //plexicushion, decoturf, rebound ace, green set
 	const CLAY = 'claycourt';
 	const HARDTRUE = 'hardtrue';
 
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where court_type like '%%s%'";
+		$sql = "select ID,club_ID,court_type from $table where court_type like '%%s%'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
 		error_log("Court::search $wpdb->num_rows rows returned using criteria: $criteria");
-
-		$col = array();
-		foreach($rows as $row) {
-            $obj = new CourtBooking;
-            self::mapData($obj,$row);
-			$obj->isnew = FALSE;
-			$col[] = $obj;
-		}
-		return $col;
-    }
-    
-    public static function find($fk_id,$context=NULL) {
-		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where club_ID = %d";
-		$safe = $wpdb->prepare($sql,$fk_id);
-		$rows = $wpdb->get_results($safe, ARRAY_A);
-		
-		error_log("Court::find $wpdb->num_rows rows returned using club_ID=$id");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -65,27 +46,42 @@ class Court extends AbstractData
 		}
 		return $col;
     }
-
-	/**
-	 * Get instance of a Court using it's ID
-	 */
-    static public function get($id) {
+    
+    public static function find(... $fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where ID=%d";
-		$safe = $wpdb->prepare($sql,$id);
+		$col = array();
+		$sql = "select ID,club_ID,court_type from $table where club_ID = %d";
+		$safe = $wpdb->prepare($sql,$fk_criteria);
+		$rows = $wpdb->get_results($safe, ARRAY_A);
+		
+		error_log("Court::find $wpdb->num_rows rows returned");
+
+		foreach($rows as $row) {
+            $obj = new Court;
+            self::mapData($obj,$row);
+			$obj->isnew = FALSE;
+			$col[] = $obj;
+		}
+		return $col;
+    }
+
+	/**
+	 * Get instance of a Court using it's primary key: ID
+	 */
+    static public function get(... $pks) {
+		global $wpdb;
+		$table = $wpdb->prefix . self::$tablename;
+		$sql = "select ID,club_ID,court_type from $table where ID=%d";
+		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		error_log("Court::get(id) $wpdb->num_rows rows returned.");
 
-		if($rows.length !== 1) {
-			$obj = NULL;
-		} else {
+		$obj = NULL;
+		if($rows.length === 1) {
 			$obj = new Court;
-			foreach($rows as $row) {
-                self::mapData($obj,$row);
-				$obj->isnew = FALSE;
-			}
+			self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -97,9 +93,13 @@ class Court extends AbstractData
 	}
 
 	public function setCourtType($courtType) {
-		if($courtType === self::HARD || $courtType === self::CLAY || $courType = self::HARDTRUE) {
+		switch($courtype) {
+			case self::HARD:
+			case self::HARDTRUE:
+			case self::CLAY:
 			$this->court_type = $courtType;
 			$this->isdirty = TRUE;
+			break;
 		}
     }
 
@@ -139,6 +139,7 @@ class Court extends AbstractData
 	public function isValid() {
 		$isvalid = TRUE;
 		if(!isset($this->club_ID)) $isvalid = FALSE;
+		if(!$this->isNew() && !isset($this->court_num)) $isvalid = FALSE;
 		if(!isset($this->court_type)) $this->court_type = self::HARD;
 
 		return $isvalid;
@@ -147,13 +148,21 @@ class Court extends AbstractData
 	protected function create() {
 		global $wpdb;
 
-        if(!$this->isValid()) return;
+		parent::create();
+		
+		$table = $wpdb->prefix . self::$tablename;
+		$sql = "select max(court_num) + 1
+				from $table 
+				where club_ID=%d;";
+		$safe = $wpdb->prepare($sql,$this->club_ID);
+		$this->court_num = $wpdb->get_var($safe);
 
-        $values  = array('court_type' => $this->court_type
-                        ,'club_ID'    => $this->club_ID);
+        $values  = array('club_ID'    => $this->club_ID
+						,'court_num' => $this->court_num
+						,'court_type' => $this->court_type);
 		$formats_values = array('%s','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-		$this->ID = $wpdb->insert_id;
+		
 		$this->isnew = FALSE;
 
 		error_log("Court::create $wpdb->rows_affected rows affected.");
@@ -164,13 +173,13 @@ class Court extends AbstractData
 	protected function update() {
         global $wpdb;
         
-        if(!$this->isValid()) return;
+        parent::update();
 
-        $values         = array('court_type' => $this->court_type
-                               ,'club_ID' => $this->club_ID);
-		$formats_values = array('%s','%d');
-		$where          = array('ID' => $this->ID);
-		$formats_where  = array('%d');
+        $values         = array('court_type' => $this->court_type);
+		$formats_values = array('%s');
+		$where          = array( 'club_ID' => $this->club_ID
+								,'court_num' => $this->court_num);
+		$formats_where  = array('%d','%d');
 		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
 		$this->isdirty = FALSE;
 
@@ -196,6 +205,11 @@ class Court extends AbstractData
         parent::mapData($obj,$row);
         $obj->club_ID = $row["club_ID"];
         $obj->court_type = $row["court_type"];
-    }
+	}
+	
+	private function nextAvailableCourtNum() {
+		global $wpdb;
+
+	}
 
 } //end class
