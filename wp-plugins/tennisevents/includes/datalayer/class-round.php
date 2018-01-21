@@ -6,6 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require('abstract-class-data.php');
 require('class-match.php');
+require('class-entrant.php');
 
 /** 
  * Data and functions for Tennis Event Round(s)
@@ -89,9 +90,14 @@ class Round extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function _construct() {
+	public function __construct(int $event) {
         $this->isnew = TRUE;
+        $this->setEvent($event);
         $this->init();
+    }
+
+    public function __destruct() {
+        $this->event = null;
     }
     
     /**
@@ -132,13 +138,49 @@ class Round extends AbstractData
         return $this->comments;
     }
 
+    public function addMatch($home, $visitor) {
+        if(! $home instanceof Entrant) return false;
+        if(! $visitor instanceof Entrant) return false;
+        $match = new Match;
+        $match->setIdentifiers($this->getIdentifiers);
+        $match->setHomeEntrant($home);
+        $match->setVisitorEntrant($visitor);
+        $this->matches[] = $match;
+        $this->isdirty = true;
+        return true;
+    }
+
+    public function getMatches() {
+        return $this->matches;
+    }
+
+    public function setIdentifiers(... $pks) {
+        if(!$this->isNew()) return false;
+
+        if(1 === count($pks)) {
+            $this->event_ID  = $pks[0];
+        }
+        elseif(2 === count($pks)) {
+            $this->event_ID  = $pks[0];
+            $this->round_num = $pks[1];
+        }
+        return true;
+    }
+
+    public function getIdentifiers() {
+        $ids = array();
+        $ids[] = $this->event_ID;
+        $ids[] = $this->round_num;
+        
+        return $ids;
+    }
 	/**
 	 * Get all my children!
 	 * 1. Matches
 	 */
     public function getChildren($force) {
         if(!isset($this->round_num)) return;
-        if(count($this->matches) === 0  || $force) $this->matches = Match::find($this->event_ID,$this->round_num);
+        if(count($this->matches) === 0  || $force) $this->matches = Match::find($this->getIdentifiers());
     }
     
     /**
@@ -169,7 +211,11 @@ class Round extends AbstractData
 		error_log("Round::create $wpdb->rows_affected rows affected.");
 		
 		$wpdb->query("UNLOCK TABLES;");
-		$this->isnew = FALSE;
+        $this->isnew = FALSE;
+        
+        foreach($this->matches as $match) {
+            $match->save();
+        }
 
 		return $wpdb->rows_affected;
 	}
@@ -186,10 +232,14 @@ class Round extends AbstractData
 		$formats_where  = array('%d','%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
-
+        $result = $wpdb->rows_affected;
 		error_log("Round::update $wpdb->rows_affected rows affected.");
 
-		return $wpdb->rows_affected;
+        foreach($this->matches as $match) {
+            $match->save();
+        }
+
+		return $result;
 	}
 
     //TODO: Add delete logic
@@ -217,11 +267,10 @@ class Round extends AbstractData
     }
 
     private function init() {
-        $this->event = NULL;
-        $this->event_ID = NULL;
+        // $this->event = NULL;
+        // $this->event_ID = NULL;
         $this->round_num = NULL;
         $this->comments = NULL;
     }
-
 
 } //end class

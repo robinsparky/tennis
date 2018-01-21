@@ -24,10 +24,9 @@ class Game extends AbstractData
     private $round_num;
     private $match_num;
     private $set_num;
-    private $game_num;
 
-    private $homescore;
-    private $visitorscore;
+    private $home_wins;
+    private $visitor_wins;
     
     /**
      * Search for Matches that have a name 'like' the provided criteria
@@ -59,7 +58,7 @@ class Game extends AbstractData
         else {
             return $col;
         }
-        $sql = "select event_ID,round_num,match_num,set_num,game_num,home_score,visitor_score
+        $sql = "select event_ID,round_num,match_num,set_num,home_wins,visitor_wins
                  from $table 
                  where event_ID = %d 
                  and   round_num = %d 
@@ -83,7 +82,7 @@ class Game extends AbstractData
     static public function get(... $pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where ID=%d";
+		$sql = "select event_ID,round_num,match_num,set_num,home_wins,visitor_wins from $table where ID=%d";
 		$safe = $wpdb->prepare($sql,$id);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
@@ -98,48 +97,76 @@ class Game extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function _construct() {
+	public function __construct(int $eventID, int $round, int $match) {
         $this->isnew = TRUE;
+        $this->eventID = $eventID;
+        $this->round_num = $round;
+        $this->match_num = $match;
         $this->init();
     }
 
+    public function __destruct() {
+
+    }
+    
+    public function setIdentifiers(... $pks) {
+        if(!$this->isNew()) return false;
+
+        if(3 === count($pks)) {
+            $this->event_ID  = $pks[0];
+            $this->round_num = $pks[1];
+            $this->match_num = $pks[2];
+        }
+        elseif(4 === count($pks)) {
+            $this->event_ID  = $pks[0];
+            $this->round_num = $pks[1];
+            $this->match_num = $pks[2];
+            $this->set_num   = $pks[3];
+        }
+        return true;
+    }
+
+    public function getIdentifiers() {
+        $ids = array();
+        $ids[] = $this->event_ID;
+        $ids[] = $this->round_num;
+        $ids[] = $this->match_num;
+        $ids[] = $this->set_num;
+        
+        return $ids;
+    }
+
     public function setSetNumber($set) {
-        if(!is_numeric($set) || $set < self::MINSETS || $set > self::MAXSETS) return;
+        if(!is_numeric($set)) return FALSE;
+        if($set < self::MINSETS) $set = self::MINSETS;
+        if($set > self::MAXSETS) $set = self::MAXSETS;
         $this->set_number = $set;
         $this->isdirty = TRUE;
+        return TRUE;
     }
 
     public function getSetNumber() {
         return $this->set_number;
     }
-    
-    public function setGameNumber($n) {
-        if(!is_numeric($n)) return;
-        $this->game_num = $n;
-        $this->isdirty = TRUE;
-    }
-    public function getGameNumber(){
-        return $this->game_num;
-    }
 
-    public function setHomeScore($score) {
-        if(!is_numeric($score) || $score < 0) return;
-        $this->homescore = $score;
+    public function setHomeScore($wins, $ties=0) {
+        if(!is_numeric($wins) || $wins < 0) return;
+        $this->home_wins = $wins;
         $this->isdirty = TRUE;
     }
 
-    public function getHomeScore() {
-        return $this->homescore;
+    public function getHomeWins() {
+        return $this->home_wins;
     }
 
-    public function setVisitorScore($score) {
-        if(!is_numeric($score) || $score < 0) return;
-        $this->visitorscore = $score;
+    public function setVisitorScore($wins, $ties=0) {
+        if(!is_numeric($wins) || $wins < 0) return;
+        $this->visitor_wins = $wins;
         $this->isdirty = TRUE;
     }
 
-    public function getVisitorScore() {
-        return $this->visitorscore;
+    public function getVisitorWins() {
+        return $this->visitor_wins;
     }
     
 	/**
@@ -155,9 +182,7 @@ class Game extends AbstractData
         if(!isset($this->round_num)) $isvalid = FALSE;
         if(!isset($this->match_num)) $isvalid = FALSE;
         if(!$this->isNew() && !isset($this->set_num)) $isvalid = FALSE;
-        if(!$this->isNew() && !isset($this->game_num)) $isvalid = FALSE;
-        if(!isset($this->homescore))  $isvalid = FALSE;
-        if(!isset($this->visitorscore))  $isvalid = FALSE;
+        if(!isset($this->home_wins) && !isset($this->visitor_wins))  $isvalid = FALSE;
 
         return $isvalid;
     }
@@ -170,12 +195,17 @@ class Game extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
-		$sql = "select max(set_num),max(game_num) from $table where event_ID=%d and round_num=%d and match_num=%d;";
+		$sql = "select max(set_num) from $table where event_ID=%d and round_num=%d and match_num=%d;";
         $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num,$this->match_num);
         $this->set_num = $wpdb->get_var($safe,0,0) + 1;
         
         if($this->set_num < self::MINSETS) $this->set_num = self::MINSETS;
-        if($this->set_num > self::MAXSETS) $this->set_num = self::MAXSETS;
+        if($this->set_num > self::MAXSETS) {
+            $this->set_num = self::MAXSETS;
+            $wpdb->query("UNLOCK TABLES;");
+            $this->isnew = FALSE;
+            return 0;
+        }
         
         $this->game_num =  $wpdb->get_var($safe,0,1) + 1;
 
@@ -183,11 +213,12 @@ class Game extends AbstractData
                         ,'round_num' => $this->round_num
                         ,'match_num' => $this->match_num
                         ,'set_num' => $this->set_number
-                        ,'game_num' => $this->game_num
-                        ,'homescore' => $this->homescore
-                        ,'visitorscore' => $this->visitorscore);
+                        ,'home_wins' => $this->home_wins
+                        ,'visitor_wins' => $this->visitor_wins);
 		$formats_values = array('%d','%d','%d','%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+        
+        $wpdb->query("UNLOCK TABLES;");
 
 		$this->isnew = FALSE;
 
@@ -196,19 +227,18 @@ class Game extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
-	private function update() {
+	protected function update() {
 		global $wpdb;
 
-        if($this->isValid()) return;
+        parent::update();
 
-        $values = array( 'homescore' => $this->homescore
-                        ,'visitorscore' => $this->visitorscore);
+        $values = array( 'home_wins' => $this->homes_wins
+                        ,'visitor_wins' => $this->visitor_wins);
 		$formats_values = array('%d','%d');
         $where = array('event_ID'  => $this->event_ID
                       ,'round_num' => $this->round_num
                       ,'match_num' => $this->match_num
-                      ,'set_num'   => $this->set_num
-                      ,'game_num'  => $this->game_num);
+                      ,'set_num'   => $this->set_num);
 		$formats_where  = array('%d','%d','%d','%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
@@ -232,9 +262,8 @@ class Game extends AbstractData
         $obj->round_num = $row["round_num"];
         $obj->match_num = $row["match_num"];
         $obj->set_num   = $row["set_num"];
-        $obj->game_num  = $row["game_num"];
-        $obj->homescore = $row["homescore"];
-        $obj->visitorscore = $row["visitorscore"];
+        $obj->homes_wins = $row["home_wins"];
+        $obj->visitor_wins = $row["visitor_wins"];
     }
  
     private function getIndex($obj) {
@@ -242,13 +271,12 @@ class Game extends AbstractData
     }
 
     private function init() {
-        $this->event_ID     = NULL;
-        $this->round_num    = NULL;
-        $this->match_num    = NULL;
+        // $this->event_ID     = NULL;
+        // $this->round_num    = NULL;
+        // $this->match_num    = NULL;
         $this->set_number   = NULL;
-        $this->game_num     = NULL;
-        $this->homescore    = NULL;
-        $this->visitorscore = NULL;
+        $this->home_wins    = NULL;
+        $this->visitor_wins = NULL;
     }
 
 

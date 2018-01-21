@@ -124,16 +124,48 @@ class Match extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function _construct() {
+	public function __construct(Event $event, int $round) {
         $this->isnew = TRUE;
+        $this->setEvent($event);
+        $this->round_num = $round;
         $this->init();
+    }
+
+    public function __destruct() {
+        $this->event = null;
+        foreach($this->games as $game) {
+            $game = null;
+        }
+    }
+    
+    public function setIdentifiers(... $pks) {
+        if(!$this->isNew()) return false;
+
+        if(2 === count($pks)) {
+            $this->event_ID  = $pks[0];
+            $this->round_num = $pks[1];
+        }
+        elseif(3 === count($pks)) {
+            $this->event_ID  = $pks[0];
+            $this->round_num = $pks[1];
+            $this->match_num = $pks[2];
+        }
+        return true;
+    }
+
+    public function getIdentifiers() {
+        $ids = array();
+        $ids[] = $this->event_ID;
+        $ids[] = $this->round_num;
+        $ids[] = $this->match_num;
+
+        return $ids;
     }
     
     /**
      * Assign this Match to an Event
      */
-    public function setEvent($event) {
-        if(! $event instanceof Event) return;
+    public function setEvent(Event $event) {
         $this->event = $event;
         $this->event_ID = $event->ID;
         $this->isdirty = TRUE;
@@ -146,15 +178,6 @@ class Match extends AbstractData
         return $this->event;
     }
 
-    /**
-     * Set the Round number
-     */
-    public function setRoundNumber($num) {
-        if(!is_numeric($num) || $num < 1 ) return;
-        $this->round_num = $num;
-        $this->isdirty = TRUE;
-    }
-
     public function getRoundNumber(){
         return $this->round_num;
     }
@@ -163,15 +186,21 @@ class Match extends AbstractData
         return $this->match_num;
     }
 
+    public function setMatchType(String $type) {
+        $this->match_type = $type;
+    }
+
+    public function getMatchType() {
+        return $this->match_type;
+    }
+
     /**
      * Set the Home opponent for this match
      */
-    public function setHomeEntrant($h) {
-        if( $h instanceof Entrant ) {
-            $this->home = $h;
-            $this->home_ID = $h->getID();
-            $this->isdirty = TRUE;
-        }
+    public function setHomeEntrant(Entrant $h) {
+        $this->home = $h;
+        $this->home_ID = $h->getID();
+        $this->isdirty = TRUE;
     }
 
     public function getHomeEntrant() {
@@ -181,16 +210,36 @@ class Match extends AbstractData
     /**
      * Set the Visitor opponent for this match
      */
-    public function setVisitorEntrant($v) {
-        if( $v instanceof Entrant ) {
-            $this->visitor = $v;
-            $this->visitor_ID = $v->getID();
-            $this->isdirty = TRUE;
-        }
+    public function setVisitorEntrant(Entrant $v) {
+        $this->visitor = $v;
+        $this->visitor_ID = $v->getID();
+        $this->isdirty = TRUE;
     }
 
     public function getVisitorEntrant() {
         return $this->visitor;
+    }
+
+    public function setScore(int $set,int $home_wins=0,int $visitor_wins=0) {
+        $setfound = FALSE;
+        foreach($this->games as $game) {
+            if($game->getSetNumber() === $set) {
+                $setfound = TRUE;
+                $game->setHomeScore($home_wins);
+                $game->setVisitorScore($visitor_wins);
+                break;
+            }
+        }
+        if(!$setfound) {
+            $game = new Game;
+            $game->setIdentifiers($this->getIdentifiers());
+            if($game->setSetNumber($set)) {
+                $game->setHomeScore($home_wins);
+                $game->setVisitorScore($visitor_wins);
+                $this->games[] = $game;
+            }
+        }
+        $this->isdirty = true;
     }
 
 	/**
@@ -320,8 +369,8 @@ class Match extends AbstractData
     }
 
     private function init() {
-        $this->event_ID   = NULL;
-        $this->round_num  = NULL;
+        // $this->event_ID   = NULL;
+        // $this->round_num  = NULL;
         $this->match_num  = NULL;
         $this->match_type = NULL;
         $this->match_date = NULL;

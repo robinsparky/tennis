@@ -298,10 +298,13 @@ class TE_Install {
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
 				`set_num` INT NOT NULL,
-				`game_num` INT NOT NULL,
-				`home_score` INT NOT NULL DEFAULT 0,
-				`visitor_score` INT NOT NULL DEFAULT 0,
-				PRIMARY KEY (`event_ID`,`round_num`,`match_num`,`set_num`,`game_num`),
+				`home_wins` INT NOT NULL DEFAULT 0,
+				`visitor_wins` INT NOT NULL DEFAULT 0,
+				`home_tb_pts` INT NOT NULL DEFAULT 0,
+				`visitor_tb_pts` INT NOT NULL DEFAULT 0,
+				`home_ties` INT NOT NULL DEFAULT 0 COMMENT 'For leagues, round robins',
+				`visitor_ties` INT NOT NULL DEFAULT 0 COMMENT 'For leagues, round robins',
+				PRIMARY KEY (`event_ID`,`round_num`,`match_num`,`set_num`),
 				FOREIGN KEY (`event_ID`,`round_num`,`match_num`)
 				  REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)
 				  ON DELETE CASCADE

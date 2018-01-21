@@ -84,7 +84,7 @@ class Club extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function _construct() {
+	public function __construct() {
 		$this->isnew = TRUE;
 		$this->init();
 	}
@@ -132,6 +132,7 @@ class Club extends AbstractData
 
 		return $isvalid;
 	}
+	
 	protected function create() {
 		global $wpdb;
 

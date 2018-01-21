@@ -158,7 +158,7 @@ class Entrant extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function _construct() {
+	public function __construct() {
 		$this->isnew = TRUE;
 		$this->init();
 	}

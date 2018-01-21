@@ -16,6 +16,7 @@ abstract class AbstractData
 { 
     abstract static public function search($criteria);
     abstract static public function find(... $fk_criteria);
+    abstract static public function get(... $pks);
 
     abstract public function isValid();
     abstract public function getChildren($force=FALSE);
@@ -28,6 +29,7 @@ abstract class AbstractData
      * implemetation as parent::mapData
      */
     static protected function mapData($obj,$row) {
+        $obj->ID = NULL;
         if(isset($row["ID"])) {
             $obj->ID = $row["ID"];
         }
@@ -64,13 +66,13 @@ abstract class AbstractData
     }
 
     protected function create() {
-        if(!$this->isNew()) return;
-        if(!$this->isValid()) return;
+        if(!$this->isNew()) return 0;
+        if(!$this->isValid()) return 0;
     }
 
     protected function update() {
-        if(!$this->isDirty()) return;
-        if(!$this->isValid()) return;
+        if(!$this->isDirty()) return 0;
+        if(!$this->isValid()) return 0;
     }
 
     /**
