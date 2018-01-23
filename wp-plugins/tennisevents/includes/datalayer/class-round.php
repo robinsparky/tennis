@@ -5,6 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require('abstract-class-data.php');
+require('class-event.php');
 require('class-match.php');
 require('class-entrant.php');
 
@@ -32,7 +33,8 @@ class Round extends AbstractData
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select ID,event_ID,round_num,comments from $table where comments like '%%s%'";
+        $sql = "select event_ID,round_num,comments 
+                from $table where comments like '%%s%'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
@@ -51,7 +53,7 @@ class Round extends AbstractData
     /**
      * Find all Rounds belonging to a specific Event;
      */
-    public static function find(... $fk_criteria) {
+    public static function find(int ...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select event_ID,round_num,comments from $table where event_ID = %d";
@@ -72,10 +74,11 @@ class Round extends AbstractData
 	/**
 	 * Get instance of a Round using it's primary key: event_ID, round_num
 	 */
-    static public function get(... $pks) {
+    static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select event_ID,round_num,comments from $table where event_ID=%d and round_num=%d;";
+        $sql = "select event_ID,round_num,comments 
+                from $table where event_ID=%d and round_num=%d;";
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
@@ -83,66 +86,70 @@ class Round extends AbstractData
 
         $obj = NULL;
 		if($rows.length === 1) {
-            $obj = new Round;
+            $obj = new Round(...$pks);
             self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $event) {
+	public function __construct(int $event, int $round=NULL) {
         $this->isnew = TRUE;
-        $this->setEvent($event);
+        $this->event_ID = $event;
+        $this->round_num = $round;
         $this->init();
     }
 
     public function __destruct() {
         $this->event = null;
+        foreach($this->matches as $match){
+            $match = null;
+        }
     }
     
     /**
      * Assign this Round to an Event
      */
-    public function setEvent($owner) {
-        if(! $owner instanceof Event) return;
-        $this->event = $owner;
-        $this->event_ID = $owner->ID;
+    public function setEvent(Event $event) {
+        if($event->isParent()) return false;
+        $this->event = $event;
+        $this->event_ID = $event->ID;
         $this->isdirty = TRUE;
+        return true;
     }
 
-    public function getEvent() {
+    public function getEvent():Event {
         return $this->event;
     }
 
     /**
      * Get this Round's Event id.
      */
-    public function getEventId() {
+    public function getEventId():int {
         return $this->event_ID;
     }
 
-    public function getRoundNumber(){
+    public function getRoundNumber():int {
         return $this->round_num;
     }
 
     /**
      * Set this Round's comments
      */
-    public function setComments($ot) {
-        if(!is_string($ot)) return;
-        $this->comments = $ot;
+    public function setComments(string $comment) {
+        $this->comments = $comment;
         $this->isdirty = TRUE;
     }
 
-    public function getComments() {
+    public function getComments():string {
         return $this->comments;
     }
 
-    public function addMatch($home, $visitor) {
-        if(! $home instanceof Entrant) return false;
-        if(! $visitor instanceof Entrant) return false;
-        $match = new Match;
-        $match->setIdentifiers($this->getIdentifiers);
+    public function addNewMatch(Entrant $home, Entrant $visitor) {
+        if($this->isNew()) return false;
+        if(!isset($this->matches)) $this->matches = array();
+
+        $match = new Match($this->event_ID, $this->round_num);
         $match->setHomeEntrant($home);
         $match->setVisitorEntrant($visitor);
         $this->matches[] = $match;
@@ -150,11 +157,23 @@ class Round extends AbstractData
         return true;
     }
 
-    public function getMatches() {
+    public function addMatch(Match $match) {
+        if($this->isNew()) return false;
+        if(!isset($this->matches)) $this->matches = array();
+        $this->matches[] = $match;
+        $this->isdirty = true;
+        return true;
+    }
+
+    public function getMatches():array {
         return $this->matches;
     }
 
-    public function setIdentifiers(... $pks) {
+    public function numMatches() {
+        return count($this->matches);
+    }
+
+    public function setIdentifiers(int ...$pks) {
         if(!$this->isNew()) return false;
 
         if(1 === count($pks)) {
@@ -167,7 +186,7 @@ class Round extends AbstractData
         return true;
     }
 
-    public function getIdentifiers() {
+    public function getIdentifiers():array {
         $ids = array();
         $ids[] = $this->event_ID;
         $ids[] = $this->round_num;
@@ -179,7 +198,7 @@ class Round extends AbstractData
 	 * 1. Matches
 	 */
     public function getChildren($force) {
-        if(!isset($this->round_num)) return;
+        if($this->isNew()) return;
         if(count($this->matches) === 0  || $force) $this->matches = Match::find($this->getIdentifiers());
     }
     
@@ -196,7 +215,8 @@ class Round extends AbstractData
         
         parent::create();
         
-		$table = $wpdb->prefix . self::$tablename;
+        $table = $wpdb->prefix . self::$tablename;
+        
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
 		$sql = "select max(round_num) from $table where event_ID=%d;";
@@ -208,7 +228,8 @@ class Round extends AbstractData
                         ,'comments' => $this->comments);
 		$formats_values = array('%d','%d','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-		error_log("Round::create $wpdb->rows_affected rows affected.");
+        error_log("Round::create $wpdb->rows_affected rows affected.");
+        $result = $wpdb->rows_affected;
 		
 		$wpdb->query("UNLOCK TABLES;");
         $this->isnew = FALSE;
@@ -217,7 +238,7 @@ class Round extends AbstractData
             $match->save();
         }
 
-		return $wpdb->rows_affected;
+		return $result;
 	}
 
 	protected function update() {
@@ -249,7 +270,7 @@ class Round extends AbstractData
 
     public function isValid() {
         $isvalid = TRUE;
-        if(!isset($this->evemt_ID)) $isvalid = FALSE;
+        if(!isset($this->event_ID)) $isvalid = FALSE;
         if(!$this->isNew() && !isset($this->round_num)) $isvalid = FALSE;
         
         return $isvalid;
@@ -267,9 +288,9 @@ class Round extends AbstractData
     }
 
     private function init() {
-        // $this->event = NULL;
         // $this->event_ID = NULL;
-        $this->round_num = NULL;
+        // $this->round_num = NULL;
+        $this->event = NULL;
         $this->comments = NULL;
     }
 

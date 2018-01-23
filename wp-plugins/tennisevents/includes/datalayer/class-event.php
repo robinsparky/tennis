@@ -68,7 +68,7 @@ class Event extends AbstractData
      * Find all Events belonging to a specific club
 	 * Or all child Events of a specific parent Events
      */
-    public static function find(... $fk_criteria) {
+    public static function find(int ...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$joinTable = "{$wpdb->prefix}tennis_club_event";
@@ -78,7 +78,7 @@ class Event extends AbstractData
 
 		if(count($fk_criteria.keys) === 0) {
 			//No column name specified
-			if(count($fk_criteria) !== 0) {
+			if(count($fk_criteria) > 0) {
 				$col_value = $fk_criteria[0];
 				$sql = "select e.ID,e.event_type,e.name,e.format,e.parent_ID 
 						from $table e
@@ -98,7 +98,6 @@ class Event extends AbstractData
 						from $table ce
 						inner join $table pe on pe.ID = ce.parent_ID
 						where ce.parent_ID = %d;";
-
 			}
 			//All events belonging to specified club
 			elseif(isset($fk_criteris["club_ID"])){
@@ -126,13 +125,13 @@ class Event extends AbstractData
 	}
 
 	/**
-	 * Get instance of a Event using it's ID
+	 * Get instance of a Event using it's primary key: ID
 	 */
-    static public function get($id) {
+    static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select ID,event_type,name,format,parent_ID from $table where ID=%d";
-		$safe = $wpdb->prepare($sql,$id);
+		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		error_log("Event::get(id) $wpdb->num_rows rows returned.");
@@ -142,7 +141,6 @@ class Event extends AbstractData
 			$obj = new Event;
 			self::mapData($obj,rows[0]);
 		}
-		
 		return $obj;
 	}
 
@@ -151,12 +149,22 @@ class Event extends AbstractData
 		$this->isnew = TRUE;
 		$this->init();
 	}
+	
+    public function __destruct() {
+        $this->parent = null;
+        foreach($this->childEvents as $event){
+            $event = null;
+		}
+		
+		foreach($this->draw as $draw) {
+			$draw = NULL;
+		}
+    }
 
     /**
      * Set a new value for a name of an Event
      */
-	public function setName($name) {
-        if(!is_string($name) || strlen($name) < 2) return;
+	public function setName(string $name) {
 		$this->name = $name;
 		$this->dirty = TRUE;
     }
@@ -164,15 +172,14 @@ class Event extends AbstractData
     /**
      * Get the name of this object
      */
-    public function getName() {
+    public function getName():string {
         return $this->name;
     }
 
     /**
      * Assign this Child Event to a Parent Event
      */
-    public function setParent($parent) {
-        if(! $parent instanceof self) return;
+    public function setParent(Event $parent) {
 		$this->parent = $parent;
 		$this->parent_ID = $parent->ID;
         $this->isdirty = TRUE;
@@ -181,13 +188,20 @@ class Event extends AbstractData
     public function getParent() {
         return $this->parent;
 	}
+
+	/**
+	 * Is this event a parent EVent?
+	 */
+	public function isParentEvent() {
+		return !isset($this->parent_ID);
+	}
 	
 	/**
 	 * Set the type of event
 	 * Applies only to a parent event
 	 */
-	public function setEventType($type) {
-		if(isset($this->parent_ID)) return;
+	public function setEventType(string $type) {
+		if(!$this->isParentEvent()) return;
 		switch($type) {
 			CASE self::TOURNAMENT:
 			CASE self::LEAGUE:
@@ -206,8 +220,8 @@ class Event extends AbstractData
 	 * Set the format
 	 * Applies only to the lowest child event
 	 */
-	public function setFormat($format) {
-		if(!isset($this->parent_ID)) return;
+	public function setFormat(string $format) {
+		if($this->isParentEvent()) return;
 		switch($format) {
 			CASE self::SINGLE_ELIM:
 			CASE self::DOUBLE_ELIM:
@@ -218,8 +232,27 @@ class Event extends AbstractData
 		}
 	}
 
-	public function getFormat() {
+	public function getFormat():string {
 		return $this->format;
+	}
+
+	public function addChildEvent(Event $child) {
+		if($this->isParentEvent() && !$child->isParentEvent()) {
+			if(!isset($this->childEvents)) $this->childEvents = array();
+			$this->childEvents[] = $child;
+			$child->setParent($child);
+			$this->isdirty = true;
+		}
+	}
+
+	public function addToDraw(Entrant $player) {
+		if(!isset($this->draw)) $this->draw = array();
+		$this->draw[] = $player;
+		$this->isdirty = true;
+	}
+
+	public function drawSize():int {
+		return count($this->draw);
 	}
 
 	/**
@@ -253,7 +286,7 @@ class Event extends AbstractData
 	protected function create() {
         global $wpdb;
         
-        if(!$this->isValid()) return;
+        parent::create();
 
         $values = array( 'name'=>$this->name
 						,'parent_ID'=>$this->parent_ID
@@ -263,16 +296,24 @@ class Event extends AbstractData
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
-
+		$result = $wpdb->rows_affected;
 		error_log("Event::create $wpdb->rows_affected rows affected.");
 
-		return $wpdb->rows_affected;
+		foreach($this->childEvents as $child) {
+			$child->save();
+		}
+
+		foreach($this->draw as $draw) {
+			$draw->save();
+		}
+
+		return $result;
 	}
 
 	protected function update() {
 		global $wpdb;
 
-        if(!$this->isValid()) return;
+        parent::update();
 
         $values = array( 'name' => $this->name
 						,'parent_ID' => $this->parent_ID
@@ -283,10 +324,19 @@ class Event extends AbstractData
 		$formats_where  = array('%d');
 		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
 		$this->isdirty = FALSE;
+		$result = $wpdb->rows_affected;
 
 		error_log("Event::update $wpdb->rows_affected rows affected.");
 
-		return $wpdb->rows_affected;
+		foreach($this->childEvents as $child) {
+			$child->save();
+		}
+
+		foreach($this->draw as $draw) {
+			$draw->save();
+		}
+		
+		return $result;
 	}
 
 	//TODO: Complete the delete logic
@@ -297,8 +347,8 @@ class Event extends AbstractData
 	public function isValid() {
 		$isvalid = TRUE;
 		if(!isset($this->name)) $isvalid = FALSE;
-		if(!isset($this->event_type) && !isset($this->parent_ID)) $isvalid = FALSE;
-		if(!isset($this->format) && isset($this->parent_ID)) $isvalid = FALSE;
+		if(!isset($this->event_type) && !$this->isParentEvent()) $isvalid = FALSE;
+		if(!isset($this->format) && $this->isParentEvent()) $isvalid = FALSE;
 
 		return $isvalid;
 	}

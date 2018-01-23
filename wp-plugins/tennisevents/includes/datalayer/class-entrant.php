@@ -31,7 +31,6 @@ class Entrant extends AbstractData
 	 */
 	private $name;
 
-
 	/**
 	 * The seeding of this player or team.
 	 * Must be unique
@@ -69,9 +68,9 @@ class Entrant extends AbstractData
 	 * belonging to a specific Event (draw)
 	 * Or all Entrants in order of position
 	 * belonging to a specific Event and
-	 * assigned to any match
+	 * assigned to a Match in a Round
      */
-    public static function find(... $fk_criteria) {
+    public static function find(int ...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
@@ -83,9 +82,9 @@ class Entrant extends AbstractData
 					from $table where event_ID = %d order by position;";
 			}
 			elseif(count($fk_criteria) === 3) {
-				$where[] = $fk_criteria[0];
-				$where[] = $fk_criteria[1];
-				$where[] = $fk_criteria[2];
+				$where[] = $fk_criteria[0]; //Event
+				$where[] = $fk_criteria[1]; //Round
+				$where[] = $fk_criteria[2]; //Match
 				$joinTable = $wpdb->prefix . "tennis_match_entrant";
 				
 				$sql = "select   j.match_event_ID
@@ -138,36 +137,38 @@ class Entrant extends AbstractData
 	/**
 	 * Get instance of a Entrant using it's primary key: event_ID, position
 	 */
-    static public function get(... $pks) {
+    static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$obj = NULL;
 		if(count($pks) !== 2) return $obj;
 
-		$sql = "select event_ID,position,name,seed from $table where event_ID=%d and position=%d;";
+		$sql = "select event_ID,position,name,seed 
+				from $table where event_ID=%d and position=%d;";
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
-		error_log("Entrant::get(id) $wpdb->num_rows rows returned.");
+		error_log("Entrant::get(pks) $wpdb->num_rows rows returned.");
 
 		if($rows.length === 1) {
-			$obj = new Entrant;
+			$obj = new Entrant(...$pks);
 			self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct() {
+	public function __construct(int $eventID, int $pos = NULL) {
 		$this->isnew = TRUE;
+		$this->event_ID = $eventID;
+		$this->position = $pos;
 		$this->init();
 	}
 
     /**
      * Set a new value for a name of this Draw
      */
-	public function setName($name) {
-        if(!is_string($name)) return;
+	public function setName(string $name) {
 		$this->name = $name;
 		$this->dirty = TRUE;
     }
@@ -175,31 +176,31 @@ class Entrant extends AbstractData
     /**
      * Get the name of this Draw
      */
-    public function getName() {
+    public function getName():string {
         return $this->name;
     }
 
     /**
      * Assign this Entrant to an Event
      */
-    public function setEventId($draw) {
-        if(!is_numeric($draw) || $draw < 1) return;
-        $this->event_ID = $draw;
+    public function setEventId(int $eventId) {
+        if($eventId < 1) return;
+        $this->event_ID = $eventId;
         $this->isdirty = TRUE;
     }
 
     /**
      * Get this Entrant's Draw id.
      */
-    public function getEventId() {
+    public function getEventId():int {
         return $this->event_ID;
     }
 	
 	/**
 	 * Assign a position
 	 */
-	public function setPosition($pos) {
-		if(!is_numeric($pos) || $pos < 1) return;
+	public function setPosition(int $pos) {
+		if($pos < 1) return;
 		$this->position = $pos;
         $this->isdirty = TRUE;
 	}
@@ -207,15 +208,15 @@ class Entrant extends AbstractData
 	/**
 	 * Get Position in Draw
 	 */
-	public function getPosition() {
+	public function getPosition():int {
 		return $this->position;
 	}
 
 	/**
 	 * Seed this player(s)
 	 */
-	public function setSeed($seed) {
-		if(!is_numeric($seed) || $seed < 0) return;
+	public function setSeed(int $seed) {
+		if($seed < 0) return;
 		$this->seed = $seed;
         $this->isdirty = TRUE;
 	}
@@ -223,7 +224,7 @@ class Entrant extends AbstractData
 	/**
 	 * Get the seeding of this Entrant (player(s))
 	 */
-	public function getSeed() {
+	public function getSeed():int {
 		return $this->seed;
 	}
 
@@ -239,14 +240,15 @@ class Entrant extends AbstractData
 	 * Get all Players for this Entrant.
 	 */
 	public function getPlayers($force) {
-        if(count($this->players) === 0 || $force) $this->players = Player::find($this->ID);
+		if($this->isNew()) return;
+        //if(count($this->players) === 0 || $force) $this->players = Player::find($this->event_ID);
 	}
 
 	public function isValid() {
 		$isvalid = TRUE;
 		if(!isset($this->event_ID)) $invalid = FALSE;
-		if(!issest($this->position))  $invalid = FALSE;
-		if(!isset($this->name))  $invalid = FALSE;
+		if(!$this->isNew() && !isset($this->position))  $invalid = FALSE;
+		if(!isset($this->name)) $invalid = FALSE;
 
 		return $isvalid;
 	}
@@ -256,12 +258,11 @@ class Entrant extends AbstractData
 
 		parent::create();
 
-		
 		$table = $wpdb->prefix . self::$tablename;
 		$wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE");
 		
-		$sql = "select max(position) from $table where club_ID=%d;";
-		$safe = $wpdb->prepare($sql,$this->club_ID);
+		$sql = "select max(position) from $table where event_ID=%d;";
+		$safe = $wpdb->prepare($sql,$this->event_ID);
 		$this->position = $wpdb->get_var($safe) + 1;
 
 		$values = array( 'event_ID' => $this->event_ID
@@ -271,14 +272,14 @@ class Entrant extends AbstractData
 		$formats_values = array('%d','%d','%s','%d');
 
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-		
+		$result = $wpdb->rows_affected;
 		$wpdb->query("UNLOCK TABLES");
 
 		$this->isnew = FALSE;
 
 		error_log("Entrant::create $wpdb->rows_affected rows affected.");
 
-		return $wpdb->rows_affected;
+		return $result;
 	}
 
 	protected function update() {
@@ -288,7 +289,7 @@ class Entrant extends AbstractData
 
 		parent::update();
 		
-		$where = array( 'event_ID' => $this->ID
+		$where = array( 'event_ID' => $this->event_ID
 					   ,'position' => $this->position);
 		$formats_where  = array('%d','%d');
 
@@ -311,8 +312,8 @@ class Entrant extends AbstractData
 	}
 	
 	private function init() {
-		$this->event_ID = NULL;
-		$this->position = NULL;
+		//$this->event_ID = NULL;
+		//$this->position = NULL;
 		$this->name = NULL;
 		$this->seed = NULL;
 	}
@@ -325,7 +326,8 @@ class Entrant extends AbstractData
 		$obj->event_ID = $row["event_ID"];
 		$obj->position = $row["position"];
         $obj->name = $row["name"];
-        $obj->seed = $row["seed"];		
+		$obj->seed = $row["seed"];	
+		$obj->getChildren(true);	
     }
 
 } //end class

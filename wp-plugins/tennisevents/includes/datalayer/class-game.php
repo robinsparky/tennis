@@ -97,11 +97,12 @@ class Game extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $eventID, int $round, int $match) {
+	public function __construct(int $eventID, int $round, int $match,int $set=NULL) {
         $this->isnew = TRUE;
         $this->eventID = $eventID;
         $this->round_num = $round;
         $this->match_num = $match;
+        $this->set_num   = $set;
         $this->init();
     }
 
@@ -217,14 +218,14 @@ class Game extends AbstractData
                         ,'visitor_wins' => $this->visitor_wins);
 		$formats_values = array('%d','%d','%d','%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-        
+        $result =  $wpdb->rows_affected;
         $wpdb->query("UNLOCK TABLES;");
 
 		$this->isnew = FALSE;
 
 		error_log("Game::create $wpdb->rows_affected rows affected.");
 
-		return $wpdb->rows_affected;
+		return $result;
 	}
 
 	protected function update() {
@@ -242,10 +243,11 @@ class Game extends AbstractData
 		$formats_where  = array('%d','%d','%d','%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
+        $result =  $wpdb->rows_affected;
 
 		error_log("Game::update $wpdb->rows_affected rows affected.");
 
-		return $wpdb->rows_affected;
+		return $result;
 	}
 
     //TODO: Complete the delete logic
@@ -274,7 +276,7 @@ class Game extends AbstractData
         // $this->event_ID     = NULL;
         // $this->round_num    = NULL;
         // $this->match_num    = NULL;
-        $this->set_number   = NULL;
+        // $this->set_number   = NULL;
         $this->home_wins    = NULL;
         $this->visitor_wins = NULL;
     }
