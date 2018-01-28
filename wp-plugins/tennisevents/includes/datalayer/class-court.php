@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('abstract-class-data.php');
-//require('class-court-booking.php');
+require_once('abstract-class-data.php');
+//require_once('class-court-booking.php');
 
 /** 
  * Data and functions for Tennis Court(s)
@@ -164,6 +164,7 @@ class Court extends AbstractData
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		
 		$this->isnew = FALSE;
+		$this->isdirty = FALSE;
 
 		error_log("Court::create $wpdb->rows_affected rows affected.");
 

@@ -65,7 +65,7 @@ class TE_Install {
 								   ,"squad"					=> $wpdb->prefix . "tennis_squad"
 								   ,"player_team"			=> $wpdb->prefix . "tennis_player_team_squad"
 								   ,"player_entrant"		=> $wpdb->prefix . "tennis_player_entrant"
-								   ,"match_entrant"			-> $wpdb->prefix . "tennis_match_entrant"
+								   ,"match_entrant"			=> $wpdb->prefix . "tennis_match_entrant"
 								   ,"court_booking"			=> $wpdb->prefix . "tennis_court_booking"
 								   ,"match_court_booking"	=> $wpdb->prefix . "tennis_match_court_booking"
 								   ,"club_event"			=> $wpdb->prefix . "tennis_club_event"
@@ -147,8 +147,9 @@ class TE_Install {
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(100) NOT NULL,
 				PRIMARY KEY (`ID`) );";
-		var_dump( dbDelta( $sql) );
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) );
+		// $wpdb->print_error();
 		
 		/**
 		 * Court ... where you play tennis!
@@ -157,13 +158,14 @@ class TE_Install {
 				`club_ID` INT NOT NULL,
 				`court_num` INT NOT NULL,
 				`court_type` VARCHAR(45) NOT NULL DEFAULT 'hard',
-				PRIMARY KEY (`club_ID`,`ID`),
+				PRIMARY KEY (`club_ID`,`court_num`),
 				FOREIGN KEY (`club_ID`)
 				  REFERENCES `$club_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		/**
 		 * Events are hierarchical entities
@@ -178,12 +180,13 @@ class TE_Install {
 				`parent_ID` INT NULL COMMENT 'Parent event',
 				`format` VARCHAR(25) NULL COMMENT 'single elimination, double elimination, round robin',
 				PRIMARY KEY (`ID`),
-				FOREIGN KEY (`event_ID`)
+				FOREIGN KEY (`parent_ID`)
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
-				  ON UPDATE SET NULL);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+				  ON UPDATE CASCADE);";
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 
 		/**
 		 * This table enables a many-to-many relationship
@@ -201,8 +204,9 @@ class TE_Install {
 					REFERENCES `$event_table` (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE NO ACTION);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 
 		/*
 		$sql = "CREATE TABLE `$draw_table` (
@@ -234,8 +238,9 @@ class TE_Install {
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE NO ACTION
 				  ON UPDATE NO ACTION);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		/**
 		 * A round in a tennis child event.
@@ -250,8 +255,9 @@ class TE_Install {
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 
 		/**
 		 * A tennis match within a round within an event
@@ -268,8 +274,9 @@ class TE_Install {
 				  REFERENCES `$round_table` (`event_ID`,`round_num`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		/**
 		 * Assigns entrants to a matches within a round within an event
@@ -278,17 +285,18 @@ class TE_Install {
 			`match_event_ID` INT NOT NULL,
 			`match_round_num` INT NOT NULL,
 			`match_num` INT NOT NULL,
-			`entrant_postion` INT NOT NULL,
+			`entrant_position` INT NOT NULL,
 			FOREIGN KEY (`match_event_ID`,`match_round_num`,`match_num`)
 				REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE,
 			FOREIGN KEY (`match_event_ID`,`entrant_position`)
-				REFERENCES `$entrant_table` (`event_ID`,`position')
+				REFERENCES `$entrant_table` (`event_ID`,`position`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		/**
 		 * Games scores are kept here.
@@ -309,28 +317,30 @@ class TE_Install {
 				  REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		/**
 		 * A tennis team from a league for example
 		 */
 		$sql = "CREATE TABLE `$team_table` (
-			  `event_ID` INT NOT NULL,
-			  `team_num` INT NOT NULL,
-			  `name` VARCHAR(100) NOT NULL,
-			  `club_ID' INT NULL,
-			  PRIMARY KEY (`event_ID`,`team_num`),
-			  FOREIGN KEY (`event_ID`)
-				REFERENCES `$event_table` (`ID`)
-				ON DELETE CASCADE
-				ON UPDATE CASCADE,
+				`event_ID` INT NOT NULL,
+				`team_num` INT NOT NULL,
+				`club_ID` INT NULL,
+				`name` VARCHAR(100) NOT NULL,
+			PRIMARY KEY (`event_ID`,`team_num`),
 			FOREIGN KEY (`club_ID`)
 				REFERENCES `$club_table` (`ID`)
 				ON DELETE SET NULL
+				ON UPDATE CASCADE,
+			FOREIGN KEY (`event_ID`)
+				REFERENCES `$event_table` (`ID`)
+				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		/**
 		 * Teams can be divided into squads
@@ -346,8 +356,9 @@ class TE_Install {
 				REFERENCES `$team_table` (`event_ID`,`team_num`)
 				ON DELETE CASCADE
 				ON UPDATE NO ACTION);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		/**
 		 * All the info about a tennis player
@@ -364,8 +375,9 @@ class TE_Install {
 			  `phoneMobile` VARCHAR(45),
 			  `phoneBusiness` VARCHAR(45),
 			  PRIMARY KEY (`ID`));";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		/**
 		 * This table maps players to a team's squads
@@ -383,8 +395,9 @@ class TE_Install {
 						REFERENCES $squad_table (`event_ID`,`team_num`,`division`)
 						ON DELETE CASCADE
 						ON UPDATE CASCADE);";	
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 
 
 		/**
@@ -394,36 +407,38 @@ class TE_Install {
 		 */
 		$sql ="CREATE TABLE `$player_entrant_table` (
 				`player_ID` INT NOT NULL,
-				`draw_ID`   INT NOT NULL,
+				`event_ID`   INT NOT NULL,
 				`position`  INT NOT NULL,
 				FOREIGN KEY (`player_ID`)
 					REFERENCES `$player_table` (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE,
-				FOREIGN KEY (`draw_ID`,`position`)
-					REFERENCES $entrant_table (`draw_ID`,`position`)
+				FOREIGN KEY (`event_ID`,`position`)
+					REFERENCES $entrant_table (`event_ID`,`position`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE );";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 		
 		
 		/**
 		 * Court bookings are recorded in this table.
 		 */
 		$sql = "CREATE TABLE $booking_table (
-				`booking_ID`    INT NOT NULL AUTO_INCREMENT,
+				`ID` INT NOT NULL AUTO_INCREMENT,
 				`club_ID` INT NOT NULL,
-				`court_ID` INT NOT NULL,
+				`court_num` INT NOT NULL,
 				`book_date` DATE NULL,
 				`book_time` TIME(6) NULL,
-				PRIMARY KEY (`booking_ID`),
-				FOREIGN KEY (club_ID,court_ID)
-				  REFERENCES $court_table (club_ID,ID)
+				PRIMARY KEY (`ID`),
+				FOREIGN KEY (`club_ID`,`court_num`)
+				  REFERENCES $court_table (`club_ID`,`court_num`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 
 		/**
 		 * This table is the intersection between
@@ -431,19 +446,20 @@ class TE_Install {
 		 */
 		$sql = "CREATE TABLE $booking_match_table (
 				`booking_ID` INT NOT NULL,
-				`draw_ID` INT NOT NULL,
+				`event_ID` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
 				FOREIGN KEY (`booking_ID`)
-					REFERENCES $booking_table (`booking_ID`)
+					REFERENCES $booking_table (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE NO ACTION,
-				FOREIGN KEY (`draw_ID`,`round_num`,`match_num`)
-					REFERENCES $match_table (`draw_ID`,`round_num`,`match_num`)
+				FOREIGN KEY (`event_ID`,`round_num`,`match_num`)
+					REFERENCES $match_table (`event_ID`,`round_num`,`match_num`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
+		dbDelta( $sql);
+		// var_dump( dbDelta( $sql) ); 
+		// $wpdb->print_error();
 
 	} //end add schema
 
@@ -465,7 +481,9 @@ class TE_Install {
 		$sql = $sql       . $this->dbTableNames["match_court_booking"];
 		$sql = $sql . "," . $this->dbTableNames["court_booking"];
 		$sql = $sql . "," . $this->dbTableNames["player_entrant"];
+		$sql = $sql . "," . $this->dbTableNames["match_entrant"];
 		$sql = $sql . "," . $this->dbTableNames["player_team"];
+		$sql = $sql . "," . $this->dbTableNames["club_event"];
 		$sql = $sql . "," . $this->dbTableNames["squad"];
 		$sql = $sql . "," . $this->dbTableNames["team"];
 		$sql = $sql . "," . $this->dbTableNames["player"];

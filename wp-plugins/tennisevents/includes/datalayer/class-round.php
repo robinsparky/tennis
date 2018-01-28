@@ -4,10 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('abstract-class-data.php');
-require('class-event.php');
-require('class-match.php');
-require('class-entrant.php');
+require_once('abstract-class-data.php');
+require_once('class-event.php');
+require_once('class-match.php');
+require_once('class-entrant.php');
 
 /** 
  * Data and functions for Tennis Event Round(s)
@@ -233,6 +233,7 @@ class Round extends AbstractData
 		
 		$wpdb->query("UNLOCK TABLES;");
         $this->isnew = FALSE;
+		$this->isdirty = FALSE;
         
         foreach($this->matches as $match) {
             $match->save();

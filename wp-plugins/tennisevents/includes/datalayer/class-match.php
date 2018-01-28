@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('abstract-class-data.php');
-require('class-entrant.php');
-require('class-game.php');
+require_once('abstract-class-data.php');
+require_once('class-entrant.php');
+require_once('class-game.php');
 
 /** 
  * Data and functions for Tennis Event Match(es)
@@ -353,6 +353,7 @@ class Match extends AbstractData
         $formats_values = array('%d','%d','%d','%s','%s','%s','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
         $this->isnew = FALSE;
+		$this->isdirty = FALSE;
         $result = $wpdb->rows_affected;
         
 		$wpdb->query("UNLOCK TABLES;");

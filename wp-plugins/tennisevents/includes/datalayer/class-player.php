@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('abstract-class-data.php');
+require_once('abstract-class-data.php');
 
 /** 
  * Data and functions for Tennis Player(s)
@@ -58,11 +58,11 @@ class Player extends AbstractData
     /**
      * Find all Players belonging to a specific Entry;
      */
-    public static function find($fk_id,$context) {
+    public static function find(int ...$fks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select * from $table where entry_ID = %d";
-		$safe = $wpdb->prepare($sql,$fk_id);
+		$safe = $wpdb->prepare($sql,$fks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
 		error_log("Player::find $wpdb->num_rows rows returned using entry_ID=$fk_id");
@@ -79,11 +79,11 @@ class Player extends AbstractData
 	/**
 	 * Get instance of a Match using it's ID
 	 */
-    static public function get($id) {
+    static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select * from $table where ID=%d";
-		$safe = $wpdb->prepare($sql,$id);
+		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		error_log("Player::get(id) $wpdb->num_rows rows returned.");
@@ -103,126 +103,120 @@ class Player extends AbstractData
     }
     
 
-    public function setLastName($last) {
-        if(!is_string($last) || strlen($last) < 2) return;
+    public function setLastName(string $last) {
+        if(strlen($last) < 2) return;
         $this->last_name = $last;
         $this->isdirty = TRUE;
     }
 
-    public function getLastName() {
+    public function getLastName():string {
         return $this->last_name;
     }
 
-    public function setFirstName($first) {
+    public function setFirstName(string $first) {
         if(!is_string($first) || strlen($first) < 2) return;
         $this->first_name = $first;
         $this->isdirty = TRUE;
     }
 
-    public function getFirstName() {
+    public function getFirstName():string {
         return $this->first_name;
     }
     
-    public function setSkillLevel($skill) {
-        if(is_nan($skill)) return;
+    public function setSkillLevel(float $skill) {
+        if($skill < 1.0) return;
         if($skill < self::MINSKILL || $skill > self::MAXSKILL) return;
         $this->skill_level = $skill;
         $this->isdirty = TRUE;
     }
 
-    public function getSkillLevel() {
+    public function getSkillLevel():float {
         return $this->skill;
     }
 
-    public function setEntrantID($id) {
-        if(!is_numeric($id) || $id < 0) return;
+    public function setEntrantID(int $id) {
+        if(id < 0) return;
         $this->tennis_entrant_ID = $id;
     }
 
-    public function getEntrantID() {
+    public function getEntrantID():int {
         return $this->tennis_entrant_ID;
     }
     
-    public function setDrawID($id) {
-        if(!is_numeric($id) || $id < 0) return;
+    public function setDrawID(int $id) {
+        if($id < 0) return;
         $this->tennis_entrant_draw_ID = $id;
     }
 
-    public function getDrawID() {
+    public function getDrawID():int {
         return $this->tennis_entrant_draw_ID;
     }
     
-    public function setSquadID($id) {
-        if(!is_numeric($id) || $id < 0) return;
+    public function setSquadID(int $id) {
+        if($id < 0) return;
         $this->tennis_squad_ID = $id;
     }
 
-    public function getSquadID() {
+    public function getSquadID():int {
         return $this->tennis_squad_ID;
     }
 
-    public function setHomePhone($phone) {
-        if(!is_string($phone)) return;
+    public function setHomePhone(string $phone) {
         $this->homePhone = $phone;
         $this->isdirty = TRUE;
     }
 
-    public function getHomePhone() {
+    public function getHomePhone():string {
         return $this->homePhone;
     }
     
-    public function setMobilePhone($phone) {
-        if(!is_string($phone)) return;
+    public function setMobilePhone(string $phone) {
         $this->mobilePhone = $phone;
         $this->isdirty = TRUE;
     }
 
-    public function getMobilePhone() {
+    public function getMobilePhone():string {
         return $this->mobilePhone;
     }
 
-    public function setBusinessPhone($phone) {
-        if(!is_string($phone)) return;
+    public function setBusinessPhone(string $phone) {
         $this->businessPhone = $phone;
         $this->isdirty = TRUE;
     }
 
-    public function getBusinessPhone() {
+    public function getBusinessPhone():string {
         return $this->businessPhone;
     }
     
-    public function setHomeEmail($email) {
-        if(!is_string($email)) return;
+    public function setHomeEmail(string $email) {
         $this->homeEmail = $email;
         $this->isdirty = TRUE;
     }
 
-    public function getHomeEmail() {
+    public function getHomeEmail():string {
         return $this->homeEmail;
     }
     
-    public function setBusinessEmail($email) {
-        if(!is_string($email)) return;
+    public function setBusinessEmail(string $email) {
         $this->businessEmail = $email;
         $this->isdirty = TRUE;
     }
 
-    public function getBusinessEmail() {
+    public function getBusinessEmail():string {
         return $this->businessEmail;
     }
-
 
 	/**
 	 * Get all my children!
 	 */
-    public function getChildren() {
+    public function getChildren($force=false) {
 
     }
 
-	private function create() {
+	protected function create() {
         global $wpdb;
         
-        if(!$this->isValid()) return;
+        parent::create();
 
         $values         = array('last_name' => $this->last_name
                                ,'first_name' => $this->last_name
@@ -239,16 +233,17 @@ class Player extends AbstractData
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
+		$this->isdirty = FALSE;
 
 		error_log("Player::create $wpdb->rows_affected rows affected.");
 
 		return $wpdb->rows_affected;
 	}
 
-	private function update() {
+	protected function update() {
 		global $wpdb;
 
-        if(!$this->isValid()) return;
+        parent::update();
 
         $values         = array('last_name' => $this->last_name
                                ,'first_name' => $this->last_name

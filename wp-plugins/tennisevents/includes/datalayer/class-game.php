@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('abstract-class-data.php');
+require_once('abstract-class-data.php');
 /** 
  * Data and functions for Tennis Game(s)
  * @class  Match
@@ -39,7 +39,7 @@ class Game extends AbstractData
     /**
      * Find all Games belonging to a specific Match;
      */
-    public static function find(... $fk_criteria) {
+    public static function find(int ...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
         $col = array();
@@ -79,7 +79,7 @@ class Game extends AbstractData
 	/**
 	 * Get instance of a Match using it's primary key: event_ID,round_num,match_num,set_num,game_num
 	 */
-    static public function get(... $pks) {
+    static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select event_ID,round_num,match_num,set_num,home_wins,visitor_wins from $table where ID=%d";
@@ -99,7 +99,7 @@ class Game extends AbstractData
 	/*************** Instance Methods ****************/
 	public function __construct(int $eventID, int $round, int $match,int $set=NULL) {
         $this->isnew = TRUE;
-        $this->eventID = $eventID;
+        $this->eventID   = $eventID;
         $this->round_num = $round;
         $this->match_num = $match;
         $this->set_num   = $set;
@@ -110,7 +110,7 @@ class Game extends AbstractData
 
     }
     
-    public function setIdentifiers(... $pks) {
+    public function setIdentifiers(...$pks) {
         if(!$this->isNew()) return false;
 
         if(3 === count($pks)) {
@@ -137,8 +137,7 @@ class Game extends AbstractData
         return $ids;
     }
 
-    public function setSetNumber($set) {
-        if(!is_numeric($set)) return FALSE;
+    public function setSetNumber(int $set) {
         if($set < self::MINSETS) $set = self::MINSETS;
         if($set > self::MAXSETS) $set = self::MAXSETS;
         $this->set_number = $set;
@@ -146,27 +145,27 @@ class Game extends AbstractData
         return TRUE;
     }
 
-    public function getSetNumber() {
+    public function getSetNumber():int {
         return $this->set_number;
     }
 
-    public function setHomeScore($wins, $ties=0) {
-        if(!is_numeric($wins) || $wins < 0) return;
+    public function setHomeScore(int $wins,int $ties=0) {
+        if($wins < 0) return;
         $this->home_wins = $wins;
         $this->isdirty = TRUE;
     }
 
-    public function getHomeWins() {
+    public function getHomeWins():int {
         return $this->home_wins;
     }
 
-    public function setVisitorScore($wins, $ties=0) {
-        if(!is_numeric($wins) || $wins < 0) return;
+    public function setVisitorScore(int $wins,int $ties=0) {
+        if($wins < 0) return;
         $this->visitor_wins = $wins;
         $this->isdirty = TRUE;
     }
 
-    public function getVisitorWins() {
+    public function getVisitorWins():int {
         return $this->visitor_wins;
     }
     
@@ -222,6 +221,7 @@ class Game extends AbstractData
         $wpdb->query("UNLOCK TABLES;");
 
 		$this->isnew = FALSE;
+		$this->isdirty = FALSE;
 
 		error_log("Game::create $wpdb->rows_affected rows affected.");
 

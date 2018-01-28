@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('abstract-class-data.php');
-require('class-entrant.php');
-require('class-team.php');
+require_once('abstract-class-data.php');
+require_once('class-entrant.php');
+//require_once('class-team.php');
 
 /** 
  * Data and functions for Event(s)
@@ -296,6 +296,7 @@ class Event extends AbstractData
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
+		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 		error_log("Event::create $wpdb->rows_affected rows affected.");
 

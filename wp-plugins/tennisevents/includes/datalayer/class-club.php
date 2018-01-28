@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('abstract-class-data.php');
-require('class-event.php');
-require('class-court.php');
+require_once('abstract-class-data.php');
+require_once('class-event.php');
+require_once('class-court.php');
 
 /** 
  * Data and functions for Tennis Club(s)
@@ -42,6 +42,8 @@ class Club extends AbstractData
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select ID,name from $table where name like '%%s%'";
+		$escd = $wpdb->esc_like( $sql );
+		error_log("Escaped=$escd");
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
@@ -60,14 +62,14 @@ class Club extends AbstractData
 	 * Find Clubs referenced 
 	 * as a foreign key in some other object
 	 */
-	static public function find(... $fk_criteria) {
+	static public function find(int ...$fk_criteria) {
 		return array();
 	}
 
 	/**
 	 * Get instance of a Club using it's primary key: ID
 	 */
-    static public function get(... $pks) {
+    static public function get(int ... $pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select ID,name from $table where ID=%d";
@@ -143,6 +145,7 @@ class Club extends AbstractData
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
+		$this->isdirty = FALSE;
 
 		error_log("Club::create $wpdb->rows_affected rows affected.");
 

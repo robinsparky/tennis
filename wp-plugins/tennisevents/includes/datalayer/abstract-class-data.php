@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class AbstractData
 { 
     abstract static public function search($criteria);
-    abstract static public function find(... $fk_criteria);
-    abstract static public function get(... $pks);
+    abstract static public function find(int ...$fk_criteria);
+    abstract static public function get(int ...$pks);
 
     abstract public function isValid();
     abstract public function getChildren($force=FALSE);

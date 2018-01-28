@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require('abstract-class-data.php');
-require('class-player.php');
+require_once('abstract-class-data.php');
+require_once('class-player.php');
 
 /** 
  * Data and functions for Tennis Event Entrant(s)
@@ -276,6 +276,7 @@ class Entrant extends AbstractData
 		$wpdb->query("UNLOCK TABLES");
 
 		$this->isnew = FALSE;
+		$this->isdirty = FALSE;
 
 		error_log("Entrant::create $wpdb->rows_affected rows affected.");
 
