@@ -80,9 +80,10 @@ class TE_Install {
         //add_action('wp_head', array( $this,'add_event_product_selection'));
 
         // Action hook to create the  shortcode
-        add_shortcode('tennis_shorts', array( $this,'do_shortcode'));
+        //add_shortcode('tennis_shorts', array( $this,'do_shortcode'));
 
 	}
+
 
 	protected function includes() {
 		include_once('gw-support.php');
@@ -94,18 +95,20 @@ class TE_Install {
 	public function on_activate() {
 		// Ensure needed classes are loaded
 		//add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
-
+		error_log("TennisAdmin: on_activate");
 		$this->create_options();
 		$this->createSchema();
-		$this->seedData();
+		//$this->seedData();
 		add_filter('wp_nav_menu_items',array($this,'add_todaysdate_in_menu'), 10, 2);
 	}
 	
 	
 	public function on_deactivate() {
+		error_log("TennisAdmin: on_deactivate");
 	}
 
-	public function on_uninstall() {
+	public function uninstall() {
+		error_log(__class__ . ": uninstall");
 		$this->delete_options();
 		$this->dropSchema();
 	}
@@ -120,8 +123,8 @@ class TE_Install {
 
 	public function createSchema() {
 		global $wpdb;
-		$wpdb->show_errors(); 
-
+		//$wpdb->show_errors(); 
+		
 		$club_table 				= $this->dbTableNames["club"];
 		$court_table 				= $this->dbTableNames["court"];
 		$event_table 				= $this->dbTableNames["event"];
@@ -139,6 +142,10 @@ class TE_Install {
 		$booking_table 				= $this->dbTableNames["court_booking"];
 		$booking_match_table 		= $this->dbTableNames["match_court_booking"];
 		$club_event_table			= $this->dbTableNames["club_event"];
+
+		if($wpdb->get_var("SHOW TABLES LIKE '$club_table'") == $club_table) {
+			return;
+		}
 
 		/**
 		 * Club or venue that owns tennis courts
@@ -561,25 +568,25 @@ class TE_Install {
         return $out;
 	}
 
-	protected function enqueue_style() {
+	public function enqueue_style() {
 		// guess current plugin directory URL
 		$plugin_url = plugin_dir_url(__FILE__);
 		wp_enqueue_style('tennis_css',$plugin_url . '../css/tennisevents.css');
 	}
 
-	protected function enqueue_script() {
+	public function enqueue_script() {
 		// guess current plugin directory URL
 		$plugin_url = plugin_dir_url(__FILE__);
 		wp_register_script( 'tennis_js', $plugin_url . 'js/te-support.js', array('jquery'),false,true );
 	}
 
 	//Need one extra query parameter
-	protected function add_query_vars_filter( $vars ) {
+	public function add_query_vars_filter( $vars ) {
 		$vars[] = "te_vars";
 		return $vars;
 	}
 
-	protected function add_todaysdate_in_menu( $items, $args ) {
+	public function add_todaysdate_in_menu( $items, $args ) {
 		if( $args->theme_location == 'primary')  {
 			$todaysdate = date('l jS F Y');
 			$items .=  '<li>' . $todaysdate .  '</li>';

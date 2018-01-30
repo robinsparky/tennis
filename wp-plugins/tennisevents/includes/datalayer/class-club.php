@@ -41,9 +41,8 @@ class Club extends AbstractData
 	static public function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select ID,name from $table where name like '%%s%'";
-		$escd = $wpdb->esc_like( $sql );
-		error_log("Escaped=$escd");
+		$sql = "select ID,name from $table where name like '%s'";
+
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		

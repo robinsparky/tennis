@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
-if ( !class_exists( 'GrayWare' ) ) :
+if ( !class_exists( 'TennisEvents' ) ) :
 
 /**
  * Main Plugin class.
@@ -96,9 +96,11 @@ class TennisEvents {
 	 */
 	private function init_hooks() {
 		add_action('init',array($this,'init'));
+		
+		self::$TE_Installer = TE_Install::get_instance();
 		register_activation_hook( __FILE__, array( self::$TE_Installer , 'on_activate' ) );
 		register_deactivation_hook (__FILE__, array( self::$TE_Installer ,'on_deactivate' ) );
-		register_uninstall_hook (__FILE__,array( self::$TE_Installer ,'on_uninstall' ) );
+		register_uninstall_hook (__FILE__,array( __class__ ,'on_uninstall' ) );
 		add_action( 'rest_api_init', array(self::$ControllerManager, 'register_tennis_rest_routes') );
 	}
 
@@ -110,6 +112,11 @@ class TennisEvents {
 	public function init() {
 		self::$TE_Installer = TE_Install::get_instance();
 		self::$ControllerManager = TennisControllerManager::get_instance();
+	}
+
+	public static function on_uninstall() {
+		error_log(__class__ . ": on_uninstall");
+		self::$TE_Installer->uninstall();
 	}
 	
 	public function get_plugin_path() {

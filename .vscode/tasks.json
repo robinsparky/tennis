@@ -1,0 +1,22 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Deploy Plugin",
+            "type": "shell",
+            "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents C:\\webserver\\htdocs\\tennisadmin\\wp-content\\plugins\\tennisevents /MIR"
+        },
+        {
+            "label": "Depoloy Tests",
+            "type": "shell",
+            "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests C:\\webserver\\htdocs\\tennisadmin"
+        },
+        {
+            "type": "npm",
+            "script": "build",
+            "problemMatcher": []
+        }
+    ]
+}
