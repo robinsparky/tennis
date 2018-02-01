@@ -39,7 +39,7 @@ class Game extends AbstractData
     /**
      * Find all Games belonging to a specific Match;
      */
-    public static function find(int ...$fk_criteria) {
+    public static function find(...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
         $col = array();

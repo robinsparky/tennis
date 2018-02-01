@@ -58,14 +58,14 @@ class Player extends AbstractData
     /**
      * Find all Players belonging to a specific Entry;
      */
-    public static function find(int ...$fks) {
+    public static function find(...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select * from $table where entry_ID = %d";
-		$safe = $wpdb->prepare($sql,$fks);
+		$safe = $wpdb->prepare($sql,$fk_criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Player::find $wpdb->num_rows rows returned using entry_ID=$fk_id");
+		error_log("Player::find $wpdb->num_rows rows returned using entry_ID=$fk_criteria");
 
 		$col = array();
 		foreach($rows as $row) {

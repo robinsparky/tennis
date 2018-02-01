@@ -61,7 +61,7 @@ class Club extends AbstractData
 	 * Find Clubs referenced 
 	 * as a foreign key in some other object
 	 */
-	static public function find(int ...$fk_criteria) {
+	static public function find(...$fk_criteria) {
 		return array();
 	}
 
@@ -77,7 +77,7 @@ class Club extends AbstractData
 
 		error_log("Club::get(id) $wpdb->num_rows rows returned.");
 		$obj = NULL;
-		if( $rows.length === 1 ) {
+		if( count($rows) === 1 ) {
 			$obj = new Club;
 			self::mapData($obj,$rows[0]);
 		}

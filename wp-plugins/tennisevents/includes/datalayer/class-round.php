@@ -53,7 +53,7 @@ class Round extends AbstractData
     /**
      * Find all Rounds belonging to a specific Event;
      */
-    public static function find(int ...$fk_criteria) {
+    public static function find(...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select event_ID,round_num,comments from $table where event_ID = %d";

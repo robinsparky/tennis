@@ -68,7 +68,7 @@ class Match extends AbstractData
     /**
      * Find all Matches belonging to a specific Event and Round;
      */
-    public static function find(int ...$fk_criteria) {
+    public static function find(...$fk_criteria) {
 		global $wpdb;
         $table = $wpdb->prefix . self::$tablename;
         $col = array();

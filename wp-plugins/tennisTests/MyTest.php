@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 use PHPUnit\Framework\TestCase;
+/**
+ * @group misc
+ */
 class StackTest extends TestCase
 {
  public function testPushAndPop()

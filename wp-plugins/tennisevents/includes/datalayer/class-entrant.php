@@ -70,7 +70,7 @@ class Entrant extends AbstractData
 	 * belonging to a specific Event and
 	 * assigned to a Match in a Round
      */
-    public static function find(int ...$fk_criteria) {
+    public static function find(...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();

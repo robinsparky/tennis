@@ -11,7 +11,7 @@
         {
             "label": "Depoloy Tests",
             "type": "shell",
-            "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests C:\\webserver\\htdocs\\tennisadmin"
+            "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests C:\\webserver\\htdocs\\tennisadmin\\tests"
         },
         {
             "type": "npm",

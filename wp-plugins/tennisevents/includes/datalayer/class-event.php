@@ -49,7 +49,7 @@ class Event extends AbstractData
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select ID,event_type,name,format,parent_ID from $table where name like '%%s%'";
+		$sql = "select ID,event_type,name,format,parent_ID from $table where name like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
@@ -68,7 +68,7 @@ class Event extends AbstractData
      * Find all Events belonging to a specific club
 	 * Or all child Events of a specific parent Events
      */
-    public static function find(int ...$fk_criteria) {
+    public static function find(...$fk_criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$joinTable = "{$wpdb->prefix}tennis_club_event";
@@ -76,41 +76,33 @@ class Event extends AbstractData
 		$col = array();
 		$col_value;
 
-		if(count($fk_criteria.keys) === 0) {
-			//No column name specified
-			if(count($fk_criteria) > 0) {
-				$col_value = $fk_criteria[0];
-				$sql = "select e.ID,e.event_type,e.name,e.format,e.parent_ID 
-						from $table e
-						inner join $joinTable as j on j.event_ID = e.ID
-						inner join $clubTable as c on c.ID = j.club_ID
-						where c.ID = %d;";
-			}
-			else {
-				return $col;
-			}
-		} //column name is specified
-		else {
+		if(array_key_exists('parent_ID',$fk_criteria)) {
 			//All events who are children of specified Event
-			if(isset($fk_criteria["parent_ID"])) {
-				$col_value = $fk_criteria["parent_ID"];
-				$sql = "select ce.ID,ce.event_type,ce.name,ce.format,ce.parent_ID 
-						from $table ce
-						inner join $table pe on pe.ID = ce.parent_ID
-						where ce.parent_ID = %d;";
-			}
+			$col_value = $fk_criteria["parent_ID"];
+			$sql = "select ce.ID,ce.event_type,ce.name,ce.format,ce.parent_ID 
+					from $table ce
+					inner join $table pe on pe.ID = ce.parent_ID
+					where ce.parent_ID = %d;";
+		}
+		elseif(array_key_exists('club_ID',$fk_criteria)) {
 			//All events belonging to specified club
-			elseif(isset($fk_criteris["club_ID"])){
-				$col_value = $fk_criteria["club_ID"];
-				$sql = "select e.ID,e.event_type,e.name,e.format,e.parent_ID 
-						from $table e
-						inner join $joinTable as j on j.event_ID = e.ID
-						inner join $clubTable as c on c.ID = j.club_ID
-						where c.ID = %d;";
-			}
-			else {
-				return $col;
-			}
+			$col_value = $fk_criteria["club_ID"];
+			$sql = "select e.ID,e.event_type,e.name,e.format,e.parent_ID 
+					from $table e
+					inner join $joinTable as j on j.event_ID = e.ID
+					inner join $clubTable as c on c.ID = j.club_ID
+					where c.ID = %d;";
+		} elseif(count($fk_criteria) > 0) {
+			//All events belonging to a specified club
+			$col_value = $fk_criteria[0];
+			$sql = "select e.ID,e.event_type,e.name,e.format,e.parent_ID 
+					from $table e
+					inner join $joinTable as j on j.event_ID = e.ID
+					inner join $clubTable as c on c.ID = j.club_ID
+					where c.ID = %d;";
+		}
+		else {
+			return $col;
 		}
 
 		$safe = $wpdb->prepare($sql,$col_value);
@@ -137,11 +129,15 @@ class Event extends AbstractData
 		error_log("Event::get(id) $wpdb->num_rows rows returned.");
 
 		$obj = NULL;
-		if($rows.length === 1) {
+		if(count($rows) === 1) {
 			$obj = new Event;
 			self::mapData($obj,rows[0]);
 		}
 		return $obj;
+	}
+
+	public static function equals( Event $e1, Event $e2 ){
+		return $e1 == $e2;
 	}
 
 	/*************** Instance Methods ****************/
@@ -151,13 +147,17 @@ class Event extends AbstractData
 	}
 	
     public function __destruct() {
-        $this->parent = null;
-        foreach($this->childEvents as $event){
-            $event = null;
+		$this->parent = null;
+		if(is_array($this->childEvents)) {
+			foreach($this->childEvents as $event){
+				$event = null;
+			}
 		}
 		
-		foreach($this->draw as $draw) {
-			$draw = NULL;
+		if(is_array($this->draw)) {
+			foreach($this->draw as $draw) {
+				$draw = NULL;
+			}
 		}
     }
 
@@ -166,7 +166,7 @@ class Event extends AbstractData
      */
 	public function setName(string $name) {
 		$this->name = $name;
-		$this->dirty = TRUE;
+		$this->isdirty = TRUE;
     }
     
     /**
@@ -176,32 +176,13 @@ class Event extends AbstractData
         return $this->name;
     }
 
-    /**
-     * Assign this Child Event to a Parent Event
-     */
-    public function setParent(Event $parent) {
-		$this->parent = $parent;
-		$this->parent_ID = $parent->ID;
-        $this->isdirty = TRUE;
-    }
-
-    public function getParent() {
-        return $this->parent;
-	}
-
-	/**
-	 * Is this event a parent EVent?
-	 */
-	public function isParentEvent() {
-		return !isset($this->parent_ID);
-	}
 	
 	/**
 	 * Set the type of event
 	 * Applies only to a parent event
 	 */
 	public function setEventType(string $type) {
-		if(!$this->isParentEvent()) return;
+		if(!$this->isParent()) return;
 		switch($type) {
 			CASE self::TOURNAMENT:
 			CASE self::LEAGUE:
@@ -221,7 +202,7 @@ class Event extends AbstractData
 	 * Applies only to the lowest child event
 	 */
 	public function setFormat(string $format) {
-		if($this->isParentEvent()) return;
+		if($this->isParent()) return;
 		switch($format) {
 			CASE self::SINGLE_ELIM:
 			CASE self::DOUBLE_ELIM:
@@ -236,23 +217,82 @@ class Event extends AbstractData
 		return $this->format;
 	}
 
-	public function addChildEvent(Event $child) {
-		if($this->isParentEvent() && !$child->isParentEvent()) {
-			if(!isset($this->childEvents)) $this->childEvents = array();
-			$this->childEvents[] = $child;
-			$child->setParent($child);
+    /**
+     * Assign this Child Event to a Parent Event
+     */
+    public function setParent(Event $parent=null) {
+		$this->parent = $parent;
+		$this->parent_ID = isset($this->parent) ? $parent->getID() : null;
+		if(isset($this->parent)) $parent->addChild($this);
+        $this->isdirty = TRUE;
+    }
+
+    public function getParent() {
+        return $this->parent;
+	}
+
+	/**
+	 * Is this event a parent EVent?
+	 */
+	public function isParent() {
+		return !isset($this->parent);
+	}
+
+	/**
+	 * Add a child event to this Parent Event
+	 * This method ensures that child events ate not added more than once.
+	 * 
+	 * @param $child A child event
+	 */
+	public function addChild(Event $child) {
+		if(!isset($child)) return;
+
+		if($this->isParent() && !$child->isParent()) {
+			$found = false;
+			foreach($this->childEvents() as $ch) {
+				if($child->getID() === $ch->getID()) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->childEvents[] = $child;
+				$child->setParent($child);
+			}
 			$this->isdirty = true;
 		}
 	}
 
+	public function getChildEvents() {
+		if(!isset($this->childEvents)) $this->childEvents = array();
+		return $this->childEvents;
+	}
+
+	/**
+	 * Add an Entrant to the draw for this Child Event
+	 * This method ensures that Entrants are not added ore than once.
+	 * 
+	 * @param $player An Entrant to this event
+	 */
 	public function addToDraw(Entrant $player) {
-		if(!isset($this->draw)) $this->draw = array();
-		$this->draw[] = $player;
+		if(!isset($player)) return;
+
+		$found = false;
+		foreach($this->Draw() as $d) {
+			if($player->getEventID() === $d->getEventID()
+			&& $player->getPosition() === $d->getPosition()) {
+				$found = true;
+			}
+		}
+		if(!$found) {
+			$this->draw[] = $player;
+		}
 		$this->isdirty = true;
 	}
 
-	public function drawSize():int {
-		return count($this->draw);
+	public function getDraw() {
+		if(!isset($this->draw)) $this->draw = array();
+		return $this->draw;
 	}
 
 	/**
@@ -261,24 +301,24 @@ class Event extends AbstractData
 	 * 2. Entrants in a draw
 	 */
     public function getChildren($force=FALSE) {
-		$this->getChildEvents($force);
-		$this->getDraw($force);
+		$this->retrieveChildEvents($force);
+		$this->retrieveDraw($force);
 	}
 
 	/**
 	 * Get all child events for this event.
 	 */
-	public function getChildEvents($force) {
-        if(count($this->childEvents) === 0 || $force) {
-			$this->childEvents = Event::find(array("event_ID" => $this->ID));
+	private function retrieveChildEvents($force) {
+        if(count($this->getChildEvents()) === 0 || $force) {
+			$this->childEvents = Event::find(array("parent_ID" => $this->ID));
 		}
 	}
 
 	/**
-	 * Get all Entrants for this event.
+	 * Retrieve all Entrants for this event from the database.
 	 */
-	public function getDraw($force) {
-		if(!isset($this->parent_ID)) return;
+	private function retrieveDraw($force) {
+		if($this->isParent()) return;
         if(count($this->draw) === 0 || $force) $this->draw = Entrant::find($this->ID);
 	}
 
@@ -300,11 +340,11 @@ class Event extends AbstractData
 		$result = $wpdb->rows_affected;
 		error_log("Event::create $wpdb->rows_affected rows affected.");
 
-		foreach($this->childEvents as $child) {
+		foreach($this->getChildEvents() as $child) {
 			$child->save();
 		}
 
-		foreach($this->draw as $draw) {
+		foreach($this->getDraw() as $draw) {
 			$draw->save();
 		}
 
@@ -329,11 +369,11 @@ class Event extends AbstractData
 
 		error_log("Event::update $wpdb->rows_affected rows affected.");
 
-		foreach($this->childEvents as $child) {
+		foreach($this->getChildEvents() as $child) {
 			$child->save();
 		}
 
-		foreach($this->draw as $draw) {
+		foreach($this->getDraw() as $draw) {
 			$draw->save();
 		}
 		
@@ -348,8 +388,15 @@ class Event extends AbstractData
 	public function isValid() {
 		$isvalid = TRUE;
 		if(!isset($this->name)) $isvalid = FALSE;
-		if(!isset($this->event_type) && !$this->isParentEvent()) $isvalid = FALSE;
-		if(!isset($this->format) && $this->isParentEvent()) $isvalid = FALSE;
+		if(!isset($this->event_type) && $this->isParent()) $isvalid = FALSE;
+		if(!isset($this->format) && !$this->isParent()) $isvalid = FALSE;
+		$evs = Event::search($this->getName().'%');
+		foreach($evs as $ev) {
+			if($this->getID() !== $ev->getID() 
+			&& $this->getName() === $ev->getName()) {
+				$isvalid=FALSE;
+			}
+		}
 
 		return $isvalid;
 	}
