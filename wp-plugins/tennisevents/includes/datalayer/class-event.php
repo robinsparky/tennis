@@ -131,7 +131,7 @@ class Event extends AbstractData
 		$obj = NULL;
 		if(count($rows) === 1) {
 			$obj = new Event;
-			self::mapData($obj,rows[0]);
+			self::mapData($obj,$rows[0]);
 		}
 		return $obj;
 	}
@@ -182,15 +182,16 @@ class Event extends AbstractData
 	 * Applies only to a parent event
 	 */
 	public function setEventType(string $type) {
-		if(!$this->isParent()) return;
 		switch($type) {
-			CASE self::TOURNAMENT:
-			CASE self::LEAGUE:
-			CASE self::LADDER:
+			case self::TOURNAMENT:
+			case self::LEAGUE:
+			case self::LADDER:
 				$this->event_type = $type;
-				$this->isdirty = TRUE;
 				break;
+			default:
+				return false;
 		}
+		return $this->isdirty = TRUE;
 	}
 
 	public function getEventType() {
@@ -202,15 +203,16 @@ class Event extends AbstractData
 	 * Applies only to the lowest child event
 	 */
 	public function setFormat(string $format) {
-		if($this->isParent()) return;
 		switch($format) {
-			CASE self::SINGLE_ELIM:
-			CASE self::DOUBLE_ELIM:
-			CASE self::ROUND_ROBIN:
+			case self::SINGLE_ELIM:
+			case self::DOUBLE_ELIM:
+			case self::ROUND_ROBIN:
 				$this->format = $format;
-				$this->isdirty = TRUE;
 				break;
+			default:
+				return false;
 		}
+		return $this->isdirty = TRUE;
 	}
 
 	public function getFormat():string {
@@ -218,13 +220,26 @@ class Event extends AbstractData
 	}
 
     /**
-     * Assign this Child Event to a Parent Event
+     * Assign a Parent event to this child Event
      */
     public function setParent(Event $parent=null) {
-		$this->parent = $parent;
-		$this->parent_ID = isset($this->parent) ? $parent->getID() : null;
-		if(isset($this->parent)) $parent->addChild($this);
-        $this->isdirty = TRUE;
+		if(count($this->getChildEvents()) > 0) {
+			throw new Exeption("Attempting to turn event into a child, but event already has children.");
+		}
+		// if($parent->isNew() || !$parent->isValid()) {
+		// 	return false;
+		// }
+		if(!isset($parent)) {
+			$this->parent = null;
+			$this->parent_ID = null;
+		}
+		else {
+			$this->parent = $parent;
+			$this->parent_ID = $parent->getID();
+			$parent->addChild($this);
+		}
+
+		return $this->isdirty = TRUE;
     }
 
     public function getParent() {
@@ -240,16 +255,16 @@ class Event extends AbstractData
 
 	/**
 	 * Add a child event to this Parent Event
-	 * This method ensures that child events ate not added more than once.
+	 * This method ensures that the same child event is not added more than once.
 	 * 
-	 * @param $child A child event
+	 * @param $child child Event
 	 */
 	public function addChild(Event $child) {
-		if(!isset($child)) return;
+		if(!isset($child)) return false;
 
-		if($this->isParent() && !$child->isParent()) {
-			$found = false;
-			foreach($this->childEvents() as $ch) {
+		$found = false;
+		if($this->isParent()) {
+			foreach($this->getChildEvents() as $ch) {
 				if($child->getID() === $ch->getID()) {
 					$found = true;
 					break;
@@ -257,10 +272,23 @@ class Event extends AbstractData
 			}
 			if(!$found) {
 				$this->childEvents[] = $child;
-				$child->setParent($child);
+				$child->setParent($this);
+				return $this->isdirty = true;
 			}
-			$this->isdirty = true;
 		}
+		return false;
+	}
+
+	public function removeChild(int $id) {
+		if(!isset($id)) return false;
+		$i=0;
+		for($i=0;$i<count($this->getChildEvents());$i++) {
+			if($this->childEvents[$i]->getID() === $id) {
+				unset($this->childEvents[$i]);
+				return $this->isdirty = true;
+			}
+		}
+		return false;
 	}
 
 	public function getChildEvents() {
@@ -275,7 +303,8 @@ class Event extends AbstractData
 	 * @param $player An Entrant to this event
 	 */
 	public function addToDraw(Entrant $player) {
-		if(!isset($player)) return;
+		if(!isset($player)) return false;
+		if(!$player->isValid()) return false;
 
 		$found = false;
 		foreach($this->Draw() as $d) {
@@ -287,7 +316,7 @@ class Event extends AbstractData
 		if(!$found) {
 			$this->draw[] = $player;
 		}
-		$this->isdirty = true;
+		return $this->isdirty = true;
 	}
 
 	public function getDraw() {
@@ -298,7 +327,7 @@ class Event extends AbstractData
 	/**
 	 * Get all my children!
 	 * 1. Child events
-	 * 2. Entrants in a draw
+	 * 2. Entrants in the draw
 	 */
     public function getChildren($force=FALSE) {
 		$this->retrieveChildEvents($force);
@@ -335,17 +364,19 @@ class Event extends AbstractData
 		$formats_values = array('%s','%d','%s','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
+		$result = $wpdb->rows_affected;
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
-		$result = $wpdb->rows_affected;
 		error_log("Event::create $wpdb->rows_affected rows affected.");
 
 		foreach($this->getChildEvents() as $child) {
-			$child->save();
+			$child->setParent($this);
+			$result += $child->save();
 		}
 
 		foreach($this->getDraw() as $draw) {
-			$draw->save();
+			$draw->setEventID($this->getID());
+			$result += $draw->save();
 		}
 
 		return $result;
@@ -370,11 +401,13 @@ class Event extends AbstractData
 		error_log("Event::update $wpdb->rows_affected rows affected.");
 
 		foreach($this->getChildEvents() as $child) {
-			$child->save();
+			$child->setParent($this);
+			$result += $child->save();
 		}
 
 		foreach($this->getDraw() as $draw) {
-			$draw->save();
+			$draw->setEventID($this->getID());
+			$result += $draw->save();
 		}
 		
 		return $result;
@@ -391,12 +424,12 @@ class Event extends AbstractData
 		if(!isset($this->event_type) && $this->isParent()) $isvalid = FALSE;
 		if(!isset($this->format) && !$this->isParent()) $isvalid = FALSE;
 		$evs = Event::search($this->getName().'%');
-		foreach($evs as $ev) {
-			if($this->getID() !== $ev->getID() 
-			&& $this->getName() === $ev->getName()) {
-				$isvalid=FALSE;
-			}
-		}
+		// foreach($evs as $ev) {
+		// 	if($this->getID() !== $ev->getID() 
+		// 	&& $this->getName() === $ev->getName()) {
+		// 		$isvalid=FALSE;
+		// 	}
+		// }
 
 		return $isvalid;
 	}

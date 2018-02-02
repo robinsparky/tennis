@@ -182,9 +182,9 @@ class TE_Install {
 		 */
 		$sql = "CREATE TABLE `$event_table` (
 				`ID` INT NOT NULL AUTO_INCREMENT,
-				`event_type` VARCHAR(50) NOT NULL COMMENT 'tournament, league, ladder',
 				`name` VARCHAR(256) NOT NULL,
 				`parent_ID` INT NULL COMMENT 'Parent event',
+				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder',
 				`format` VARCHAR(25) NULL COMMENT 'single elimination, double elimination, round robin',
 				PRIMARY KEY (`ID`),
 				FOREIGN KEY (`parent_ID`)

@@ -9,7 +9,7 @@
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents C:\\webserver\\htdocs\\tennisadmin\\wp-content\\plugins\\tennisevents /MIR"
         },
         {
-            "label": "Depoloy Tests",
+            "label": "Deploy Tests",
             "type": "shell",
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests C:\\webserver\\htdocs\\tennisadmin\\tests"
         },

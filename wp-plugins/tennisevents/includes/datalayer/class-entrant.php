@@ -184,9 +184,11 @@ class Entrant extends AbstractData
      * Assign this Entrant to an Event
      */
     public function setEventId(int $eventId) {
-        if($eventId < 1) return;
+		if(!isset($eventID)) return false;
+
+        if($eventId < 1) return false;
         $this->event_ID = $eventId;
-        $this->isdirty = TRUE;
+        return $this->isdirty = TRUE;
     }
 
     /**
@@ -200,9 +202,11 @@ class Entrant extends AbstractData
 	 * Assign a position
 	 */
 	public function setPosition(int $pos) {
+		if(!isset($pos)) return false;
+
 		if($pos < 1) return;
 		$this->position = $pos;
-        $this->isdirty = TRUE;
+        return $this->isdirty = TRUE;
 	}
 
 	/**
@@ -216,9 +220,10 @@ class Entrant extends AbstractData
 	 * Seed this player(s)
 	 */
 	public function setSeed(int $seed) {
-		if($seed < 0) return;
+		if(!isset($seed) || $seed < 0) return false;
+
 		$this->seed = $seed;
-        $this->isdirty = TRUE;
+        return $this->isdirty = TRUE;
 	}
 
 	/**
@@ -233,13 +238,13 @@ class Entrant extends AbstractData
 	 * 1. Players
 	 */
     public function getChildren($force=FALSE) {
-		$this->getPlayers($force);
+		$this->retrievePlayers($force);
 	}
 
 	/**
 	 * Get all Players for this Entrant.
 	 */
-	public function getPlayers($force) {
+	private function retrievePlayers($force) {
 		if($this->isNew()) return;
         //if(count($this->players) === 0 || $force) $this->players = Player::find($this->event_ID);
 	}
