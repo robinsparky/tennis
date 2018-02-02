@@ -86,6 +86,21 @@ class Court extends AbstractData
 		}
 		return $obj;
 	}
+	
+	/**
+	 * Delete the given Court from its Club
+	 */
+    static public function delete(int $clubId, int $courtNum):int {
+		if(!isset($clubId) || !isset($courtNum)) return 0;
+
+        global $wpdb;
+		$table = $wpdb->prefix . self::$tablename;
+        $sql = "delete from $table where club_ID=%d and court_num=%d;";
+		$safe = $wpdb->prepare($sql,$clubId,$courtNum);
+		$rows = $wpdb->get_results($safe, ARRAY_A);
+		error_log("Court.delete: deleted $wpdb->rows_affected");
+		return $wpdb->rows_affected;
+	}
 
 	/*************** Instance Methods ****************/
 	public function __construct() {
@@ -103,9 +118,9 @@ class Court extends AbstractData
 			case self::HARDTRUE:
 			case self::CLAY:
 			$this->court_type = $courtType;
-			$this->isdirty = TRUE;
-			break;
+			return $this->isdirty = TRUE;
 		}
+		return false;
     }
 
     public function getCourtType() {
@@ -113,14 +128,14 @@ class Court extends AbstractData
     }
     
     public function setClubId(int $club) {
-        if(!is_numeric($club) || $club < 1) return;
+        if($club < 1) return false;
         $this->club_ID = $club;
-        $this->isdirty = TRUE;
+        return $this->isdirty = TRUE;
     }
 
     public function getClubId():int {
         return $this->club_ID;
-    }
+	}
 
 	/**
 	 * Get all my children!
@@ -164,13 +179,15 @@ class Court extends AbstractData
 						,'court_type' => $this->court_type);
 		$formats_values = array('%d','%d','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-		
+		$result = $wpdb->rows_affected;
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
 
-		error_log("Court::create $wpdb->rows_affected rows affected.");
+		//TODO Add saving of court bookings
 
-		return $wpdb->rows_affected;
+		error_log("Court::create $result rows affected.");
+
+		return $result;
 	}
 
 	protected function update() {
@@ -184,16 +201,14 @@ class Court extends AbstractData
 								,'court_num' => $this->court_num );
 		$formats_where  = array( '%d','%d' );
 		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
+		$result = $wpdb->rows_affected;
 		$this->isdirty = FALSE;
 
-		error_log("Court::update $wpdb->rows_affected rows affected.");
+		//TODO Add saving of court bookings
 
-		return $wpdb->rows_affected;
-	}
+		error_log("Court::update $result rows affected.");
 
-	//TODO: Add delete logic
-    public function delete() {
-
+		return $result;
 	}
 	
 	private function init() {
@@ -209,11 +224,6 @@ class Court extends AbstractData
 		$obj->court_num = $row["court_num"];
         $obj->club_ID = $row["club_ID"];
         $obj->court_type = $row["court_type"];
-	}
-	
-	private function nextAvailableCourtNum() {
-		global $wpdb;
-
 	}
 
 } //end class

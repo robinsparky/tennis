@@ -18,6 +18,7 @@ class CourtTest extends TestCase
 		$club = Club::get(1);
 		$this->assertEquals('Tyandaga Tennis Club',$club->getName());
 
+        //Court 1
         $court = new Court;
         $this->assertEquals(0,$court->getCourtNum());
         $court->setClubId($club->getID());
@@ -27,6 +28,10 @@ class CourtTest extends TestCase
         $scourt = Court::get($court->getClubID(),$court->getCourtNum());
         $this->assertEqual(1,$scourt->getCourtNum());
         $this->assertEquals($club->getID(),$scourt->getClubId());
+
+        //Court 2
+        $court2 = new Court;
+        $court->setClubId($club->getID());
 	}
 }
 

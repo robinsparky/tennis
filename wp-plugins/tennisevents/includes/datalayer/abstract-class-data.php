@@ -62,8 +62,9 @@ abstract class AbstractData
     /**
      * Get the ID of this object
      */
-    public function getID() {
-        return $this->ID;
+    public function getID():int {
+        if(isset($this->ID)) return $this->ID;
+        else return 0;
     }
 
     protected function create() {
