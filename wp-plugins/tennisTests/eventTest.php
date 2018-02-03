@@ -75,7 +75,6 @@ class EventTest extends TestCase
         $this->assertFalse($child2->isParent(),'Test for child 2 not parent');
         $this->assertTrue($child2->isValid(),'Test for child 2 is valid');
 
-        var_dump($parent);
         $this->assertTrue($parent->addChild($child2),'Adding child 2');
         $this->assertEquals($parent,$child2->getParent());
         $this->assertEquals($child2->getParent()->getID(),$parent->getID());
@@ -90,6 +89,7 @@ class EventTest extends TestCase
         $events = Event::search('Year End Tournament%');
         $this->assertCount(1,$events);
         $mainevent = $events[0];
+        var_dump($mainevent);
         $mainevent->getChildren();
 
         $this->assertCount(2,$mainevent->getChildEvents(),'Test 2 children');

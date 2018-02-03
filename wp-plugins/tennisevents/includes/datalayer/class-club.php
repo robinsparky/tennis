@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once('abstract-class-data.php');
-require_once('class-event.php');
-require_once('class-court.php');
+// require_once('class-abstractdata.php');
+// require_once('class-event.php');
+// require_once('class-court.php');
 
 /** 
  * Data and functions for Tennis Club(s)
@@ -64,18 +64,19 @@ class Club extends AbstractData
 	 * NOTE: This is neded for inter-club events
 	 */
 	static public function find(...$fk_criteria) {
-		
+		global $wpdb;
+
 		$table = $wpdb->prefix . self::$tablename;
 		$joinTable = "{$wpdb->prefix}tennis_club_event";
 		$eventTable = "{$wpdb->prefix}tennis_event";
 		$col = array();
 		
 		//All clubs belonging to specified Event
-		$sql = "select c.ID, c.name 
-				from $table c
-				inner join $joinTable as j on j.club_ID = c.ID
-				inner join $eventTable as e on e.ID = j.event_ID
-				where e.ID = %d;";
+		$sql = "SELECT c.ID, c.name, e.ID as event_ID 
+				FROM $table c 
+				INNER JOIN $joinTable as j on j.club_ID = c.ID 
+				INNER JOIN $eventTable as e on e.ID = j.event_ID 
+				WHERE e.ID = %d;";
 
 		$safe = $wpdb->prepare($sql,$fk_criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
@@ -170,11 +171,6 @@ class Club extends AbstractData
 		return false;
 	}
 
-	private function getCourtsForDeletion() {
-		if(!isset($this->courtsToBeDeleted)) $this->courtsToBeDeleted = array();
-		return $this->courtsToBeDeleted;
-	}
-
 	/**
 	 * Remove a Court from this Club
 	 */
@@ -199,12 +195,6 @@ class Club extends AbstractData
 	public function getEvents() {
 		if(!isset($this->events)) $this->events = array();
 		return $this->events;
-	}
-	
-
-	private function getEventsForDeletion() {
-		if(!isset($this->eventsToBeDeleted)) $this->eventsToBeDeleted = array();
-		return $this->eventsToBeDeleted;
 	}
 	
 	/**
@@ -253,6 +243,13 @@ class Club extends AbstractData
 		$this->events = $this->fetchEvents($force);
 		$this->courts = $this->fetchCourts($force);
 	}
+	
+	public function isValid() {
+		$isvalid = TRUE;
+		if(!isset($this->name)) $isvalid = false;
+
+		return $isvalid;
+	}
 
 	/**
 	 * Get all events for this club.
@@ -267,12 +264,15 @@ class Club extends AbstractData
 	private function fetchCourts($force) {
 		if(count($this->courts) === 0 || $force) $this->courts = Court::find($this->ID);
 	}
-
-	public function isValid() {
-		$isvalid = TRUE;
-		if(!isset($this->name)) $isvalid = false;
-
-		return $isvalid;
+	
+	private function getEventsForDeletion() {
+		if(!isset($this->eventsToBeDeleted)) $this->eventsToBeDeleted = array();
+		return $this->eventsToBeDeleted;
+	}
+	
+	private function getCourtsForDeletion() {
+		if(!isset($this->courtsToBeDeleted)) $this->courtsToBeDeleted = array();
+		return $this->courtsToBeDeleted;
 	}
 	
 	protected function create() {
@@ -288,30 +288,28 @@ class Club extends AbstractData
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
 
-		foreach($this->courtsForDeletion() as $crtnum) {
-			$result += Court::delete($this->getID(),$crtnum);
-		}
-
 		foreach($this->getCourts() as $crt) {
 			$crt->setClubId($this->getID());
 			$result += $crt->save();
 		}
 
-		foreach($this->eventsForDeletion() as $evtId) {
-			$result += Event::delete($this->getID(),$evtId);
+		foreach($this->getCourtsForDeletion() as $crtnum) {
+			$result += Court::deleteCourt($this->getID(),$crtnum);
 		}
+
 		//Save any new events added to this club
 		foreach($this->getEvents() as $ev) {
 			$result += $ev->save();
 		}
 
+		//Remove relation between this Club and is rmmoved Events
+		foreach($this->getEventsForDeletion() as $evtId) {
+			$result += ClubEventRelations::remove($this->getID(),$evtId);
+		}
+
 		//Create joins between Events and this Club
-		$formats_value = array('%d','%d');
 		foreach($this->getEvents() as $evt) {
-			$values = array('club_ID'=>$this->getID()
-							,'event_ID'=>$evt->getID());
-			$wpdb->insert($wpdb->prefix . 'tennis_club_event',$values,$formats_values);
-			$result += $wpdb->rows_affected;
+			$result += ClubEventRelations::add($this->getID(),$evt->getID());
 		}
 
 		error_log("Club::create $result rows affected.");
@@ -335,20 +333,13 @@ class Club extends AbstractData
 		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 
-		error_log("Club::update $result rows affected.");
-
-		foreach($this->courtsForDeletion() as $crtnum) {
-			$result += Court::delete($this->getID(),$crtnum);
-		}
-
 		foreach($this->getCourts() as $crt) {
 			$crt->setClubId($this->getID());
 			$result += $crt->save();
 		}
-
 		
-		foreach($this->eventsForDeletion() as $evtId) {
-			$result += Event::delete($this->getID(),$evtId);
+		foreach($this->getCourtsForDeletion() as $crtnum) {
+			$result += Court::deleteCourt($this->getID(),$crtnum);
 		}
 
 		//Save any new events added to this club
@@ -356,15 +347,17 @@ class Club extends AbstractData
 			$result += $ev->save();
 		}
 
-		//Create join between Events and this Club
-		$formats_value = array('%d','%d');
-		foreach($this->getEvents() as $evt) {
-			$values = array('club_ID'=>$this->getID()
-							,'event_ID'=>$evt->getID());
-			$wpdb->insert($wpdb->prefix . 'tennis_club_event',$values,$formats_values);
-			$result += $wpdb->rows_affected;
+		//Remove some Events related to this Club
+		foreach($this->getEventsForDeletion() as $evtId) {
+			$result += ClubEventRelations::remove($this->getID(),$evtId);
 		}
 
+		//Create join between Events and this Club
+		foreach($this->getEvents() as $evt) {
+			$result += ClubEventRelations::add($this->getID(),$evt->getID());
+		}
+
+		error_log("Club::update $result rows affected.");
 		return $result;
 	}
 	

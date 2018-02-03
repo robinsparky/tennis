@@ -203,6 +203,7 @@ class TE_Install {
 		$sql = "CREATE TABLE `$club_event_table` (
 				`club_ID` INT NOT NULL,
 				`event_ID` INT NOT NULL,
+				PRIMARY KEY(`club_ID`,`event_ID`),
 				FOREIGN KEY (`club_ID`)
 					REFERENCES `$club_table` (`ID`)
 					ON DELETE CASCADE

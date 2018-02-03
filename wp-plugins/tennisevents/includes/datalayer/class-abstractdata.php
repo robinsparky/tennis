@@ -20,8 +20,6 @@ abstract class AbstractData
 
     abstract public function isValid();
     abstract public function getChildren($force=FALSE);
-    abstract public function delete();
-
     
     /**
      * Map incoming row of data to an object

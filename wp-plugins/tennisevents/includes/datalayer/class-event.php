@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once('abstract-class-data.php');
-require_once('class-entrant.php');
+// require_once('class-abstractdata.php');
+// require_once('class-entrant.php');
 //require_once('class-team.php');
 
 /** 
@@ -30,20 +30,24 @@ class Event extends AbstractData
 	/**
 	 * Formats
 	 */
-	const SINGLE_ELIM = 'single';
-	const DOUBLE_ELIM = 'double';
+	const SINGLE_ELIM = 'selim';
+	const DOUBLE_ELIM = 'delim';
 	const ROUND_ROBIN = 'robin';
 
-	private $isroot;
+	private $isroot; //specifies this Event as the root of a hierarchy
 	private $name;
 	private $parent_ID; //parent Event ID
 	private $parent; //parent Event
 	private $event_type; //tournament, league, ladder
 	private $format; //single elim, double elim, round robin
     
-	private $draw; //array of entrants
 	private $childEvents; //array of child events
+	private $draw; //array of entrants
 	private $clubs; //array of related clubs
+
+	private $childEventsToBeDeleted; //array of child ID's events to be deleted
+	private $entrantsToBeDeleted; //array of Entrants to be removed from the draw
+	private $clubsToBeDeleted; //array of club Id's to be removed from relations with this Event
     
     /**
      * Search for Events have a name 'like' the provided criteria
@@ -142,20 +146,6 @@ class Event extends AbstractData
 		return $obj;
 	}
 
-	static function delete(int $clubId, int $eventId):int {
-		if(!isset($clubId) || !isset($eventId)) return 0;
-
-        global $wpdb;
-		$table = $wpdb->prefix . 'tennis_club_event';
-        $sql = "delete from $table where club_ID=%d and event_ID=%d;";
-		$safe = $wpdb->prepare($sql,$clubId,$eventId);
-		$rows = $wpdb->get_results($safe, ARRAY_A);
-		$result = $wpdb->rows_affected;
-
-		error_log("Event.delete: deleted $result rows");
-		return $result;
-	}
-
 	/*************** Instance Methods ****************/
 	public function __construct(bool $root=false) {
 		$this->isnew = TRUE;
@@ -169,8 +159,12 @@ class Event extends AbstractData
 			$event = null;
 		}
 	
+		foreach($this->getClubs() as $club) {
+			$club = null;
+		}
+
 		foreach($this->getDraw() as $draw) {
-			$draw = NULL;
+			$draw = null;
 		}
 	}
 	
@@ -231,33 +225,36 @@ class Event extends AbstractData
 			default:
 				return false;
 		}
-		return $this->isdirty = TRUE;
+		return $this->isdirty = true;
 	}
 
-	public function getFormat():string {
+	public function getFormat() {
 		return $this->format;
 	}
 
     /**
      * Assign a Parent event to this child Event
+	 * @param $parent Event; can set to null
+	 * @return true if succeeds false otherwise
      */
     public function setParent(Event $parent=null) {
-		if($this->isRoot()) return false;
-
-		// if($parent->isNew() || !$parent->isValid()) {
-		// 	return false;
-		// }
-		if(!isset($parent)) {
-			$this->parent = null;
-			$this->parent_ID = null;
+		$result = false;
+		if(!$this->isRoot()) {
+			// if($parent->isNew() || !$parent->isValid()) {
+			// 	return false;
+			// }
+			if(!isset($parent)) {
+				$this->parent = null;
+				$this->parent_ID = null;
+			}
+			else {
+				$this->parent = $parent;
+				$this->parent_ID = $parent->getID();
+				$parent->addChild($this);
+			}
+			$result = $this->isdirty = TRUE;
 		}
-		else {
-			$this->parent = $parent;
-			$this->parent_ID = $parent->getID();
-			$parent->addChild($this);
-		}
-
-		return $this->isdirty = TRUE;
+		return $result;
     }
 
     public function getParent() {
@@ -277,40 +274,46 @@ class Event extends AbstractData
 	 * This method ensures that the same child event is not added more than once.
 	 * 
 	 * @param $child child Event
+	 * @return true if succeeds false otherwise
 	 */
 	public function addChild(Event $child) {
-		if(!isset($child)) return false;
-
-		$found = false;
-		foreach($this->getChildEvents() as $ch) {
-			if($child == $ch) {
-				$found = true;
-				break;
+		$result = false;
+		if(isset($child)) {
+			$found = false;
+			foreach($this->getChildEvents() as $ch) {
+				if($child == $ch) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->childEvents[] = $child;
+				$child->setParent($this);
+				$result = $this->isdirty = true;
 			}
 		}
-
-		if(!$found) {
-			$this->childEvents[] = $child;
-			$child->setParent($this);
-			return $this->isdirty = true;
-		}
-
-		return false;
+		return $result;
 	}
 
+	/**
+	 * Remove an child Event from this Event
+	 * @param $child Event
+	 * @return true if succeeds false otherwise
+	 */
 	public function removeChild(Event $child) {
-		if(!isset($child)) return false;
-		
-		$i=0;
-		foreach($this->getChildEvents() as $ch) {
-			if($child == $ch) {
-				unset($this->childEvents[$i]);
-				return $this->isdirty = true;
+		$result = false;
+		if(isset($child)) {
+			$i=0;
+			foreach($this->getChildEvents() as $ch) {
+				if($child == $ch) {
+					$this->getEventsToBeDeleted()[] = $ch->getID();
+					unset($this->childEvents[$i]);
+					$result = $this->isdirty = true;
+				}
+				$i++;
 			}
-			$i++;
 		}
-
-		return false;
+		return $result;
 	}
 
 	public function getChildEvents() {
@@ -323,23 +326,46 @@ class Event extends AbstractData
 	 * This method ensures that Entrants are not added ore than once.
 	 * 
 	 * @param $player An Entrant to this event
+	 * @return true if succeeds false otherwise
 	 */
-	public function addToDraw(Entrant $player) {
-		if(!isset($player)) return false;
-		if(!$player->isValid()) return false;
-
-		$found = false;
-		foreach($this->Draw() as $d) {
-			if($player->getEventID() === $d->getEventID()
-			&& $player->getPosition() === $d->getPosition()) {
-				$found = true;
+	public function addToDraw(Entrant $ent) {
+		$result = false;
+		if(isset($player)) {
+			$found = false;
+			foreach($this->Draw() as $d) {
+				if($ent->getEventId() === $d->getEventId()
+				&& $ent->getPosition() === $d->getPosition()) {
+					$found = true;
+				}
+			}
+			if(!$found) {
+				$player->setEventId($this->getID());
+				$this->draw[] = $player;
+				$result = $this->isdirty = true;
 			}
 		}
-		if(!$found) {
-			$this->draw[] = $player;
-			return $this->isdirty = true;
+		return $result;
+	}
+	
+	/**
+	 * Remove an Entrant from Draw
+	 * @param $entrant Entrant in the draw
+	 * @return true if succeeds false otherwise
+	 */
+	public function removeFromDraw(Entrant $entrant) {
+		$result = false;
+		if($isset($entrant)) {
+			$i=0;
+			foreach($this->getDraw() as $dr) {
+				if($entrant == $dr) {
+					$this->getEntrantsToBeDeleted()[] = $entrant->getPosition();
+					unset($this->draw[$i]);
+					$result = $this->isdirty = true;
+				}
+				$i++;
+			}
 		}
-		return false;
+		return $result;
 	}
 
 	public function getDraw() {
@@ -347,52 +373,61 @@ class Event extends AbstractData
 		return $this->draw;
 	}
 
-	/**
-	 * Remove an Entrant from Draw
-	 * @param $entrant Entrant in the draw
-	 */
-	public function removeFromDraw(Entrant $entrant) {
-		if(!isset($entrant)) return false;
-		
-		$i=0;
-		foreach($this->getDraw() as $dr) {
-			if($entrant == $dr) {
-				unset($this->draw[$i]);
-				return $this->isdirty = true;
-			}
-			$i++;
-		}
-		return false;
+	public function getClubs() {
+		if(!isset($this->clubs)) $this->clubs=array();
+		return $this->clubs;
 	}
 
 	public function addClub($club) {
-		if(!isset($club)) return false;
-		$found = false;
-		foreach($this->getClubs() as $cl) {
-			if($club == $cl) {
-				$found = true;
-				break;
+		$result = false;
+		if(isset($club)) {
+			$found = false;
+			foreach($this->getClubs() as $cl) {
+				if($club == $cl) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->clubs[] = $club;
+				$result = $this->isdirty = true;
 			}
 		}
-		if(!$found) {
-			$this->clubs[] = $club;
-			return $this->isdirty = true;
-		}
-		return false;
+		return $results;
 	}
 
 	public function removeClub($club) {
 		if(!isset($club)) return false;
-		
+		$result = false;
 		$i=0;
 		foreach($this->getClubs() as $cl) {
 			if($club == $cl) {
+				$this->getClubsToBeDeleted()[] = $cl->getID();
 				unset($this->clubs[$i]);
-				return $this->isdirty = true;
+				$result = $this->isdirty = true;
 			}
 			$i++;
 		}
-		return false;
+		return $result;
+	}
+	
+	/**
+	 * Check to see if this Event has valid data
+	 */
+	public function isValid() {
+		$isvalid = TRUE;
+		if(!isset($this->name)) $isvalid = FALSE;
+		if(!isset($this->event_type) && $this->isParent()) $isvalid = FALSE;
+		if(!isset($this->format) && !$this->isParent()) $isvalid = FALSE;
+		$evs = Event::search($this->getName().'%');
+		// foreach($evs as $ev) {
+		// 	if($this->getID() !== $ev->getID() 
+		// 	&& $this->getName() === $ev->getName()) {
+		// 		$isvalid=FALSE;
+		// 	}
+		// }
+
+		return $isvalid;
 	}
 
 	/**
@@ -416,7 +451,8 @@ class Event extends AbstractData
 	}
 
 	/**
-	 * Fetch all Entrants for this event from the database.
+	 * Fetch all Entrants for this event.
+	 * Otherwise known as the draw.
 	 */
 	private function fetchDraw($force) {
 		if($this->isParent()) return;
@@ -430,27 +466,44 @@ class Event extends AbstractData
 		if(count($this->getClubs()) === 0 || $force) $this->clubs = Club::find($this->getID());
 	}
 
+	private function getEventsToBeDeleted() {
+		if(!isset($this->childEventsToBeDeleted)) $this->childEventsToBeDeleted = array();
+		return $this->childEventsToBeDeleted;
+	}
+
+	private function getEntrantsToBeDeleted() {
+		if(!isset($this->entrantsToBeDeleted)) $this->entrantsToBeDeleted = array();
+		return $this->entrantsToBeDeleted;
+	}
+
+	private function getClubsToBeDeleted() {
+		if(!isset($this->clubsToBeDeleted)) $this->clubsToBeDeleted = array();
+		return $this->clubsToBeDeleted;
+	}
 
 	protected function create() {
         global $wpdb;
         
         parent::create();
 
-        $values = array( 'name'=>$this->name
+        $values = array( 'name'=>$this->getName()
 						,'parent_ID'=>$this->parent_ID
-						,'event_type'=>$this->event_type
-						,'format'=>$this->format);
+						,'event_type'=>$this->getEventType()
+						,'format'=>$this->getFormat());
 		$formats_values = array('%s','%d','%s','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$result = $wpdb->rows_affected;
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
-		error_log("Event::create $wpdb->rows_affected rows affected.");
 
 		foreach($this->getChildEvents() as $child) {
 			$child->setParent($this);
 			$result += $child->save();
+		}
+
+		foreach($this->getEventsToBeDeleted() as $evt) {
+			$result += $evt->delete();
 		}
 
 		foreach($this->getDraw() as $draw) {
@@ -458,24 +511,26 @@ class Event extends AbstractData
 			$result += $draw->save();
 		}
 
-		foreach($this->clubsForDeletion() as $clubId) {
-			$result += Club::delete($clubId,$this->getID());
+		foreach($this->getEntrantsToBeDeleted() as $entPosition) {
+			$result += Entrant::deleteEntrant($this->getID(),$entPosition);
 		}
 
-		//Save any new events added to this club
-		foreach($this->getEvents() as $ev) {
-			$result += $ev->save();
+		//Create relation between this Event and Clubs
+		foreach($this->getClubs() as $cb) {
+			$result += $cb->save();
 		}
 
-		//Create joins between Events and this Club
-		$formats_value = array('%d','%d');
-		foreach($this->getEvents() as $evt) {
-			$values = array('club_ID'=>$this->getID()
-							,'event_ID'=>$evt->getID());
-			$wpdb->insert($wpdb->prefix . 'tennis_club_event',$values,$formats_values);
-			$result += $wpdb->rows_affected;
+		//Remove relation between this Event and Clubs
+		foreach($this->getClubsToBeDeleted() as $clubId) {
+			$result += ClubEventRelations::remove($clubId,$this->getID());
 		}
 
+		//Create relation between this Event and Clubs
+		foreach($this->getClubs() as $cb) {
+			$result += ClubEventRelations::add($cb->getID(),$this->getID());
+		}
+
+		error_log("Event::create: $result rows affected.");
 
 		return $result;
 	}
@@ -485,10 +540,10 @@ class Event extends AbstractData
 
         parent::update();
 
-        $values = array( 'name' => $this->name
+        $values = array( 'name' => $this->getName()
 						,'parent_ID' => $this->parent_ID
-						,'event_type'=>$this->event_type
-						,'format'=>$this->format);
+						,'event_type'=>$this->getEventType()
+						,'format'=>$this->getFormat());
 		$formats_values = array('%s','%d','%s','%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
@@ -496,35 +551,42 @@ class Event extends AbstractData
 		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 
-		error_log("Event::update $wpdb->rows_affected rows affected.");
-
 		foreach($this->getChildEvents() as $child) {
 			$child->setParent($this);
 			$result += $child->save();
+		}
+
+		foreach($this->getEventsToBeDeleted() as $evt) {
+			$result += $evt->delete();
 		}
 
 		foreach($this->getDraw() as $draw) {
 			$draw->setEventID($this->getID());
 			$result += $draw->save();
 		}
+
+		foreach($this->getEntrantsToBeDeleted() as $ent) {
+			$result += $ent->delete();
+		}
+
+		//Create relation between this Event and Clubs
+		foreach($this->getClubs() as $cb) {
+			$result += $cb->save();
+		}
+
+		//Remove relation between this Event and Clubs
+		foreach($this->getClubsToBeDeleted() as $clubId) {
+			$result += ClubEventRelations::remove($clubId,$this->getID());
+		}
+
+		//Create relation between this Event and Clubs
+		foreach($this->getClubs() as $cb) {
+			$result += ClubEventRelations::add($cb->getID(),$this->getID());
+		}
+
+		error_log("Event::update: $result rows affected.");
 		
 		return $result;
-	}
-	
-	public function isValid() {
-		$isvalid = TRUE;
-		if(!isset($this->name)) $isvalid = FALSE;
-		if(!isset($this->event_type) && $this->isParent()) $isvalid = FALSE;
-		if(!isset($this->format) && !$this->isParent()) $isvalid = FALSE;
-		$evs = Event::search($this->getName().'%');
-		// foreach($evs as $ev) {
-		// 	if($this->getID() !== $ev->getID() 
-		// 	&& $this->getName() === $ev->getName()) {
-		// 		$isvalid=FALSE;
-		// 	}
-		// }
-
-		return $isvalid;
 	}
 
     /**

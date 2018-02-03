@@ -16,8 +16,12 @@ class ClubTest extends TestCase
 {
 	
     public static function setUpBeforeClass()
-    {
-        fwrite(STDOUT, __METHOD__ . "\n");
+    {        
+		global $wpdb;
+        $table = "{$wpdb->prefix}tennis_club";
+        $sql = "delete from $table where ID between 1 and 999;";
+        $wpdb->query($sql);
+        //fwrite(STDOUT, __METHOD__ . "\n");
 	}
 	
 	public function test_club()
@@ -34,7 +38,7 @@ class ClubTest extends TestCase
 	
     public static function tearDownAfterClass()
     {
-        fwrite(STDOUT, __METHOD__ . "\n");
+        //fwrite(STDOUT, __METHOD__ . "\n");
     }
 }
 

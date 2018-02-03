@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once('abstract-class-data.php');
+//require_once('class-abstractdata.php');
 //require_once('class-court-booking.php');
 
 /** 
@@ -90,16 +90,17 @@ class Court extends AbstractData
 	/**
 	 * Delete the given Court from its Club
 	 */
-    static public function delete(int $clubId, int $courtNum):int {
-		if(!isset($clubId) || !isset($courtNum)) return 0;
-
-        global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
-        $sql = "delete from $table where club_ID=%d and court_num=%d;";
-		$safe = $wpdb->prepare($sql,$clubId,$courtNum);
-		$rows = $wpdb->get_results($safe, ARRAY_A);
-		error_log("Court.delete: deleted $wpdb->rows_affected");
-		return $wpdb->rows_affected;
+    static public function deleteCourt(int $clubId, int $courtNum):int {
+		global $wpdb;
+		$result = 0;
+		if(isset($clubId) && isset($courtNum)) {
+			$table = $wpdb->prefix . self::$tablename;
+			
+			$wpdb->delete($table,array('club_ID'=>$clubId,'court_num'=>$courtNum),array('%d','%d'));
+			$result = $wpdb->rows_affected;
+		}
+		error_log("Court.delete: deleted $result");
+		return $result;
 	}
 
 	/*************** Instance Methods ****************/
@@ -144,20 +145,23 @@ class Court extends AbstractData
     public function getChildren($force=FALSE) {
 		$this->getBookings($force);
 	}
-
-	//TODO: Add court bookings...
-	private function getBookings($force) {
-        if(count($this->bookings) === 0 || $force) {
-			$this->bookings = array(); //CourtBooking::find($this->ID);
-		}
-	}
-
+	
+	/**
+	 * Check to see if this Court has valid data
+	 */
 	public function isValid() {
 		$isvalid = true;
 		if(!isset($this->club_ID)) $isvalid = false;
 		if(!$this->isNew() && !isset($this->court_num)) $isvalid = false;
 		if(!isset($this->court_type)) $this->court_type = self::HARD;
 		return $isvalid;
+	}
+
+	//TODO: Add court bookings...
+	private function getBookings($force) {
+        if(count($this->bookings) === 0 || $force) {
+			$this->bookings = array(); //CourtBooking::find($this->ID);
+		}
 	}
 
 	protected function create() {
@@ -169,14 +173,14 @@ class Court extends AbstractData
 		$sql = "SELECT IFNULL(MAX(court_num),0)
 				FROM $table 
 				WHERE club_ID=%d;";
-		$safe = $wpdb->prepare($sql,$this->club_ID);
+		$safe = $wpdb->prepare($sql,$this->getClubId());
 		$max = $wpdb->get_var($safe);
 		error_log("Max court number=$max");
 		$this->court_num = $max + 1;
 
-        $values  = array('club_ID'    => $this->club_ID
-						,'court_num'  => $this->court_num
-						,'court_type' => $this->court_type);
+        $values  = array('club_ID'    => $this->getClubId()
+						,'court_num'  => $this->getCourtNum()
+						,'court_type' => $this->getCourtType());
 		$formats_values = array('%d','%d','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$result = $wpdb->rows_affected;
@@ -195,10 +199,10 @@ class Court extends AbstractData
         
         parent::update();
 
-        $values         = array( 'court_type' => $this->court_type );
+        $values         = array( 'court_type' => $this->getCourtType());
 		$formats_values = array( '%s' );
-		$where          = array( 'club_ID' => $this->club_ID
-								,'court_num' => $this->court_num );
+		$where          = array( 'club_ID' => $this->getClubId()
+								,'court_num' => $this->getCourtNum() );
 		$formats_where  = array( '%d','%d' );
 		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
 		$result = $wpdb->rows_affected;
@@ -208,6 +212,24 @@ class Court extends AbstractData
 
 		error_log("Court::update $result rows affected.");
 
+		return $result;
+	}
+	
+	/**
+	 * Delete the given Court from its Club
+	 */
+    public function delete():int {
+		global $wpdb;
+		$result = 0;
+		$clubId = $this->getClubId();
+		$crtnum = $this->getCourtNum();
+		if(isset($clubId) && isset($crtnum)) {
+			$table = $wpdb->prefix . self::$tablename;
+			
+			$wpdb->delete($table,array('club_ID'=>$clubId,'court_num'=>$crtnum),array('%d','%d'));
+			$result = $wpdb->rows_affected;
+		}
+		error_log("Court.delete: deleted $result");
 		return $result;
 	}
 	

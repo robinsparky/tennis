@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once('abstract-class-data.php');
-require_once('class-player.php');
+// require_once('class-abstract.php');
+// require_once('class-player.php');
 
 /** 
  * Data and functions for Tennis Event Entrant(s)
@@ -157,6 +157,20 @@ class Entrant extends AbstractData
 		return $obj;
 	}
 
+	static public function deleteEntrant(int $eventId, int $pos) {
+		global $wpdb;
+		$result = 0;
+		if(isset($eventId) && isset($pos)) {
+			$table = $wpdb->prefix . self::$tablename;
+			
+			$wpdb->delete($table,array('event_ID'=>$eventId,'position'=>$pos),array('%d','%d'));
+			$result = $wpdb->rows_affected;
+
+			error_log("deleteEntrant.delete: deleted $result");
+		}
+		return $result;
+	}
+
 	/*************** Instance Methods ****************/
 	public function __construct(int $eventID, int $pos = NULL) {
 		$this->isnew = TRUE;
@@ -219,8 +233,8 @@ class Entrant extends AbstractData
 	/**
 	 * Seed this player(s)
 	 */
-	public function setSeed(int $seed) {
-		if(!isset($seed) || $seed < 0) return false;
+	public function setSeed(int $seed=0) {
+		if($seed < 0) $seed=0;
 
 		$this->seed = $seed;
         return $this->isdirty = TRUE;
@@ -240,15 +254,26 @@ class Entrant extends AbstractData
     public function getChildren($force=FALSE) {
 		$this->retrievePlayers($force);
 	}
+	
+	public function delete() {
+		global $wpdb;
+		$result = 0;
+		$eventId = $this->getEventId();
+		$pos = $this->getPosition();
+		if(isset($eventId) && isset($pos)) {
+			$table = $wpdb->prefix . self::$tablename;
+			
+			$wpdb->delete($table,array('event_ID'=>$eventId,'position'=>$pos),array('%d','%d'));
+			$result = $wpdb->rows_affected;
 
-	/**
-	 * Get all Players for this Entrant.
-	 */
-	private function retrievePlayers($force) {
-		if($this->isNew()) return;
-        //if(count($this->players) === 0 || $force) $this->players = Player::find($this->event_ID);
+			error_log("Entrant.delete: deleted $result rows");
+		}
+		return $result;
 	}
 
+	/**
+	 * Check to see if this Entrant has valid data
+	 */
 	public function isValid() {
 		$isvalid = TRUE;
 		if(!isset($this->event_ID)) $invalid = FALSE;
@@ -256,6 +281,14 @@ class Entrant extends AbstractData
 		if(!isset($this->name)) $invalid = FALSE;
 
 		return $isvalid;
+	}
+
+	/**
+	 * Get all Players for this Entrant.
+	 */
+	private function retrievePlayers($force) {
+		if($this->isNew()) return;
+        //if(count($this->players) === 0 || $force) $this->players = Player::find($this->event_ID);
 	}
 
 	protected function create() {
@@ -266,14 +299,14 @@ class Entrant extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
 		$wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE");
 		
-		$sql = "select max(position) from $table where event_ID=%d;";
+		$sql = "SELECT IFNULL(MAX(position),0) FROM $table WHERE event_ID=%d;";
 		$safe = $wpdb->prepare($sql,$this->event_ID);
 		$this->position = $wpdb->get_var($safe) + 1;
 
-		$values = array( 'event_ID' => $this->event_ID
-						,'position' => $this->position
-						,'name' => $this->name
-						,'seed' => $this->seed);
+		$values = array( 'event_ID' => $this->getEventId()
+						,'position' => $this->getPosition()
+						,'name' => $this->getName()
+						,'seed' => $this->getSeed());
 		$formats_values = array('%d','%d','%s','%d');
 
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
@@ -283,7 +316,7 @@ class Entrant extends AbstractData
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
 
-		error_log("Entrant::create $wpdb->rows_affected rows affected.");
+		error_log("Entrant::create $result rows affected.");
 
 		return $result;
 	}
@@ -295,28 +328,24 @@ class Entrant extends AbstractData
 
 		parent::update();
 		
-		$where = array( 'event_ID' => $this->event_ID
-					   ,'position' => $this->position);
+		$where = array( 'event_ID' => $this->getEventId()
+					   ,'position' => $this->getPosition());
 		$formats_where  = array('%d','%d');
 
 
-		$values = array( 'name' => $this->name
-						,'seed' => $this->seed);
+		$values = array( 'name' => $this->getName()
+						,'seed' => $this->getSeed());
 		$formats_values = array('%s','%d');
 		
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
+		$result = $wpdb->rows_affected;
 
-		error_log("Entrant::update $wpdb->rows_affected rows affected.");
+		error_log("Entrant::update $result rows affected.");
 
-		return $wpdb->rows_affected;
+		return $result;
 	}
 
-	//TODO: Complete the delete logic
-    public function delete() {
-
-	}
-	
 	private function init() {
 		//$this->event_ID = NULL;
 		//$this->position = NULL;

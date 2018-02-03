@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once('abstract-class-data.php');
-require_once('class-entrant.php');
-require_once('class-game.php');
+// require_once('class-abstractdata.php');
+// require_once('class-entrant.php');
+// require_once('class-game.php');
 
 /** 
  * Data and functions for Tennis Event Match(es)

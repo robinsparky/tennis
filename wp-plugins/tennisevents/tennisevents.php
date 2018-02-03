@@ -85,6 +85,7 @@ class TennisEvents {
 	}
 	
 	public function includes() {
+		include_once('autoloader.php');
 		include_once( 'includes/gw-support.php' );
 		include_once( 'includes/class-controller-manager.php' );
 		include_once( 'includes/class-tennis-install.php' );
