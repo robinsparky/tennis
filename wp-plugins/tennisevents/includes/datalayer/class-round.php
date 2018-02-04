@@ -93,7 +93,7 @@ class Round extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $event, int $round=NULL) {
+	public function __construct(int $event=null, int $round=null) {
         $this->isnew = TRUE;
         $this->event_ID = $event;
         $this->round_num = $round;
@@ -111,11 +111,13 @@ class Round extends AbstractData
      * Assign this Round to an Event
      */
     public function setEvent(Event $event) {
-        if($event->isParent()) return false;
-        $this->event = $event;
-        $this->event_ID = $event->ID;
-        $this->isdirty = TRUE;
-        return true;
+        $result = false;
+        if(!$event->isParent()) {
+            $this->event = $event;
+            $this->event_ID = $event->getID();
+            $result  = $this->isdirty = true;
+        }
+        return $result ;
     }
 
     public function getEvent():Event {
@@ -138,7 +140,8 @@ class Round extends AbstractData
      */
     public function setComments(string $comment) {
         $this->comments = $comment;
-        $this->isdirty = TRUE;
+        $result = $this->isdirty = TRUE;
+        return $result;
     }
 
     public function getComments():string {
@@ -146,31 +149,38 @@ class Round extends AbstractData
     }
 
     public function addNewMatch(Entrant $home, Entrant $visitor) {
-        if($this->isNew()) return false;
+        $result = false;
         if(!isset($this->matches)) $this->matches = array();
+        if(isset($home) && isset($visitor)){
+            $match = new Match($this->event_ID, $this->round_num);
+            $match->setHomeEntrant($home);
+            $match->setVisitorEntrant($visitor);
+            $this->matches[] = $match;
+            $result = $this->isdirty = true;
+        }
 
-        $match = new Match($this->event_ID, $this->round_num);
-        $match->setHomeEntrant($home);
-        $match->setVisitorEntrant($visitor);
-        $this->matches[] = $match;
-        $this->isdirty = true;
-        return true;
+        return $result;
     }
 
     public function addMatch(Match $match) {
-        if($this->isNew()) return false;
+        $result = false;
+
         if(!isset($this->matches)) $this->matches = array();
-        $this->matches[] = $match;
-        $this->isdirty = true;
-        return true;
+        if(isset($match) && $match->isValid()) {
+            $this->matches[] = $match;
+            $result = $this->isdirty = true;
+        }
+        
+        return $result;
     }
 
     public function getMatches():array {
+        if(!isset($this->matches)) $this->matches = array();
         return $this->matches;
     }
 
-    public function numMatches() {
-        return count($this->matches);
+    public function numMatches():int {
+        return count($this->getMatches());
     }
 
     public function setIdentifiers(int ...$pks) {
@@ -199,16 +209,8 @@ class Round extends AbstractData
 	 */
     public function getChildren($force) {
         if($this->isNew()) return;
-        if(count($this->matches) === 0  || $force) $this->matches = Match::find($this->getIdentifiers());
+        if($this->numMatches() === 0  || $force) $this->matches = Match::find($this->getIdentifiers());
     }
-    
-    /**
-     * Save this Round to the database
-     */
-    public function save() {
-		if($this->isnew) $this->create();
-		elseif ($this->isdirty) $this->update();
-	}
 
 	protected function create() {
         global $wpdb;
@@ -219,7 +221,7 @@ class Round extends AbstractData
         
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
-		$sql = "select max(round_num) from $table where event_ID=%d;";
+		$sql = "SELECT IFNULL(MAX(round_num),0) FROM $table WHERE event_ID=%d;";
         $safe = $wpdb->prepare($sql,$this->event_ID);
         $this->round_num = $wpdb->get_var($safe) + 1;
 
@@ -235,7 +237,7 @@ class Round extends AbstractData
         $this->isnew = FALSE;
 		$this->isdirty = FALSE;
         
-        foreach($this->matches as $match) {
+        foreach($this->getMatches() as $match) {
             $match->save();
         }
 
@@ -249,15 +251,15 @@ class Round extends AbstractData
 
         $values = array( 'comments' => $this->comments);
 		$formats_values = array('%s');
-        $where          = array('event_ID' => $this->event_ID
+        $where          = array('event_ID'  => $this->event_ID
                                ,'round_num' => $this->round_num);
 		$formats_where  = array('%d','%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
 		$this->isdirty = FALSE;
         $result = $wpdb->rows_affected;
-		error_log("Round::update $wpdb->rows_affected rows affected.");
+		error_log("Round::update $result rows affected.");
 
-        foreach($this->matches as $match) {
+        foreach($this->getMatches() as $match) {
             $match->save();
         }
 

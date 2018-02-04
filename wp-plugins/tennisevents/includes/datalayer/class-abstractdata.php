@@ -38,9 +38,10 @@ abstract class AbstractData
      * Save this Object to the database
      */
     public function save() {
-		if($this->isnew) return $this->create();
-        elseif ($this->isdirty) return $this->update();
-        return -1;
+        $result = 0;
+		if($this->isNew()) $result = $this->create();
+        elseif ($this->isDirty()) $result = $this->update();
+        return $result;
     }
 
     /**

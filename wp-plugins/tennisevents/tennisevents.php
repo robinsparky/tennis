@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+global $wpdb;
+$wpdb->hide_errors(); 
 
 if ( !class_exists( 'TennisEvents' ) ) :
 

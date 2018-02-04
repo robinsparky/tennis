@@ -74,14 +74,19 @@ class Match extends AbstractData
         $col = array();
         $eventID = 0;
         $roundnum = 0;
-        if( count($fk_criteria.keys) === 0 ) {
-            if(count($fk_criteria) < 2) return $col;
+        
+        if(isset($fk_criteria[0]) && is_array($fk_criteria[0])) $fk_criteria = $fk_criteria[0];
+        
+        if(array_key_exists('event_ID',$fk_criteria) && array_key_exists('round_num',$fk_criteria)) {
+            $eventID = $fk_criteria["event_ID"];
+            $roundnum = $fk_criteria["round_num"];
+        }
+        if( count($fk_criteria) === 2 ) {
             $eventID = $fk_criteria[0];
             $roundID = $fk_criteria[1];
         } 
         else {
-            $eventID = $fk_criteria["event_ID"];
-            $roundnum = $fk_criteria["round_num"];
+            return $col;
         }
         
         $sql = "select event_ID,round_num,match_num,match_type,match_date,match_time 
@@ -131,7 +136,7 @@ class Match extends AbstractData
 
     public function __destruct() {
         $this->event = null;
-        foreach($this->games as $game) {
+        foreach($this->getGames() as $game) {
             $game = null;
         }
     }
@@ -164,11 +169,13 @@ class Match extends AbstractData
      * Assign this Match to an Event
      */
     public function setEvent(Event $event) {
-        if($event->isParentEvent()) return false;
-        $this->event = $event;
-        $this->event_ID = $event->ID;
-        $this->isdirty = TRUE;
-        return true;
+        $result = false;
+        if(!$event->isParentEvent()) {
+            $this->event = $event;
+            $this->event_ID = $event->ID;
+            $result = $this->isdirty = TRUE;
+        }
+        return $result;
     }
 
     /**
@@ -188,19 +195,25 @@ class Match extends AbstractData
 
     public function setMatchType(String $type) {
         $this->match_type = $type;
+        $result = $this->isdirty = true;
+
+        return $result;
     }
 
-    public function getMatchType():string {
+    public function getMatchType() {
         return $this->match_type;
     }
 
     /**
      * Set the date of the match
-     * @param $date is a string in format Y-m=d
+     * @param $date is a string in Y-m=d format
      */
     public function setMatchDate(string $date) {
         $mdt = strtotime($date);
         $this->match_date = $mdt;
+        $result = $this->isdirty = true;
+
+        return $result;
     }
 
     public function getMatchDate():string {
@@ -214,6 +227,9 @@ class Match extends AbstractData
     public function setMatchTime(string $time) {
         $mt = strtotime($time);
         $this->match_time = $mt;
+        $result = $this->isdirty = true;
+
+        return $result;
     }
 
     public function getMatchTime():string {
@@ -224,10 +240,14 @@ class Match extends AbstractData
      * Set the Home opponent for this match
      */
     public function setHomeEntrant(Entrant $h) {
-        $this->home = $h;
-        $this->home_ID = $h->getID();
-        $this->isdirty = TRUE;
-        return true;
+        $result = false;
+        if(isset($h)) {
+            $this->home = $h;
+            $this->home_ID = $h->getID();
+            $result = $this->isdirty = true;
+        }
+
+        return $result;
     }
 
     public function getHomeEntrant():Entrant {
@@ -238,10 +258,13 @@ class Match extends AbstractData
      * Set the Visitor opponent for this match
      */
     public function setVisitorEntrant(Entrant $v) {
-        $this->visitor = $v;
-        $this->visitor_ID = $v->getID();
-        $this->isdirty = TRUE;
-        return true;
+        $result = false;
+        if(isset($v)) {
+            $this->visitor = $v;
+            $this->visitor_ID = $v->getID();
+            $result = $this->isdirty = TRUE;
+        }
+        return $result;
     }
 
     public function getVisitorEntrant():Entrant {
@@ -260,8 +283,10 @@ class Match extends AbstractData
      * @return nothing
      */
     public function setScore(int $set,int $home_wins=0,int $visitor_wins=0) {
+        $result = false;
+
         $setfound = FALSE;
-        foreach($this->games as $game) {
+        foreach($this->getGames() as $game) {
             if($game->getSetNumber() === $set) {
                 $setfound = TRUE;
                 $game->setHomeScore($home_wins);
@@ -277,7 +302,9 @@ class Match extends AbstractData
                 $this->games[] = $game;
             }
         }
-        $this->isdirty = true;
+        $result = $this->isdirty = true;
+
+        return $result;
     }
 
 	/**
@@ -296,13 +323,16 @@ class Match extends AbstractData
         $contestants = Entrant::find($this->event_ID, $this->round_num, $this->match_num);
         switch(count($contestants)) {
             case 1:
-                $this->setHomeEntrant($contestants[0]);
+                $this->home = $contestants[0];
+                $this->home_ID = $this->home->getID();
                 $this->visitor = NULL;
                 $this->visitor_ID = NULL;
                 break;
             case 2:
-                $this->setHomeEntrant($contestants[0]);
-                $this->setVisitorEntrant($contestant[1]);
+                $this->home = $contestants[0];
+                $this->home_ID = $this->home->getID();
+                $this->visitor = $contestant[1];
+                $this->visitor_ID = $this->visitor->getID();
                 break;
             default:
                 $this->home = NULL;

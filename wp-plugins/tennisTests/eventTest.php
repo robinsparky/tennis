@@ -51,7 +51,9 @@ class EventTest extends TestCase
         $parent->setName('Year End Tournament');
         $this->assertEquals('Year End Tournament',$parent->getName(),'Test get name');
         $this->assertTrue($parent->isParent(),'Test for parent event');
-        $this->assertTrue($parent->addClub($club));
+
+        $this->assertTrue($club->isValid(),'Test that Club is valid before adding it.');
+        $this->assertTrue($parent->addClub($club),'Test adding club to parent event');
         $this->assertTrue($parent->setEventType(Event::TOURNAMENT));
         $this->assertEquals(Event::TOURNAMENT,$parent->getEventType());
         $this->assertTrue($parent->isValid(),'Test parent event is valid');
@@ -93,6 +95,7 @@ class EventTest extends TestCase
         $events = Event::search('Year End Tournament%');
         $this->assertCount(1,$events);
         $mainevent = $events[0];
+        $this->assertTrue($mainevent->isRoot(),'Is root');
         $mainevent->getChildren();
 
         $this->assertCount(2,$mainevent->getChildEvents(),'Test 2 children');
@@ -105,8 +108,21 @@ class EventTest extends TestCase
 
         $this->assertCount(3,$mainevent->getChildEvents(),'Test 3 children');
 
-        $this->assertTrue($mainevent->removeChild($anotherChild),'Test removing 1 child');
-        $this->assertCount(2,$mainevent->getChildEvents(),'Test 2 children');
+        $this->assertEquals(1,$mainevent->save(),'Test saving with new 3rd child');
+        $this->assertEquals(0,$mainevent->save(),'Test saving with no changes');
+        $this->assertFalse($mainevent->isDirty());
+        $this->assertFalse($anotherChild->isDirty());
+ 
+        $deleteChild = new Event;
+        $deleteChild->setName('Delete this event');
+        $deleteChild->setFormat(Event::ROUND_ROBIN);
+        $this->assertTrue($mainevent->addChild($deleteChild),'Test adding child event to be deleted');
+
+        $this->assertCount(4,$mainevent->getChildEvents(),'Test 4 children');
+        $check = $mainevent->save();
+        $this->assertTrue($mainevent->removeChild($deleteChild),'Test removing delete child');
+        $check = $mainevent->save();
+        $this->assertCount(3,$mainevent->getChildEvents(),'Test 3 children');
     }
 	
     public static function tearDownAfterClass()

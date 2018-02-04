@@ -75,52 +75,59 @@ class Entrant extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
 		$where = array();
-		if(count($fk_criteria.keys) === 0) {
-			if(count($fk_criteria) === 1) {
-			$where[] = $fk_criteria[0];
-			$sql = "select event_ID,position,name,seed 
-					from $table where event_ID = %d order by position;";
-			}
-			elseif(count($fk_criteria) === 3) {
-				$where[] = $fk_criteria[0]; //Event
-				$where[] = $fk_criteria[1]; //Round
-				$where[] = $fk_criteria[2]; //Match
-				$joinTable = $wpdb->prefix . "tennis_match_entrant";
-				
-				$sql = "select   j.match_event_ID
-								,j.match_round_num
-								,j.match_num
-								,e.position
-								,e.name
-								,e.seed
-						from $table e 
-						inner join $joinTable j on j.match_event_ID = e.event_ID 
-												and j.entrant_position = e.position 
-						where e.event_ID=%d 
-						and   j.match_round_num=%d 
-						and   j.match_num=%d 
-						order by e.position;";
-			}
-		}
-		else {
+		
+		if(isset($fk_criteria[0]) && is_array($fk_criteria[0])) $fk_criteria = $fk_criteria[0];
+
+		if(array_key_exists('event_ID',$fk_criteria)
+		&& array_key_exists('round_num',$fk_criteria)
+		&& array_key_exists('match_num',$fk_criteria)) {
 			$where[] = $fk_criteria["event_ID"];
 			$where[] = $fk_criteria["round_num"];
 			$where[] = $fk_criteria["match_num"];
 			$joinTable = $wpdb->prefix . "tennis_match_entrant";
 			
-			$sql = "select   j.match_event_ID
+			$sql = "SELECT   j.match_event_ID
 							,j.match_round_num
 							,j.match_num
 							,e.position
 							,e.name
 							,e.seed
-					from $table e 
-					inner join $joinTable j on j.match_event_ID = e.event_ID 
-											and j.entrant_position = e.position 
-					where e.event_ID=%d 
-					and   j.match_round_num=%d 
-					and   j.match_num=%d 
-					order by e.position;";
+					FROM $table e 
+					INNER JOIN $joinTable j ON j.match_event_ID = e.event_ID 
+											AND j.entrant_position = e.position 
+					WHERE e.event_ID=%d 
+					AND   j.match_round_num=%d 
+					AND   j.match_num=%d 
+					ORDER BY e.position;";
+
+		} 
+		elseif(count($fk_criteria) === 3) {
+				$where[] = $fk_criteria[0]; //Event
+				$where[] = $fk_criteria[1]; //Round
+				$where[] = $fk_criteria[2]; //Match
+				$joinTable = $wpdb->prefix . "tennis_match_entrant";
+				
+			$sql = "SELECT j.match_event_ID
+						,j.match_round_num
+						,j.match_num
+						,e.position
+						,e.name
+						,e.seed 
+				FROM $table e 
+				INNER JOIN $joinTable j ON j.match_event_ID = e.event_ID 
+										AND j.entrant_position = e.position 
+				WHERE e.event_ID=%d 
+				AND   j.match_round_num=%d 
+				AND   j.match_num=%d 
+				ORDER BY e.position;";
+		}
+		elseif(count($fk_criteria) === 1) {
+			$where[] = $fk_criteria[0];
+			$sql = "select event_ID,position,name,seed 
+					from $table where event_ID = %d order by position;";
+		}
+		else {
+			return $col;
 		}
 
 		$safe = $wpdb->prepare($sql,$where);
@@ -158,16 +165,14 @@ class Entrant extends AbstractData
 	}
 
 	static public function deleteEntrant(int $eventId, int $pos) {
-		global $wpdb;
 		$result = 0;
 		if(isset($eventId) && isset($pos)) {
+			global $wpdb;
 			$table = $wpdb->prefix . self::$tablename;
-			
 			$wpdb->delete($table,array('event_ID'=>$eventId,'position'=>$pos),array('%d','%d'));
 			$result = $wpdb->rows_affected;
-
-			error_log("deleteEntrant.delete: deleted $result");
 		}
+		error_log("Entrant.deleteEntrant: deleted $result");
 		return $result;
 	}
 

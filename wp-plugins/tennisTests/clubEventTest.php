@@ -10,16 +10,17 @@ Testing Clubs and Events
 use PHPUnit\Framework\TestCase;
 /**
  * @group clubevent
+ * @group all
  */
 class ClubEventTest extends TestCase
 {
 	
     public static function setUpBeforeClass()
     {
-        global $wpdb;
-        $table = "{$wpdb->prefix}tennis_club_event";
-        $sql = "truncate $table;";
-        $wpdb->query($sql);
+        // global $wpdb;
+        // $table = "{$wpdb->prefix}tennis_club_event";
+        // $sql = "truncate $table;";
+        // $wpdb->query($sql);
         //fwrite(STDOUT, __METHOD__ . "\n");
     }
     
@@ -37,7 +38,16 @@ class ClubEventTest extends TestCase
         $this->assertCount(1,$events);
         $event = $events[0];
         $event->getChildren();
-        $this->assertCount(2,$event->getChildEvents());
+        $this->assertCount(3,$event->getChildEvents());
+
+        $club2 = new Club;
+        $club2->setName("BFRC");
+        $this->assertEquals("BFRC",$club2->getName());
+        $this->assertTrue($club2->isValid());
+        $this->assertTrue($event->isRoot(),'Is root');
+
+        $this->assertTrue($event->addClub($club2));
+        $event->save();
 
     }
 

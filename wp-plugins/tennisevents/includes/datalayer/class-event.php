@@ -55,7 +55,7 @@ class Event extends AbstractData
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select ID,event_type,name,format,parent_ID from $table where name like '%s'";
+		$sql = "select ID,isroot,event_type,name,format,parent_ID from $table where name like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
@@ -63,6 +63,8 @@ class Event extends AbstractData
 
 		$col = array();
 		foreach($rows as $row) {
+			$r = (bool)$row["isroot"]; 	
+			error_log("Isroot=$r");
             $obj = new Event;
             self::mapData($obj,$row);
 			$col[] = $obj;
@@ -87,7 +89,7 @@ class Event extends AbstractData
 		if(array_key_exists('parent_ID',$fk_criteria)) {
 			//All events who are children of specified Event
 			$col_value = $fk_criteria["parent_ID"];
-			$sql = "select ce.ID,ce.event_type,ce.name,ce.format,ce.parent_ID 
+			$sql = "select ce.ID, ce.isroot, ce.event_type, ce.name, ce.format, ce.parent_ID 
 					from $table ce
 					inner join $table pe on pe.ID = ce.parent_ID
 					where ce.parent_ID = %d;";
@@ -95,7 +97,7 @@ class Event extends AbstractData
 		elseif(array_key_exists('club',$fk_criteria)) {
 			//All events belonging to specified club
 			$col_value = $fk_criteria["club"];
-			$sql = "select e.ID,e.event_type,e.name,e.format,e.parent_ID 
+			$sql = "select e.ID, e.isroot, e.event_type, e.name, e.format, e.parent_ID 
 					from $table e
 					inner join $joinTable as j on j.event_ID = e.ID
 					inner join $clubTable as c on c.ID = j.club_ID
@@ -104,14 +106,14 @@ class Event extends AbstractData
 		elseif(array_key_exists('hierarchy',$fk_criteria)) {
 			//All events belonging to a hierachy of events
 			$col_value = $fk_criteria["hierarchy"];
-			$sql = "select p.ID, p.name, p.event_type, p.format 
+			$sql = "select p.ID, p.isroot, p.name, p.event_type, p.format 
 					from $table p
 					inner join $table as c on c.parent_ID = p.ID 
 					where p.ID = %d;";
 		} elseif(!isset($fk_criteria)) {
 			//All events belonging to a specified club
 			$col_value = 0;
-			$sql = "select ID,event_type,name,format,parent_ID 
+			$sql = "select ID,isroot,event_type,name,format,parent_ID 
 					from $table;";
 		}
 		else {
@@ -137,7 +139,7 @@ class Event extends AbstractData
     static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select ID,event_type,name,format,parent_ID from $table where ID=%d";
+		$sql = "select ID,isroot,event_type,name,format,parent_ID from $table where ID=%d";
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
@@ -149,6 +151,18 @@ class Event extends AbstractData
 			self::mapData($obj,$rows[0]);
 		}
 		return $obj;
+	}
+	
+	static public function deleteEvent(int $eventId) {
+		$result = 0;
+		if(isset($eventId)) {
+			global $wpdb;
+			$table = $wpdb->prefix . self::$tablename;
+			$wpdb->delete($table,array('ID'=>$eventId),array('%d'));
+			$result = $wpdb->rows_affected;
+		}
+		error_log("Event.deleteEvent: deleted $result");
+		return $result;
 	}
 
 	/*************** Instance Methods ****************/
@@ -176,7 +190,8 @@ class Event extends AbstractData
 	/**
 	 * Is this Event the hierarchy root?
 	 */
-	public function isRoot():bool {
+	public function isRoot() {
+		if(!isset($this->isroot)) $this->isroot = false;
 		return $this->isroot;
 	}
 
@@ -309,9 +324,10 @@ class Event extends AbstractData
 		$result = false;
 		if(isset($child)) {
 			$i=0;
+			if(isset($this->childEventsToBeDeleted)) $this->childEventsToBeDeleted = array();
 			foreach($this->getChildEvents() as $ch) {
 				if($child == $ch) {
-					$this->getEventsToBeDeleted()[] = $ch->getID();
+					$this->childEventsToBeDeleted[] = $child->getID();
 					unset($this->childEvents[$i]);
 					$result = $this->isdirty = true;
 				}
@@ -361,9 +377,10 @@ class Event extends AbstractData
 		$result = false;
 		if($isset($entrant)) {
 			$i=0;
+			if(!isset($this->entrantsToBeDeleted)) $this->entrantsToBeDeleted = array();
 			foreach($this->getDraw() as $dr) {
 				if($entrant == $dr) {
-					$this->getEntrantsToBeDeleted()[] = $entrant->getPosition();
+					$this->entrantsToBeDeleted[] = $entrant->getPosition();
 					unset($this->draw[$i]);
 					$result = $this->isdirty = true;
 				}
@@ -405,9 +422,10 @@ class Event extends AbstractData
 		if(!isset($club)) return false;
 		$result = false;
 		$i=0;
+		if(!isset($this->clubsToBeDeleted)) $this->clubsToBeDeleted = array();
 		foreach($this->getClubs() as $cl) {
 			if($club == $cl) {
-				$this->getClubsToBeDeleted()[] = $cl->getID();
+				$this->clubsToBeDeleted[] = $club->getID();
 				unset($this->clubs[$i]);
 				$result = $this->isdirty = true;
 			}
@@ -437,6 +455,27 @@ class Event extends AbstractData
 	}
 
 	/**
+	 * Delete this object
+	 * NOTE all child objects will 
+	 *      deleted via DB Cascade
+	 */
+	public function delete() {
+		$result = 0;
+		$id = $this->getID();
+		if(isset($id)) {
+			global $wpdb;
+			$table = $wpdb->prefix . self::$tablename;
+
+			$where = array( 'ID'=>$id );
+			$formats_where = array( '%d' );
+			$wpdb->delete($table, $where, $formats_where);
+			$result = $wpdb->rows_affected;
+			error_log("Event.delete: deleted $result rows");
+		}
+		return $result;
+	}
+
+	/**
 	 * Get all my children!
 	 * 1. Child events
 	 * 2. Entrants in the draw
@@ -462,7 +501,7 @@ class Event extends AbstractData
 	 */
 	private function fetchDraw($force) {
 		if($this->isParent()) return;
-        if(count($this->draw) === 0 || $force) $this->draw = Entrant::find($this->getID());
+        if(count($this->getDraw()) === 0 || $force) return; //$this->draw = Entrant::find($this->getID());
 	}
 
 	/**
@@ -492,50 +531,22 @@ class Event extends AbstractData
         
         parent::create();
 
-        $values = array( 'name'=>$this->getName()
-						,'parent_ID'=>$this->parent_ID
-						,'event_type'=>$this->getEventType()
-						,'format'=>$this->getFormat());
-		$formats_values = array('%s','%d','%s','%s');
+		$this->parent_ID = isset($this->parent) ? $this->parent->getID() : null;
+
+        $values = array( 'name'       => $this->getName()
+						,'parent_ID'  => $this->parent_ID
+						,'isroot'     => $this->isroot ? 1 : 0
+						,'event_type' => $this->getEventType()
+						,'format'     => $this->getFormat());
+		$formats_values = array('%s','%d','%d','%s','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$result = $wpdb->rows_affected;
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
 
-		foreach($this->getChildEvents() as $child) {
-			$child->setParent($this);
-			$result += $child->save();
-		}
-
-		foreach($this->getEventsToBeDeleted() as $evt) {
-			$result += $evt->delete();
-		}
-
-		foreach($this->getDraw() as $draw) {
-			$draw->setEventID($this->getID());
-			$result += $draw->save();
-		}
-
-		foreach($this->getEntrantsToBeDeleted() as $entPosition) {
-			$result += Entrant::deleteEntrant($this->getID(),$entPosition);
-		}
-
-		//Create relation between this Event and Clubs
-		foreach($this->getClubs() as $cb) {
-			$result += $cb->save();
-		}
-
-		//Remove relation between this Event and Clubs
-		foreach($this->getClubsToBeDeleted() as $clubId) {
-			$result += ClubEventRelations::remove($clubId,$this->getID());
-		}
-
-		//Create relation between this Event and Clubs
-		foreach($this->getClubs() as $cb) {
-			$result += ClubEventRelations::add($cb->getID(),$this->getID());
-		}
-
+		$result += $this->manageRelatedData();
+		
 		error_log("Event::create: $result rows affected.");
 
 		return $result;
@@ -546,50 +557,22 @@ class Event extends AbstractData
 
         parent::update();
 
-        $values = array( 'name' => $this->getName()
-						,'parent_ID' => $this->parent_ID
-						,'event_type'=>$this->getEventType()
-						,'format'=>$this->getFormat());
-		$formats_values = array('%s','%d','%s','%s');
+		$this->parent_ID = isset($this->parent) ? $this->parent->getID() : null;
+
+        $values = array( 'name'       => $this->getName()
+						,'parent_ID'  => $this->parent_ID
+						,'isroot'     => $this->isroot ? 1 : 0
+						,'event_type' =>$this->getEventType()
+						,'format'     =>$this->getFormat());
+		$formats_values = array('%s','%d','%d','%s','%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
-		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
-		$this->isdirty = FALSE;
+		$check = $wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
+		$this->isdirty = false;
 		$result = $wpdb->rows_affected;
 
-		foreach($this->getChildEvents() as $child) {
-			$child->setParent($this);
-			$result += $child->save();
-		}
-
-		foreach($this->getEventsToBeDeleted() as $evt) {
-			$result += $evt->delete();
-		}
-
-		foreach($this->getDraw() as $draw) {
-			$draw->setEventID($this->getID());
-			$result += $draw->save();
-		}
-
-		foreach($this->getEntrantsToBeDeleted() as $ent) {
-			$result += $ent->delete();
-		}
-
-		//Create relation between this Event and Clubs
-		foreach($this->getClubs() as $cb) {
-			$result += $cb->save();
-		}
-
-		//Remove relation between this Event and Clubs
-		foreach($this->getClubsToBeDeleted() as $clubId) {
-			$result += ClubEventRelations::remove($clubId,$this->getID());
-		}
-
-		//Create relation between this Event and Clubs
-		foreach($this->getClubs() as $cb) {
-			$result += ClubEventRelations::add($cb->getID(),$this->getID());
-		}
-
+		$result += $this->manageRelatedData();
+		
 		error_log("Event::update: $result rows affected.");
 		
 		return $result;
@@ -604,6 +587,7 @@ class Event extends AbstractData
         $obj->event_type = $row["event_type"];
         $obj->parent_ID = $row["parent_ID"];
 		$obj->format = $row["format"];
+		$obj->isroot = (bool)$row["isroot"];
 		if(isset($obj->parent_ID)) {
 			$p = self::get($obj->parent_ID);
 			$obj->setParent($p);
@@ -616,6 +600,58 @@ class Event extends AbstractData
 		$this->name = NULL;
 		$this->event_type = NULL;
 		$this->format = NULL;
+		if(!isset($this->isroot)) $this->isroot = false;
+	}
+
+	private function manageRelatedData():int {
+		$result = 0;
+
+		//Save each child event
+		foreach($this->getChildEvents() as $evt) {
+			$result += $evt->save();
+		}
+
+		//Delete Events removed from being a child of this Event
+		$evtIds = array_map(function($e){return $e->getID();},$this->getChildEvents());
+		foreach($this->getEventsToBeDeleted() as $id) {
+			echo "ID=",$id;
+			if(!in_array($id,$evtIds)) {
+				$result += Event::deleteEvent($id);
+			}
+		}
+
+		foreach($this->getDraw() as $draw) {
+			$draw->setEventID($this->getID());
+			$result += $draw->save();
+		}
+
+		//Delete Entrants that were removed from this draw
+		$entrantIds = array_map(function($e){return $e->getID();},$this->getDraw());
+		foreach($this->getEntrantsToBeDeleted() as $entId) {
+			if(!in_array($entId,$entrantIds)) {
+				$result += Entrant::deleteEntrant($entId);
+			}
+		}
+
+		//Save the Clubs related to this Event
+		foreach($this->getClubs() as $cb) {
+			$result += $cb->save();
+		}
+
+		//Remove relation between this Event and Clubs
+		$clubIds = array_map(function($e){return $e->getID();},$this->getClubs());
+		foreach($this->getClubsToBeDeleted() as $clubId) {
+			if(!in_array($clubId,$clubIds)) {
+				$result += ClubEventRelations::remove($clubId,$this->getID());
+			}
+		}
+
+		//Create relation between this Event and Clubs
+		foreach($this->getClubs() as $cb) {
+			$result += ClubEventRelations::add($cb->getID(),$this->getID());
+		}
+
+		return $result;
 	}
 
 } //end class
