@@ -10,6 +10,7 @@ Testing Events
 use PHPUnit\Framework\TestCase;
 /**
  * @group event
+ * @group all
  */
 class EventTest extends TestCase
 {
@@ -42,12 +43,15 @@ class EventTest extends TestCase
         $clubs = Club::search('Tyandaga%');
         $this->assertEquals(1,count($clubs));
         $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
+        $club = $clubs[0];
+
         
         $parent = new Event(true);
         $this->assertTrue($parent->isRoot(),'Test is root');
         $parent->setName('Year End Tournament');
         $this->assertEquals('Year End Tournament',$parent->getName(),'Test get name');
         $this->assertTrue($parent->isParent(),'Test for parent event');
+        $this->assertTrue($parent->addClub($club));
         $this->assertTrue($parent->setEventType(Event::TOURNAMENT));
         $this->assertEquals(Event::TOURNAMENT,$parent->getEventType());
         $this->assertTrue($parent->isValid(),'Test parent event is valid');
@@ -89,7 +93,6 @@ class EventTest extends TestCase
         $events = Event::search('Year End Tournament%');
         $this->assertCount(1,$events);
         $mainevent = $events[0];
-        var_dump($mainevent);
         $mainevent->getChildren();
 
         $this->assertCount(2,$mainevent->getChildEvents(),'Test 2 children');

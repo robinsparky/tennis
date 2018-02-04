@@ -168,7 +168,7 @@ class TE_Install {
 				PRIMARY KEY (`club_ID`,`court_num`),
 				FOREIGN KEY (`club_ID`)
 				  REFERENCES `$club_table` (`ID`)
-				  ON DELETE NO ACTION
+				  ON DELETE CASCADE
 				  ON UPDATE NO ACTION);";
 		dbDelta( $sql);
 		// var_dump( dbDelta( $sql) ); 

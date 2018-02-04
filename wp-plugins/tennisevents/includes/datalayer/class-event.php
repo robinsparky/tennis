@@ -100,14 +100,19 @@ class Event extends AbstractData
 					inner join $joinTable as j on j.event_ID = e.ID
 					inner join $clubTable as c on c.ID = j.club_ID
 					where c.ID = %d;";
-		} elseif(count($fk_criteria) > 0) {
+		}
+		elseif(array_key_exists('hierarchy',$fk_criteria)) {
+			//All events belonging to a hierachy of events
+			$col_value = $fk_criteria["hierarchy"];
+			$sql = "select p.ID, p.name, p.event_type, p.format 
+					from $table p
+					inner join $table as c on c.parent_ID = p.ID 
+					where p.ID = %d;";
+		} elseif(!isset($fk_criteria)) {
 			//All events belonging to a specified club
-			$col_value = $fk_criteria[0];
-			$sql = "select e.ID,e.event_type,e.name,e.format,e.parent_ID 
-					from $table e
-					inner join $joinTable as j on j.event_ID = e.ID
-					inner join $clubTable as c on c.ID = j.club_ID
-					where c.ID = %d;";
+			$col_value = 0;
+			$sql = "select ID,event_type,name,format,parent_ID 
+					from $table;";
 		}
 		else {
 			return $col;
@@ -380,7 +385,7 @@ class Event extends AbstractData
 
 	public function addClub($club) {
 		$result = false;
-		if(isset($club)) {
+		if(isset($club) && $this->isRoot()) {
 			$found = false;
 			foreach($this->getClubs() as $cl) {
 				if($club == $cl) {
@@ -393,7 +398,7 @@ class Event extends AbstractData
 				$result = $this->isdirty = true;
 			}
 		}
-		return $results;
+		return $result;
 	}
 
 	public function removeClub($club) {
@@ -419,7 +424,8 @@ class Event extends AbstractData
 		if(!isset($this->name)) $isvalid = FALSE;
 		if(!isset($this->event_type) && $this->isParent()) $isvalid = FALSE;
 		if(!isset($this->format) && !$this->isParent()) $isvalid = FALSE;
-		$evs = Event::search($this->getName().'%');
+		if($this->isRoot() && count($this->getClubs()) < 1) $isvalid = false;
+		//$evs = Event::search($this->getName().'%');
 		// foreach($evs as $ev) {
 		// 	if($this->getID() !== $ev->getID() 
 		// 	&& $this->getName() === $ev->getName()) {

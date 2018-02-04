@@ -29,9 +29,9 @@ class ClubEventRelations {
 		$result = $wpdb->rows_affected;
 
 
-		error_log("removeClubEventRelation: Last error='$wpdb->last_error'");
+		error_log("ClubEventRelations: Last error='$wpdb->last_error'");
 		
-		error_log("removeClubEventRelation.delete: deleted $result rows");
+		error_log("ClubEventRelations.delete: deleted $result rows");
 		return $result;
 	}
 
@@ -49,9 +49,9 @@ class ClubEventRelations {
 		$wpdb->insert($table,$values,$formats_values);
 		$result = $wpdb->rows_affected;
 
-		error_log("addClubEventRelation: Last error='$wpdb->last_error'");
+		error_log("ClubEventRelations: Last error='$wpdb->last_error'");
 		
-		error_log("addClubEventRelation.delete: added $result rows");
+		error_log("ClubEventRelations.add: added $result rows");
 		return $result;
 	}
 	

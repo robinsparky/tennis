@@ -10,7 +10,7 @@ Testing Clubs
 use PHPUnit\Framework\TestCase;
 /**
  * @group club
- * @group court
+ * @group all
  */
 class ClubTest extends TestCase
 {

@@ -70,16 +70,23 @@ class Club extends AbstractData
 		$joinTable = "{$wpdb->prefix}tennis_club_event";
 		$eventTable = "{$wpdb->prefix}tennis_event";
 		$col = array();
-		
-		//All clubs belonging to specified Event
-		$sql = "SELECT c.ID, c.name, e.ID as event_ID 
-				FROM $table c 
-				INNER JOIN $joinTable as j on j.club_ID = c.ID 
-				INNER JOIN $eventTable as e on e.ID = j.event_ID 
-				WHERE e.ID = %d;";
+		$rows;
 
-		$safe = $wpdb->prepare($sql,$fk_criteria);
-		$rows = $wpdb->get_results($safe, ARRAY_A);
+		if(is_array($fk_criteria) && count($fk_criteria) === 1) {
+			//All clubs belonging to specified Event
+			$sql = "SELECT c.ID, c.name, e.ID as event_ID, e.name as Event_Name 
+					FROM $table c 
+					INNER JOIN $joinTable as j on j.club_ID = c.ID 
+					INNER JOIN $eventTable as e on e.ID = j.event_ID 
+					WHERE e.ID = %d;";
+			$safe = $wpdb->prepare($sql,$fk_criteria);
+			$rows = $wpdb->get_results($safe, ARRAY_A);
+		}
+		else {
+			//All clubs
+			$sql = "SELECT `ID`, `name` FROM $table;";
+			$rows = $wpdb->get_results($sql, ARRAY_A);
+		}
 
 		error_log("Club::find $wpdb->num_rows rows returned.");
 
@@ -155,38 +162,43 @@ class Club extends AbstractData
 	/**
 	 * Add a Court to this Club
 	 */
-	public function addCourt($c) {
-		if(!isset($court)) return false;
-		$found = false;
-		foreach($this->getCourts() as $cl) {
-			if($court == $cl) {
-				$found = true;
-				break;
+	public function addCourt($court) {
+		$result = false;
+		if(isset($court)) {
+			$found = false;
+			foreach($this->getCourts() as $cl) {
+				if($court == $cl) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->courts[] = $court;
+				$court->setClubID($this->getID());
+				$result = $this->isdirty = true;
 			}
 		}
-		if(!$found) {
-			$this->courts[] = $club;
-			return $this->isdirty = true;
-		}
-		return false;
+		return $result;
 	}
 
 	/**
 	 * Remove a Court from this Club
 	 */
 	public function removeCourt($court) {
-		if(!isset($court)) return false;
-		
-		$i=0;
-		foreach($this->getCourts() as $cl) {
-			if($court == $cl) {
-				$this->getCourtsForDeletion()[] = $court->getCourtNum();
-				unset($this->courts[$i]);
-				return $this->isdirty = true;
+		$result = false;
+		if(isset($court)) {
+			$i=0;
+			foreach($this->getCourts() as $cl) {
+				if($court == $cl) {
+					$this->getCourtsForDeletion()[] = $court->getCourtNum();
+					unset($this->courts[$i]);
+					$result =  $this->isdirty = true;
+					break;
+				}
+				$i++;
 			}
-			$i++;
 		}
-		return false;
+		return $result;
 	}
 	
 	/**
