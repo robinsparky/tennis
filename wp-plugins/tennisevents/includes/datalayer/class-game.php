@@ -157,13 +157,6 @@ class Game extends AbstractData
         return $this->visitor_wins;
     }
     
-	/**
-	 * Get all my children!
-	 */
-    public function getChildren($force=FALSE) {
-        
-    }
-    
     public function isValid() {
         $isvalid = TRUE;
         if(!isset($this->event_ID)) $isvalid = FALSE;

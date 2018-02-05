@@ -178,16 +178,22 @@ class Event extends AbstractData
 	
     public function __destruct() {
 		$this->parent = null;
-		foreach($this->getChildEvents() as $event){
-			$event = null;
+			if(isset($this->childEvents)) {
+			foreach($this->childEvents as $event){
+				$event = null;
+			}
 		}
 	
-		foreach($this->getClubs() as $club) {
-			$club = null;
+		if(isset($this->clubs)) {
+			foreach($this->clubs as $club) {
+				$club = null;
+			}
 		}
 
-		foreach($this->getDraw() as $draw) {
-			$draw = null;
+		if(isset($this->draw)) {
+			foreach($this->draw as $draw) {
+				$draw = null;
+			}
 		}
 	}
 	
@@ -346,7 +352,12 @@ class Event extends AbstractData
 	 * Get all Events belonging to this Event
 	 */
 	public function getChildEvents() {
-		if(!isset($this->childEvents)) $this->childEvents = array();
+		if(!isset($this->childEvents)) {
+			$this->fetchChildEvents();
+			foreach($this->childEvents as $child) {
+				$child->parent = $this;
+			}
+		}
 		return $this->childEvents;
 	}
 
@@ -359,6 +370,7 @@ class Event extends AbstractData
 		foreach($this->getChildEvents() as $evt) {
 			if($name === $evt->getName()) {
 				$result = $evt;
+				$evt->getChildren();
 				break;
 			}
 		}
@@ -429,7 +441,7 @@ class Event extends AbstractData
 	}
 
 	public function getDraw() {
-		if(!isset($this->draw)) $this->draw = array();
+		if(!isset($this->draw)) $this->fetchDraw();
 		return $this->draw;
 	}
 
@@ -438,7 +450,7 @@ class Event extends AbstractData
 	}
 
 	public function getClubs() {
-		if(!isset($this->clubs)) $this->clubs=array();
+		if(!isset($this->clubs)) $this->fetchClubs();
 		return $this->clubs;
 	}
 
@@ -523,16 +535,16 @@ class Event extends AbstractData
 	 * 2. Entrants in the draw
 	 */
     public function getChildren($force=FALSE) {
-		$this->fetchChildEvents($force);
-		$this->fetchDraw($force);
-		$this->fetchClubs($force);
+		// $this->fetchChildEvents($force);
+		// $this->fetchDraw($force);
+		// $this->fetchClubs($force);
 	}
 
 	/**
 	 * Fetch all child events for this event.
 	 */
-	private function fetchChildEvents($force) {
-        if(count($this->getChildEvents()) === 0 || $force) {
+	private function fetchChildEvents($force=false) {
+        if(!isset($this->childEvents) || $force) {
 			$this->childEvents = Event::find(array('parent_ID' => $this->getID()));
 		}
 	}
@@ -541,16 +553,16 @@ class Event extends AbstractData
 	 * Fetch all Entrants for this event.
 	 * Otherwise known as the draw.
 	 */
-	private function fetchDraw($force) {
+	private function fetchDraw($force=false) {
 		if($this->isParent()) return;
-        if(count($this->getDraw()) === 0 || $force) $this->draw = Entrant::find($this->getID());
+        if(!isset($this->draw) || $force) $this->draw = Entrant::find($this->getID());
 	}
 
 	/**
 	 * Fetch all related clubs for this Event
 	 */
-	private function fetchClubs($force) {
-		if(count($this->getClubs()) === 0 || $force) $this->clubs = Club::find($this->getID());
+	private function fetchClubs($force=false) {
+		if(!isset($this->clubs) || $force) $this->clubs = Club::find($this->getID());
 	}
 
 	private function getEventsToBeDeleted() {
@@ -627,10 +639,6 @@ class Event extends AbstractData
         $obj->event_type = $row["event_type"];
         $obj->parent_ID = $row["parent_ID"];
 		$obj->format = $row["format"];
-		if(isset($obj->parent_ID)) {
-			$p = self::get($obj->parent_ID);
-			$obj->setParent($p);
-		}
 	}
 	
 	private function init() {

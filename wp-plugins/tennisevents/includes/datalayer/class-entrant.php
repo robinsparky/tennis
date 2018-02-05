@@ -258,14 +258,6 @@ class Entrant extends AbstractData
 	public function getSeed() {
 		return $this->seed;
 	}
-
-	/**
-	 * Get all my children!
-	 * 1. Players
-	 */
-    public function getChildren($force=FALSE) {
-		$this->retrievePlayers($force);
-	}
 	
 	public function delete() {
 		global $wpdb;
@@ -373,8 +365,7 @@ class Entrant extends AbstractData
 		$obj->event_ID = $row["event_ID"];
 		$obj->position = $row["position"];
         $obj->name = $row["name"];
-		$obj->seed = $row["seed"];	
-		$obj->getChildren(true);	
+		$obj->seed = $row["seed"];
     }
 
 } //end class

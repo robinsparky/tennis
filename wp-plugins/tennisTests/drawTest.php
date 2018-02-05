@@ -33,17 +33,15 @@ class DrawTest extends TestCase
         $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
 
         $club = $clubs[0];
-        $club->getChildren(true);
         $events = $club->getEvents();
         $event = $events[0];
-        $event->getChildren();
+        //$event->getChildren();
         $this->assertTrue($event->isRoot());
         $this->assertCount(3,$event->getChildEvents());
 
         $menSingles = $event->getNamedEvent('Mens Singles');
 
         $this->assertInstanceOf(Event::class,$menSingles);
-        $menSingles->getChildren();
 
         $this->assertCount(0,$menSingles->getDraw());
         $this->assertTrue($menSingles->addToDraw("Mike Flintoff"),'Test add to draw 1');
@@ -66,10 +64,9 @@ class DrawTest extends TestCase
         $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
 
         $club = $clubs[0];
-        $club->getChildren(true);
+        //$club->getChildren(true);
         $events = $club->getEvents();
         $event = $events[0];
-        $event->getChildren();
         $this->assertTrue($event->isRoot());
         $this->assertCount(3,$event->getChildEvents());
 
@@ -77,7 +74,6 @@ class DrawTest extends TestCase
         $this->assertInstanceOf(Event::class,$menSingles);
         $this->assertEquals('Mens Singles',$menSingles->getName());
         $this->assertEquals($event->getName(),$menSingles->getRoot()->getName());
-        $menSingles->getChildren();
         $this->assertCount(4,$menSingles->getDraw());
 
         $this->assertTrue($menSingles->removeFromDraw("Steve Knight"));

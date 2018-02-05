@@ -141,7 +141,7 @@ class Club extends AbstractData
 	 * Get array of Courts for this Club
 	 */
 	public function getCourts() {
-		if(!isset($this->courts)) $this->courts = array();
+		if(!isset($this->courts)) $this->fetchCourts();
 		return $this->courts;
 	}
 	
@@ -191,7 +191,7 @@ class Club extends AbstractData
 	 * Get array of Events for this Club
 	 */
 	public function getEvents() {
-		if(!isset($this->events)) $this->events = array();
+		if(!isset($this->events)) $this->fetchEvents();
 		return $this->events;
 	}
 	
@@ -199,19 +199,21 @@ class Club extends AbstractData
 	 * Add a Event to this Club
 	 */
 	public function addEvent($event) {
-		if(!isset($event)) return false;
-		$found = false;
-		foreach($this->getEvents() as $ev) {
-			if($event == $ev) {
-				$found = true;
-				break;
+		$result = false;
+		if(isset($event) && $event->isRoot()) {
+			$found = false;
+			foreach($this->getEvents() as $ev) {
+				if($event == $ev) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->events[] = $event;
+				$result = $this->isdirty = true;
 			}
 		}
-		if(!$found) {
-			$this->events[] = $event;
-			return $this->isdirty = true;
-		}
-		return false;
+		return $result;
 	}
 
 	/**
@@ -273,9 +275,8 @@ class Club extends AbstractData
 	/**
 	 * Get all events for this club.
 	 */
-	private function fetchEvents($force) {
-		if(!isset($this->events)) $this->events = array();
-		if(count($this->events) === 0 || $force) {
+	private function fetchEvents($force=false) {
+		if(!isset($this->events) || $force) {
 			$this->events = Event::find(array('club'=>$this->ID));
 		}
 	}
@@ -283,8 +284,8 @@ class Club extends AbstractData
 	/**
 	 * Get all courts in this club.
 	 */
-	private function fetchCourts($force) {
-		if(count($this->getCourts()) === 0 || $force) $this->courts = Court::find($this->ID);
+	private function fetchCourts($force=false) {
+		if(!isset($this->courts) || $force) $this->courts = Court::find($this->ID);
 	}
 	
 	private function getEventsForDeletion() {
@@ -344,7 +345,8 @@ class Club extends AbstractData
      */
     protected static function mapData($obj,$row) {
         parent::mapData($obj,$row);
-        $obj->name = $row["name"];
+		$obj->name = $row["name"];
+		$obj->getChildren();
 	}
 	
 	private function init() {

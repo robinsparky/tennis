@@ -19,9 +19,6 @@ abstract class AbstractData
     abstract static public function get(int ...$pks);
 
     abstract public function isValid();
-
-    //TODO: Change func name to getRelatedData and figure out how to call automatically
-    abstract public function getChildren($force=FALSE);
     
     /**
      * Map incoming row of data to an object
@@ -39,7 +36,7 @@ abstract class AbstractData
     /**
      * Save this Object to the database
      */
-    public function save() {
+    public function save():int {
         $result = 0;
 		if($this->isNew()) $result = $this->create();
         elseif ($this->isDirty()) $result = $this->update();

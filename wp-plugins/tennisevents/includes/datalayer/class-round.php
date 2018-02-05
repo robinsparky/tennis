@@ -165,8 +165,8 @@ class Round extends AbstractData
     public function addMatch(Match $match) {
         $result = false;
 
-        if(!isset($this->matches)) $this->matches = array();
         if(isset($match) && $match->isValid()) {
+            if(!isset($this->matches)) $this->fetchMatches();
             $this->matches[] = $match;
             $result = $this->isdirty = true;
         }
@@ -175,7 +175,7 @@ class Round extends AbstractData
     }
 
     public function getMatches():array {
-        if(!isset($this->matches)) $this->matches = array();
+        if(!isset($this->matches)) $this->fetchMatches();
         return $this->matches;
     }
 
@@ -203,13 +203,13 @@ class Round extends AbstractData
         
         return $ids;
     }
-	/**
-	 * Get all my children!
-	 * 1. Matches
-	 */
-    public function getChildren($force) {
-        if($this->isNew()) return;
-        if($this->numMatches() === 0  || $force) $this->matches = Match::find($this->getIdentifiers());
+
+    public function isValid() {
+        $isvalid = TRUE;
+        if(!isset($this->event_ID)) $isvalid = FALSE;
+        if(!$this->isNew() && !isset($this->round_num)) $isvalid = FALSE;
+        
+        return $isvalid;
     }
 
 	protected function create() {
@@ -270,14 +270,6 @@ class Round extends AbstractData
     public function delete() {
 
     }
-
-    public function isValid() {
-        $isvalid = TRUE;
-        if(!isset($this->event_ID)) $isvalid = FALSE;
-        if(!$this->isNew() && !isset($this->round_num)) $isvalid = FALSE;
-        
-        return $isvalid;
-    }
     
     /**
      * Map incoming data to an instance of Round
@@ -288,6 +280,10 @@ class Round extends AbstractData
         $obj->round_num = $row["round_num"];
         $obj->comments = $row["comments"];
         $obj->getChildren(TRUE);
+    }
+    
+    private function fetchMatches($force=false) {
+        if(!isset($this->matches) || $force) $this->matches = Match::find($this->getIdentifiers());
     }
 
     private function init() {

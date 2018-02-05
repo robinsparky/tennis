@@ -137,14 +137,6 @@ class Court extends AbstractData
     public function getClubId():int {
         return $this->club_ID;
 	}
-
-	/**
-	 * Get all my children!
-	 * 1. Bookings
-	 */
-    public function getChildren($force=FALSE) {
-		$this->getBookings($force);
-	}
 	
 	/**
 	 * Check to see if this Court has valid data

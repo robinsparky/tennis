@@ -206,13 +206,19 @@ class Player extends AbstractData
         return $this->businessEmail;
     }
 
-	/**
-	 * Get all my children!
-	 */
-    public function getChildren($force=false) {
+    //TODO: Add delete logic
+    public function delete() {
 
     }
 
+    public function isValid() {
+        $isvalid = TRUE;
+        if(!isset($this->last_name) || !is_string($this->last_name)) $isvalid = FALSE;
+        if(isset($this->skill) && is_nan($skill)) $isvalid = FALSE;
+        
+        return $isvalid;
+    }
+    
 	protected function create() {
         global $wpdb;
         
@@ -267,19 +273,6 @@ class Player extends AbstractData
 		return $wpdb->rows_affected;
 	}
 
-    //TODO: Add delete logic
-    public function delete() {
-
-    }
-
-    public function isValid() {
-        $isvalid = TRUE;
-        if(!isset($this->last_name) || !is_string($this->last_name)) $isvalid = FALSE;
-        if(isset($this->skill) && is_nan($skill)) $isvalid = FALSE;
-        
-        return $isvalid;
-    }
-    
     /**
      * Map incoming data to an instance of Round
      */

@@ -261,7 +261,7 @@ class Match extends AbstractData
      * Get the Games for this Match
      */
     public function getGames() {
-        if(!isset($this->games)) $this->games = array();
+        if(!isset($this->games)) $this->fetchGames();
         return $this->games;
     }
 
@@ -304,6 +304,7 @@ class Match extends AbstractData
     }
 
     public function getHomeEntrant():Entrant {
+        if(!isset($this->home)) $this->fetchEntrants();
         return $this->home;
     }
     
@@ -325,6 +326,7 @@ class Match extends AbstractData
     }
 
     public function getVisitorEntrant():Entrant {
+        if(!isset($this->visitor)) $this->fetchEntrants();
         return $this->visitor;
     }
 
@@ -364,17 +366,7 @@ class Match extends AbstractData
         return $result;
     }
 
-	/**
-	 * Get all my children!
-	 * 1. Entrants
-     * 2. Games
-	 */
-    public function getChildren($force=FALSE) {
-        $this->fetchEntrants($force);
-        $this->fetchGames($force);
-    }
-
-    private function fetchEntrants($force) {
+    private function fetchEntrants($force=false) {
         if(isset($this->home) && isset($this->visitor) && !force) return;
         
         $contestants = Entrant::find($this->event_ID, $this->round_num, $this->match_num);
@@ -400,7 +392,7 @@ class Match extends AbstractData
         }
     }
 
-    private function fetchGames($force) {
+    private function fetchGames($force=false) {
         if(count($this->games) === 0 || $force) $this->games = Game::find($this->getIdentifiers());
     }
     
