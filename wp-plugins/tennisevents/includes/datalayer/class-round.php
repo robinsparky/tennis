@@ -85,7 +85,7 @@ class Round extends AbstractData
 		error_log("Round::get(id) $wpdb->num_rows rows returned.");
 
         $obj = NULL;
-		if($rows.length === 1) {
+		if(count($rows) === 1) {
             $obj = new Round(...$pks);
             self::mapData($obj,$rows[0]);
 		}

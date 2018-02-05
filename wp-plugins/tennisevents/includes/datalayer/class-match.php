@@ -56,6 +56,7 @@ class Match extends AbstractData
     
     //Games
     private $games;
+    private $gamesToBeDeleted = array();
     
     /**
      * Search for Matches that have a name 'like' the provided criteria
@@ -118,7 +119,7 @@ class Match extends AbstractData
 
 		error_log("Match::get(id) $wpdb->num_rows rows returned.");
 
-		if($rows.length === 1) {
+		if(count($rows) === 1) {
 			$obj = new Match(...$pks);
             self::mapData($obj,$rows[0]);
 		}
@@ -179,6 +180,25 @@ class Match extends AbstractData
     }
 
     /**
+     * Remove a Game from this Match
+     */
+    public function removeGame(Event $game) {
+		$result = false;
+		if(isset($game)) {
+			$i=0;
+			foreach($this->getGames() as $gm) {
+				if($game == $cm) {
+					$this->gamesToBeDeleted[] = $game->getID();
+					unset($this->games[$i]);
+					$result = $this->isdirty = true;
+				}
+				$i++;
+			}
+		}
+		return $result;
+    }
+
+    /**
      * Get this Match's Event.
      */
     public function getEvent():Event {
@@ -236,17 +256,50 @@ class Match extends AbstractData
         return date("h:i:s",$this->match_time);
     }
 
+    
+    /**
+     * Get the Games for this Match
+     */
+    public function getGames() {
+        if(!isset($this->games)) $this->games = array();
+        return $this->games;
+    }
+
+    /**
+     * Add a Game to this Match
+     */
+    public function addGame(Game $game) {
+        $result = false;
+        if(isset($game)) {
+            $found = false;
+            foreach($this->getGames() as $gm) {
+                if($game == $gm) {
+                    $found = true;
+                    break;
+                }
+            }
+            if(!$found) {
+                $this->games[] = $game;
+                $result = $this->isdirty = true;
+            }
+        }
+        return $result;
+    }
+
     /**
      * Set the Home opponent for this match
      */
-    public function setHomeEntrant(Entrant $h) {
+    public function setHomeEntrant(Entrant $h=null) {
         $result = false;
         if(isset($h)) {
             $this->home = $h;
             $this->home_ID = $h->getID();
             $result = $this->isdirty = true;
         }
-
+        else {
+            $this->home = null;
+            $this->home_ID = null;
+        }
         return $result;
     }
 
@@ -264,6 +317,10 @@ class Match extends AbstractData
             $this->visitor_ID = $v->getID();
             $result = $this->isdirty = TRUE;
         }
+        else {
+            $this->visitor = null;
+            $this->visitor_ID = null;
+        }
         return $result;
     }
 
@@ -280,7 +337,7 @@ class Match extends AbstractData
      * @param int $home_wins is the number of wins for the home entrant
      * @param int @visitor_wins is the number of wins for the visitor entrant
      * @throws nothing
-     * @return nothing
+     * @return true if successful false otherwise
      */
     public function setScore(int $set,int $home_wins=0,int $visitor_wins=0) {
         $result = false;
@@ -313,11 +370,11 @@ class Match extends AbstractData
      * 2. Games
 	 */
     public function getChildren($force=FALSE) {
-        $this->getEntrants($force);
-        $this->getGames($force);
+        $this->fetchEntrants($force);
+        $this->fetchGames($force);
     }
 
-    private function getEntrants($force) {
+    private function fetchEntrants($force) {
         if(isset($this->home) && isset($this->visitor) && !force) return;
         
         $contestants = Entrant::find($this->event_ID, $this->round_num, $this->match_num);
@@ -343,7 +400,7 @@ class Match extends AbstractData
         }
     }
 
-    private function getGames($force) {
+    private function fetchGames($force) {
         if(count($this->games) === 0 || $force) $this->games = Game::find($this->getIdentifiers());
     }
     
@@ -351,7 +408,7 @@ class Match extends AbstractData
         $isvalid = TRUE;
         if(!isset($this->event_ID)) $isvalid = FALSE;
         if(!isset($this->round_num)) $isvalid = FALSE;
-        if(!$this->isNew() && !isset($this->match_num)) $isvalid = FALSE;
+        if(!$this->isNew() && (!isset($this->match_num) || $this->match_num === 0)) $isvalid = FALSE;
         if(!isset($this->home_ID)) $isvalid = FALSE;
         if(!isset($this->visitor_ID)) $isvalid = FALSE;
         if(!isset($this->match_type)) $isvalid = FALSE;
@@ -368,7 +425,7 @@ class Match extends AbstractData
 
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
-		$sql = "select max(match_num) from $table where event_ID=%d and round_num=%d;";
+		$sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
         $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
         $this->match_num = $wpdb->get_var($safe) + 1;
 
@@ -390,8 +447,8 @@ class Match extends AbstractData
 
         error_log("Match::create $wpdb->rows_affected rows affected.");
         
-        foreach($this->games as $game) {
-            $game->save();
+        foreach($this->getGames() as $game) {
+            $result += $game->save();
         }
 
 		return $result;
@@ -413,15 +470,16 @@ class Match extends AbstractData
                                 ,'match_num' => $this->match_num);
 		$formats_where  = array('%d'.'%d','%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
-		$this->isdirty = FALSE;
+        $this->isdirty = FALSE;
+        $result = $wpdb->rows_affected;
 
         error_log("Match::update $wpdb->rows_affected rows affected.");
         
-        foreach($this->games as $game) {
-            $game->save();
+        foreach($this->getGames() as $game) {
+            $result += $game->save();
         }
 
-		return $wpdb->rows_affected;
+		return $result;
 	}
 
     //TODO: Complete the delete logic
@@ -440,7 +498,6 @@ class Match extends AbstractData
         $obj->match_type = $row["match_type"];
         $obj->match_date = $row["match_date"];
         $obj->match_time = $row["match_time"];
-        $obj->getChildren(TRUE);
     }
     
     private function getIndex($obj) {

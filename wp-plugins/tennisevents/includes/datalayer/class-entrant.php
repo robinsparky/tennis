@@ -99,7 +99,6 @@ class Entrant extends AbstractData
 					AND   j.match_round_num=%d 
 					AND   j.match_num=%d 
 					ORDER BY e.position;";
-
 		} 
 		elseif(count($fk_criteria) === 3) {
 				$where[] = $fk_criteria[0]; //Event

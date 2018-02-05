@@ -45,26 +45,13 @@ class Game extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
         $col = array();
         $where = array();
-
-        if(count($fk_criteria.keys) === 0) {
-            if(count($fk_criteria) === 3) {
-                $where[] = $fk_criteria[0];
-                $where[] = $fk_criteria[1];
-                $where[] = $fk_criteria[2];
-            }
-            else {
-                return $col;
-            }
-        }
-        else {
-            return $col;
-        }
+ 
         $sql = "select event_ID,round_num,match_num,set_num,home_wins,visitor_wins
                  from $table 
                  where event_ID = %d 
                  and   round_num = %d 
                  and   match_num = %d;";
-		$safe = $wpdb->prepare($sql,$where);
+		$safe = $wpdb->prepare($sql,$fk_criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
 		error_log("Game::find $wpdb->num_rows rows returned");
@@ -84,13 +71,13 @@ class Game extends AbstractData
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select event_ID,round_num,match_num,set_num,home_wins,visitor_wins from $table where ID=%d";
-		$safe = $wpdb->prepare($sql,$id);
+		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		error_log("Game::get(id) $wpdb->num_rows rows returned.");
 
         $obj = NULL;
-		if($rows.length === 1) {
+		if(count($rows) === 1) {
             $obj = new Game;
             self::mapData($obj,$rows[0]);
 		}
@@ -196,7 +183,7 @@ class Game extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
-		$sql = "select max(set_num) from $table where event_ID=%d and round_num=%d and match_num=%d;";
+		$sql = "SELECT IFNULL(MAX(set_num),0) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
         $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num,$this->match_num);
         $this->set_num = $wpdb->get_var($safe,0,0) + 1;
         
@@ -210,11 +197,11 @@ class Game extends AbstractData
         
         $this->game_num =  $wpdb->get_var($safe,0,1) + 1;
 
-        $values = array( 'event_ID' => $this->event_ID
-                        ,'round_num' => $this->round_num
-                        ,'match_num' => $this->match_num
-                        ,'set_num' => $this->set_number
-                        ,'home_wins' => $this->home_wins
+        $values = array( 'event_ID'     => $this->event_ID
+                        ,'round_num'    => $this->round_num
+                        ,'match_num'    => $this->match_num
+                        ,'set_num'      => $this->set_number
+                        ,'home_wins'    => $this->home_wins
                         ,'visitor_wins' => $this->visitor_wins);
 		$formats_values = array('%d','%d','%d','%d','%d','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
