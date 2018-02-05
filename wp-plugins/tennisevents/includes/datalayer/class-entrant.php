@@ -176,10 +176,11 @@ class Entrant extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $eventID, int $pos = NULL) {
+	public function __construct(int $eventID=null, string $pname=null,int $seed=null) {
 		$this->isnew = TRUE;
 		$this->event_ID = $eventID;
-		$this->position = $pos;
+		$this->name = $pname;
+		$this->seed = $seed;
 		$this->init();
 	}
 
@@ -194,7 +195,7 @@ class Entrant extends AbstractData
     /**
      * Get the name of this Draw
      */
-    public function getName():string {
+    public function getName() {
         return $this->name;
     }
 
@@ -202,11 +203,13 @@ class Entrant extends AbstractData
      * Assign this Entrant to an Event
      */
     public function setEventId(int $eventId) {
-		if(!isset($eventID)) return false;
-
-        if($eventId < 1) return false;
-        $this->event_ID = $eventId;
-        return $this->isdirty = TRUE;
+		$result = false;
+		if(isset($eventID)) {
+			if($eventId < 1) return false;
+			$this->event_ID = $eventId;
+			$result = $this->isdirty = TRUE;
+		}
+		return $result;
     }
 
     /**
@@ -220,17 +223,19 @@ class Entrant extends AbstractData
 	 * Assign a position
 	 */
 	public function setPosition(int $pos) {
-		if(!isset($pos)) return false;
-
-		if($pos < 1) return;
-		$this->position = $pos;
-        return $this->isdirty = TRUE;
+		$result = false;
+		if(isset($pos)) {
+			if($pos < 1) return;
+			$this->position = $pos;
+			$result = $this->isdirty = TRUE;
+		}
+		return $result;
 	}
 
 	/**
 	 * Get Position in Draw
 	 */
-	public function getPosition():int {
+	public function getPosition() {
 		return $this->position;
 	}
 
@@ -238,16 +243,19 @@ class Entrant extends AbstractData
 	 * Seed this player(s)
 	 */
 	public function setSeed(int $seed=0) {
-		if($seed < 0) $seed=0;
-
-		$this->seed = $seed;
-        return $this->isdirty = TRUE;
+		$result = false;
+		if(isset($seed)) {
+			if($seed < 0) $seed=0;
+			$this->seed = $seed;
+			$result = $this->isdirty = TRUE;
+		}
+		return $result;
 	}
 
 	/**
 	 * Get the seeding of this Entrant (player(s))
 	 */
-	public function getSeed():int {
+	public function getSeed() {
 		return $this->seed;
 	}
 
@@ -353,8 +361,8 @@ class Entrant extends AbstractData
 	private function init() {
 		//$this->event_ID = NULL;
 		//$this->position = NULL;
-		$this->name = NULL;
-		$this->seed = NULL;
+		//$this->name = NULL;
+		//$this->seed = NULL;
 	}
     
     /**

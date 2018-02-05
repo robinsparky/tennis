@@ -238,8 +238,8 @@ class Club extends AbstractData
 	 * 2. Courts
 	 */
     public function getChildren($force=FALSE) {
-		$this->events = $this->fetchEvents($force);
-		$this->courts = $this->fetchCourts($force);
+		$this->fetchEvents($force);
+		$this->fetchCourts($force);
 	}
 	
 	public function isValid() {
@@ -274,14 +274,17 @@ class Club extends AbstractData
 	 * Get all events for this club.
 	 */
 	private function fetchEvents($force) {
-		if(count($this->events) === 0 || $force) $this->events = Event::find(array('club'=>$this->ID));
+		if(!isset($this->events)) $this->events = array();
+		if(count($this->events) === 0 || $force) {
+			$this->events = Event::find(array('club'=>$this->ID));
+		}
 	}
 
 	/**
 	 * Get all courts in this club.
 	 */
 	private function fetchCourts($force) {
-		if(count($this->courts) === 0 || $force) $this->courts = Court::find($this->ID);
+		if(count($this->getCourts()) === 0 || $force) $this->courts = Court::find($this->ID);
 	}
 	
 	private function getEventsForDeletion() {

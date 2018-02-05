@@ -47,7 +47,7 @@ class ClubEventTest extends TestCase
         $this->assertTrue($event->isRoot(),'Is root');
 
         $this->assertTrue($event->addClub($club2));
-        $event->save();
+        $this->assertGreaterThan(0,$event->save());
 
     }
 

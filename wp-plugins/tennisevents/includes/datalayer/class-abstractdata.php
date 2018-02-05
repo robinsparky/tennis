@@ -19,6 +19,8 @@ abstract class AbstractData
     abstract static public function get(int ...$pks);
 
     abstract public function isValid();
+
+    //TODO: Change func name to getRelatedData and figure out how to call automatically
     abstract public function getChildren($force=FALSE);
     
     /**

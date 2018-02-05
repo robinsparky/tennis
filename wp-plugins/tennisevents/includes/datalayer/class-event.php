@@ -34,7 +34,6 @@ class Event extends AbstractData
 	const DOUBLE_ELIM = 'delim';
 	const ROUND_ROBIN = 'robin';
 
-	private $isroot; //specifies this Event as the root of a hierarchy
 	private $name;
 	private $parent_ID; //parent Event ID
 	private $parent; //parent Event
@@ -55,7 +54,7 @@ class Event extends AbstractData
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select ID,isroot,event_type,name,format,parent_ID from $table where name like '%s'";
+		$sql = "select ID,event_type,name,format,parent_ID from $table where name like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
@@ -89,7 +88,7 @@ class Event extends AbstractData
 		if(array_key_exists('parent_ID',$fk_criteria)) {
 			//All events who are children of specified Event
 			$col_value = $fk_criteria["parent_ID"];
-			$sql = "select ce.ID, ce.isroot, ce.event_type, ce.name, ce.format, ce.parent_ID 
+			$sql = "select ce.ID, ce.event_type, ce.name, ce.format, ce.parent_ID 
 					from $table ce
 					inner join $table pe on pe.ID = ce.parent_ID
 					where ce.parent_ID = %d;";
@@ -97,7 +96,7 @@ class Event extends AbstractData
 		elseif(array_key_exists('club',$fk_criteria)) {
 			//All events belonging to specified club
 			$col_value = $fk_criteria["club"];
-			$sql = "select e.ID, e.isroot, e.event_type, e.name, e.format, e.parent_ID 
+			$sql = "select e.ID, e.event_type, e.name, e.format, e.parent_ID 
 					from $table e
 					inner join $joinTable as j on j.event_ID = e.ID
 					inner join $clubTable as c on c.ID = j.club_ID
@@ -106,14 +105,14 @@ class Event extends AbstractData
 		elseif(array_key_exists('hierarchy',$fk_criteria)) {
 			//All events belonging to a hierachy of events
 			$col_value = $fk_criteria["hierarchy"];
-			$sql = "select p.ID, p.isroot, p.name, p.event_type, p.format 
+			$sql = "select c.ID,c.event_type,c.name,c.format 
 					from $table p
 					inner join $table as c on c.parent_ID = p.ID 
 					where p.ID = %d;";
 		} elseif(!isset($fk_criteria)) {
 			//All events belonging to a specified club
 			$col_value = 0;
-			$sql = "select ID,isroot,event_type,name,format,parent_ID 
+			$sql = "select ID,event_type,name,format,parent_ID 
 					from $table;";
 		}
 		else {
@@ -166,9 +165,14 @@ class Event extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(bool $root=false) {
+	public function __construct(string $name=null,string $desc=null) {
 		$this->isnew = TRUE;
-		$this->isroot = $root;
+		if($this->isroot){
+			$this->setEventType($desc);
+		}
+		else {
+			$this->setFormat($desc);
+		}
 		$this->init();
 	}
 	
@@ -191,8 +195,16 @@ class Event extends AbstractData
 	 * Is this Event the hierarchy root?
 	 */
 	public function isRoot() {
-		if(!isset($this->isroot)) $this->isroot = false;
-		return $this->isroot;
+		return (!isset($this->parent) && count($this->getChildEvents()) > 0);
+	}
+
+	public function isLeaf() {
+		return (isset($this->parent) && count($this->getChildEvents()) === 0);
+	}
+
+	public function getRoot() {
+		if($this->isRoot()) return $this;
+		return $this->parent->getRoot();
 	}
 
     /**
@@ -214,7 +226,7 @@ class Event extends AbstractData
 	 * Set the type of event
 	 * Applies only to a parent event
 	 */
-	public function setEventType(string $type) {
+	public function setEventType(string $type=null) {
 		switch($type) {
 			case self::TOURNAMENT:
 			case self::LEAGUE:
@@ -235,7 +247,7 @@ class Event extends AbstractData
 	 * Set the format
 	 * Applies only to the lowest child event
 	 */
-	public function setFormat(string $format) {
+	public function setFormat(string $format=null) {
 		switch($format) {
 			case self::SINGLE_ELIM:
 			case self::DOUBLE_ELIM:
@@ -257,21 +269,15 @@ class Event extends AbstractData
 	 * @param $parent Event; can set to null
 	 * @return true if succeeds false otherwise
      */
-    public function setParent(Event $parent=null) {
+    public function setParent(Event $parent) {
 		$result = false;
-		if(!$this->isRoot()) {
-			// if($parent->isNew() || !$parent->isValid()) {
-			// 	return false;
-			// }
-			if(!isset($parent)) {
-				$this->parent = null;
-				$this->parent_ID = null;
-			}
-			else {
-				$this->parent = $parent;
-				$this->parent_ID = $parent->getID();
-				$parent->addChild($this);
-			}
+		// if($parent->isNew() || !$parent->isValid()) {
+		// 	return false;
+		// }
+		if(isset($parent)) {
+			$this->parent = $parent;
+			$this->parent_ID = $parent->getID();
+			$parent->addChild($this);
 			$result = $this->isdirty = TRUE;
 		}
 		return $result;
@@ -285,8 +291,7 @@ class Event extends AbstractData
 	 * Is this event a parent Event?
 	 */
 	public function isParent() {
-		if($this->isRoot()) return true;
-		else return count($this->getChildEvents()) > 0;
+		return count($this->getChildEvents()) > 0;
 	}
 
 	/**
@@ -337,32 +342,65 @@ class Event extends AbstractData
 		return $result;
 	}
 
+	/**
+	 * Get all Events belonging to this Event
+	 */
 	public function getChildEvents() {
 		if(!isset($this->childEvents)) $this->childEvents = array();
 		return $this->childEvents;
 	}
 
 	/**
+	 * Get an Event with a specific name belonging to this Event
+	 */
+	public function getNamedEvent(string $name) {
+		$result = null;
+
+		foreach($this->getChildEvents() as $evt) {
+			if($name === $evt->getName()) {
+				$result = $evt;
+				break;
+			}
+		}
+		return $result;
+	}
+
+	/**
 	 * Add an Entrant to the draw for this Child Event
 	 * This method ensures that Entrants are not added ore than once.
 	 * 
-	 * @param $player An Entrant to this event
+	 * @param $name The name of a player in this event
+	 * @param $seed The seeding of this player
 	 * @return true if succeeds false otherwise
 	 */
-	public function addToDraw(Entrant $ent) {
+	public function addToDraw(string $name,int $seed=null) {
 		$result = false;
-		if(isset($player)) {
+		if(isset($name)) {
 			$found = false;
-			foreach($this->Draw() as $d) {
-				if($ent->getEventId() === $d->getEventId()
-				&& $ent->getPosition() === $d->getPosition()) {
+			foreach($this->getDraw() as $d) {
+				if($name === $d->getName()) {
 					$found = true;
 				}
 			}
 			if(!$found) {
-				$player->setEventId($this->getID());
-				$this->draw[] = $player;
+				$ent = new Entrant($this->getID(),$name,$seed);
+				$this->draw[] = $ent;
 				$result = $this->isdirty = true;
+			}
+		}
+		return $result;
+	}
+
+	/**
+	 * Get a contestant in the Draw by name
+	 */
+	public function getNamedEntrant(string $name) {
+		$result = null;
+
+		foreach($this->getDraw() as $draw) {
+			if($name === $draw->getName()) {
+				$result = $draw;
+				break;
 			}
 		}
 		return $result;
@@ -373,14 +411,14 @@ class Event extends AbstractData
 	 * @param $entrant Entrant in the draw
 	 * @return true if succeeds false otherwise
 	 */
-	public function removeFromDraw(Entrant $entrant) {
+	public function removeFromDraw(string $name) {
 		$result = false;
-		if($isset($entrant)) {
+		if(isset($name)) {
 			$i=0;
 			if(!isset($this->entrantsToBeDeleted)) $this->entrantsToBeDeleted = array();
 			foreach($this->getDraw() as $dr) {
-				if($entrant == $dr) {
-					$this->entrantsToBeDeleted[] = $entrant->getPosition();
+				if($name == $dr->getName()) {
+					$this->entrantsToBeDeleted[] = $dr->getPosition();
 					unset($this->draw[$i]);
 					$result = $this->isdirty = true;
 				}
@@ -393,6 +431,10 @@ class Event extends AbstractData
 	public function getDraw() {
 		if(!isset($this->draw)) $this->draw = array();
 		return $this->draw;
+	}
+
+	public function getDrawSize() {
+		return sizeof($this->getDraw());
 	}
 
 	public function getClubs() {
@@ -501,7 +543,7 @@ class Event extends AbstractData
 	 */
 	private function fetchDraw($force) {
 		if($this->isParent()) return;
-        if(count($this->getDraw()) === 0 || $force) return; //$this->draw = Entrant::find($this->getID());
+        if(count($this->getDraw()) === 0 || $force) $this->draw = Entrant::find($this->getID());
 	}
 
 	/**
@@ -535,10 +577,9 @@ class Event extends AbstractData
 
         $values = array( 'name'       => $this->getName()
 						,'parent_ID'  => $this->parent_ID
-						,'isroot'     => $this->isroot ? 1 : 0
 						,'event_type' => $this->getEventType()
 						,'format'     => $this->getFormat());
-		$formats_values = array('%s','%d','%d','%s','%s');
+		$formats_values = array('%s','%d','%s','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$result = $wpdb->rows_affected;
@@ -561,10 +602,9 @@ class Event extends AbstractData
 
         $values = array( 'name'       => $this->getName()
 						,'parent_ID'  => $this->parent_ID
-						,'isroot'     => $this->isroot ? 1 : 0
 						,'event_type' =>$this->getEventType()
 						,'format'     =>$this->getFormat());
-		$formats_values = array('%s','%d','%d','%s','%s');
+		$formats_values = array('%s','%d','%s','%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
 		$check = $wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
@@ -587,7 +627,6 @@ class Event extends AbstractData
         $obj->event_type = $row["event_type"];
         $obj->parent_ID = $row["parent_ID"];
 		$obj->format = $row["format"];
-		$obj->isroot = (bool)$row["isroot"];
 		if(isset($obj->parent_ID)) {
 			$p = self::get($obj->parent_ID);
 			$obj->setParent($p);
@@ -597,10 +636,9 @@ class Event extends AbstractData
 	private function init() {
 		$this->parent_ID = NULL;
 		$this->parent = NULL;
-		$this->name = NULL;
-		$this->event_type = NULL;
-		$this->format = NULL;
-		if(!isset($this->isroot)) $this->isroot = false;
+		// $this->name = NULL;
+		// $this->event_type = NULL;
+		// $this->format = NULL;
 	}
 
 	private function manageRelatedData():int {
@@ -629,7 +667,7 @@ class Event extends AbstractData
 		$entrantIds = array_map(function($e){return $e->getID();},$this->getDraw());
 		foreach($this->getEntrantsToBeDeleted() as $entId) {
 			if(!in_array($entId,$entrantIds)) {
-				$result += Entrant::deleteEntrant($entId);
+				$result += Entrant::deleteEntrant($this->getID(),$entId);
 			}
 		}
 
