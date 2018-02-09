@@ -121,9 +121,9 @@ class TE_Install {
 		delete_option(self::OPTION_NAME_VERSION );
 	}
 
-	public function createSchema() {
+	public function createSchema(bool $withReports=false) {
 		global $wpdb;
-		//$wpdb->show_errors(); 
+		if($withReports) $wpdb->show_errors(); 
 		
 		$club_table 				= $this->dbTableNames["club"];
 		$court_table 				= $this->dbTableNames["court"];
@@ -155,8 +155,10 @@ class TE_Install {
 				`name` VARCHAR(100) NOT NULL,
 				PRIMARY KEY (`ID`) );";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) );
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
 		 * Court ... where you play tennis!
@@ -171,8 +173,10 @@ class TE_Install {
 				  ON DELETE CASCADE
 				  ON UPDATE NO ACTION);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
 		 * Events are hierarchical entities
@@ -184,16 +188,21 @@ class TE_Install {
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(256) NOT NULL,
 				`parent_ID` INT NULL COMMENT 'Parent event',
-				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder',
-				`format` VARCHAR(25) NULL COMMENT 'single elimination, double elimination, round robin',
+				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder, round robin',
+				`format` VARCHAR(25) NULL COMMENT 'single elimination, double elimination, games won, sets won',
+				`signup_by` DATE NULL,
+				`start_date` DATE NULL,
+				`end_date` DATE NULL,
 				PRIMARY KEY (`ID`),
 				FOREIGN KEY (`parent_ID`)
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 
 		/**
 		 * This table enables a many-to-many relationship
@@ -213,8 +222,10 @@ class TE_Install {
 					ON DELETE CASCADE
 					ON UPDATE NO ACTION);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 
 		/*
 		$sql = "CREATE TABLE `$draw_table` (
@@ -244,14 +255,16 @@ class TE_Install {
 				PRIMARY KEY (`event_ID`,`position`),
 				FOREIGN KEY (`event_ID`)
 				  REFERENCES `$event_table` (`ID`)
-				  ON DELETE NO ACTION
+				  ON DELETE CASCADE
 				  ON UPDATE NO ACTION);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
-		 * A round in a tennis child event.
+		 * A round is a container of 2 to n matches.
 		 * The number of rounds depends on the number of entrants
 		 */
 		$sql = "CREATE TABLE `$round_table` (
@@ -264,8 +277,10 @@ class TE_Install {
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 
 		/**
 		 * A tennis match within a round within an event
@@ -274,7 +289,7 @@ class TE_Install {
 				`event_ID` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
-				`match_type` VARCHAR(25) NOT NULL,
+				`match_type` TINYINT NOT NULL COMMENT '1=mens singles, 2=ladies singles, 3=mens doubles, 4=ladies doubles, 5=mixed doubles',
 				`match_date` DATE NULL,
 				`match_time` TIME(6) NULL,
 				PRIMARY KEY (`event_ID`,`round_num`,`match_num`),
@@ -283,8 +298,10 @@ class TE_Install {
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
 		 * Assigns entrants to a matches within a round within an event
@@ -303,8 +320,10 @@ class TE_Install {
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
 		 * Games scores are kept here.
@@ -326,8 +345,10 @@ class TE_Install {
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
 		 * A tennis team from a league for example
@@ -347,8 +368,10 @@ class TE_Install {
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
 		 * Teams can be divided into squads
@@ -365,8 +388,10 @@ class TE_Install {
 				ON DELETE CASCADE
 				ON UPDATE NO ACTION);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
 		 * All the info about a tennis player
@@ -384,8 +409,10 @@ class TE_Install {
 			  `phoneBusiness` VARCHAR(45),
 			  PRIMARY KEY (`ID`));";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		/**
 		 * This table maps players to a team's squads
@@ -404,8 +431,10 @@ class TE_Install {
 						ON DELETE CASCADE
 						ON UPDATE CASCADE);";	
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 
 
 		/**
@@ -426,8 +455,10 @@ class TE_Install {
 					ON DELETE CASCADE
 					ON UPDATE CASCADE );";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 		
 		
 		/**
@@ -445,8 +476,10 @@ class TE_Install {
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 
 		/**
 		 * This table is the intersection between
@@ -466,8 +499,10 @@ class TE_Install {
 					ON DELETE CASCADE
 					ON UPDATE CASCADE);";
 		dbDelta( $sql);
-		// var_dump( dbDelta( $sql) ); 
-		// $wpdb->print_error();
+		if($withReports) {
+			var_dump( dbDelta( $sql) );
+			$wpdb->print_error();
+		}
 
 	} //end add schema
 
@@ -481,8 +516,9 @@ class TE_Install {
 		return $affected;
 	}
 	
-	public function dropSchema() {
+	public function dropSchema(bool $withReports=false) {
 		global $wpdb;
+		if($withReports) $wpdb->show_errors(); 
 
 		//NOTE: The order is important
 		$sql = "DROP TABLE IF EXISTS ";

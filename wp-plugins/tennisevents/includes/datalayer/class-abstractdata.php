@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once('data-exceptions.php');
+
 /** 
  * This is an abstract class from which all other 
  * data-based classes should inherit

@@ -26,51 +26,49 @@ class EventTest extends TestCase
 	
 	public function test_parent_event()
 	{
-        $clubs = Club::search('Tyandaga%');
+        $clubs = Club::search('Tyandaga');
         $this->assertGreaterThan(0,count($clubs));
 		$this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
 
-        $event = new Event(true);
-        $event->setName('Year End Tournament');
+        $event = new Event('Year End Tournament');
         $this->assertEquals('Year End Tournament',$event->getName());
-        $this->assertTrue($event->isParent(),'First time testing for parent');
+        $this->assertFalse($event->isParent(),'First time testing for parent');
     }
     
     /**
      * 
      */
     public function test_persisting_events() {
-        $clubs = Club::search('Tyandaga%');
-        $this->assertEquals(1,count($clubs));
-        $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
+        $clubs = Club::search('Tyandaga');
+        $this->assertCount(1,$clubs);
         $club = $clubs[0];
+        $this->assertEquals('Tyandaga Tennis Club',$club->getName());
 
         
-        $parent = new Event(true);
+        $parent = new Event('Year End Tournament');
         $this->assertTrue($parent->isRoot(),'Test is root');
-        $parent->setName('Year End Tournament');
         $this->assertEquals('Year End Tournament',$parent->getName(),'Test get name');
-        $this->assertTrue($parent->isParent(),'Test for parent event');
+        $this->assertFalse($parent->isParent(),'Test parent event is not parent yet');
 
         $this->assertTrue($club->isValid(),'Test that Club is valid before adding it.');
         $this->assertTrue($parent->addClub($club),'Test adding club to parent event');
         $this->assertTrue($parent->setEventType(Event::TOURNAMENT));
         $this->assertEquals(Event::TOURNAMENT,$parent->getEventType());
-        $this->assertTrue($parent->isValid(),'Test parent event is valid');
-        //$this->assertGreaterThan(0,$parent->save(),'Test saving parent');
         
         //First child
-        $child = new Event();
-        $child->setName('Mens Singles');
+        $child = new Event('Mens Singles');
         $this->assertEquals('Mens Singles',$child->getName());
         $this->assertTrue($child->setFormat(Event::SINGLE_ELIM),'Setting format for child 1');
         $this->assertEquals(Event::SINGLE_ELIM,$child->getFormat());
         $this->assertFalse($child->isParent(),'Test for child 1 not parent');
-        $this->assertTrue($child->isValid(),'Test for child 1 is valid');
 
         $this->assertTrue($parent->addChild($child),'Adding child');
+        $this->assertFalse($child->isRoot(),'Test that child 1 is not root');
+        $this->assertTrue($child->isValid(),'Test that child 1 is valid');
+        $this->assertTrue($parent->isValid(),'Test parent event is now valid because it has a child');
         $this->assertEquals($parent,$child->getParent());
         $this->assertEquals($child->getParent()->getID(),$parent->getID());
+        $this->assertTrue($parent->isParent(),'Test parent event is now a parent');
 
         //Second child
         $child2 = new Event();
@@ -79,9 +77,9 @@ class EventTest extends TestCase
         $this->assertTrue($child2->setFormat(Event::DOUBLE_ELIM),'Setting format for child 2');
         $this->assertEquals(Event::DOUBLE_ELIM,$child2->getFormat());
         $this->assertFalse($child2->isParent(),'Test for child 2 not parent');
-        $this->assertTrue($child2->isValid(),'Test for child 2 is valid');
 
         $this->assertTrue($parent->addChild($child2),'Adding child 2');
+        $this->assertTrue($child2->isValid(),'Test for child 2 is valid');
         $this->assertEquals($parent,$child2->getParent());
         $this->assertEquals($child2->getParent()->getID(),$parent->getID());
 
@@ -92,16 +90,14 @@ class EventTest extends TestCase
      * @depends test_persisting_events
      */
     public function test_removing_children() {
-        $events = Event::search('Year End Tournament%');
+        $events = Event::search('Year End');
         $this->assertCount(1,$events);
         $mainevent = $events[0];
         $this->assertTrue($mainevent->isRoot(),'Is root');
-        $mainevent->getChildren();
 
         $this->assertCount(2,$mainevent->getChildEvents(),'Test 2 children');
 
-        $anotherChild = new Event;
-        $anotherChild->setName('Womens Singles');
+        $anotherChild = new Event('Womens Singles');
         $anotherChild->setFormat(Event::ROUND_ROBIN);
         $this->assertTrue($mainevent->addChild($anotherChild),'Test adding child event');
         $this->assertFalse($mainevent->addChild($anotherChild),'Test adding duplicate child');
@@ -113,8 +109,7 @@ class EventTest extends TestCase
         $this->assertFalse($mainevent->isDirty());
         $this->assertFalse($anotherChild->isDirty());
  
-        $deleteChild = new Event;
-        $deleteChild->setName('Delete this event');
+        $deleteChild = new Event('Delete this event');
         $deleteChild->setFormat(Event::ROUND_ROBIN);
         $this->assertTrue($mainevent->addChild($deleteChild),'Test adding child event to be deleted');
 

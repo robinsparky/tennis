@@ -48,7 +48,10 @@ class Entrant extends AbstractData
     public static function search($criteria) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where name like '%%s%'";
+		
+		$criteria .= strpos($criteria,'%') ? '' : '%';
+
+		$sql = "select * from $table where name like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		

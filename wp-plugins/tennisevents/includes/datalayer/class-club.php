@@ -45,6 +45,7 @@ class Club extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select ID,name from $table where name like '%s'";
 
+		$criteria .= strpos($criteria,'%') ? '' : '%';
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		

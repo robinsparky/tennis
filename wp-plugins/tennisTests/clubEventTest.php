@@ -37,7 +37,6 @@ class ClubEventTest extends TestCase
         $events = Event::search('Year End%');
         $this->assertCount(1,$events);
         $event = $events[0];
-        $event->getChildren();
         $this->assertCount(3,$event->getChildEvents());
 
         $club2 = new Club;

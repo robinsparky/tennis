@@ -28,14 +28,14 @@ class DrawTest extends TestCase
      * 
      */
     public function test_add_entrants_to_draw() {
-        $clubs = Club::search('Tyandaga%');
+        $clubs = Club::search('Tyandaga');
         $this->assertEquals(1,count($clubs));
         $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
 
         $club = $clubs[0];
         $events = $club->getEvents();
+        $this->assertCount(1,$club->getEvents(),'Test club has only one root event');
         $event = $events[0];
-        //$event->getChildren();
         $this->assertTrue($event->isRoot());
         $this->assertCount(3,$event->getChildEvents());
 
@@ -59,12 +59,11 @@ class DrawTest extends TestCase
      * @depends test_add_entrants_to_draw
      */
     public function test_remove_entrants_from_draw() {
-        $clubs = Club::search('Tyandaga%');
+        $clubs = Club::search('Tyandaga');
         $this->assertEquals(1,count($clubs));
         $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
 
         $club = $clubs[0];
-        //$club->getChildren(true);
         $events = $club->getEvents();
         $event = $events[0];
         $this->assertTrue($event->isRoot());

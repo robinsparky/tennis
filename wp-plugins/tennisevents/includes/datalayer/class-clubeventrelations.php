@@ -46,7 +46,12 @@ class ClubEventRelations {
 		}
 
 		if($wpdb->last_error) {
-			error_log("ClubEventRelations.add: Last error='$wpdb->last_error'");
+			if(!strpos($wpdb->last_error,'Duplicate entry')) {
+				throw new Exception($wpdb->last_error);
+			}
+			else {
+				error_log("ClubEventRelations.add: Last error='$wpdb->last_error'");
+			}
 		}
 		
 		error_log("ClubEventRelations.add: added $result rows");

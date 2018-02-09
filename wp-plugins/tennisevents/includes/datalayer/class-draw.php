@@ -9,7 +9,7 @@ require('class-entrant.php');
 require('class-round.php');
 
 /** 
- * Data and functions for Tennis Event Draw(s)
+ * NOT USED: Data and functions for Tennis Event Draw(s)
  * @class  Draw
  * @package Tennis Events
  * @version 1.0.0

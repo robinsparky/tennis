@@ -38,8 +38,11 @@ class Player extends AbstractData
      */
     public static function search($criteria) {
 		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select * from $table where last_name like '%%s%'";
+        $table = $wpdb->prefix . self::$tablename;
+        
+        $criteria .= strpos($criteria,'%') ? '' : '%';
+        
+		$sql = "select * from $table where last_name like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		

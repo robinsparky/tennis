@@ -62,6 +62,8 @@ class Match extends AbstractData
      * Search for Matches that have a name 'like' the provided criteria
      */
     public static function search($criteria) {
+        
+		$criteria .= strpos($criteria,'%') ? '' : '%';
 		$col = array();
 		return $col;
     }
@@ -213,13 +215,27 @@ class Match extends AbstractData
         return $this->match_num;
     }
 
-    public function setMatchType(String $type) {
-        $this->match_type = $type;
-        $result = $this->isdirty = true;
+	/**
+	 * Choose whether this mmatch is a mens, ladies or mixed event.
+	 * @param $mtype 1=mens singles, 2=ladies singles, 3=mens dodubles, 4=ladies doubles, 5=mixed douibles
+	 * @return true if successful; false otherwise
+	 */
+	public function setMatchType(int $mtype) {
+		$result = false;
 
-        return $result;
+        switch($mtype) {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+                $this->match_type = $mtype;
+                $result = $this->isdirty = true;
+                break;
+        }
+		return $result;
     }
-
+    
     public function getMatchType() {
         return $this->match_type;
     }
@@ -237,7 +253,7 @@ class Match extends AbstractData
     }
 
     public function getMatchDate():string {
-        return date("F d, Y",$this->match_date);
+        return isset($this->match_date) ? date("F d, Y",$this->match_date): null;
     }
 
     /**
