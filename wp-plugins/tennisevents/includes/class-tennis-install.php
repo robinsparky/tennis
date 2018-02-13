@@ -95,7 +95,7 @@ class TE_Install {
 	public function on_activate() {
 		// Ensure needed classes are loaded
 		//add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
-		error_log("TennisAdmin: on_activate");
+		error_log(__class__ . ": on_activate");
 		$this->create_options();
 		$this->createSchema();
 		//$this->seedData();
@@ -104,7 +104,7 @@ class TE_Install {
 	
 	
 	public function on_deactivate() {
-		error_log("TennisAdmin: on_deactivate");
+		error_log(__class__ . ": on_deactivate");
 	}
 
 	public function uninstall() {
@@ -152,7 +152,7 @@ class TE_Install {
 		 */
 		$sql = "CREATE TABLE `$club_table` ( 
 				`ID` INT NOT NULL AUTO_INCREMENT,
-				`name` VARCHAR(100) NOT NULL,
+				`name` VARCHAR(255) NOT NULL,
 				PRIMARY KEY (`ID`) );";
 		dbDelta( $sql);
 		if($withReports) {
@@ -267,20 +267,20 @@ class TE_Install {
 		 * A round is a container of 2 to n matches.
 		 * The number of rounds depends on the number of entrants
 		 */
-		$sql = "CREATE TABLE `$round_table` (
-				`event_ID` INT NOT NULL,
-				`round_num` INT NOT NULL,
-				`comments` VARCHAR(255) NOT NULL,
-				PRIMARY KEY (`event_ID`, `round_num`),
-				FOREIGN KEY (`event_ID`)
-				  REFERENCES `$event_table` (`ID`)
-				  ON DELETE CASCADE
-				  ON UPDATE CASCADE);";
-		dbDelta( $sql);
-		if($withReports) {
-			var_dump( dbDelta( $sql) );
-			$wpdb->print_error();
-		}
+		// $sql = "CREATE TABLE `$round_table` (
+		// 		`event_ID` INT NOT NULL,
+		// 		`round_num` INT NOT NULL,
+		// 		`comments` VARCHAR(255) NOT NULL,
+		// 		PRIMARY KEY (`event_ID`, `round_num`),
+		// 		FOREIGN KEY (`event_ID`)
+		// 		  REFERENCES `$event_table` (`ID`)
+		// 		  ON DELETE CASCADE
+		// 		  ON UPDATE CASCADE);";
+		// dbDelta( $sql);
+		// if($withReports) {
+		// 	var_dump( dbDelta( $sql) );
+		// 	$wpdb->print_error();
+		// }
 
 		/**
 		 * A tennis match within a round within an event
@@ -292,9 +292,11 @@ class TE_Install {
 				`match_type` TINYINT NOT NULL COMMENT '1=mens singles, 2=ladies singles, 3=mens doubles, 4=ladies doubles, 5=mixed doubles',
 				`match_date` DATE NULL,
 				`match_time` TIME(6) NULL,
+				`is_bye` TINYINT DEFAULT 0,
+				`comments` VARCHAR(255) NULL,
 				PRIMARY KEY (`event_ID`,`round_num`,`match_num`),
-				FOREIGN KEY (`event_ID`,`round_num`)
-				  REFERENCES `$round_table` (`event_ID`,`round_num`)
+				FOREIGN KEY (`event_ID`)
+				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
 		dbDelta( $sql);
@@ -386,7 +388,7 @@ class TE_Install {
 			  FOREIGN KEY (`event_ID`,`team_num`)
 				REFERENCES `$team_table` (`event_ID`,`team_num`)
 				ON DELETE CASCADE
-				ON UPDATE NO ACTION);";
+				ON UPDATE CASCADE);";
 		dbDelta( $sql);
 		if($withReports) {
 			var_dump( dbDelta( $sql) );
@@ -418,29 +420,27 @@ class TE_Install {
 		 * This table maps players to a team's squads
 		 */
 		$sql =  "CREATE TABLE `$team_squad_player_table` ( 
-					`player_ID` INT NOT NULL,
-					`event_ID` INT NOT NULL,
-					`team_num` INT NOT NULL,
-					`division` VARCHAR(2) NOT NULL,
-					FOREIGN KEY (`player_ID`)
-						REFERENCES $player_table (`ID`)
-						ON DELETE CASCADE
-						ON UPDATE CASCADE,
-					FOREIGN KEY (`event_ID`,`team_num`,`division`)
-						REFERENCES $squad_table (`event_ID`,`team_num`,`division`)
-						ON DELETE CASCADE
-						ON UPDATE CASCADE);";	
+				`player_ID` INT NOT NULL,
+				`event_ID` INT NOT NULL,
+				`team_num` INT NOT NULL,
+				`division` VARCHAR(2) NOT NULL,
+				FOREIGN KEY (`player_ID`)
+					REFERENCES $player_table (`ID`)
+					ON DELETE CASCADE
+					ON UPDATE CASCADE,
+				FOREIGN KEY (`event_ID`,`team_num`,`division`)
+					REFERENCES $squad_table (`event_ID`,`team_num`,`division`)
+					ON DELETE CASCADE
+					ON UPDATE CASCADE);";	
 		dbDelta( $sql);
 		if($withReports) {
 			var_dump( dbDelta( $sql) );
 			$wpdb->print_error();
 		}
 
-
 		/**
 		 * The player_entrant table is an intersection
-		 * between an a entrant in a draw 
-		 * and the player
+		 * between an a entrant in a draw and the player
 		 */
 		$sql ="CREATE TABLE `$player_entrant_table` (
 				`player_ID` INT NOT NULL,
@@ -459,7 +459,6 @@ class TE_Install {
 			var_dump( dbDelta( $sql) );
 			$wpdb->print_error();
 		}
-		
 		
 		/**
 		 * Court bookings are recorded in this table.

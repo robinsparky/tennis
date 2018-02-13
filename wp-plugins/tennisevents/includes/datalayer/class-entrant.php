@@ -89,12 +89,12 @@ class Entrant extends AbstractData
 			$where[] = $fk_criteria["match_num"];
 			$joinTable = $wpdb->prefix . "tennis_match_entrant";
 			
-			$sql = "SELECT   j.match_event_ID
-							,j.match_round_num
-							,j.match_num
-							,e.position
-							,e.name
-							,e.seed
+			$sql = "SELECT   j.match_event_ID as event_ID
+							,j.match_round_num as round_num 
+							,j.match_num as match_num 
+							,e.position as position 
+							,e.name as name 
+							,e.seed as seed 
 					FROM $table e 
 					INNER JOIN $joinTable j ON j.match_event_ID = e.event_ID 
 											AND j.entrant_position = e.position 
@@ -109,12 +109,12 @@ class Entrant extends AbstractData
 				$where[] = $fk_criteria[2]; //Match
 				$joinTable = $wpdb->prefix . "tennis_match_entrant";
 				
-			$sql = "SELECT j.match_event_ID
-						,j.match_round_num
-						,j.match_num
-						,e.position
-						,e.name
-						,e.seed 
+			$sql = "SELECT j.match_event_ID as event_ID 
+						,j.match_round_num as round_num 
+						,j.match_num as match_num 
+						,e.position as position 
+						,e.name as name 
+						,e.seed  as seed 
 				FROM $table e 
 				INNER JOIN $joinTable j ON j.match_event_ID = e.event_ID 
 										AND j.entrant_position = e.position 
@@ -282,10 +282,12 @@ class Entrant extends AbstractData
 	 * Check to see if this Entrant has valid data
 	 */
 	public function isValid() {
-		$isvalid = TRUE;
-		if(!isset($this->event_ID)) $invalid = FALSE;
-		if(!$this->isNew() && !isset($this->position))  $invalid = FALSE;
-		if(!isset($this->name)) $invalid = FALSE;
+		$mess = '';
+		if(!isset($this->event_ID)) $mess = __('Entrant must have and event id.');
+		if(!$this->isNew() && !isset($this->position)) $mess = __('Existing entrant must have a position.');
+		if(!isset($this->name)) $mess = __('Entrant must have a unique name.');
+
+		if(strlen($mess) > 0) throw new InvalidEntrantException($mess);
 
 		return $isvalid;
 	}

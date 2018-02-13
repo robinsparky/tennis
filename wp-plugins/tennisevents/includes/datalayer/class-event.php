@@ -35,6 +35,8 @@ class Format {
 class Event extends AbstractData
 { 
 	private static $tablename = 'tennis_event';
+	private static $datetimeformat = "Y-m-d H:i:s";
+	private static $dateformat = "!Y-m-d";
 
 	private $name; //name or description of the event
 	private $parent_ID; //parent Event ID
@@ -45,15 +47,15 @@ class Event extends AbstractData
 	private $start_date; //Start date of this event
 	private $end_date; //End date of this event
     
+	private $clubs; //array of related clubs for this root event
 	private $childEvents; //array of child events
 	private $draw; //array of entrants for this leaf event
-	private $clubs; //array of related clubs for this root event
-	private $rounds; //array of rounds for this leaf event
+	private $matches; //array of matches in a round for this leaf event
 
+	private $clubsToBeDeleted; //array of club Id's to be removed from relations with this Event
 	private $childEventsToBeDeleted; //array of child ID's events to be deleted
 	private $entrantsToBeDeleted; //array of Entrants to be removed from the draw
-	private $clubsToBeDeleted; //array of club Id's to be removed from relations with this Event
-	private $roundsToBeDeleted; //array of round Id's to be deleted
+	private $matchesToBeDeleted; //array of round Id's to be deleted
     
     /**
      * Search for Events have a name 'like' the provided criteria
@@ -198,15 +200,15 @@ class Event extends AbstractData
 			}
 		}
 
-		if(isset($this->rounds)) {
-			foreach($this->rounds as $round) {
-				$round = null;
+		if(isset($this->matches)) {
+			foreach($this->matches as $match) {
+				$match = null;
 			}
 		}
 
-		if(isset($this->roundsToBeDeleted)) {
-			foreach($this->roundsTpBeDeleted as $round) {
-				$round = null;
+		if(isset($this->matchesToBeDeleted)) {
+			foreach($this->matchesToBeDeleted as $match) {
+				$match = null;
 			}
 		}
 	}
@@ -321,13 +323,27 @@ class Event extends AbstractData
 
 	/**
 	 * Set the date by which players must signup for this event
-	 * @param $signup The sign up deadline
+	 * @param $signup The sign up deadline in YYYY/mm/dd format
 	 */
 	public function setSignupBy(string $signup) {
 		$result = false;
-        $mdt = strtotime($signup);
-        $this->signup_by = $mdt;
-        $result = $this->isdirty = true;
+		$test = DateTime::createFromFormat('!Y/m/d',$signup);
+		if(false === $test) $test = DateTime::createFromFormat('!Y/n/j',$signup);
+		if(false === $test) $test = DateTime::createFromFormat('!Y-m-d',$signup);
+		if(false === $test) $test = DateTime::createFromFormat('!Y-n-j',$signup);
+		$last = DateTIme::getLastErrors();
+		if($last['error_count'] > 0) {
+			$arr = $last['errors'];
+			$mess = '';
+			foreach($arr as $err) {
+				$mess .= $err.':';
+			}
+			throw new InvalidEventException($mess);
+		}
+		elseif($test instanceof DateTime) {
+			$this->signup_by = $test;
+			$result = $this->isdirty = true;
+		}
 
         return $result;
 	}
@@ -335,44 +351,118 @@ class Event extends AbstractData
 	/**
 	 * Get the date by which players must signup for this event
 	 */
-	public function getSignupBy() {
-        return isset($this->signup_by) ? date("F d, Y",$this->signup_by) : null;
+	public function getSignupBy_Str() {
+		if(!isset($this->signup_by)) return null;
+		else return $this->signup_by->format(self::$datetimeformat);
 	}
 
-	public function rawSignupBy() {
+	/**
+	 * Get the date by which players must signup for this event 
+	 * in ISO 8601 format
+	 */
+	public function getSignupBy_ISO() {
+		if(!isset($this->signup_by)) return null;
+		else return $this->signup_by->format(DateTime::ISO8601);
+	}
+
+	public function getSignupBy() {
 		return $this->signup_by;
 	}
 	
 	public function setStartDate(string $start) {
 		$result = false;
-        $mdt = strtotime($start);
-        $this->start_date = $mdt;
-        $result = $this->isdirty = true;
+		$test = DateTime::createFromFormat('!Y/m/d',$start);
+		if(false === $test) $test = DateTime::createFromFormat('!Y/n/j',$start);
+		if(false === $test) $test = DateTime::createFromFormat('!Y-m-d',$start);
+		if(false === $test) $test = DateTime::createFromFormat('!Y-n-j',$start);
+		$last = DateTIme::getLastErrors();
+		if($last['error_count'] > 0) {
+			$arr = $last['errors'];
+			$mess = '';
+			foreach($arr as $err) {
+				$mess .= $err.':';
+			}
+			throw new InvalidEventException($mess);
+		}
+		elseif($test instanceof DateTime) {
+			$this->start_date = $test;
+			$result = $this->isdirty = true;
+		}
 
         return $result;
 	}
-	public function getStartDate() {
-        return isset($this->start_date) ? date("F d, Y",$this->start_date) : null;
+
+	/**
+	 * Get the start date for this event as a string
+	 */
+	public function getStartDate_Str() {
+		if(!isset($this->start_date)) return null;
+		else return $this->start_date->format(self::$datetimeformat);
 	}
 
-	public function rawStartDate() {
+	/**
+	 * Get the start date of this event
+	 * as a DateTime object
+	 */
+	public function getStartDate() {
 		return $this->start_date;
 	}
 	
+	/**
+	 * Get the start date for this event in ISO 8601 format
+	 */
+	public function getStartDate_ISO() {
+		if(!isset($this->start_date)) return null;
+		else return $this->start_date->format(DateTime::ISO8601);
+	}
+	
+	/**
+	 * Set the end date for this event
+	 * @param $end End date in string format
+	 */
 	public function setEndDate(string $end) {
 		$result = false;
-        $mdt = strtotime($end);
-        $this->end_date = $mdt;
-        $result = $this->isdirty = true;
+		$test = DateTime::createFromFormat('!Y/m/d',$end);
+		if(false === $test) $test = DateTime::createFromFormat('!Y/n/j',$end);
+		if(false === $test) $test = DateTime::createFromFormat('!Y-m-d',$end);
+		if(false === $test) $test = DateTime::createFromFormat('!Y-n-j',$end);
+		$last = DateTIme::getLastErrors();
+		if($last['error_count'] > 0) {
+			$arr = $last['errors'];
+			$mess = '';
+			foreach($arr as $err) {
+				$mess .= $err.':';
+			}
+			throw new InvalidEventException($mess);
+		}
+		elseif($test instanceof DateTime) {
+			$this->end_date = $test;
+			$result = $this->isdirty = true;
+		}
 
         return $result;
 	}
 
-	public function getEndDate() {
-        return isset($this->end_date) ? date("F d, Y",$this->end_date) : null;
+	/**
+	 * Get the end date for this event in string format
+	 */
+	public function getEndDate_Str() {
+		if(!isset($this->end_date)) return null;
+		else return $this->end_date->format(self::$datetimeformat);
+	}
+	
+	/**
+	 * Get the end date for this event in ISO 8601 format
+	 */
+	public function getEndDate_ISO() {
+		if(!isset($this->end_date)) return null;
+		else return $this->end_date->format(DateTime::ISO8601);
 	}
 
-	public function rawEndDate() {
+	/**
+	 * Get the end date for this event as a DateTime object
+	 */
+	public function getEndDate() {
 		return $this->end_date;
 	}
 
@@ -561,67 +651,114 @@ class Event extends AbstractData
 		return $result;
 	}
 
-	/**
-	 * Append a collection of rounds to existing collection of rounds
-	 */
-	public function appendRounds(array $rounds) {
-		$result = false;
-		$this->getRounds();
-		foreach($rounds as $rnd) {
-			if($rnd instanceof Round) {
-				$rnd->setEvent($this);
-				$this->rounds[] = $rnd;
-				$result = true;
-			}
-		}
-		return $result;
-	}
-
-	/**
-	 * Remove the collection of Rounds
-	 */
-	public function removeRounds() {
-		if(isset($this->rounds)) {
-			$i=0;
-			foreach($this->rounds as $round) {
-				$this->getRoundsToBeDeleted()[] = clone $round;
-				unset($this->rounds[$i]);
-				$i++;
-			}
-		}
-		$this->rounds = array();
-	}
-
-	public function getRounds() {
-		if(!isset($this->rounds)) $this->fetchRounds();
-		return $this->rounds;
-	}
-
-	public function numberOfRounds() {
-		return count($this->getRounds());
-	}
-
 	public function getDraw() {
 		if(!isset($this->draw)) $this->fetchDraw();
 		return $this->draw;
 	}
 
-	public function getDrawSize() {
+	public function drawSize() {
 		return sizeof($this->getDraw());
 	}
 
+    /**
+     * Create a new Match and add itz to this Round using the home and visitor Entrants
+     * @param $home
+     * @param $visitor
+     * @return true if successful; false otherwise
+     */
+    public function addNewMatch(int $round, Entrant $home, Entrant $visitor=null) {
+        $result = false;
+        if(isset($home)) {
+			$this->getMatches();
+			$match = new Match($this->event_ID, $round);
+            $match->setHomeEntrant($home);
+			if(isset($visitor)) {
+				$match->setVisitorEntrant($visitor);
+			} 
+			else {
+				$match->setIsBye(true);
+			}
+            $this->matches[] = $match;
+            $result = $this->isdirty = true;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Add a Match to this Round
+     * @param $match
+     */
+    public function addMatch(Match $match) {
+        $result = false;
+
+        if(isset($match) && $match->isValid()) {
+            $this->getMatches();
+            $this->matches[] = $match;
+            $result = $this->isdirty = true;
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Access all Matches in this Round
+     */
+    public function getMatches():array {
+        if(!isset($this->matches)) $this->fetchMatches();
+        return $this->matches;
+    }
+
+    /**
+     * Get the number of matches in this Round
+     */
+    public function numMatches():int {
+        return count($this->getMatches());
+	}
+	
+    /**
+     * Get the number of matches in this Round
+     */
+    public function numMatchesByRound(int $round):int {		
+		return array_reduce(function ($sum,$m) use($round) {if($m->getRound() === $round) ++$sum;},$this->getMatches(),0);
+	}
+	
+	/**
+	 * Remove the collection of Matches
+	 */
+	public function removeAllMatches() {
+		if(isset($this->matches)) {
+			$i=0;
+			foreach($this->matches as $match) {
+				$this->getMatchesToBeDeleted()[] = clone $match;
+				unset($this->matches[$i]);
+				$i++;
+			}
+		}
+		$this->matches = array();
+	}
 	
 	/**
 	 * Check to see if this Event has valid data
 	 */
 	public function isValid() {
-		$isvalid = TRUE;
-		if(!isset($this->name)) $isvalid = FALSE;
-		if(!isset($this->event_type) && $this->isParent()) $isvalid = FALSE;
-		if(!isset($this->format) && !$this->isParent()) $isvalid = FALSE;
-		if($this->isRoot() && count($this->getClubs()) < 1) $isvalid = false;
+		$mess = '';
+		if(!isset($this->name)) {
+			$mess = __('Event must have a name.');
+		}
+		elseif(!isset($this->event_type) && $this->isParent()) {
+			$mess = __('Parent Events must have a type.');
+		}
+		elseif(!isset($this->format) && !$this->isParent()) {
+			$mess = __('Child events must have a format.');
+		}
+		elseif($this->isRoot() && count($this->getClubs()) < 1) {
+			$mess = __('Root event must be associated with at least one club');
+		}
 
-		return $isvalid;
+		if(strlen($mess) > 0) throw new InvalidEventException($mess);
+
+		return true;
 	}
 
 	/**
@@ -671,9 +808,13 @@ class Event extends AbstractData
 		if(!isset($this->clubs) || $force) $this->clubs = Club::find($this->getID());
 	}
 
-	private function fetchRounds($force=false) {
-		if(!isset($this->rounds) || $force) $this->rounds = Round::find($this->getID());
-	}
+    /**
+     * Fetch Matches all Matches from the database
+     */
+    private function fetchMatches($force=false) {
+        if(!isset($this->matches) || $force) $this->matches = Match::find($this->getID());
+    }
+
 
 	private function getEventsToBeDeleted() {
 		if(!isset($this->childEventsToBeDeleted)) $this->childEventsToBeDeleted = array();
@@ -690,9 +831,9 @@ class Event extends AbstractData
 		return $this->clubsToBeDeleted;
 	}
 
-	private function getRoundsToBeDeleted() {
-		if(!isset($this->roundsToBeDeleted)) $this->roundsToBeDeleted = array();
-		return $this->roundsToBeDeleted;
+	private function getMatchesToBeDeleted() {
+		if(!isset($this->matchesToBeDeleted)) $this->matchesToBeDeleted = array();
+		return $this->matchesToBeDeleted;
 	}
 
 	protected function create() {
@@ -706,11 +847,11 @@ class Event extends AbstractData
 						,'parent_ID'  => $this->parent_ID
 						,'event_type' => $this->getEventType()
 						,'format'     => $this->getFormat()
-						,'signup_by'  => $this->getSignup()
-						,'start_date' => $this->getStartDate()
-						,'end_date'   => $this->getEndDate()
+						,'signup_by'  => $this->getSignupBy_Str()
+						,'start_date' => $this->getStartDate_Str()
+						,'end_date'   => $this->getEndDate_Str()
 					    );
-		$formats_values = array('%s','%d','%s','%s','%s');
+		$formats_values = array('%s','%d','%s','%s','%s','%s','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$result = $wpdb->rows_affected;
@@ -735,11 +876,11 @@ class Event extends AbstractData
 						,'parent_ID'  => $this->parent_ID
 						,'event_type' => $this->getEventType()
 						,'format'     => $this->getFormat()
-						,'signup_by'  => $this->getSignup()
-						,'start_date' => $this->getStartDate()
-						,'end_date'   => $this->getEndDate()
+						,'signup_by'  => $this->getSignupBy_Str()
+						,'start_date' => $this->getStartDate_Str()
+						,'end_date'   => $this->getEndDate_Str()
 					    );
-		$formats_values = array('%s','%d','%s','%s','%s');
+		$formats_values = array('%s','%d','%s','%s','%s','%s','%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
 		$check = $wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
@@ -762,9 +903,12 @@ class Event extends AbstractData
         $obj->event_type = $row["event_type"];
         $obj->parent_ID = $row["parent_ID"];
 		$obj->format = $row["format"];
-		$obj->signup_by = isset($row["signup_by"]) ? date("F d, Y",$row["signup_by"]) : null;
-		$obj->start_date = isset($row["start_date"]) ? date("F d, Y",$row["start_date"]) : null;
-		$obj->end_date = isset($row["end_date"]) ? date("F d, Y",$row["end_date"]) : null;
+		$obj->signup_by = DateTime::createFromFormat(self::$dateformat,$row["signup_by"]);
+		if(!$obj->signup_by) $obj->signup_by = null;
+		$obj->start_date = DateTime::createFromFormat(self::$dateformat,$row["start_date"]);
+		if(!$obj->start_date) $obj->start_date = null;
+		$obj->end_date = DateTime::createFromFormat(self::$dateformat,$row["end_date"]);
+		if(!$obj->end_date) $obj->end_date = null;
 	}
 	
 	private function init() {
@@ -792,11 +936,6 @@ class Event extends AbstractData
 			if(!in_array($id,$evtIds)) {
 				$result += Event::deleteEvent($id);
 			}
-		}
-
-		//Delete ALL Rounds removed from this Event
-		foreach($this->getRoundsToBeDeleted() as $round) {
-			$round->delete();
 		}
 
 		foreach($this->getDraw() as $draw) {
@@ -828,6 +967,16 @@ class Event extends AbstractData
 		//Create relation between this Event and Clubs
 		foreach($this->getClubs() as $cb) {
 			$result += ClubEventRelations::add($cb->getID(),$this->getID());
+		}
+		
+		//Create relation between this Matches(round_num,match_num,position) and this Event
+		foreach($this->getMatches() as $match) {
+			$result += $match->save();
+		}
+
+		//Delete ALL Matches removed from this Event
+		foreach($this->getMatchesToBeDeleted() as $match) {
+			$result += $match->delete();			
 		}
 
 		return $result;
