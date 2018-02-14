@@ -13,17 +13,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since   0.1.0
 */
 class EntrantMatchRelations {
-	
+	private static $tablename = 'tennis_match_entrant';
 	/**
 	 * Remove a relationship between an Entrant and a Match
 	 */
 	static function remove(int $eventId, int $roundNum, int $matchNum, int $pos ):int {
 		$result = 0;
 		global $wpdb;
-		if(isset($eventId) && isset($roundNum) && isset($matchNum)) {
-			$table = $wpdb->prefix . 'tennis_entrant_match';
+		if(isset($eventId) && isset($roundNum) && isset($matchNum) && isset($pos)) {
+			$table = $wpdb->prefix . self::$tablename;
 			$wpdb->delete($table
-			             ,array('event_ID'=>$eventId,'round_num'=>$roundNum,'match_num'=>$matchNum,'entrant_position'=>$pos)
+			             ,array('match_event_ID'=>$eventId,'match_round_num'=>$roundNum,'mmatch_num'=>$matchNum,'entrant_position'=>$pos)
 			             ,array('%d','%d','%d','%d'));
 			$result = $wpdb->rows_affected;
 		}
@@ -42,9 +42,9 @@ class EntrantMatchRelations {
 		$result = 0;
 		global $wpdb;
 		if(isset($eventId) && isset($roundNum) && isset($matchNum) && isset($pos)) {
-			$table = $wpdb->prefix . 'tennis_entrant_match';
+			$table = $wpdb->prefix . self::$tablename;
 			$wpdb->insert($table
-			             ,array('event_ID'=>$eventId,'round_num'=>$roundNum,'match_num'=>$matchNum,'entrant_position'=>$pos)
+			             ,array('match_event_ID'=>$eventId,'match_round_num'=>$roundNum,'match_num'=>$matchNum,'entrant_position'=>$pos)
 			             ,array('%d','%d','%d','%d'));
 			$result = $wpdb->rows_affected;
 		}

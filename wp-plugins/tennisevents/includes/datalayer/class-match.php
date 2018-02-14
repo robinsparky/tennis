@@ -4,29 +4,46 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+* Match scoring:
+* No ad
+    * 'No advantage'. Scoring method created by Jimmy Van Alen. 
+    * The first player or doubles team to win four points wins the game, regardless of whether the player or team is ahead by two points. 
+    * When the game score reaches three points each, the receiver chooses which side of the court (advantage court or deuce court) the service is to be delivered
+    *  on the seventh and game-deciding point. 
+    * Utilized by World Team Tennis professional competition, ATP tours, WTA tours, ITF Pro Doubles and ITF Junior Doubles.
+* Pro set
+    * Instead of playing multiple sets, players may play one "pro set". A pro set is first to 8 (or 10) games by a margin of two games, instead of first to 6 games. 
+    * A 12-point tie-break is usually played when the score is 8–8 (or 10–10). These are often played with no-ad scoring.
+* Match tie-break
+    * This is sometimes played instead of a third set. A match tie-break (also called super tie-break) is played like a regular tie-break, 
+    * but the winner must win ten points instead of seven. Match tie-breaks are used in the Hopman Cup, Grand Slams (excluding Wimbledon) and the Olympic Games for mixed doubles; 
+    * on the ATP (since 2006), WTA (since 2007) and ITF (excluding four Grand Slam tournaments and the Davis Cup) tours for doubles and as a player's choice in USTA league play.
+* Fast4
+    * Fast4 is a shortened format that offers a "fast" alternative, with four points, four games and four rules: 
+    * there are no advantage scores, lets are played, tie-breakers apply at three games all and the first to four games wins the set.
+ */
+class MatchScoring {
+    public const NO_AD           = "no ad";
+    public const PRO_SET         = "pro set";
+    public const MATCH_TIE_BREAK = "match tie break";
+    public const FAST4           = "fast4";
+}
+
+class MatchType {
+    public const MENS_SINGLES   = 1.1;
+    public const WOMENS_SINGLES = 1.2;
+    public const MENS_DOUBLES   = 2.1;
+    public const WOMENS_DOUBLES = 2.2;
+    public const MIXED_DOUBLES  = 2.3;
+}
+
 // require_once('class-abstractdata.php');
 // require_once('class-entrant.php');
 // require_once('class-game.php');
 
 /** 
  * Data and functions for Tennis Event Match(es)
-     * Match types:
-     * No ad
-        * 'No advantage'. Scoring method created by Jimmy Van Alen. 
-        * The first player or doubles team to win four points wins the game, regardless of whether the player or team is ahead by two points. 
-        * When the game score reaches three points each, the receiver chooses which side of the court (advantage court or deuce court) the service is to be delivered
-        *  on the seventh and game-deciding point. 
-        * Utilized by World Team Tennis professional competition, ATP tours, WTA tours, ITF Pro Doubles and ITF Junior Doubles.
-     * Pro set
-        * Instead of playing multiple sets, players may play one "pro set". A pro set is first to 8 (or 10) games by a margin of two games, instead of first to 6 games. 
-        * A 12-point tie-break is usually played when the score is 8–8 (or 10–10). These are often played with no-ad scoring.
-     * Match tie-break
-        * This is sometimes played instead of a third set. A match tie-break (also called super tie-break) is played like a regular tie-break, 
-        * but the winner must win ten points instead of seven. Match tie-breaks are used in the Hopman Cup, Grand Slams (excluding Wimbledon) and the Olympic Games for mixed doubles; 
-        * on the ATP (since 2006), WTA (since 2007) and ITF (excluding four Grand Slam tournaments and the Davis Cup) tours for doubles and as a player's choice in USTA league play.
-     * Fast4
-        * Fast4 is a shortened format that offers a "fast" alternative, with four points, four games and four rules: 
-            * there are no advantage scores, lets are played, tie-breakers apply at three games all and the first to four games wins the set.
  * @class  Match
  * @package Tennis Events
  * @version 1.0.0
@@ -34,9 +51,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class Match extends AbstractData
 { 
+    private const MAX_ROUNDS = 8;
+
     private static $tablename = 'tennis_match';
+	private static $datetimeformat = "Y-m-d H:i:s";
+    private static $dateformat = "!Y-m-d";
+    private static $timeformat = "!H:i:s";
     
-    private $match_type; //No ad, Pro set, match tie-break (or super-tie break), fast4, canadian doubles, australian doubles, jordache
+    private $match_type; 
     private $event;
 
     //Primary key---
@@ -133,9 +155,10 @@ class Match extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(Event $event, int $round=null, int $match=null) {
+	public function __construct(int $eventId, int $round=null, int $match=null) {
         $this->isnew = TRUE;
-        $this->event_ID = $event->getID();
+        $this->event_ID = $eventId;
+        $this->getEvent(true);
         $this->round_num = $round;
         $this->match_num = $match;
         $this->init();
@@ -184,6 +207,16 @@ class Match extends AbstractData
         }
         return $result;
     }
+    
+    /**
+     * Get this Match's Event.
+     */
+    public function getEvent($force=false):Event {
+        if((isset($this->event_ID) && !isset($this->event)) || $force) {
+            $this->event = Event::get($this->event_ID);
+        }
+        return $this->event;
+    }
 
     /**
      * Remove a Game from this Match
@@ -204,19 +237,16 @@ class Match extends AbstractData
 		return $result;
     }
 
-    /**
-     * Get this Match's Event.
-     */
-    public function getEvent():Event {
-        return $this->event;
+    public function setRoundNumber(int $rn) {
+        $result = false;
+        if($rn > -1 & $rn <= self::MAX_ROUNDS) {
+            $this->round_num = $rn;
+            $result = $this->isdirty = true;
+        }
+        return $result;
     }
 
-    public function setRound(int $rn) {
-        $this->round_num = $rn;
-        return $this->isdirty = true;
-    }
-
-    public function getRound():int {
+    public function getRoundNumber():int {
         return $this->round_num;
     }
 
@@ -231,17 +261,17 @@ class Match extends AbstractData
     
 	/**
 	 * Choose whether this mmatch is a mens, ladies or mixed event.
-	 * @param $mtype 1=mens singles, 2=ladies singles, 3=mens dodubles, 4=ladies doubles, 5=mixed douibles
+	 * @param $mtype 1.1=mens singles, 1.2=ladies singles, 2.1=mens dodubles, 2.2=ladies doubles, 2.3=mixed douibles
 	 * @return true if successful; false otherwise
 	 */
-	public function setMatchType(int $mtype) {
+	public function setMatchType(float $mtype) {
 		$result = false;
         switch($mtype) {
-            case 1: //mens singles
-            case 2: //womens singles
-            case 3: //mens doubles
-            case 4: //womens doubles
-            case 5: //mixed doubles
+            case MatchType::MENS_SINGLES:
+            case MatchType::WOMENS_SINGLES:
+            case MatchType::MENS_DOUBLES:
+            case MatchType::WOMENS_DOUBLES:
+            case MatchType::MIXED_DOUBLES:
                 $this->match_type = $mtype;
                 $result = $this->isdirty = true;
                 break;
@@ -258,31 +288,87 @@ class Match extends AbstractData
      * @param $date is a string in Y-m=d format
      */
     public function setMatchDate(string $date) {
-        $mdt = strtotime($date);
-        $this->match_date = $mdt;
-        $result = $this->isdirty = true;
+		$result = false;
+		$test = DateTime::createFromFormat(self::$dateformat,$end);
+		if(false === $test) $test = DateTime::createFromFormat('!Y-m-d',$end);
+		if(false === $test) $test = DateTime::createFromFormat('!j/n/Y',$end);
+		if(false === $test) $test = DateTime::createFromFormat('!d/m/Y',$end);
+		if(false === $test) $test = DateTime::createFromFormat('!d-m-Y',$end);
+		$last = DateTIme::getLastErrors();
+		if($last['error_count'] > 0) {
+			$arr = $last['errors'];
+			$mess = '';
+			foreach($arr as $err) {
+				$mess .= $err.':';
+			}
+			throw new InvalidMatchException($mess);
+		}
+		elseif($test instanceof DateTime) {
+			$this->match_date = $test;
+			$result = $this->isdirty = true;
+		}
 
         return $result;
     }
 
-    public function getMatchDate():string {
-        return isset($this->match_date) ? date("F d, Y",$this->match_date): null;
-    }
+	/**
+	 * Get the Match date in string format
+	 */
+	public function getMatchDate_Str() {
+		if(!isset($this->match_date)) return null;
+		else return $this->match_date->format(self::$datetimeformat);
+	}
+	
+	/**
+	 * Get the Match date in ISO 8601 format
+	 */
+	public function getMatchDate_ISO() {
+		if(!isset($this->match_date)) return null;
+		else return $this->match_date->format(DateTime::ISO8601);
+	}
 
     /**
      * Set the time of the match
      * @param $time is a string in hh-mm-ss format
      */
-    public function setMatchTime(string $time) {
-        $mt = strtotime($time);
-        $this->match_time = $mt;
-        $result = $this->isdirty = true;
+    public function setMatchTimeEx(string $time) {
+		$result = false;
+		$test = DateTime::createFromFormat(self::$timeformat,$end);
+		$last = DateTIme::getLastErrors();
+		if($last['error_count'] > 0) {
+			$arr = $last['errors'];
+			$mess = '';
+			foreach($arr as $err) {
+				$mess .= $err.':';
+			}
+			throw new InvalidMatchException($mess);
+		}
+		elseif($test instanceof DateTime) {
+			$this->match_time = $test;
+			$result = $this->isdirty = true;
+		}
 
         return $result;
     }
 
-    public function getMatchTime():string {
-        return date("h:i:s",$this->match_time);
+    public function setMatchTime(int $hour, int $minutes) {
+        if(!isset($this->match_time)) {
+            $this->match_time = new DateTime();
+        }
+
+        $this->match_time->setTime($hour,$minutes);
+        $this->match_time->setDate(0,1,1);
+        
+        return $this->isdirty = true;
+    }
+
+    public function getMatchTime_Str() {
+        if(!isset($this->match_tine)) return null;
+        else return $this->match_time()->format(self::$timeformat);
+    }
+
+    public function getMatchTime() {
+        return $this->match_time;
     }
 
     public function setIsBye(bool $by=false) {
@@ -443,7 +529,7 @@ class Match extends AbstractData
     }
 
     private function fetchGames($force=false) {
-        if(count($this->games) === 0 || $force) $this->games = Game::find($this->getIdentifiers());
+        if(!isset($this->games) || $force) $this->games = Game::find($this->event_ID,$this->round_num,$this->match_num);
     }
     
     public function isValid() {
@@ -453,9 +539,9 @@ class Match extends AbstractData
         if(!$this->isNew() && (!isset($this->match_num) || $this->match_num === 0)) $mess=__('Existing match must have a match number.');
         if(!isset($this->home_ID)) $mess = __('Match must have a home entrant id.');
         if(!isset($this->visitor_ID)) $mess = __('Match must have a visitor entrant id.');
-        if(!isset($this->match_type)) $mess = __('Match must have a match tupe');
+        if(!isset($this->match_type)) $mess = __('Match must have a match type');
 
-        if(strlen($mess) > 0) throw InvalidMatchException($mess);
+        if(strlen($mess) > 0) throw new InvalidMatchException($mess);
 
         return true;
     }
@@ -469,6 +555,13 @@ class Match extends AbstractData
 
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
+		$sql = "SELECT IFNULL(MAX(round_num),0) FROM $table WHERE event_ID=%d;";
+        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
+        $nextRound = $wpdb->get_var($safe) + 1;
+        if($nextRound > self::MAX_ROUNDS) {
+            $this->round_num = self::MAX_ROUNDS;
+        }
+        
 		$sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
         $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
         $this->match_num = $wpdb->get_var($safe) + 1;
@@ -477,13 +570,11 @@ class Match extends AbstractData
                         ,'round_num'   => $this->round_num
                         ,'match_num'   => $this->match_num
                         ,'match_type'  => $this->match_type
-                        ,'match_date'  => $this->match_date
-                        ,'match_time'  => $this->match_time
-                        ,'home_ID'     => $this->home_ID
-                        ,'visitor_ID'  => $this->visitor_ID
+                        ,'match_date'  => $this->getMatchDate_Str()
+                        ,'match_time'  => $this->getMatchTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'comments'    => $this->comments);
-        $formats_values = array('%d','%d','%d','%s','%s','%s','%d','%d','%d','%s');
+        $formats_values = array('%d','%d','%d','%f','%s','%s','%d','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
         $this->isnew = FALSE;
 		$this->isdirty = FALSE;
@@ -496,6 +587,9 @@ class Match extends AbstractData
         foreach($this->getGames() as $game) {
             $result += $game->save();
         }
+        
+        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
+        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
 
 		return $result;
 	}
@@ -506,13 +600,11 @@ class Match extends AbstractData
         parent::update();
 
         $values = array( 'match_type'  => $this->match_type
-                        ,'match_date'  => $this->getMatchDate()
-                        ,'match_time'  => $this->getMatchTime()
-                        ,'home_ID'     => $this->home_ID
-                        ,'visitor_ID'  => $this->visitor_ID
+                        ,'match_date'  => $this->getMatchDate_Str()
+                        ,'match_time'  => $this->getMatchTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'comments'    => $this->comments);
-		$formats_values = array('%s','%s','%s','%d','%d','%d','%s');
+		$formats_values = array('%f','%s','%s','%d','%s');
         $where          = array( 'event_ID'  => $this->event_ID
                                 ,'round_num' => $this->round_num
                                 ,'match_num' => $this->match_num);
@@ -523,9 +615,6 @@ class Match extends AbstractData
 
         error_log("Match::update $wpdb->rows_affected rows affected.");
         
-        $result += EntrantMatchRelations::add($this->getID(),$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
-        $result += EntrantMatchRelations::add($this->getID(),$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
-
         foreach($this->getGames() as $game) {
             $result += $game->save();
         }
@@ -539,14 +628,15 @@ class Match extends AbstractData
     public function delete() {
         global $wpdb;		
         
-        $result = EntrantMatchRelations::remove($this->getEventID(),$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
-        $result += EntrantMatchRelations::remove($this->getEventID(),$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
+        // $result = EntrantMatchRelations::remove($this->getEventID(),$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
+        // $result += EntrantMatchRelations::remove($this->getEventID(),$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
 
         $table = $wpdb->prefix . self::$tablename;
         $where = array('event_ID' => $this->event_ID
                 ,'round_num' => $this->round_num
                 ,'match_num' => $this->match_num);
         $formats_where = array('%d','%d','%d');
+
         $wpdb->delete($table,$where,$formats_where);
         $result += $wpdb->rows_affected;
 
@@ -563,8 +653,8 @@ class Match extends AbstractData
         $obj->round_num  = $row["round_num"];
         $obj->match_num  = $row["match_num"];
         $obj->match_type = $row["match_type"];
-        $obj->match_date = $row["match_date"];
-        $obj->match_time = $row["match_time"];
+		$obj->match_date = isset($row["match_date"]) ? new DateTime($row["match_date"]) : null;
+		$obj->match_time = isset($row["match_time"]) ?  new DateTime($row["match_time"]) : null;
         $obj->is_bye     = $row["is_bye"];
         $obj->comments   = $row["comments"];
     }

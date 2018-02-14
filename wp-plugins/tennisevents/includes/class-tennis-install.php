@@ -289,7 +289,7 @@ class TE_Install {
 				`event_ID` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
-				`match_type` TINYINT NOT NULL COMMENT '1=mens singles, 2=ladies singles, 3=mens doubles, 4=ladies doubles, 5=mixed doubles',
+				`match_type` DECIMAL(2,1) NOT NULL COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles',
 				`match_date` DATE NULL,
 				`match_time` TIME(6) NULL,
 				`is_bye` TINYINT DEFAULT 0,

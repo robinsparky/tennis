@@ -5,7 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-Testing Clubs and Events
 <?php 
 use PHPUnit\Framework\TestCase;
 /**
@@ -49,7 +48,7 @@ class DrawTest extends TestCase
         $this->assertTrue($menSingles->addToDraw("Rafa Chiuzi",2),'Test add to draw 3');
         $this->assertTrue($menSingles->addToDraw("Jonathan Bremer",1),'Test add to draw 4');
         $this->assertCount(4,$menSingles->getDraw(),'Test draw size is 4');
-        $this->assertEquals(4,$menSingles->getDrawSize());
+        $this->assertEquals(4,$menSingles->drawSize());
 
         $this->assertGreaterThan(0,$menSingles->save());
 

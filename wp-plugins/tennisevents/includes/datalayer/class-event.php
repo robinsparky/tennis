@@ -37,6 +37,7 @@ class Event extends AbstractData
 	private static $tablename = 'tennis_event';
 	private static $datetimeformat = "Y-m-d H:i:s";
 	private static $dateformat = "!Y-m-d";
+	private static $storageformat = "Y-m-d";
 
 	private $name; //name or description of the event
 	private $parent_ID; //parent Event ID
@@ -66,8 +67,7 @@ class Event extends AbstractData
 		
 		$criteria .= strpos($criteria,'%') ? '' : '%';
 		
-		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`parent_ID`
-		              ,`signup_by`,`start_date`, `end_date` 
+		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`parent_ID`,`signup_by`,`start_date`, `end_date` 
 		        FROM $table WHERE `name` like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
@@ -120,8 +120,7 @@ class Event extends AbstractData
 		} elseif(!isset($fk_criteria)) {
 			//All events belonging to a specified club
 			$col_value = 0;
-			$sql = "SELECT `ID`,`event_type`,`name`,`format`,`parent_ID`
-				   		  ,`signup_by`,`start_date`,`end_date` 
+			$sql = "SELECT `ID`,`event_type`,`name`,`format`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
 					FROM $table;";
 		}
 		else {
@@ -147,7 +146,8 @@ class Event extends AbstractData
     static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "select ID,isroot,event_type,name,format,parent_ID from $table where ID=%d";
+		$sql = "SELECT ID,event_type,`name`,format,parent_ID,`signup_by`,`start_date`,`end_date` 
+		        FROM $table WHERE ID=%d";
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
@@ -670,7 +670,7 @@ class Event extends AbstractData
         $result = false;
         if(isset($home)) {
 			$this->getMatches();
-			$match = new Match($this->event_ID, $round);
+			$match = new Match($this->getID(), $round);
             $match->setHomeEntrant($home);
 			if(isset($visitor)) {
 				$match->setVisitorEntrant($visitor);
@@ -678,8 +678,9 @@ class Event extends AbstractData
 			else {
 				$match->setIsBye(true);
 			}
-            $this->matches[] = $match;
-            $result = $this->isdirty = true;
+			$this->matches[] = $match;
+			$result = $match;
+            $this->isdirty = true;
         }
 
         return $result;
@@ -695,7 +696,7 @@ class Event extends AbstractData
         if(isset($match) && $match->isValid()) {
             $this->getMatches();
             $this->matches[] = $match;
-            $result = $this->isdirty = true;
+			$result = $this->isdirty = true;
         }
         
         return $result;
@@ -899,16 +900,13 @@ class Event extends AbstractData
      */
     protected static function mapData($obj,$row) {
 		parent::mapData($obj,$row);
-        $obj->name = $row["name"];
+        $obj->name       = $row["name"];
         $obj->event_type = $row["event_type"];
-        $obj->parent_ID = $row["parent_ID"];
-		$obj->format = $row["format"];
-		$obj->signup_by = DateTime::createFromFormat(self::$dateformat,$row["signup_by"]);
-		if(!$obj->signup_by) $obj->signup_by = null;
-		$obj->start_date = DateTime::createFromFormat(self::$dateformat,$row["start_date"]);
-		if(!$obj->start_date) $obj->start_date = null;
-		$obj->end_date = DateTime::createFromFormat(self::$dateformat,$row["end_date"]);
-		if(!$obj->end_date) $obj->end_date = null;
+        $obj->parent_ID  = $row["parent_ID"];
+		$obj->format     = $row["format"];
+		$obj->signup_by  = isset($row['signup_by']) ? new DateTime($row['signup_by']) : null;
+		$obj->start_date = isset($row['start_date']) ? new DateTime($row['start_date']) : null;
+		$obj->end_date   = isset($row["end_date"]) ? new DateTime($row["end_date"]) : null;
 	}
 	
 	private function init() {

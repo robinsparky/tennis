@@ -234,16 +234,6 @@ class Club extends AbstractData
 		}
 		return false;
 	}
-
-	/**
-	 * Get all my children!
-	 * 1. Events
-	 * 2. Courts
-	 */
-    public function getChildren($force=FALSE) {
-		$this->fetchEvents($force);
-		$this->fetchCourts($force);
-	}
 	
 	public function isValid() {
 		$isvalid = TRUE;
@@ -347,7 +337,6 @@ class Club extends AbstractData
     protected static function mapData($obj,$row) {
         parent::mapData($obj,$row);
 		$obj->name = $row["name"];
-		$obj->getChildren();
 	}
 	
 	private function init() {

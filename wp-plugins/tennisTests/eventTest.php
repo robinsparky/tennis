@@ -5,7 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-Testing Events
 <?php 
 use PHPUnit\Framework\TestCase;
 /**
@@ -121,13 +120,13 @@ class EventTest extends TestCase
         // fwrite(STDOUT,PHP_EOL .  __METHOD__ .$mess . PHP_EOL);
         $this->assertEquals('2018-02-14 00:00:00',$test);
         
-        $this->assertTrue($child->setStartDate('2018/02/16'),'Test setting signup date');
+        $this->assertTrue($child->setStartDate('2018/02/16'),'Test setting start date');
         $test = $child->getStartDate_Str();
         // $mess = isset($test) ? " ***** start = $test" : " **** start is null";
         // fwrite(STDOUT,PHP_EOL .  __METHOD__ .$mess . PHP_EOL);
         $this->assertEquals('2018-02-16 00:00:00',$test);
 
-        $this->assertTrue($child->setEndDate('2018/02/20'),'Test setting signup date');
+        $this->assertTrue($child->setEndDate('2018/02/20'),'Test setting end date');
         $test = $child->getEndDate_Str();
         // $mess = isset($test) ? " ***** end = $test" : " **** end is null";
         // fwrite(STDOUT,PHP_EOL .  __METHOD__ .$mess . PHP_EOL);
@@ -156,10 +155,22 @@ class EventTest extends TestCase
         $anotherChild->setFormat(Format::GAMES);
         $this->assertTrue($mainevent->addChild($anotherChild),'Test adding child event');
         $this->assertFalse($mainevent->addChild($anotherChild),'Test adding duplicate child');
+        
+        $this->assertTrue($anotherChild->setSignupBy('2018/02/14'),'Test saving signup date');
+        $test = $anotherChild->getSignupBy_Str();
+        $this->assertEquals('2018-02-14 00:00:00',$test);
+
+        $this->assertTrue($anotherChild->setStartDate('2018/02/16'),'Test saving start date');
+        $test = $anotherChild->getStartDate_Str();
+        $this->assertEquals('2018-02-16 00:00:00',$test);
+
+        $this->assertTrue($anotherChild->setEndDate('2018/02/20'),'Test saving end date');
+        $test = $anotherChild->getEndDate_Str();
+        $this->assertEquals('2018-02-20 00:00:00',$test);
 
         $this->assertCount(3,$mainevent->getChildEvents(),'Test 3 children');
 
-        $this->assertEquals(1,$mainevent->save(),'Test saving with new 3rd child');
+        $this->assertGreaterThan(0,$mainevent->save(),'Test saving with new 3rd child');
         $this->assertEquals(0,$mainevent->save(),'Test saving with no changes');
         $this->assertFalse($mainevent->isDirty());
         $this->assertFalse($anotherChild->isDirty());
@@ -173,6 +184,13 @@ class EventTest extends TestCase
         $this->assertTrue($mainevent->removeChild($deleteChild),'Test removing delete child');
         $check = $mainevent->save();
         $this->assertCount(3,$mainevent->getChildEvents(),'Test 3 children');
+
+        //Fetch the event and compare the start date again
+        $evt = Event::get($anotherChild->getID());
+        //var_dump($evt);
+        $test = $evt->getStartDate_Str();
+        $this->assertEquals('2018-02-16 00:00:00',$test,'Test fetched events start date');
+
     }
 	
     public static function tearDownAfterClass()

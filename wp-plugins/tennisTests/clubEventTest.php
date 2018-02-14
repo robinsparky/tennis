@@ -5,7 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-Testing Clubs and Events
 <?php 
 use PHPUnit\Framework\TestCase;
 /**
