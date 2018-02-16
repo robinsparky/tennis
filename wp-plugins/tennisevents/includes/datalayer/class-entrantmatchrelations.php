@@ -50,12 +50,7 @@ class EntrantMatchRelations {
 		}
 
 		if($wpdb->last_error) {
-			if(!strpos($wpdb->last_error,'Duplicate entry')) {
-				throw new Exception($wpdb->last_error);
-			}
-			else {
-				error_log("EntrantMatchRelations.add: Last error='$wpdb->last_error'");
-			}
+			error_log("EntrantMatchRelations.add: Last error='$wpdb->last_error'");
 		}
 		
 		error_log("EntrantMatchRelations.add: added $result rows");

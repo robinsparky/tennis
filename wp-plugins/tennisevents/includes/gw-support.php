@@ -75,7 +75,7 @@ function gw_print_js() {
 
 add_action('wp_footer','gw_print_js');
 
-function gw_GetCallingMethodName(){
+function gw_GetCallingMethodName() {
 	$e = new Exception();
 	$trace = $e->getTrace(); // or use debug_trace
 	//position 0 would be the line that called this function so we ignore it

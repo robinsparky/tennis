@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
  */
 class MatchTest extends TestCase
 {
+    public static $mens;
 	
     public static function setUpBeforeClass()
     {
@@ -20,31 +21,9 @@ class MatchTest extends TestCase
         $table = "{$wpdb->prefix}tennis_match";
         $sql = "delete from $table where match_num between 1 and 999;";
         $wpdb->query($sql);
+        
         //fwrite(STDOUT, __METHOD__ . "\n");
 	}
-	
-	public function test_retrieve_entrants()
-	{
-        $clubs = Club::search('Tyandaga');
-        $this->assertCount(1,$clubs);
-        $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());  
-        $club = $clubs[0];  
-
-        $events = $club->getEvents();
-        $this->assertCount(1,$events);
-        $mainevent = $events[0];
-
-        $childEvents = $mainevent->getChildEvents();
-        $this->assertCount(3,$childEvents);
-        $mens = $mainevent->getNamedEvent('Mens Singles');
-        $this->assertEquals('Mens Singles',$mens->getName());
-
-        $mike = $mens->getNamedEntrant('Mike Flintoff');
-        $this->assertEquals('Mike Flintoff',$mike->getName());
-
-        $all = $mens->getDraw();
-        $this->assertCount(3,$all);
-    }
 
     public function test_create_matches() {
         
@@ -58,19 +37,52 @@ class MatchTest extends TestCase
 
         $childEvents = $mainevent->getChildEvents();
         $this->assertCount(3,$childEvents);
-        $mens = $mainevent->getNamedEvent('Mens Singles');
+        self::$mens = $mainevent->getNamedEvent('Mens Singles');
+        $this->assertFalse(self::$mens->isDirty());
 
-        $all = $mens->getDraw();
+        $mike = self::$mens->getNamedEntrant('Mike Flintoff');
+        $this->assertEquals('Mike Flintoff',$mike->getName());
+
+        $all = self::$mens->getDraw();
         $this->assertCount(3,$all);
 
-        for($i=0; $i < count($all) - 1; $i+=2) {
-            $match = $mens->addNewMatch(1,$all[$i],$all[$i+1]);
+        for( $i=0; $i < count($all) - 1; $i += 2 ) {
+            $match = self::$mens->addNewMatch(1,$all[$i],$all[$i+1]);
             $this->assertTrue($match instanceof Match);
-            $match->setMatchType(1.1);
+            $match->setMatchType(MatchType::MENS_SINGLES);
         }
-        $this->assertEquals(1, $mens->numMatches());
-        var_dump($mens);
-        $this->assertGreaterThan(0,$mens->save());
-        var_dump($mens);
+
+        $this->assertEquals(1, self::$mens->numMatches());
+        $matches = self::$mens->getMatches();
+        $this->assertCount(1,$matches);
+        //var_dump($mens);
+        $this->assertTrue(self::$mens->isDirty());
+        $this->assertGreaterThan(0,self::$mens->save());
+        //var_dump($mens);
+    }
+
+    public function test_match_scoring() {
+
+        $this->assertFalse(self::$mens->isDirty());
+        $this->assertEquals(1, self::$mens->numMatches());
+
+        $matches = self::$mens->getMatches();
+        $this->assertCount(1,$matches);
+
+        foreach($matches as $match) {
+            $match->setMatchDate(2018,4,16);
+            $this->assertEquals('2018-04-16',$match->getMatchDate_Str(),'Test match date');
+            $match->setMatchTime(2,30);
+            $this->assertEquals('02:30',$match->getMatchTime_Str(),'Test match time');
+            $this->assertTrue($match->setScore(1,6,3));
+            $this->assertTrue($match->isDirty(),'Match is dirty 1');
+            $this->assertTrue($match->setComments('Hello World'));
+            $this->assertTrue($match->getEvent()->isDirty(),'Matches parent is dirty 2');
+            $this->assertEquals(self::$mens,$match->getEvent(),'Mens equals parent');
+        }
+        
+        $this->assertTrue(self::$mens->isDirty(),'Mens singles must be dirty!');
+        $affected = self::$mens->save();
+        $this->assertEquals(2,$affected);
     }
 }

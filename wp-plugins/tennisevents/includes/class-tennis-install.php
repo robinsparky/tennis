@@ -289,7 +289,7 @@ class TE_Install {
 				`event_ID` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
-				`match_type` DECIMAL(2,1) NOT NULL COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles',
+				`match_type` DECIMAL(3,1) NOT NULL COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles',
 				`match_date` DATE NULL,
 				`match_time` TIME(6) NULL,
 				`is_bye` TINYINT DEFAULT 0,
@@ -313,6 +313,7 @@ class TE_Install {
 			`match_round_num` INT NOT NULL,
 			`match_num` INT NOT NULL,
 			`entrant_position` INT NOT NULL,
+			PRIMARY KEY(`match_event_ID`,`match_round_num`,`match_num`,`entrant_position`),
 			FOREIGN KEY (`match_event_ID`,`match_round_num`,`match_num`)
 				REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)
 				ON DELETE CASCADE

@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+$dir = plugin_dir_path( __DIR__ );
+include_once($dir . '/gw-support.php' );
+
 /**
 * Match scoring:
 * No ad
@@ -51,12 +54,14 @@ class MatchType {
 */
 class Match extends AbstractData
 { 
-    private const MAX_ROUNDS = 8;
+    private const MAX_ROUNDS = 7;
 
     private static $tablename = 'tennis_match';
 	private static $datetimeformat = "Y-m-d H:i:s";
-    private static $dateformat = "!Y-m-d";
-    private static $timeformat = "!H:i:s";
+    private static $indateformat = "!Y-m-d";
+    private static $outdateformat = "Y-m-d";
+    private static $intimeformat = "H:i";
+    private static $outtimeformat = "H:i";
     
     private $match_type; 
     private $event;
@@ -69,7 +74,7 @@ class Match extends AbstractData
 
     private $match_date;
     private $match_time;
-    private $is_bye;
+    private $is_bye = false;
 
     //Match needs 2 entrants: home and visitor
     private $home_ID;
@@ -114,11 +119,11 @@ class Match extends AbstractData
             list($eventID,$roundnum) = $fk_criteria;
         }
         
-        $sql = "select event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
-                from $table where event_ID = %d and round_ID = %d;";
+        $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
+                FROM $table WHERE event_ID = %d AND round_ID = %d;";
         if(!isset($roundnum)) {
-            $sql = "select event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
-                    from $table where event_ID = %d;";
+            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
+                    FROM $table WHERE event_ID = %d;";
         }
 		$safe = $wpdb->prepare($sql,$eventID,$roundnum);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
@@ -140,8 +145,8 @@ class Match extends AbstractData
         $obj = NULL;
         if(count($pks) !== 3) return $obj;
         
-        $sql = "select event_ID,round_num,match_num,match_type,match_date,match_time 
-                from $table where event_ID=%d and round_num=%d and match_num=%d;";
+        $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time 
+                FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
@@ -170,40 +175,21 @@ class Match extends AbstractData
             $game = null;
         }
     }
-    
-    public function setIdentifiers(...$pks) {
-        if(!$this->isNew()) return false;
 
-        if(2 === count($pks)) {
-            $this->event_ID  = $pks[0];
-            $this->round_num = $pks[1];
-        }
-        elseif(3 === count($pks)) {
-            $this->event_ID  = $pks[0];
-            $this->round_num = $pks[1];
-            $this->match_num = $pks[2];
-        }
-        return true;
-    }
-
-    public function getIdentifiers():array {
-        $ids = array();
-        $ids[] = $this->event_ID;
-        $ids[] = $this->round_num;
-        $ids[] = $this->match_num;
-
-        return $ids;
+    public function setDirty() {
+        $this->getEvent()->setDirty();
+        return parent::setDirty();
     }
     
     /**
      * Assign this Match to an Event
      */
-    public function setEvent(Event $event) {
+    public function setEvent( Event $event ) {
         $result = false;
-        if(!$event->isParentEvent()) {
+        if($event->isLeaf()) {
             $this->event = $event;
             $this->event_ID = $event->getID();
-            $result = $this->isdirty = TRUE;
+            $result = $this->setDirty();
         }
         return $result;
     }
@@ -211,37 +197,18 @@ class Match extends AbstractData
     /**
      * Get this Match's Event.
      */
-    public function getEvent($force=false):Event {
+    public function getEvent( $force = false ):Event {
         if((isset($this->event_ID) && !isset($this->event)) || $force) {
             $this->event = Event::get($this->event_ID);
         }
         return $this->event;
     }
 
-    /**
-     * Remove a Game from this Match
-     */
-    public function removeGame(Event $game) {
-		$result = false;
-		if(isset($game)) {
-			$i=0;
-			foreach($this->getGames() as $gm) {
-				if($game == $cm) {
-					$this->gamesToBeDeleted[] = $game->getID();
-					unset($this->games[$i]);
-					$result = $this->isdirty = true;
-				}
-				$i++;
-			}
-		}
-		return $result;
-    }
-
-    public function setRoundNumber(int $rn) {
+    public function setRoundNumber( int $rn ) {
         $result = false;
         if($rn > -1 & $rn <= self::MAX_ROUNDS) {
             $this->round_num = $rn;
-            $result = $this->isdirty = true;
+            $result = $this->setDirty();
         }
         return $result;
     }
@@ -250,9 +217,13 @@ class Match extends AbstractData
         return $this->round_num;
     }
 
-    public function setMatchNumber(int $mn) {
-        $this->match_num = $mn;
-        return $this->isdirty = true;
+    public function setMatchNumber( int $mn ) {
+        $result = false;
+        if($mn > 0) {
+            $this->match_num = $mn;
+            $result = $this->setDirty();
+        }
+        return $result;
     }
 
     public function getMatchNumber():int {
@@ -264,7 +235,7 @@ class Match extends AbstractData
 	 * @param $mtype 1.1=mens singles, 1.2=ladies singles, 2.1=mens dodubles, 2.2=ladies doubles, 2.3=mixed douibles
 	 * @return true if successful; false otherwise
 	 */
-	public function setMatchType(float $mtype) {
+	public function setMatchType( float $mtype ) {
 		$result = false;
         switch($mtype) {
             case MatchType::MENS_SINGLES:
@@ -273,7 +244,7 @@ class Match extends AbstractData
             case MatchType::WOMENS_DOUBLES:
             case MatchType::MIXED_DOUBLES:
                 $this->match_type = $mtype;
-                $result = $this->isdirty = true;
+                $result = $this->setDirty();
                 break;
         }
 		return $result;
@@ -285,11 +256,11 @@ class Match extends AbstractData
 
     /**
      * Set the date of the match
-     * @param $date is a string in Y-m=d format
+     * @param $date is a string in Y-m-d format
      */
-    public function setMatchDate(string $date) {
+    public function setMatchDate_Str( string $date ) {
 		$result = false;
-		$test = DateTime::createFromFormat(self::$dateformat,$end);
+		$test = DateTime::createFromFormat(self::$indateformat,$end);
 		if(false === $test) $test = DateTime::createFromFormat('!Y-m-d',$end);
 		if(false === $test) $test = DateTime::createFromFormat('!j/n/Y',$end);
 		if(false === $test) $test = DateTime::createFromFormat('!d/m/Y',$end);
@@ -305,10 +276,16 @@ class Match extends AbstractData
 		}
 		elseif($test instanceof DateTime) {
 			$this->match_date = $test;
-			$result = $this->isdirty = true;
+			$result = $this->setDirty();
 		}
 
         return $result;
+    }
+
+    public function setMatchDate(int $year, int $month, int $day) {
+        if(!isset($this->match_date)) $this->match_date = new DateTime();
+        $this->match_date->setDate($year,$month,$day);
+        $this->match_date->setTime(0,0,0);
     }
 
 	/**
@@ -316,7 +293,7 @@ class Match extends AbstractData
 	 */
 	public function getMatchDate_Str() {
 		if(!isset($this->match_date)) return null;
-		else return $this->match_date->format(self::$datetimeformat);
+		else return $this->match_date->format(self::$outdateformat);
 	}
 	
 	/**
@@ -331,9 +308,9 @@ class Match extends AbstractData
      * Set the time of the match
      * @param $time is a string in hh-mm-ss format
      */
-    public function setMatchTimeEx(string $time) {
+    public function setMatchTime_Str(string $time) {
 		$result = false;
-		$test = DateTime::createFromFormat(self::$timeformat,$end);
+		$test = DateTime::createFromFormat(self::$intimeformat,$end);
 		$last = DateTIme::getLastErrors();
 		if($last['error_count'] > 0) {
 			$arr = $last['errors'];
@@ -345,7 +322,7 @@ class Match extends AbstractData
 		}
 		elseif($test instanceof DateTime) {
 			$this->match_time = $test;
-			$result = $this->isdirty = true;
+			$result = $this->setDirty();
 		}
 
         return $result;
@@ -355,16 +332,15 @@ class Match extends AbstractData
         if(!isset($this->match_time)) {
             $this->match_time = new DateTime();
         }
-
         $this->match_time->setTime($hour,$minutes);
         $this->match_time->setDate(0,1,1);
         
-        return $this->isdirty = true;
+        return $this->setDirty();
     }
 
     public function getMatchTime_Str() {
-        if(!isset($this->match_tine)) return null;
-        else return $this->match_time()->format(self::$timeformat);
+        if(!isset($this->match_time)) return null;
+        else return $this->match_time->format(self::$outtimeformat);
     }
 
     public function getMatchTime() {
@@ -373,7 +349,7 @@ class Match extends AbstractData
 
     public function setIsBye(bool $by=false) {
         $this->is_by = $by;
-        return $this->isdirty = true;
+        return $this->setDirty();
     }
 
     public function isBye() {
@@ -385,7 +361,7 @@ class Match extends AbstractData
      */
     public function setComments(string $comment) {
         $this->comments = $comment;
-        $result = $this->isdirty = TRUE;
+        $result = $this->setDirty();
         return $result;
     }
 
@@ -397,40 +373,99 @@ class Match extends AbstractData
      * Get the Games for this Match
      */
     public function getGames() {
+        //var_dump(debug_backtrace());
         if(!isset($this->games)) $this->fetchGames();
         return $this->games;
+    }
+    
+    /**
+     * Set a score for a given Set of tennis.
+     * Updates a Game if already a child of this Match
+     * or creates a new Game and adds it to the Match's array of Games
+     * 
+     * @param int $set Identifies the set by number
+     * @param int $home_wins is the number of wins for the home entrant
+     * @param int @visitor_wins is the number of wins for the visitor entrant
+     * @throws nothing
+     * @return true if successful false otherwise
+     */
+    public function setScore( int $set, int $home_wins=0, int $visitor_wins=0 ) {
+        $result = false;
+        $found = false;
+
+        foreach($this->getGames() as $game) {
+            if($game->getSetNumber() === $set) {
+                $found = true;
+                $game->setHomeScore($home_wins);
+                $game->setVisitorScore($visitor_wins);
+                $result = $this->setDirty();
+            }
+        }
+        if(!$found) {
+            $game = new Game( $this->event_ID, $this->round_num, $this->match_num );
+            if($game->setSetNumber($set)) {
+                $game->setHomeScore($home_wins);
+                $game->setVisitorScore($visitor_wins);
+                $this->games[] = $game;
+                $result = $this->setDirty();
+                error_log("Match::setScore: added game with params:$this->event_ID, $this->round_num, $this->match_num in set $set");
+            }
+        }
+        
+        return $result;
     }
 
     /**
      * Add a Game to this Match
+     * @param $game Game contains the games won/lost for the Entrants
+     * NOTE that games are the games won/lost for a whole set.
      */
-    public function addGame(Game $game) {
+    public function addGame( Game $game ) {
         $result = false;
         if(isset($game)) {
             $found = false;
             foreach($this->getGames() as $gm) {
-                if($game == $gm) {
+                if($game->getSetNumber() === $gm->getSetNumber()) {
                     $found = true;
                     break;
                 }
             }
             if(!$found) {
                 $this->games[] = $game;
-                $result = $this->isdirty = true;
+                $result = $this->setDirty();
             }
         }
         return $result;
+    }
+    
+    /**
+     * Remove a Game from this Match
+     */
+    public function removeGame( Game $game ) {
+		$result = false;
+		if(isset($game)) {
+			$i=0;
+			foreach($this->getGames() as $gm) {
+				if($game->getSetNumber() == $gm->getSetNumber()) {
+					$this->gamesToBeDeleted[] = clone $game;
+                    unset($this->games[$i]);
+					$result =  $this->setDirty();
+				}
+				$i++;
+			}
+		}
+		return $result;
     }
 
     /**
      * Set the Home opponent for this match
      */
-    public function setHomeEntrant(Entrant $h=null) {
+    public function setHomeEntrant( Entrant $h = null ) {
         $result = false;
         if(isset($h)) {
             $this->home = $h;
             $this->home_ID = $h->getID();
-            $result = $this->isdirty = true;
+            $result = $this->setDirty();
         }
         else {
             $this->home = null;
@@ -447,12 +482,12 @@ class Match extends AbstractData
     /**
      * Set the Visitor opponent for this match
      */
-    public function setVisitorEntrant(Entrant $v) {
+    public function setVisitorEntrant( Entrant $v ) {
         $result = false;
         if(isset($v)) {
             $this->visitor = $v;
             $this->visitor_ID = $v->getID();
-            $result = $this->isdirty = TRUE;
+            $result = $this->setDirty();
         }
         else {
             $this->visitor = null;
@@ -461,167 +496,44 @@ class Match extends AbstractData
         return $result;
     }
 
+    /**
+     * Get the visitor Entrant
+     */
     public function getVisitorEntrant():Entrant {
         if(!isset($this->visitor)) $this->fetchEntrants();
         return $this->visitor;
     }
-
-    /**
-     * Set a score for a given Set of tennis.
-     * Updates a Game if already a child of this Match
-     * or creates a new Game and adds it to the Match's array of Games
-     * 
-     * @param $set Identifies the set by number
-     * @param int $home_wins is the number of wins for the home entrant
-     * @param int @visitor_wins is the number of wins for the visitor entrant
-     * @throws nothing
-     * @return true if successful false otherwise
-     */
-    public function setScore(int $set,int $home_wins=0,int $visitor_wins=0) {
-        $result = false;
-
-        $setfound = FALSE;
-        foreach($this->getGames() as $game) {
-            if($game->getSetNumber() === $set) {
-                $setfound = TRUE;
-                $game->setHomeScore($home_wins);
-                $game->setVisitorScore($visitor_wins);
-                break;
-            }
-        }
-        if(!$setfound) {
-            $game = new Game($this->event_ID,$this->round_num,$this->match_num);
-            if($game->setSetNumber($set)) {
-                $game->setHomeScore($home_wins);
-                $game->setVisitorScore($visitor_wins);
-                $this->games[] = $game;
-            }
-        }
-        $result = $this->isdirty = true;
-
-        return $result;
-    }
-
-    private function fetchEntrants($force=false) {
-        if(isset($this->home) && isset($this->visitor) && !force) return;
-        
-        $contestants = Entrant::find($this->event_ID, $this->round_num, $this->match_num);
-        switch(count($contestants)) {
-            case 1:
-                $this->home = $contestants[0];
-                $this->home_ID = $this->home->getID();
-                $this->visitor = NULL;
-                $this->visitor_ID = NULL;
-                break;
-            case 2:
-                $this->home = $contestants[0];
-                $this->home_ID = $this->home->getID();
-                $this->visitor = $contestant[1];
-                $this->visitor_ID = $this->visitor->getID();
-                break;
-            default:
-                $this->home = NULL;
-                $this->home_ID = NULL;
-                $this->visitor = NULL;
-                $this->visitor_ID = NULL;
-            break;
-        }
-    }
-
-    private function fetchGames($force=false) {
-        if(!isset($this->games) || $force) $this->games = Game::find($this->event_ID,$this->round_num,$this->match_num);
-    }
     
+    /**
+     * Check if match is valid (ready to go)
+     * @throws InvalidMatchException
+     */
     public function isValid() {
         $mess = '';
+        $this->getHomeEntrant();
+        $this->getVisitorEntrant();
         if(!isset($this->event_ID)) $mess = __('Match must have an event id.');
         if(!isset($this->round_num)) $mess = __('Match must have a round number.');
         if(!$this->isNew() && (!isset($this->match_num) || $this->match_num === 0)) $mess=__('Existing match must have a match number.');
         if(!isset($this->home_ID)) $mess = __('Match must have a home entrant id.');
-        if(!isset($this->visitor_ID)) $mess = __('Match must have a visitor entrant id.');
+        if(!isset($this->visitor_ID) && !$this->isBye()) $mess = __('Match is not a bye so must have a visitor entrant id.');
         if(!isset($this->match_type)) $mess = __('Match must have a match type');
+        switch($this->match_type) {
+            case MatchType::MENS_SINGLES:
+            case MatchType::WOMENS_SINGLES:
+            case MatchType::MENS_DOUBLES:
+            case MatchType::WOMENS_DOUBLES:
+            case MatchType::MIXED_DOUBLES:
+                break;
+            default:
+            $mess = __("Match Type is invalid: $this->match_type");
+        }
 
         if(strlen($mess) > 0) throw new InvalidMatchException($mess);
 
         return true;
     }
-
-	protected function create() {
-        global $wpdb;
-        
-        parent::create();
-
-        $table = $wpdb->prefix . self::$tablename;
-
-        $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
-        
-		$sql = "SELECT IFNULL(MAX(round_num),0) FROM $table WHERE event_ID=%d;";
-        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
-        $nextRound = $wpdb->get_var($safe) + 1;
-        if($nextRound > self::MAX_ROUNDS) {
-            $this->round_num = self::MAX_ROUNDS;
-        }
-        
-		$sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
-        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
-        $this->match_num = $wpdb->get_var($safe) + 1;
-
-        $values = array( 'event_ID'    => $this->event_ID
-                        ,'round_num'   => $this->round_num
-                        ,'match_num'   => $this->match_num
-                        ,'match_type'  => $this->match_type
-                        ,'match_date'  => $this->getMatchDate_Str()
-                        ,'match_time'  => $this->getMatchTime_Str()
-                        ,'is_bye'      => $this->is_bye ? 1 : 0
-                        ,'comments'    => $this->comments);
-        $formats_values = array('%d','%d','%d','%f','%s','%s','%d','%s');
-		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-        $this->isnew = FALSE;
-		$this->isdirty = FALSE;
-        $result = $wpdb->rows_affected;
-        
-		$wpdb->query("UNLOCK TABLES;");
-
-        error_log("Match::create $wpdb->rows_affected rows affected.");
-        
-        foreach($this->getGames() as $game) {
-            $result += $game->save();
-        }
-        
-        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
-        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
-
-		return $result;
-	}
-
-	protected function update() {
-		global $wpdb;
-
-        parent::update();
-
-        $values = array( 'match_type'  => $this->match_type
-                        ,'match_date'  => $this->getMatchDate_Str()
-                        ,'match_time'  => $this->getMatchTime_Str()
-                        ,'is_bye'      => $this->is_bye ? 1 : 0
-                        ,'comments'    => $this->comments);
-		$formats_values = array('%f','%s','%s','%d','%s');
-        $where          = array( 'event_ID'  => $this->event_ID
-                                ,'round_num' => $this->round_num
-                                ,'match_num' => $this->match_num);
-		$formats_where  = array('%d'.'%d','%d');
-		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
-        $this->isdirty = FALSE;
-        $result = $wpdb->rows_affected;
-
-        error_log("Match::update $wpdb->rows_affected rows affected.");
-        
-        foreach($this->getGames() as $game) {
-            $result += $game->save();
-        }
-        
-		return $result;
-	}
-
+    
     /**
      * Delete this match
      */
@@ -643,6 +555,153 @@ class Match extends AbstractData
         error_log("Match.delete: deleted $result rows");
         return $result;
     }
+
+    /**
+     * Fetch the 1,2 or zero Entrants from the database.
+     * @param $force IF true then Entrants will be fetched and overwrite existing.
+     */
+    private function fetchEntrants($force=false) {
+        if(isset($this->home) && isset($this->visitor) && !force) return;
+        
+        $contestants = Entrant::find($this->event_ID, $this->round_num, $this->match_num);
+        switch(count($contestants)) {
+            case 1:
+                $this->home = $contestants[0];
+                $this->home_ID = $this->home->getID();
+                $this->visitor = NULL;
+                $this->visitor_ID = NULL;
+                break;
+            case 2:
+                $this->home = $contestants[0];
+                $this->home_ID = $this->home->getID();
+                $this->visitor = $contestants[1];
+                $this->visitor_ID = $this->visitor->getID();
+                break;
+            default:
+                $this->home = NULL;
+                $this->home_ID = NULL;
+                $this->visitor = NULL;
+                $this->visitor_ID = NULL;
+            break;
+        }
+    }
+
+	/**
+	 * Fetch all Games for this Match
+	 * Root-level Events can be associated with one or more clubs
+	 * @param $force When set to true will force loading of Games from db
+	 *               This will cause unsaved games to be lost.
+	 */
+    private function fetchGames($force=false) {
+        //var_dump(debug_backtrace());
+        if(!isset($this->games) || $force) {
+            $this->games = Game::find($this->event_ID,$this->round_num,$this->match_num);
+        }
+    }
+
+	protected function create() {
+        global $wpdb;
+        
+        parent::create();
+
+        $table = $wpdb->prefix . self::$tablename;
+
+        $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
+        
+		$sql = "SELECT IFNULL(MAX(round_num),0) FROM $table WHERE event_ID=%d;";
+        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
+        $nextRound = $wpdb->get_var($safe) + 1;
+        if($nextRound > self::MAX_ROUNDS) {
+            $this->round_num = self::MAX_ROUNDS;
+            $this->isnew = FALSE;
+            error_log("Match::create: Round number limited to '$this->round_num'");
+        }
+        
+
+		$sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
+        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
+        $this->match_num = $wpdb->get_var($safe) + 1;
+        error_log("Match::create: match number assigned is '$this->match_num'");
+
+        error_log("Match::create: match type is '$this->match_type'");
+
+        $values = array( 'event_ID'    => $this->event_ID
+                        ,'round_num'   => $this->round_num
+                        ,'match_num'   => $this->match_num
+                        ,'match_type'  => $this->match_type
+                        ,'match_date'  => $this->getMatchDate_Str()
+                        ,'match_time'  => $this->getMatchTime_Str()
+                        ,'is_bye'      => $this->is_bye ? 1 : 0
+                        ,'comments'    => $this->comments);
+        $formats_values = array('%d','%d','%d','%f','%s','%s','%d','%s');
+		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+        $this->isnew = FALSE;
+		$this->isdirty = FALSE;
+        $result = $wpdb->rows_affected;
+
+        if($wpdb->last_error) {
+            error_log("Match::create: sql error: $wpdb->last_error");
+        }
+        
+		$wpdb->query("UNLOCK TABLES;");
+
+        error_log("Match::create: $result rows affected.");
+        
+        foreach($this->getGames() as $game) {
+            $result += $game->save();
+        }
+        
+        foreach($this->gamesToBeDeleted as $game) {
+            $game->delete();
+        }
+        
+        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
+        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
+
+		return $result;
+	}
+
+	protected function update() {
+		global $wpdb;
+
+        parent::update();
+
+        $md = $this->getMatchDate_Str();
+        $mt = $this->getMatchTime_Str();
+        error_log("Match::update values=<$this->match_type,'$md','$mt','$this->is_bye','$this->comments'>");
+
+        $values = array( 'match_type'  => $this->match_type
+                        ,'match_date'  => $this->getMatchDate_Str()
+                        ,'match_time'  => $this->getMatchTime_Str()
+                        ,'is_bye'      => $this->is_bye ? 1 : 0
+                        ,'comments'    => $this->comments );
+		$formats_values = array( '%f', '%s', '%s', '%d', '%s' );
+        $where          = array( 'event_ID'  => $this->event_ID
+                                ,'round_num' => $this->round_num
+                                ,'match_num' => $this->match_num );
+        $formats_where  = array( '%d', '%d', '%d' );
+
+        error_log("Match::update: where=$this->event_ID, $this->round_num, $this->match_num");
+        $check = $wpdb->update( $wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where );
+        
+        $this->isdirty = FALSE;
+        $result = $wpdb->rows_affected;
+
+        error_log( "Match::update $result rows affected." );
+        
+        foreach($this->getGames() as $game) {
+            $result += $game->save();
+        }
+        
+        foreach($this->gamesToBeDeleted as $game) {
+            $game->delete();
+        }
+
+        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
+        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
+        
+		return $result;
+	}
     
     /**
      * Map incoming data to an instance of Match
@@ -655,7 +714,7 @@ class Match extends AbstractData
         $obj->match_type = $row["match_type"];
 		$obj->match_date = isset($row["match_date"]) ? new DateTime($row["match_date"]) : null;
 		$obj->match_time = isset($row["match_time"]) ?  new DateTime($row["match_time"]) : null;
-        $obj->is_bye     = $row["is_bye"];
+        $obj->is_bye     = $row["is_bye"] == 1 ? true : false;
         $obj->comments   = $row["comments"];
     }
     
@@ -666,15 +725,15 @@ class Match extends AbstractData
     private function init() {
         // $this->event_ID   = NULL;
         // $this->round_num  = NULL;
-        $this->match_num  = NULL;
-        $this->match_type = NULL;
-        $this->match_date = NULL;
-        $this->match_time = NULL;
-        $this->home_ID    = NULL;
-        $this->home       = NULL;
-        $this->visitor_ID = NULL;
-        $this->visitor    = NULL;
-        $this->games      = NULL;
+        // $this->match_num  = NULL;
+        // $this->match_type = NULL;
+        // $this->match_date = NULL;
+        // $this->match_time = NULL;
+        // $this->home_ID    = NULL;
+        // $this->home       = NULL;
+        // $this->visitor_ID = NULL;
+        // $this->visitor    = NULL;
+        // $this->games      = NULL;
     }
 
 } //end class

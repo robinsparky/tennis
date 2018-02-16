@@ -26,12 +26,13 @@ class Game extends AbstractData
     private $match_num;
     private $set_num;
 
-    private $home_wins;
-    private $visitor_wins;
-    private $home_tb_pts;
-    private $visitor_tb_pts;
-    private $home_ties;
-    private $visitor_ties;
+    //Various scores
+    private $home_wins      = 0;
+    private $visitor_wins   = 0;
+    private $home_tb_pts    = 0;
+    private $visitor_tb_pts = 0;
+    private $home_ties      = 0;
+    private $visitor_ties   = 0;
     
     /**
      * Search for Matches that have a name 'like' the provided criteria
@@ -50,20 +51,21 @@ class Game extends AbstractData
         $col = array();
  
         $sql = "SELECT event_ID,round_num,match_num,set_num
-                    ,home_wins,visitor_wins 
+                    ,home_wins, visitor_wins 
                     ,home_tb_pts, visitor_tb_pts 
-                    .home_ties, visitor_ties
+                    ,home_ties, visitor_ties
                  FROM $table 
                  WHERE event_ID = %d 
                  AND   round_num = %d 
                  AND   match_num = %d;";
+
 		$safe = $wpdb->prepare($sql,$fk_criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
 		error_log("Game::find $wpdb->num_rows rows returned");
 
 		foreach($rows as $row) {
-            $obj = new Game;
+            $obj = new Game($fk_criteria[0],$fk_criteria[1],$fk_criteria[2]);
             self::mapData($obj,$row);
 			$col[] = $obj;
 		}
@@ -76,8 +78,10 @@ class Game extends AbstractData
     static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
+        $obj = NULL;
+        
 		$sql = "SELECT event_ID,round_num,match_num,set_num
-                      ,home_wins,visitor_wins 
+                      ,home_wins, visitor_wins 
                       ,home_tb_pts, visitor_tb_pts 
                       ,home_ties, visitor_ties
                 FROM $table 
@@ -90,9 +94,8 @@ class Game extends AbstractData
 
 		error_log("Game::get(id) $wpdb->num_rows rows returned.");
 
-        $obj = NULL;
 		if(count($rows) === 1) {
-            $obj = new Game;
+            $obj = new Game($pks[0],$pks[1],$pks[2],$pks[3]);
             self::mapData($obj,$rows[0]);
 		}
 		return $obj;
@@ -101,10 +104,12 @@ class Game extends AbstractData
 	/*************** Instance Methods ****************/
 	public function __construct(int $eventID, int $round, int $match,int $set=NULL) {
         $this->isnew = TRUE;
-        $this->eventID   = $eventID;
+        $this->event_ID   = $eventID;
         $this->round_num = $round;
         $this->match_num = $match;
-        $this->set_num   = $set;
+        if( $set >= self::MINSETS && $set <= self::MAXSETS ) {
+            $this->set_number = $set;
+        }
         $this->init();
     }
 
@@ -112,33 +117,6 @@ class Game extends AbstractData
 
     }
     
-    public function setIdentifiers(...$pks) {
-        if(!$this->isNew()) return false;
-
-        if(3 === count($pks)) {
-            $this->event_ID  = $pks[0];
-            $this->round_num = $pks[1];
-            $this->match_num = $pks[2];
-        }
-        elseif(4 === count($pks)) {
-            $this->event_ID  = $pks[0];
-            $this->round_num = $pks[1];
-            $this->match_num = $pks[2];
-            $this->set_num   = $pks[3];
-        }
-        return true;
-    }
-
-    public function getIdentifiers() {
-        $ids = array();
-        $ids[] = $this->event_ID;
-        $ids[] = $this->round_num;
-        $ids[] = $this->match_num;
-        $ids[] = $this->set_num;
-        
-        return $ids;
-    }
-
     public function setSetNumber(int $set) {
         $result = false;
         if( $set >= self::MINSETS && $set <= self::MAXSETS ) {
@@ -200,14 +178,14 @@ class Game extends AbstractData
     
     public function isValid() {
         $mess = '';
-        if(!isset($this->event_ID)) $mess = __("Missing event ID.");
-        if(!isset($this->round_num)) $mess = __("Missing round number.");
-        if(!isset($this->match_num)) $mess = __("Misisng match number.");
-        if(!$this->isNew() && !isset($this->set_num)) $mess = __("Missing set number.");
-        if(!isset($this->home_wins) && !isset($this->visitor_wins))  $mess = __("No scores are set.");
-        if(0 === $this->home_wins && 0 === $this->visitor_wins) $mess = __("Both home and visitor scores cannot be zero");
+        if( !isset( $this->event_ID ) )  $mess = __( "Missing event ID." );
+        if( !isset( $this->round_num ) ) $mess = __( "Missing round number." );
+        if( !isset( $this->match_num ) ) $mess = __( "Misisng match number." );
+        if( !$this->isNew() && !isset( $this->set_num ) ) $mess =  __( "Missing set number." );
+        if( !isset( $this->home_wins ) && !isset( $this->visitor_wins ))  $mess =  __( "No scores are set." );
+        if( 0 === $this->home_wins && 0 === $this->visitor_wins) $mess =  __( "Both home and visitor scores cannot be zero" );
 
-        if(strlen($mess) > 0) throw new InvalidGameException($mess);
+        if(strlen( $mess ) > 0) throw new InvalidGameException( $mess );
         return true;
     }
     
@@ -216,16 +194,17 @@ class Game extends AbstractData
      */
     public function delete() {
         $table = $wpdb->prefix . self::$tablename;
-        $where = array('event_ID' => $this->event_ID
+        $where = array( 'event_ID' => $this->event_ID
                         ,'round_num' => $this->round_num
                         ,'match_num' => $this->match_num
-                        ,'set_num'   => $this->set_num);
-        $formats_where = array('%d','%d','%d','%d');
+                        ,'set_num'   => $this->set_num );
+        $formats_where = array( '%d', '%d', '%d', '%d' );
 
-        $wpdb->delete($table,$where,$formats_where);
+        $wpdb->delete( $table, $where, $formats_where );
         $result += $wpdb->rows_affected;
 
-        error_log("Game.delete: deleted $result rows");
+        error_log( "Game.delete: deleted $result rows" );
+
         return $result;
     }
 
@@ -235,21 +214,22 @@ class Game extends AbstractData
         parent::create();
         
 		$table = $wpdb->prefix . self::$tablename;
-        $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
+        $wpdb->query( "LOCK TABLES $table LOW_PRIORITY WRITE;" );
         
 		$sql = "SELECT IFNULL(MAX(set_num),0) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
-        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num,$this->match_num);
-        $this->set_num = $wpdb->get_var($safe,0,0) + 1;
+        $safe = $wpdb->prepare( $sql, $this->event_ID, $this->round_num, $this->match_num );
+        $this->set_num = $wpdb->get_var( $safe,0,0 ) + 1;
+        error_log("Game::create: set number assigned is '$this->set_num'");
         
-        if($this->set_num < self::MINSETS) $this->set_num = self::MINSETS;
         if($this->set_num > self::MAXSETS) {
             $this->set_num = self::MAXSETS;
             $wpdb->query("UNLOCK TABLES;");
             $this->isnew = FALSE;
-            return 0;
+            error_log("Game::create: set number limited to '$this->set_num'");
+            return $this->update();
         }
         
-        $this->game_num =  $wpdb->get_var($safe,0,1) + 1;
+        $this->game_num =  $wpdb->get_var( $safe,0,1 ) + 1;
 
         $values = array( 'event_ID'       => $this->event_ID
                         ,'round_num'      => $this->round_num
@@ -261,15 +241,15 @@ class Game extends AbstractData
                         ,'visitor_tb_pts' => $this->visitor_tb_pts
                         ,'home_ties'      => $this->home_ties
                         ,'visitor_ties'   => $this->visitor_ties);
-		$formats_values = array('%d','%d','%d','%d','%d','%d','%d','%d','%d','%d');
-		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+		$formats_values = array( '%d','%d','%d','%d','%d','%d','%d','%d','%d','%d' );
+		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
         $result =  $wpdb->rows_affected;
-        $wpdb->query("UNLOCK TABLES;");
+        $wpdb->query( "UNLOCK TABLES;" );
 
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
 
-		error_log("Game::create $wpdb->rows_affected rows affected.");
+		error_log("Game::create $result rows affected.");
 
 		return $result;
 	}
@@ -284,18 +264,18 @@ class Game extends AbstractData
                         ,'home_tb_pts'    => $this->home_tb_pts
                         ,'visitor_tb_pts' => $this->visitor_tb_pts
                         ,'home_ties'      => $this->home_ties
-                        ,'visitor_ties'   => $this->visitor_ties);
-		$formats_values = array('%d','%d','%d','%d','%d','%d');
+                        ,'visitor_ties'   => $this->visitor_ties );
+		$formats_values = array( '%d', '%d', '%d', '%d', '%d', '%d' );
         $where = array('event_ID'       => $this->event_ID
                       ,'round_num'      => $this->round_num
                       ,'match_num'      => $this->match_num
                       ,'set_num'        => $this->set_num);
-		$formats_where  = array('%d','%d','%d','%d');
-		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);
+		$formats_where  = array( '%d', '%d', '%d', '%d' );
+		$wpdb->update( $wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where );
 		$this->isdirty = FALSE;
         $result =  $wpdb->rows_affected;
 
-		error_log("Game::update $wpdb->rows_affected rows affected.");
+		error_log("Game::update $result rows affected.");
 
 		return $result;
     }
@@ -303,21 +283,21 @@ class Game extends AbstractData
     /**
      * Map incoming data to an instance of Game
      */
-    protected static function mapData($obj,$row) {
+    protected static function mapData( $obj, $row ) {
         parent::mapData($obj,$row);
-        $obj->event_ID  = $row["event_ID"];
-        $obj->round_num = $row["round_num"];
-        $obj->match_num = $row["match_num"];
-        $obj->set_num   = $row["set_num"];
-        $obj->homes_wins = $row["home_wins"];
-        $obj->visitor_wins = $row["visitor_wins"];
-        $obj->home_tb_pts  = $row["home_tb_pts"];
-        $obj->visitor_tb_pts = $row["visitor_tb_pts"];
-        $obj->home_ties = $row["home_ties"];
-        $obj->visitor_ties = $row["visitor_ties"];
+        $obj->event_ID        = $row["event_ID"];
+        $obj->round_num       = $row["round_num"];
+        $obj->match_num       = $row["match_num"];
+        $obj->set_num         = $row["set_num"];
+        $obj->homes_wins      = $row["home_wins"];
+        $obj->visitor_wins    = $row["visitor_wins"];
+        $obj->home_tb_pts     = $row["home_tb_pts"];
+        $obj->visitor_tb_pts  = $row["visitor_tb_pts"];
+        $obj->home_ties       = $row["home_ties"];
+        $obj->visitor_ties    = $row["visitor_ties"];
     }
  
-    private function getIndex($obj) {
+    private function getIndex( $obj ) {
         return $obj->getPosition();
     }
 
@@ -326,11 +306,11 @@ class Game extends AbstractData
         // $this->round_num    = NULL;
         // $this->match_num    = NULL;
         // $this->set_number   = NULL;
-        $this->home_wins      = 0;
-        $this->visitor_wins   = 0;
-        $this->home_tb_pts    = 0;
-        $this->visitor_tb_pts = 0;
-        $this->home_ties      = 0;
-        $this->visitor_ties   = 0;
+        // $this->home_wins      = 0;
+        // $this->visitor_wins   = 0;
+        // $this->home_tb_pts    = 0;
+        // $this->visitor_tb_pts = 0;
+        // $this->home_ties      = 0;
+        // $this->visitor_ties   = 0;
     }
 } //end class

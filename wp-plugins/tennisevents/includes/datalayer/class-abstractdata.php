@@ -52,6 +52,10 @@ abstract class AbstractData
         return $this->isdirty;
     }
 
+    public function setDirty() {
+        return $this->isdirty = true;
+    }
+
     /**
      * Is this a new object?
      */

@@ -56,7 +56,7 @@ class ResearchTest extends TestCase
         $o7->date->setTime(5,30);
         $o7->date->setDate(0,1,1);
         var_dump($o7);
-*/
+
 
         $o7 = new stdclass;
         $o7->format="Y-m-d";
@@ -76,6 +76,19 @@ class ResearchTest extends TestCase
         $test = $td->format("Y-m-d H:i:s");
         $mess = isset($test) ? "--->Start = $test" : " --->Start is null";
         fwrite(STDOUT,PHP_EOL .  __METHOD__ .$mess . PHP_EOL);
+        */
+
+        $root = Event::get(1);
+        $this->assertFalse($root->isDirty());
+        $mens = $root->getNamedEvent('Mens Singles');
+        $this->assertFalse($mens->isDirty());
+        $refMens = $root->getNamedEvent('Mens Singles');
+        $this->assertTrue($mens === $refMens);
+        
+        $mens->setFormat(Format::DOUBLE_ELIM);
+        $this->assertTrue($mens->isDirty());
+        $this->assertTrue($refMens->isDirty());
+        $this->assertTrue($root->isDirty());
     }
 
 }
