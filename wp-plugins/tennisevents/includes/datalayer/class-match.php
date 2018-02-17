@@ -84,9 +84,9 @@ class Match extends AbstractData
 
     private $comments;
     
-    //Games
-    private $games;
-    private $gamesToBeDeleted = array();
+    //Sets in this Match
+    private $sets;
+    private $setsToBeDeleted = array();
     
     /**
      * Search for Matches that have a name 'like' the provided criteria
@@ -171,8 +171,8 @@ class Match extends AbstractData
 
     public function __destruct() {
         $this->event = null;
-        foreach($this->getGames() as $game) {
-            $game = null;
+        foreach($this->getSets() as $set) {
+            $set = null;
         }
     }
 
@@ -370,18 +370,18 @@ class Match extends AbstractData
     }
 
     /**
-     * Get the Games for this Match
+     * Get the Sets for this Match
      */
-    public function getGames() {
+    public function getSets() {
         //var_dump(debug_backtrace());
-        if(!isset($this->games)) $this->fetchGames();
-        return $this->games;
+        if(!isset($this->sets)) $this->fetchSets();
+        return $this->sets;
     }
     
     /**
      * Set a score for a given Set of tennis.
-     * Updates a Game if already a child of this Match
-     * or creates a new Game and adds it to the Match's array of Games
+     * Updates a Set if already a child of this Match
+     * or creates a new Set and adds it to the Match's array of Sets
      * 
      * @param int $set Identifies the set by number
      * @param int $home_wins is the number of wins for the home entrant
@@ -389,26 +389,26 @@ class Match extends AbstractData
      * @throws nothing
      * @return true if successful false otherwise
      */
-    public function setScore( int $set, int $home_wins=0, int $visitor_wins=0 ) {
+    public function setScore( int $setnum, int $home_wins=0, int $visitor_wins=0 ) {
         $result = false;
         $found = false;
 
-        foreach($this->getGames() as $game) {
-            if($game->getSetNumber() === $set) {
+        foreach($this->getSets() as $set) {
+            if($set->getSetNumber() === $setnum) {
                 $found = true;
-                $game->setHomeScore($home_wins);
-                $game->setVisitorScore($visitor_wins);
+                $set->setHomeScore($home_wins);
+                $set->setVisitorScore($visitor_wins);
                 $result = $this->setDirty();
             }
         }
         if(!$found) {
-            $game = new Game( $this->event_ID, $this->round_num, $this->match_num );
-            if($game->setSetNumber($set)) {
-                $game->setHomeScore($home_wins);
-                $game->setVisitorScore($visitor_wins);
-                $this->games[] = $game;
+            $set = new Set( $this->event_ID, $this->round_num, $this->match_num );
+            if($set->setSetNumber($setnum)) {
+                $set->setHomeScore($home_wins);
+                $set->setVisitorScore($visitor_wins);
+                $this->sets[] = $set;
                 $result = $this->setDirty();
-                error_log("Match::setScore: added game with params:$this->event_ID, $this->round_num, $this->match_num in set $set");
+                error_log("Match::setScore: added set with params:$this->event_ID, $this->round_num, $this->match_num in set $setnum");
             }
         }
         
@@ -416,22 +416,21 @@ class Match extends AbstractData
     }
 
     /**
-     * Add a Game to this Match
-     * @param $game Game contains the games won/lost for the Entrants
-     * NOTE that games are the games won/lost for a whole set.
+     * Add a Set to this Match
+     * @param $set Set contains the games won/lost for the Entrants
      */
-    public function addGame( Game $game ) {
+    public function addSet( Set $set ) {
         $result = false;
-        if(isset($game)) {
+        if(isset($set)) {
             $found = false;
-            foreach($this->getGames() as $gm) {
-                if($game->getSetNumber() === $gm->getSetNumber()) {
+            foreach($this->getSets() as $s) {
+                if($set->getSetNumber() === $s->getSetNumber()) {
                     $found = true;
                     break;
                 }
             }
             if(!$found) {
-                $this->games[] = $game;
+                $this->sets[] = $set;
                 $result = $this->setDirty();
             }
         }
@@ -439,16 +438,16 @@ class Match extends AbstractData
     }
     
     /**
-     * Remove a Game from this Match
+     * Remove a Set from this Match
      */
-    public function removeGame( Game $game ) {
+    public function removeSet( Set $set ) {
 		$result = false;
-		if(isset($game)) {
+		if(isset($set)) {
 			$i=0;
-			foreach($this->getGames() as $gm) {
-				if($game->getSetNumber() == $gm->getSetNumber()) {
-					$this->gamesToBeDeleted[] = clone $game;
-                    unset($this->games[$i]);
+			foreach($this->getSets() as $s) {
+				if($set->getSetNumber() == $s->getSetNumber()) {
+					$this->setsToBeDeleted[] = clone $set;
+                    unset($this->sets[$i]);
 					$result =  $this->setDirty();
 				}
 				$i++;
@@ -587,15 +586,15 @@ class Match extends AbstractData
     }
 
 	/**
-	 * Fetch all Games for this Match
+	 * Fetch all Sets for this Match
 	 * Root-level Events can be associated with one or more clubs
-	 * @param $force When set to true will force loading of Games from db
-	 *               This will cause unsaved games to be lost.
+	 * @param $force When set to true will force loading of Sets from db
+	 *               This will cause unsaved Sets to be lost.
 	 */
-    private function fetchGames($force=false) {
+    private function fetchSets($force=false) {
         //var_dump(debug_backtrace());
-        if(!isset($this->games) || $force) {
-            $this->games = Game::find($this->event_ID,$this->round_num,$this->match_num);
+        if(!isset($this->sets) || $force) {
+            $this->sets = Set::find($this->event_ID,$this->round_num,$this->match_num);
         }
     }
 
@@ -647,12 +646,12 @@ class Match extends AbstractData
 
         error_log("Match::create: $result rows affected.");
         
-        foreach($this->getGames() as $game) {
-            $result += $game->save();
+        foreach($this->getSets() as $set) {
+            $result += $set->save();
         }
         
-        foreach($this->gamesToBeDeleted as $game) {
-            $game->delete();
+        foreach($this->setsToBeDeleted as $set) {
+            $set->delete();
         }
         
         $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
@@ -689,12 +688,12 @@ class Match extends AbstractData
 
         error_log( "Match::update $result rows affected." );
         
-        foreach($this->getGames() as $game) {
-            $result += $game->save();
+        foreach($this->getSets() as $set) {
+            $result += $set->save();
         }
         
-        foreach($this->gamesToBeDeleted as $game) {
-            $game->delete();
+        foreach($this->setsToBeDeleted as $set) {
+            $set->delete();
         }
 
         $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
@@ -733,7 +732,7 @@ class Match extends AbstractData
         // $this->home       = NULL;
         // $this->visitor_ID = NULL;
         // $this->visitor    = NULL;
-        // $this->games      = NULL;
+        // $this->sets      = NULL;
     }
 
 } //end class

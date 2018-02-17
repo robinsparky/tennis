@@ -59,7 +59,7 @@ class TE_Install {
 								   ,"entrant"				=> $wpdb->prefix . "tennis_entrant"
 								   ,"round"					=> $wpdb->prefix . "tennis_round"
 								   ,"match"					=> $wpdb->prefix . "tennis_match"
-								   ,"game"					=> $wpdb->prefix . "tennis_game"
+								   ,"set"					=> $wpdb->prefix . "tennis_set"
 								   ,"player"				=> $wpdb->prefix . "tennis_player"
 								   ,"team"					=> $wpdb->prefix . "tennis_team"
 								   ,"squad"					=> $wpdb->prefix . "tennis_squad"
@@ -132,7 +132,7 @@ class TE_Install {
 		$entrant_table 				= $this->dbTableNames["entrant"];
 		$round_table 				= $this->dbTableNames["round"];
 		$match_table 				= $this->dbTableNames["match"];
-		$game_table 				= $this->dbTableNames["game"];
+		$set_table 					= $this->dbTableNames["set"];
 		$player_table 				= $this->dbTableNames["player"];
 		$team_table 				= $this->dbTableNames["team"];
 		$squad_table 				= $this->dbTableNames["squad"];
@@ -329,9 +329,9 @@ class TE_Install {
 		}
 		
 		/**
-		 * Games scores are kept here.
+		 * Sets scores are kept here.
 		 */
-		$sql = "CREATE TABLE `$game_table` (
+		$sql = "CREATE TABLE `$set_table` (
 				`event_ID` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
@@ -531,7 +531,7 @@ class TE_Install {
 		$sql = $sql . "," . $this->dbTableNames["squad"];
 		$sql = $sql . "," . $this->dbTableNames["team"];
 		$sql = $sql . "," . $this->dbTableNames["player"];
-		$sql = $sql . "," . $this->dbTableNames["game"];
+		$sql = $sql . "," . $this->dbTableNames["set"];
 		$sql = $sql . "," . $this->dbTableNames["match"];
 		$sql = $sql . "," . $this->dbTableNames["round"];
 		$sql = $sql . "," . $this->dbTableNames["entrant"];

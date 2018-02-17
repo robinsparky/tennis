@@ -83,6 +83,6 @@ class MatchTest extends TestCase
         
         $this->assertTrue(self::$mens->isDirty(),'Mens singles must be dirty!');
         $affected = self::$mens->save();
-        $this->assertEquals(2,$affected);
+        $this->assertGreaterThan(0,$affected);
     }
 }

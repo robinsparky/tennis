@@ -7,13 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 //require_once('class-abstractdata.php');
 
 /** 
- * Data and functions for Tennis Game(s)
+ * Data and functions for Tennis Set(s)
  * @class  Match
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
 */
-class Game extends AbstractData
+class Set extends AbstractData
 { 
     private static $tablename = 'tennis_game';
 
@@ -43,7 +43,7 @@ class Game extends AbstractData
     }
     
     /**
-     * Find all Games belonging to a specific Match;
+     * Find all Sets belonging to a specific Match;
      */
     public static function find(...$fk_criteria) {
 		global $wpdb;
@@ -62,10 +62,10 @@ class Game extends AbstractData
 		$safe = $wpdb->prepare($sql,$fk_criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Game::find $wpdb->num_rows rows returned");
+		error_log("Set::find $wpdb->num_rows rows returned");
 
 		foreach($rows as $row) {
-            $obj = new Game($fk_criteria[0],$fk_criteria[1],$fk_criteria[2]);
+            $obj = new Set($fk_criteria[0],$fk_criteria[1],$fk_criteria[2]);
             self::mapData($obj,$row);
 			$col[] = $obj;
 		}
@@ -73,7 +73,7 @@ class Game extends AbstractData
     }
 
 	/**
-	 * Get instance of a Match using it's primary key: event_ID,round_num,match_num,set_num,game_num
+	 * Get instance of a Match using it's primary key: event_ID,round_num,match_num,set_num,Set_num
 	 */
     static public function get(int ...$pks) {
 		global $wpdb;
@@ -92,10 +92,10 @@ class Game extends AbstractData
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
-		error_log("Game::get(id) $wpdb->num_rows rows returned.");
+		error_log("Set::get(id) $wpdb->num_rows rows returned.");
 
 		if(count($rows) === 1) {
-            $obj = new Game($pks[0],$pks[1],$pks[2],$pks[3]);
+            $obj = new Set($pks[0],$pks[1],$pks[2],$pks[3]);
             self::mapData($obj,$rows[0]);
 		}
 		return $obj;
@@ -185,12 +185,12 @@ class Game extends AbstractData
         if( !isset( $this->home_wins ) && !isset( $this->visitor_wins ))  $mess =  __( "No scores are set." );
         if( 0 === $this->home_wins && 0 === $this->visitor_wins) $mess =  __( "Both home and visitor scores cannot be zero" );
 
-        if(strlen( $mess ) > 0) throw new InvalidGameException( $mess );
+        if(strlen( $mess ) > 0) throw new InvalidSetException( $mess );
         return true;
     }
     
     /**
-     * Delete this game
+     * Delete this Set
      */
     public function delete() {
         $table = $wpdb->prefix . self::$tablename;
@@ -203,7 +203,7 @@ class Game extends AbstractData
         $wpdb->delete( $table, $where, $formats_where );
         $result += $wpdb->rows_affected;
 
-        error_log( "Game.delete: deleted $result rows" );
+        error_log( "Set.delete: deleted $result rows" );
 
         return $result;
     }
@@ -219,17 +219,17 @@ class Game extends AbstractData
 		$sql = "SELECT IFNULL(MAX(set_num),0) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
         $safe = $wpdb->prepare( $sql, $this->event_ID, $this->round_num, $this->match_num );
         $this->set_num = $wpdb->get_var( $safe,0,0 ) + 1;
-        error_log("Game::create: set number assigned is '$this->set_num'");
+        error_log("Set::create: set number assigned is '$this->set_num'");
         
         if($this->set_num > self::MAXSETS) {
             $this->set_num = self::MAXSETS;
             $wpdb->query("UNLOCK TABLES;");
             $this->isnew = FALSE;
-            error_log("Game::create: set number limited to '$this->set_num'");
+            error_log("Set::create: set number limited to '$this->set_num'");
             return $this->update();
         }
         
-        $this->game_num =  $wpdb->get_var( $safe,0,1 ) + 1;
+        $this->Set_num =  $wpdb->get_var( $safe,0,1 ) + 1;
 
         $values = array( 'event_ID'       => $this->event_ID
                         ,'round_num'      => $this->round_num
@@ -249,7 +249,7 @@ class Game extends AbstractData
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
 
-		error_log("Game::create $result rows affected.");
+		error_log("Set::create $result rows affected.");
 
 		return $result;
 	}
@@ -275,13 +275,13 @@ class Game extends AbstractData
 		$this->isdirty = FALSE;
         $result =  $wpdb->rows_affected;
 
-		error_log("Game::update $result rows affected.");
+		error_log("Set::update $result rows affected.");
 
 		return $result;
     }
     
     /**
-     * Map incoming data to an instance of Game
+     * Map incoming data to an instance of Set
      */
     protected static function mapData( $obj, $row ) {
         parent::mapData($obj,$row);
