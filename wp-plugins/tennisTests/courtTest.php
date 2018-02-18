@@ -5,7 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-Testing Courts
 <?php 
 use PHPUnit\Framework\TestCase;
 /**
@@ -17,7 +16,7 @@ class CourtTest extends TestCase
 	public function test_court()
 	{
         $clubs = Club::find();
-        $this->assertCount(1,$clubs);
+        $this->assertCount(2,$clubs);
         $club = $clubs[0];
 		$this->assertEquals('Tyandaga Tennis Club',$club->getName());
 

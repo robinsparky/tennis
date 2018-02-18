@@ -25,7 +25,7 @@ class MatchTest extends TestCase
         //fwrite(STDOUT, __METHOD__ . "\n");
 	}
 
-    
+
     public function test_create_matches() {
         
         $clubs = Club::search('Tyandaga');
@@ -45,7 +45,7 @@ class MatchTest extends TestCase
         $this->assertEquals('Mike Flintoff',$mike->getName());
 
         $all = self::$mens->getDraw();
-        $this->assertCount(3,$all);
+        $this->assertCount(13,$all);
 
         for( $i=0; $i < count($all) - 1; $i += 2 ) {
             $match = self::$mens->addNewMatch(1,$all[$i],$all[$i+1]);
@@ -53,9 +53,9 @@ class MatchTest extends TestCase
             $match->setMatchType(MatchType::MENS_SINGLES);
         }
 
-        $this->assertEquals(1, self::$mens->numMatches());
+        $this->assertEquals(6, self::$mens->numMatches());
         $matches = self::$mens->getMatches();
-        $this->assertCount(1,$matches);
+        $this->assertCount(6,$matches);
         //var_dump($mens);
         $this->assertTrue(self::$mens->isDirty());
         $this->assertGreaterThan(0,self::$mens->save());
@@ -65,10 +65,10 @@ class MatchTest extends TestCase
     public function test_match_scoring() {
 
         $this->assertFalse(self::$mens->isDirty());
-        $this->assertEquals(1, self::$mens->numMatches());
+        $this->assertEquals(6, self::$mens->numMatches());
 
         $matches = self::$mens->getMatches();
-        $this->assertCount(1,$matches);
+        $this->assertCount(6,$matches);
 
         foreach($matches as $match) {
             $match->setMatchDate(2018,4,16);

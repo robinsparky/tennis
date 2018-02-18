@@ -289,7 +289,7 @@ class Entrant extends AbstractData
 
 		if(strlen($mess) > 0) throw new InvalidEntrantException($mess);
 
-		return $isvalid;
+		return true;
 	}
 
 	/**

@@ -27,14 +27,14 @@ class Club extends AbstractData
 	 * Collection of tennis courts
 	 */
 	private $courts;
-	private $courtsToBeDeleted; //array of court ID's needing deletion
+	private $courtsToBeDeleted=array(); //array of court ID's needing deletion
 
 	/**
 	 * Collection of tennis events
 	 * such as Leagues, Tournaments and Round Robins
 	 */
 	private $events;
-	private $eventsToBeDeleted; //array of event ID's needing join records deleted
+	private $eventsToBeDeleted=array(); //array of event ID's needing join records deleted
 	
 	/*************** Static methods ******************/
 	/**
@@ -120,9 +120,10 @@ class Club extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct() {
+	public function __construct(string $cname=null) {
 		$this->isnew = TRUE;
 		$this->init();
+		if(isset($cname)) $this->name = $cname;
 	}
 
 	public function setName($name) {
@@ -141,8 +142,8 @@ class Club extends AbstractData
 	/**
 	 * Get array of Courts for this Club
 	 */
-	public function getCourts() {
-		if(!isset($this->courts)) $this->fetchCourts();
+	public function getCourts($force=false) {
+		if(!isset($this->courts) || $force) $this->fetchCourts();
 		return $this->courts;
 	}
 	
@@ -177,7 +178,7 @@ class Club extends AbstractData
 			$i=0;
 			foreach($this->getCourts() as $cl) {
 				if($court == $cl) {
-					$this->getCourtsForDeletion()[] = $court->getCourtNum();
+					$this->courtsToBeDeleted[] = $court->getCourtNum();
 					unset($this->courts[$i]);
 					$result =  $this->isdirty = true;
 					break;
@@ -191,8 +192,8 @@ class Club extends AbstractData
 	/**
 	 * Get array of Events for this Club
 	 */
-	public function getEvents() {
-		if(!isset($this->events)) $this->fetchEvents();
+	public function getEvents($force=false) {
+		if(!isset($this->events) || $force) $this->fetchEvents();
 		return $this->events;
 	}
 	
@@ -226,7 +227,7 @@ class Club extends AbstractData
 		$i=0;
 		foreach($this->getEvents() as $ev) {
 			if($event == $ev) {
-				$this->getEventsForDeletion()[] = $event->getID();
+				$this->eventsToBeDeleted[] = $event->getID();
 				unset($this->events[$i]);
 				return $this->isdirty = true;
 			}
@@ -266,27 +267,16 @@ class Club extends AbstractData
 	/**
 	 * Get all events for this club.
 	 */
-	private function fetchEvents($force=false) {
-		if(!isset($this->events) || $force) {
-			$this->events = Event::find(array('club'=>$this->ID));
-		}
+	private function fetchEvents() {
+		$this->events = Event::find(array('club'=>$this->ID));
+		
 	}
 
 	/**
 	 * Get all courts in this club.
 	 */
-	private function fetchCourts($force=false) {
-		if(!isset($this->courts) || $force) $this->courts = Court::find($this->ID);
-	}
-	
-	private function getEventsForDeletion() {
-		if(!isset($this->eventsToBeDeleted)) $this->eventsToBeDeleted = array();
-		return $this->eventsToBeDeleted;
-	}
-	
-	private function getCourtsForDeletion() {
-		if(!isset($this->courtsToBeDeleted)) $this->courtsToBeDeleted = array();
-		return $this->courtsToBeDeleted;
+	private function fetchCourts() {
+		$this->courts = Court::find($this->ID);
 	}
 	
 	protected function create() {
@@ -353,7 +343,7 @@ class Club extends AbstractData
 		
 		//Delete Courts removed from this Club
 		$crtNums = array_map(function($e){return $e->getCourtNum();},$this->getCourts());
-		foreach($this->getCourtsForDeletion() as $crtnum) {
+		foreach($this->courtsToBeDeleted as $crtnum) {
 			if(!in_array($crtnum,$crtNums)) {
 				$result += Court::deleteCourt($this->getID(),$crtnum);
 			}
@@ -366,7 +356,7 @@ class Club extends AbstractData
 
 		//Remove some Events related to this Club
 		$evtIds = array_map(function($e){return $e->getID();},$this->getEvents());
-		foreach($this->getEventsForDeletion() as $evtId) {
+		foreach($this->eventsToBeDeleted as $evtId) {
 			if(!in_array($evtId,$evtIds)) {
 				$result += ClubEventRelations::remove($this->getID(),$evtId);
 			}

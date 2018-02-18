@@ -11,11 +11,15 @@
         stopOnSkipped="false"
         stopOnRisky="false"
 <testsuites>
-  <testsuite name="Data">
+  <testsuite name="crud">
     <file>tests/Clubtest.php</file>
+    <file>tests/Courttest.php</file>
     <file>tests/Eventtest.php</file>
     <file>tests/Drawtest.php</file>
     <file>tests/Matchtest.php</file>
+  </testsuite>
+  <testsuite name="current">
+    <file>tests/clubTest.php</file>
   </testsuite>
 </testsuites>
 </phpunit>

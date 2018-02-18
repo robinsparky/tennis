@@ -107,29 +107,34 @@ class Match extends AbstractData
         $col = array();
         $eventID = 0;
         $roundnum = 0;
-        
+        $safe;
+
         if(isset($fk_criteria[0]) && is_array($fk_criteria[0])) $fk_criteria = $fk_criteria[0];
         
         if(array_key_exists('event_ID',$fk_criteria) && array_key_exists('round_num',$fk_criteria)) {
             $eventID = $fk_criteria["event_ID"];
             $roundnum = $fk_criteria["round_num"];
+            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
+                    FROM $table WHERE event_ID = %d AND round_ID = %d;";
+            $safe = $wpdb->prepare($sql,$eventID,$roundnum);
         }
-
-        else {
+        elseif(2 === count($fk_criteria)) {
             list($eventID,$roundnum) = $fk_criteria;
+            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
+                    FROM $table WHERE event_ID = %d AND round_ID = %d;";
+            $safe = $wpdb->prepare($sql,$eventID,$roundnum);
         }
-        
-        $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
-                FROM $table WHERE event_ID = %d AND round_ID = %d;";
-        if(!isset($roundnum)) {
+        else {
+            list($eventID) = $fk_criteria;
             $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
                     FROM $table WHERE event_ID = %d;";
+            $safe = $wpdb->prepare($sql,$eventID);
         }
-		$safe = $wpdb->prepare($sql,$eventID,$roundnum);
+        
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		foreach($rows as $row) {
-            $obj = isset($roundnum) ? new Match($eventID, $roundnum) : new Match($eventID);
+            $obj = $roundnum > 0 ? new Match($eventID, $roundnum) : new Match($eventID);
             self::mapData($obj,$row);
 			$col[] = $obj;
 		}

@@ -76,8 +76,6 @@ class Event extends AbstractData
 
 		$col = array();
 		foreach($rows as $row) {
-			$r = (bool)$row["isroot"]; 	
-			error_log("Isroot=$r");
             $obj = new Event;
             self::mapData($obj,$row);
 			$col[] = $obj;
@@ -255,7 +253,7 @@ class Event extends AbstractData
 
 	/**
 	 * Set the type of event
-	 * Applies only to a parent event
+	 * Applies only to a root event
 	 */
 	public function setEventType(string $type=null) {
 		switch($type) {
@@ -319,7 +317,7 @@ class Event extends AbstractData
 		return $result;
     }
 
-    public function getParent() {
+    public function getParent($force=false) {
         if((isset($this->parent_ID) && !isset($this->parent)) || $force) {
             $this->parent = Event::get($this->parent_ID);
 		}
@@ -528,9 +526,11 @@ class Event extends AbstractData
 
 	/**
 	 * Get all Events belonging to this Event
+	 * @param $force When set to true will force loading of child events
+	 *               This will cause unsaved child events to be lost.
 	 */
-	public function getChildEvents() {
-		if(!isset($this->childEvents)) {
+	public function getChildEvents($force=false) {
+		if(!isset($this->childEvents) || $force) {
 			$this->fetchChildEvents();
 			foreach($this->childEvents as $child) {
 				$child->parent = $this;
@@ -596,8 +596,13 @@ class Event extends AbstractData
 		return $result;
 	}
 	
-	public function getClubs() {
-		if(!isset($this->clubs)) $this->fetchClubs();
+	/**
+	 * Get all Clubs associated with this event
+	 * @param $force When set to true will force loading of related clubs
+	 *               This will cause unsaved clubs to be lost.
+	 */
+	public function getClubs($force = false) {
+		if(!isset($this->clubs) || $force) $this->fetchClubs();
 		return $this->clubs;
 	}
 
@@ -664,8 +669,13 @@ class Event extends AbstractData
 		return $result;
 	}
 
-	public function getDraw() {
-		if(!isset($this->draw)) $this->fetchDraw();
+	/**
+	 * Get the draw for this Event
+	 * @param $force When set to true will force loading of entrants from db
+	 *               This will cause unsaved entrants to be lost.
+	 */
+	public function getDraw($force=false) {
+		if(!isset($this->draw) || $force) $this->fetchDraw();
 		return $this->draw;
 	}
 
@@ -719,9 +729,11 @@ class Event extends AbstractData
 
     /**
      * Access all Matches in this Round
+	 * @param $force When set to true will force loading of matches
+	 *               This will cause unsaved matches to be lost.
      */
-    public function getMatches():array {
-        if(!isset($this->matches)) $this->fetchMatches();
+    public function getMatches($force=false):array {
+        if(!isset($this->matches) || $force) $this->fetchMatches();
         return $this->matches;
     }
 
@@ -762,11 +774,11 @@ class Event extends AbstractData
 		if(!isset($this->name)) {
 			$mess = __('Event must have a name.');
 		}
-		elseif(!isset($this->event_type) && $this->isParent()) {
-			$mess = __('Parent Events must have a type.');
+		elseif(!isset($this->event_type) && $this->isRoot()) {
+			$mess = __('Root Events must have a type.');
 		}
-		elseif(!isset($this->format) && !$this->isParent()) {
-			$mess = __('Child events must have a format.');
+		elseif(!isset($this->format) && $this->isLeaf()) {
+			$mess = __('Leaf events must have a format.');
 		}
 		elseif($this->isRoot() && count($this->getClubs()) < 1) {
 			$mess = __('Root event must be associated with at least one club');
@@ -800,49 +812,33 @@ class Event extends AbstractData
 
 	/**
 	 * Fetch all child events for this event.
-	 * @param $force When set to true will force loading of child events
-	 *               This will cause unsaved child events to be lost.
 	 */
-	private function fetchChildEvents($force=false) {
-        if(!isset($this->childEvents) || $force) {
-			$this->childEvents =  Event::find(array('parent_ID' => $this->getID()));
-		}
+	private function fetchChildEvents() {
+		$this->childEvents =  Event::find(array('parent_ID' => $this->getID()));
 	}
 
 	/**
 	 * Fetch all Entrants for this event.
 	 * Otherwise known as the draw.
-	 * @param $force When set to true will force loading of entrants from db
-	 *               This will cause unsaved entrants to be lost.
 	 */
-	private function fetchDraw($force=false) {
+	private function fetchDraw() {
 		if($this->isParent()) $this->draw = array();
-        if(!isset($this->draw) || $force) {
-			$this->draw = Entrant::find($this->getID());
-		}
+		$this->draw = Entrant::find($this->getID());
 	}
 
 	/**
 	 * Fetch all related clubs for this Event
 	 * Root-level Events can be associated with one or more clubs
-	 * @param $force When set to true will force loading of related clubs
-	 *               This will cause unsaved clubs to be lost.
 	 */
-	private function fetchClubs($force=false) {
-		if(!isset($this->clubs) || $force) {
-			$this->clubs = Club::find($this->getID());
-		}
+	private function fetchClubs() {
+		$this->clubs = Club::find($this->getID());
 	}
 
     /**
      * Fetch Matches all Matches from the database
-	 * @param $force When set to true will force loading of matches
-	 *               This will cause unsaved matches to be lost.
      */
-    private function fetchMatches($force=false) {
-        if(!isset($this->matches) || $force) {
-			$this->matches =  Match::find($this->getID());
-		}
+    private function fetchMatches() {
+		$this->matches =  Match::find($this->getID());
     }
 
 
