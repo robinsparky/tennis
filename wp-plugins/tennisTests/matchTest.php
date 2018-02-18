@@ -25,6 +25,7 @@ class MatchTest extends TestCase
         //fwrite(STDOUT, __METHOD__ . "\n");
 	}
 
+    
     public function test_create_matches() {
         
         $clubs = Club::search('Tyandaga');

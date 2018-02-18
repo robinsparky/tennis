@@ -1,0 +1,21 @@
+<phpunit>
+        colors="true"
+        bootstrap="./wp-content/plugins/tennisevents/autoloader.php"
+        convertErrorsToExceptions="true"
+        convertNoticesToExceptions="true"
+        convertWarningsToExceptions="true"
+        strict="true"
+        stopOnError="false"
+        stopOnFailure="false"
+        stopOnIncomplete="false"
+        stopOnSkipped="false"
+        stopOnRisky="false"
+<testsuites>
+  <testsuite name="Data">
+    <file>tests/Clubtest.php</file>
+    <file>tests/Eventtest.php</file>
+    <file>tests/Drawtest.php</file>
+    <file>tests/Matchtest.php</file>
+  </testsuite>
+</testsuites>
+</phpunit>
