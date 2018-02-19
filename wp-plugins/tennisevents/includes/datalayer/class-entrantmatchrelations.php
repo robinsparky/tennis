@@ -41,8 +41,14 @@ class EntrantMatchRelations {
 	static function add( int $eventId, int $roundNum, int $matchNum, int $pos ):int {
 		$result = 0;
 		global $wpdb;
-		if(isset($eventId) && isset($roundNum) && isset($matchNum) && isset($pos)) {
-			$table = $wpdb->prefix . self::$tablename;
+
+		$table = $wpdb->prefix . self::$tablename;
+		$query = "select count(*) from $table
+				  where event_ID=%d and match_round_num=%d and match_num=%d and entrant_position=%d;";
+		$safe = $wpdb->prepare($query,$eventId,$roundNum,$matchNum,$pos);
+		$num = $wpdb->get_var($safe);
+
+		if( isset($eventId) && isset($roundNum) && isset($matchNum) && isset($pos) && $num === 0 ) {
 			$wpdb->insert($table
 			             ,array('match_event_ID'=>$eventId,'match_round_num'=>$roundNum,'match_num'=>$matchNum,'entrant_position'=>$pos)
 			             ,array('%d','%d','%d','%d'));

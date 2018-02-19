@@ -39,7 +39,13 @@ class ClubEventRelations {
 	static function add(int $clubId, int $eventId):int {
 		$result = 0;
 		global $wpdb;
-		if(isset($clubId) && isset($eventId)) {
+		
+		$query = "select count(*) from {$wpdb->prefix}tennis_club_event
+				  where club_ID=%d and event_ID=%d;";
+		$safe = $wpdb->prepare($query,$clubId,$eventId);
+		$num = $wpdb->get_var($safe);
+
+		if( isset($clubId) && isset($eventId) && $num === 0 ) {
 			$table = $wpdb->prefix . 'tennis_club_event';
 			$wpdb->insert($table,array('club_ID'=>$clubId, 'event_ID'=>$eventId),array('%d','%d'));
 			$result = $wpdb->rows_affected;

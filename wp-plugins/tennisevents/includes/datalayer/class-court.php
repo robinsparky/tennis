@@ -19,8 +19,9 @@ class Court extends AbstractData
 	//table name
 	private static $tablename = 'tennis_court';
 
-	private $court_num;
+	private $club;
     private $club_ID;
+	private $court_num;
 	private $court_type;
     
 	private $bookings;
@@ -109,17 +110,22 @@ class Court extends AbstractData
         $this->init();
 	}
 
-	public function getCourtNum():int {
+	public function setDirty(){
+		if(isset($this->club)) $this->club->setDirty();
+		return parent::setDirty();
+	}
+
+	public function getCourtNumber():int {
 		return isset($this->court_num) ? $this->court_num : 0;
 	}
 
 	public function setCourtType($courtType) {
-		switch($courtype) {
+		switch($courtType) {
 			case self::HARD:
 			case self::HARDTRUE:
 			case self::CLAY:
 			$this->court_type = $courtType;
-			return $this->isdirty = TRUE;
+			return $this->setDirty();
 		}
 		return false;
     }
@@ -127,12 +133,17 @@ class Court extends AbstractData
     public function getCourtType() {
         return $this->court_type;
     }
-    
-    public function setClubId(int $club) {
-        if($club < 1) return false;
-        $this->club_ID = $club;
-        return $this->isdirty = TRUE;
-    }
+	
+	public function setClub(Club $club) {
+		$this->club_ID = $club->getID();
+		$this->club = $club;
+        return $this->setDirty();
+	}
+
+	public function getClub() {
+		if(!isset($this->club)) $this->club = Club::get($this->club_ID);
+		return $this->club;
+	}
 
     public function getClubId():int {
         return $this->club_ID;
@@ -142,11 +153,13 @@ class Court extends AbstractData
 	 * Check to see if this Court has valid data
 	 */
 	public function isValid() {
-		$isvalid = true;
-		if(!isset($this->club_ID)) $isvalid = false;
-		if(!$this->isNew() && !isset($this->court_num)) $isvalid = false;
+		$mess = '';
+		if(!isset($this->club_ID)) $mess = __("Club ID is missing for this Court.");
+		if(!$this->isNew() && !isset($this->court_num)) $mess = __( "Court is missing court number!");
 		if(!isset($this->court_type)) $this->court_type = self::HARD;
-		return $isvalid;
+
+		if(strlen($mess) > 0 ) throw new InvalidClubException($mess);
+		return true;
 	}
 
 	//TODO: Add court bookings...
@@ -171,13 +184,13 @@ class Court extends AbstractData
 		$this->court_num = $max + 1;
 
         $values  = array('club_ID'    => $this->getClubId()
-						,'court_num'  => $this->getCourtNum()
+						,'court_num'  => $this->getCourtNumber()
 						,'court_type' => $this->getCourtType());
 		$formats_values = array('%d','%d','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$result = $wpdb->rows_affected;
-		$this->isnew = FALSE;
-		$this->isdirty = FALSE;
+		$this->isnew = false;
+		$this->isdirty = false;
 
 		//TODO Add saving of court bookings
 
@@ -194,11 +207,11 @@ class Court extends AbstractData
         $values         = array( 'court_type' => $this->getCourtType());
 		$formats_values = array( '%s' );
 		$where          = array( 'club_ID' => $this->getClubId()
-								,'court_num' => $this->getCourtNum() );
+								,'court_num' => $this->getCourtNumber() );
 		$formats_where  = array( '%d','%d' );
 		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
 		$result = $wpdb->rows_affected;
-		$this->isdirty = FALSE;
+		$this->isdirty = false;
 
 		//TODO Add saving of court bookings
 
@@ -213,8 +226,8 @@ class Court extends AbstractData
     public function delete():int {
 		global $wpdb;
 		$result = 0;
-		$clubId = $this->getClubId();
-		$crtnum = $this->getCourtNum();
+		$clubId = $this->getClub()->getID();
+		$crtnum = $this->getCourtNumber();
 		if(isset($clubId) && isset($crtnum)) {
 			$table = $wpdb->prefix . self::$tablename;
 			
@@ -226,7 +239,8 @@ class Court extends AbstractData
 	}
 	
 	private function init() {
-		$this->club_ID = NULL;
+		$this->club_ID = null;
+		$this->club    = null;
 		$this->court_type = self::HARD;
 	}
     

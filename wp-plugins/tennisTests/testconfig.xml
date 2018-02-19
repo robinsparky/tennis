@@ -12,14 +12,14 @@
         stopOnRisky="false"
 <testsuites>
   <testsuite name="crud">
-    <file>tests/Clubtest.php</file>
-    <file>tests/Courttest.php</file>
-    <file>tests/Eventtest.php</file>
-    <file>tests/Drawtest.php</file>
-    <file>tests/Matchtest.php</file>
+    <file>tests/clubTest.php</file>
+    <file>tests/courtTest.php</file>
+    <file>tests/eventTest.php</file>
+    <file>tests/drawTest.php</file>
+    <file>tests/matchTest.php</file>
   </testsuite>
   <testsuite name="current">
-    <file>tests/clubTest.php</file>
+    <file>tests/courtTest.php</file>
   </testsuite>
 </testsuites>
 </phpunit>

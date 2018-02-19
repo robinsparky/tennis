@@ -24,6 +24,7 @@ class ClubTest extends TestCase
 		$wpdb->query($sql);
 		
 		$sql = "delete from {$wpdb->prefix}tennis_club_event where club_ID between 1 and 999";
+		$wpdb->query($sql);
         //fwrite(STDOUT, __METHOD__ . "\n");
 	}
 	

@@ -129,7 +129,7 @@ class Club extends AbstractData
 	public function setName($name) {
 		if(!is_string($name) || strlen($name) < 1) return;
 		$this->name = $name;
-		$this->isdirty = TRUE;
+		return $this->setDirty();
 	}
 	
     /**
@@ -155,15 +155,30 @@ class Club extends AbstractData
 		if(isset($court)) {
 			$found = false;
 			foreach($this->getCourts() as $cl) {
-				if($court == $cl) {
+				if($court === $cl) {
 					$found = true;
 					break;
 				}
 			}
 			if(!$found) {
 				$this->courts[] = $court;
-				$court->setClubID($this->getID());
-				$result = $this->isdirty = true;
+				$court->setClub($this);
+				$result = $this->setDirty();
+			}
+		}
+		return $result;
+	}
+
+	/**
+	 * Return the Court by its court number
+	 * @param $crtnum the Court Number to find
+	 */
+	public function getCourtByNumber(int $crtnum) {
+		$result = null;
+		foreach($this->getCourts() as $crt) {
+			if($crtnum === $crt->getCourtNumber()) {
+				$result = $crt;
+				break;
 			}
 		}
 		return $result;
@@ -178,9 +193,9 @@ class Club extends AbstractData
 			$i=0;
 			foreach($this->getCourts() as $cl) {
 				if($court == $cl) {
-					$this->courtsToBeDeleted[] = $court->getCourtNum();
+					$this->courtsToBeDeleted[] = $court->getCourtNumber();
 					unset($this->courts[$i]);
-					$result =  $this->isdirty = true;
+					$result =  $this->setDirty();
 					break;
 				}
 				$i++;
@@ -212,7 +227,7 @@ class Club extends AbstractData
 			}
 			if(!$found) {
 				$this->events[] = $event;
-				$result = $this->isdirty = true;
+				$result = $this->setDirty();
 			}
 		}
 		return $result;
@@ -229,7 +244,7 @@ class Club extends AbstractData
 			if($event == $ev) {
 				$this->eventsToBeDeleted[] = $event->getID();
 				unset($this->events[$i]);
-				return $this->isdirty = true;
+				return $this->setDirty();
 			}
 			$i++;
 		}
@@ -337,12 +352,11 @@ class Club extends AbstractData
 		$result = 0;
 
 		foreach($this->getCourts() as $crt) {
-			$crt->setClubId($this->getID());
 			$result += $crt->save();
 		}
 		
 		//Delete Courts removed from this Club
-		$crtNums = array_map(function($e){return $e->getCourtNum();},$this->getCourts());
+		$crtNums = array_map(function($e){return $e->getCourtNumber();},$this->getCourts());
 		foreach($this->courtsToBeDeleted as $crtnum) {
 			if(!in_array($crtnum,$crtNums)) {
 				$result += Court::deleteCourt($this->getID(),$crtnum);

@@ -13,6 +13,14 @@ use PHPUnit\Framework\TestCase;
  */
 class CourtTest extends TestCase
 {
+    public static function setUpBeforeClass()
+    {        
+		global $wpdb;
+        $table = "{$wpdb->prefix}tennis_court";
+        $sql = "delete from $table where court_num between 1 and 999;";
+		$wpdb->query($sql);
+    }
+    
 	public function test_court()
 	{
         $clubs = Club::find();
@@ -22,22 +30,42 @@ class CourtTest extends TestCase
 
         //Court 1
         $court = new Court;
-        $this->assertEquals(0,$court->getCourtNum());
-        $court->setClubId($club->getID());
+        $this->assertEquals(0,$court->getCourtNumber());
+        $court->setClub($club);
         $this->assertTrue($club->addCourt($court));
         //$this->assertEquals($club->getID(),$court->getClubId());
         //$court->save();
         $this->assertEquals(1,$club->save());
-        $this->assertEquals(1,$court->getCourtNum());
-        $scourt = Court::get($court->getClubID(),$court->getCourtNum());
-        $this->assertEquals(1,$scourt->getCourtNum());
+        $this->assertEquals(1,$court->getCourtNumber());
+        $scourt = Court::get($court->getClub()->getID(),$court->getCourtNumber());
+        $this->assertEquals(1,$scourt->getCourtNumber());
         $this->assertEquals($club->getID(),$scourt->getClubId());
 
-        //Court 2
-        $court2 = new Court;
-        $court->setClubId($club->getID());
-        
-	}
+        //Courts 2 thu 9
+        for($i=2; $i < 10; $i++) {
+            $crt = new Court;
+            $this->assertTrue($crt->setCourtType(Court::HARD));
+            $this->assertTrue($club->addCourt($crt));
+        }
+        $this->assertCount(9,$club->getCourts());
+        $this->assertTrue($club->isDirty());
+        $this->assertEquals(8,$club->save());
+    }
+    
+    public function test_court_remove() {
+
+        $clubs = Club::find();
+        $club = $clubs[0];
+        $this->assertEquals('Tyandaga Tennis Club',$club->getName());
+
+        $courts = $club->getCourts();
+        $this->assertCount(9,$courts);
+        $court = $club->getCourtByNumber(8);
+        $this->assertEquals(8,$court->getCourtNumber());
+        $this->assertTrue($club->removeCourt($court));
+        $this->assertGreaterThan(0,$club->save()); 
+        $this->assertCount(8,$club->getCourts());
+    }
 }
 
 ?> 
