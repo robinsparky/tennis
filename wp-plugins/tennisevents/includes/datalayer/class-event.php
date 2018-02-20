@@ -100,23 +100,25 @@ class Event extends AbstractData
 		if(array_key_exists('parent_ID',$fk_criteria)) {
 			//All events who are children of specified Event
 			$col_value = $fk_criteria["parent_ID"];
+			error_log("Event::find using parent_ID=$col_value");
 			$sql = "SELECT ce.ID, ce.event_type, ce.name, ce.format, ce.parent_ID
 			 			  ,ce.signup_by,ce.start_date,ce.end_date  
 					FROM $table ce
-					INNER JOIN $table pe ON pe.ID = ce.parent_ID
 					WHERE ce.parent_ID = %d;";
 		}
 		elseif(array_key_exists('club',$fk_criteria)) {
 			//All events belonging to specified club
 			$col_value = $fk_criteria["club"];
+			error_log("Event::find using club_ID=$col_value");
 			$sql = "SELECT e.ID, e.event_type, e.name, e.format, e.parent_ID
 						  ,e.signup_by,e.start_date,e.end_date 
-					from $table e
+					from $table e 
 					INNER JOIN $joinTable AS j ON j.event_ID = e.ID
 					INNER JOIN $clubTable AS c ON c.ID = j.club_ID
 					WHERE c.ID = %d;";
 		} elseif(!isset($fk_criteria)) {
-			//All events belonging to a specified club
+			//All events
+			error_log("Event::find all events");
 			$col_value = 0;
 			$sql = "SELECT `ID`,`event_type`,`name`,`format`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
 					FROM $table;";
@@ -149,7 +151,8 @@ class Event extends AbstractData
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
-		error_log("Event::get(id) $wpdb->num_rows rows returned.");
+		$id = $pks[0];
+		error_log("Event::get($id) $wpdb->num_rows rows returned.");
 
 		$obj = NULL;
 		if(count($rows) === 1) {
@@ -728,14 +731,28 @@ class Event extends AbstractData
     }
 
     /**
-     * Access all Matches in this Round
+     * Access all Matches in this Event
 	 * @param $force When set to true will force loading of matches
 	 *               This will cause unsaved matches to be lost.
      */
     public function getMatches($force=false):array {
         if(!isset($this->matches) || $force) $this->fetchMatches();
         return $this->matches;
-    }
+	}
+	
+    /**
+     * Access all Matches in this Event for a specific round
+	 * @param $rndnum The round number of interest
+     */
+	public function getMatchesByRound(int $rndnum) {
+		$result = array();
+		foreach($this->getMatches() as $match) {
+			if($match->getRoundNumber() === $rndnum) {
+				$result[] = $match;
+			}
+		}
+		return $result;
+	}
 
     /**
      * Get the number of matches in this Round

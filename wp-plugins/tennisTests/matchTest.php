@@ -58,7 +58,7 @@ class MatchTest extends TestCase
         $this->assertCount(6,$matches);
         //var_dump($mens);
         $this->assertTrue(self::$mens->isDirty());
-        $this->assertGreaterThan(0,self::$mens->save());
+        $this->assertGreaterThan(10,self::$mens->save());
         //var_dump($mens);
     }
 
@@ -71,6 +71,7 @@ class MatchTest extends TestCase
         $this->assertCount(6,$matches);
 
         foreach($matches as $match) {
+            $this->assertGreaterThan(0,$match->getMatchNumber(),'Match number > 0');
             $match->setMatchDate(2018,4,16);
             $this->assertEquals('2018-04-16',$match->getMatchDate_Str(),'Test match date');
             $match->setMatchTime(2,30);

@@ -19,7 +19,7 @@
     <file>tests/matchTest.php</file>
   </testsuite>
   <testsuite name="current">
-    <file>tests/courtTest.php</file>
+    <file>tests/removalTest.php</file>
   </testsuite>
 </testsuites>
 </phpunit>

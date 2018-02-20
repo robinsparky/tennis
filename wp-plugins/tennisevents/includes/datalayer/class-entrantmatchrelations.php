@@ -43,12 +43,12 @@ class EntrantMatchRelations {
 		global $wpdb;
 
 		$table = $wpdb->prefix . self::$tablename;
-		$query = "select count(*) from $table
-				  where event_ID=%d and match_round_num=%d and match_num=%d and entrant_position=%d;";
+		$query = "SELECT IFNULL(COUNT(*),0) from $table
+				  WHERE match_event_ID=%d AND match_round_num=%d AND match_num=%d AND entrant_position=%d;";
 		$safe = $wpdb->prepare($query,$eventId,$roundNum,$matchNum,$pos);
 		$num = $wpdb->get_var($safe);
 
-		if( isset($eventId) && isset($roundNum) && isset($matchNum) && isset($pos) && $num === 0 ) {
+		if( isset($eventId) && isset($roundNum) && isset($matchNum) && isset($pos) && $num == 0 ) {
 			$wpdb->insert($table
 			             ,array('match_event_ID'=>$eventId,'match_round_num'=>$roundNum,'match_num'=>$matchNum,'entrant_position'=>$pos)
 			             ,array('%d','%d','%d','%d'));

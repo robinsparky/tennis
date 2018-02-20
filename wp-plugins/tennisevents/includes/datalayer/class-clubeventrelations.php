@@ -40,12 +40,13 @@ class ClubEventRelations {
 		$result = 0;
 		global $wpdb;
 		
-		$query = "select count(*) from {$wpdb->prefix}tennis_club_event
-				  where club_ID=%d and event_ID=%d;";
+		$query = "SELECT IFNULL(count(*),0) FROM {$wpdb->prefix}tennis_club_event
+				  WHERE club_ID=%d and event_ID=%d;";
 		$safe = $wpdb->prepare($query,$clubId,$eventId);
 		$num = $wpdb->get_var($safe);
+		error_log("ClubEventRelations::add number found=$num");
 
-		if( isset($clubId) && isset($eventId) && $num === 0 ) {
+		if( isset($clubId) && isset($eventId) && $num == 0 ) {
 			$table = $wpdb->prefix . 'tennis_club_event';
 			$wpdb->insert($table,array('club_ID'=>$clubId, 'event_ID'=>$eventId),array('%d','%d'));
 			$result = $wpdb->rows_affected;

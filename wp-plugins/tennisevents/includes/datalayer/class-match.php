@@ -125,7 +125,8 @@ class Match extends AbstractData
             $safe = $wpdb->prepare($sql,$eventID,$roundnum);
         }
         else {
-            list($eventID) = $fk_criteria;
+            $eventID = $fk_criteria[0];
+            error_log("Match::find using eventID=$eventID");
             $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,comments 
                     FROM $table WHERE event_ID = %d;";
             $safe = $wpdb->prepare($sql,$eventID);
@@ -407,7 +408,7 @@ class Match extends AbstractData
             }
         }
         if(!$found) {
-            $set = new Set( $this->event_ID, $this->round_num, $this->match_num );
+            $set = new Set( $this->event_ID, $this->round_num, $this->match_num, $setnum );
             if($set->setSetNumber($setnum)) {
                 $set->setHomeScore($home_wins);
                 $set->setVisitorScore($visitor_wins);
@@ -613,18 +614,20 @@ class Match extends AbstractData
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
 		$sql = "SELECT IFNULL(MAX(round_num),0) FROM $table WHERE event_ID=%d;";
-        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
+        $safe = $wpdb->prepare($sql,$this->event_ID);
         $nextRound = $wpdb->get_var($safe) + 1;
         if($nextRound > self::MAX_ROUNDS) {
-            $this->round_num = self::MAX_ROUNDS;
-            $this->isnew = FALSE;
-            error_log("Match::create: Round number limited to '$this->round_num'");
+            $wpdb->query("UNLOCK TABLES;");
+            $max = self::MAX_ROUNDS;
+            $mess = __( "Round number exceeds limit of '$max'" );
+            throw new InvalidMatchException($mess);
         }
         
 
 		$sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
         $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
         $this->match_num = $wpdb->get_var($safe) + 1;
+        
         error_log("Match::create: match number assigned is '$this->match_num'");
 
         error_log("Match::create: match type is '$this->match_type'");
@@ -639,6 +642,7 @@ class Match extends AbstractData
                         ,'comments'    => $this->comments);
         $formats_values = array('%d','%d','%d','%f','%s','%s','%d','%s');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+        $wpdb->query("UNLOCK TABLES;");
         $this->isnew = FALSE;
 		$this->isdirty = FALSE;
         $result = $wpdb->rows_affected;

@@ -25,6 +25,10 @@ class ClubTest extends TestCase
 		
 		$sql = "delete from {$wpdb->prefix}tennis_club_event where club_ID between 1 and 999";
 		$wpdb->query($sql);
+		
+        $table = "{$wpdb->prefix}tennis_event";
+        $sql = "delete from $table where ID between 1 and 999;";
+        $wpdb->query($sql);
         //fwrite(STDOUT, __METHOD__ . "\n");
 	}
 	
@@ -71,7 +75,7 @@ class ClubTest extends TestCase
 		$this->assertCount(0,$tclub->getEvents());
 		$this->assertEquals(EventType::LEAGUE,$event->getEventType());
 
-		$this->assertEquals(3,$event->save());
+		$this->assertEquals(3,$event->save(),"Saved");
 		
 		$this->assertCount(1,$bclub->getEvents(true));
 		$this->assertCount(1,$tclub->getEvents(true));

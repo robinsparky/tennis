@@ -75,6 +75,8 @@ class Club extends AbstractData
 
 		if(is_array($fk_criteria) && count($fk_criteria) === 1) {
 			//All clubs belonging to specified Event
+			$eventId = $fk_criteria[0];
+			error_log("Club::find using eventId=$eventId");
 			$sql = "SELECT c.ID, c.name, e.ID as event_ID, e.name as Event_Name 
 					FROM $table c 
 					INNER JOIN $joinTable as j on j.club_ID = c.ID 
@@ -85,6 +87,7 @@ class Club extends AbstractData
 		}
 		else {
 			//All clubs
+			error_log("Club:find all clubs");
 			$sql = "SELECT `ID`, `name` FROM $table;";
 			$rows = $wpdb->get_results($sql, ARRAY_A);
 		}
@@ -110,7 +113,8 @@ class Club extends AbstractData
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
-		error_log("Club::get(id) $wpdb->num_rows rows returned.");
+		$id = $pks[0];
+		error_log("Club::get($id) $wpdb->num_rows rows returned.");
 		$obj = NULL;
 		if( count($rows) === 1 ) {
 			$obj = new Club;

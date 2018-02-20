@@ -108,7 +108,7 @@ class Set extends AbstractData
         $this->round_num = $round;
         $this->match_num = $match;
         if( $set >= self::MINSETS && $set <= self::MAXSETS ) {
-            $this->set_number = $set;
+            $this->set_num = $set;
         }
         $this->init();
     }
@@ -120,14 +120,14 @@ class Set extends AbstractData
     public function setSetNumber(int $set) {
         $result = false;
         if( $set >= self::MINSETS && $set <= self::MAXSETS ) {
-            $this->set_number = $set;
+            $this->set_num = $set;
             $result = $this->isdirty = TRUE;
         }
         return $result;
     }
 
     public function getSetNumber():int {
-        return $this->set_number;
+        return $this->set_num;
     }
 
     public function setHomeScore( int $wins,int $tb_pts=0, int $ties=0 ) {
@@ -222,11 +222,11 @@ class Set extends AbstractData
         error_log("Set::create: set number assigned is '$this->set_num'");
         
         if($this->set_num > self::MAXSETS) {
-            $this->set_num = self::MAXSETS;
+            $max = self::MAXSETS;
             $wpdb->query("UNLOCK TABLES;");
             $this->isnew = FALSE;
-            error_log("Set::create: set number limited to '$this->set_num'");
-            return $this->update();
+            $mess = __( "Set number exceed limit of '$max'" );
+            throw new InvalidSetException($mess);
         }
         
         $this->Set_num =  $wpdb->get_var( $safe,0,1 ) + 1;
@@ -234,7 +234,7 @@ class Set extends AbstractData
         $values = array( 'event_ID'       => $this->event_ID
                         ,'round_num'      => $this->round_num
                         ,'match_num'      => $this->match_num
-                        ,'set_num'        => $this->set_number
+                        ,'set_num'        => $this->set_num
                         ,'home_wins'      => $this->home_wins
                         ,'visitor_wins'   => $this->visitor_wins
                         ,'home_tb_pts'    => $this->home_tb_pts
@@ -305,7 +305,7 @@ class Set extends AbstractData
         // $this->event_ID     = NULL;
         // $this->round_num    = NULL;
         // $this->match_num    = NULL;
-        // $this->set_number   = NULL;
+        // $this->set_num      = NULL;
         // $this->home_wins      = 0;
         // $this->visitor_wins   = 0;
         // $this->home_tb_pts    = 0;
