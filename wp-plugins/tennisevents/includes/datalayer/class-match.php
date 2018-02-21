@@ -184,6 +184,8 @@ class Match extends AbstractData
 
     public function setDirty() {
         $this->getEvent()->setDirty();
+        $id=$this->getMatchNumber();
+        error_log(__CLASS__. " $id set Dirty ");
         return parent::setDirty();
     }
     
@@ -454,7 +456,7 @@ class Match extends AbstractData
 				if($set->getSetNumber() == $s->getSetNumber()) {
 					$this->setsToBeDeleted[] = clone $set;
                     unset($this->sets[$i]);
-					$result =  $this->setDirty();
+					$result = $this->setDirty();
 				}
 				$i++;
 			}
@@ -660,7 +662,7 @@ class Match extends AbstractData
         }
         
         foreach($this->setsToBeDeleted as $set) {
-            $set->delete();
+            $result += $set->delete();
         }
         
         $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
@@ -702,7 +704,7 @@ class Match extends AbstractData
         }
         
         foreach($this->setsToBeDeleted as $set) {
-            $set->delete();
+            $result += $set->delete();
         }
 
         $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());

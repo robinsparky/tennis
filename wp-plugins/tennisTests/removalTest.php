@@ -37,10 +37,8 @@ class RemovalTest extends TestCase
             $sets = $match->getSets();
             $this->assertCount(1,$sets);
             $this->assertTrue($match->removeSet($sets[0]));
+            $this->assertEquals(1,$match->save());
         }
-        
-        $this->assertEquals(6,self::$mens->save());
-
         
     }
     public function test_remove_matches() {

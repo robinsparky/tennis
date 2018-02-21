@@ -236,6 +236,8 @@ class Event extends AbstractData
         if(!$this->isRoot()) {
 			$this->getParent()->setDirty();
 		}
+        $id=$this->getID();
+        error_log(__CLASS__. " $id set Dirty ");
         return parent::setDirty();
 	}
 	

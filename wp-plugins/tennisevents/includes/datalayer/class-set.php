@@ -193,6 +193,8 @@ class Set extends AbstractData
      * Delete this Set
      */
     public function delete() {
+        global $wpdb;
+
         $table = $wpdb->prefix . self::$tablename;
         $where = array( 'event_ID' => $this->event_ID
                         ,'round_num' => $this->round_num
@@ -201,7 +203,7 @@ class Set extends AbstractData
         $formats_where = array( '%d', '%d', '%d', '%d' );
 
         $wpdb->delete( $table, $where, $formats_where );
-        $result += $wpdb->rows_affected;
+        $result = $wpdb->rows_affected;
 
         error_log( "Set.delete: deleted $result rows" );
 
