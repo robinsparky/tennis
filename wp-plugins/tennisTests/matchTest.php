@@ -76,9 +76,11 @@ class MatchTest extends TestCase
             $this->assertEquals('2018-04-16',$match->getMatchDate_Str(),'Test match date');
             $match->setMatchTime(2,30);
             $this->assertEquals('02:30',$match->getMatchTime_Str(),'Test match time');
-            $this->assertTrue($match->setScore(1,6,3));
+            $hscore = rand(1,6);
+            $vscore = rand(1,6);
+            $this->assertTrue($match->setScore(1,$hscore,$vscore));
             $this->assertTrue($match->isDirty(),'Match is dirty 1');
-            $this->assertTrue($match->setComments('Hello World'));
+            $this->assertTrue($match->setComments('Results for match.'));
             $this->assertTrue($match->getEvent()->isDirty(),'Matches parent is dirty 2');
             $this->assertEquals(self::$mens,$match->getEvent(),'Mens equals parent');
         }

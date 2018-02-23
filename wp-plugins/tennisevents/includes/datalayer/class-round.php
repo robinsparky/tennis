@@ -100,8 +100,9 @@ class Round extends AbstractData
 
     public function __destruct() {
         $this->event = null;
+
         if(isset($this->matches)) {
-            foreach($this->matches as $match){
+            foreach($this->matches as &$match){
                 $match = null;
             }
         }
@@ -110,12 +111,12 @@ class Round extends AbstractData
     /**
      * Assign this Round to an Event
      */
-    public function setEvent(Event $event) {
+    public function setEvent(Event &$event) {
         $result = false;
         if(!$event->isParent()) {
             $this->event = $event;
             $this->event_ID = $event->getID();
-            $result  = $this->isdirty = true;
+            $result  = $this->setDirty();
         }
         return $result ;
     }
@@ -166,7 +167,7 @@ class Round extends AbstractData
             $match->setHomeEntrant($home);
             $match->setVisitorEntrant($visitor);
             $this->matches[] = $match;
-            $result = $this->isdirty = true;
+            $result = $this->setDirty();
         }
 
         return $result;
@@ -176,13 +177,13 @@ class Round extends AbstractData
      * Add a Match to this Round
      * @param $match
      */
-    public function addMatch(Match $match) {
+    public function addMatch(Match &$match) {
         $result = false;
 
         if(isset($match) && $match->isValid()) {
             $this->getMatches();
             $this->matches[] = $match;
-            $result = $this->isdirty = true;
+            $result = $this->setDirty();
         }
         
         return $result;
@@ -203,35 +204,14 @@ class Round extends AbstractData
         return count($this->getMatches());
     }
 
-    public function setIdentifiers(int ...$pks) {
-        $result = false;
-        if($this->isNew()) {
-            if(1 === count($pks)) {
-                    $this->event_ID  = $pks[0];
-            }
-            elseif(2 === count($pks)) {
-                $this->event_ID  = $pks[0];
-                $this->round_num = $pks[1];
-            }
-            $result = true;
-        }
-        return $result;
-    }
-
-    public function getIdentifiers():array {
-        $ids = array();
-        $ids[] = $this->event_ID;
-        $ids[] = $this->round_num;
-        
-        return $ids;
-    }
-
     public function isValid() {
-        $isvalid = TRUE;
-        if(!isset($this->event_ID)) $isvalid = FALSE;
-        if(!$this->isNew() && !isset($this->round_num)) $isvalid = FALSE;
+        $mess = '';
+        if(!isset($this->event_ID)) $mess = __('Event ID is missing.');
+        if(!$this->isNew() && !isset($this->round_num)) $mess = __('Round number is missing.');
+
+        if(strlen($mess) > 0) throw new InvalidRoundException($mess);
         
-        return $isvalid;
+        return true;
     }
 
     /**

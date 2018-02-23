@@ -36,20 +36,52 @@ class RemovalTest extends TestCase
         foreach($matches as $match) {
             $sets = $match->getSets();
             $this->assertCount(1,$sets);
-            $this->assertTrue($match->removeSet($sets[0]));
+            $this->assertTrue($match->removeSet(1));
             $this->assertEquals(1,$match->save());
         }
-        
     }
-    public function test_remove_matches() {
 
+    public function test_remove_matches() {
+        
+        $this->assertTrue(self::$mens->removeAllMatches(),'Remove all matches');
+        $this->assertEquals(0,self::$mens->numMatches(),'Number of matches should be zero');
+        $this->assertGreaterThan(0,self::$mens->save());
     }
 
     public function test_remove_draw() {
+
+        $draw = self::$mens->getDraw();
+        $this->assertEquals(13,count($draw));
+        foreach($draw as $ent) {
+            $this->assertTrue(self::$mens->removeFromDraw($ent->getName()));
+        }
+        
+        //var_dump(self::$mens->getDraw());
+        $this->assertCount(0,self::$mens->getDraw());
+
+        $this->assertEquals(13,self::$mens->save());
 
     }
 
     public function test_remove_events() {
 
+        $children = self::$mens->getChildEvents();
+        $root = self::$mens->getRoot();
+        $this->assertCount(3,$root->getChildEvents());
+        foreach($root->getChildEvents() as $child) {
+           $this->assertTrue($root->removeChild($child));
+        }
+
+        $this->assertEquals(3,$root->save());
+        $this->assertEquals(1,$root->delete());
+    }
+
+    public function test_remove_clubs() {
+        $clubs = Club::find();
+        $this->assertCount(2,$clubs);
+        foreach($clubs as $club) {
+            $club->delete();
+        }
+    
     }
 }

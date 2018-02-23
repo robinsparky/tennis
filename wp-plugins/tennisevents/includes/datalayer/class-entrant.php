@@ -187,6 +187,15 @@ class Entrant extends AbstractData
 		$this->init();
 	}
 
+	public function __destruct() {
+		//destroy players
+		if(isset($this->players)) {
+			foreach($this->players as &$player) {
+				$player = null;
+			}
+		}
+	}
+
     /**
      * Set a new value for a name of this Draw
      */

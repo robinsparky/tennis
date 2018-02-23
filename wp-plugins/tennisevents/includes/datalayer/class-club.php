@@ -130,6 +130,23 @@ class Club extends AbstractData
 		if(isset($cname)) $this->name = $cname;
 	}
 
+	public function __destruct() {
+
+		//destroy related events
+		if(isset($this->events)) {
+			foreach($this->events as &$evt) {
+				$evt = null;
+			}
+		}
+		
+		//destroy related courts
+		if(isset($this->courts)) {
+			foreach($this->courts as &$crt) {
+				$crt = null;
+			}
+		}
+	}
+
 	public function setName($name) {
 		if(!is_string($name) || strlen($name) < 1) return;
 		$this->name = $name;

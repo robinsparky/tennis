@@ -53,10 +53,10 @@ class Event extends AbstractData
 	private $draw; //array of entrants for this leaf event
 	private $matches; //array of matches in a round for this leaf event
 
-	private $clubsToBeDeleted; //array of club Id's to be removed from relations with this Event
-	private $childEventsToBeDeleted; //array of child ID's events to be deleted
-	private $entrantsToBeDeleted; //array of Entrants to be removed from the draw
-	private $matchesToBeDeleted; //array of round Id's to be deleted
+	private $clubsToBeDeleted = array(); //array of club Id's to be removed from relations with this Event
+	private $childEventsToBeDeleted = array(); //array of child ID's events to be deleted
+	private $entrantsToBeDeleted = array(); //array of Entrants to be removed from the draw
+	private $matchesToBeDeleted = array(); //array of round Id's to be deleted
     
     /**
      * Search for Events have a name 'like' the provided criteria
@@ -184,31 +184,31 @@ class Event extends AbstractData
     public function __destruct() {
 		$this->parent = null;
 			if(isset($this->childEvents)) {
-			foreach($this->childEvents as $event){
+			foreach($this->childEvents as &$event){
 				$event = null;
 			}
 		}
 	
 		if(isset($this->clubs)) {
-			foreach($this->clubs as $club) {
+			foreach($this->clubs as &$club) {
 				$club = null;
 			}
 		}
 
 		if(isset($this->draw)) {
-			foreach($this->draw as $draw) {
+			foreach($this->draw as &$draw) {
 				$draw = null;
 			}
 		}
 
 		if(isset($this->matches)) {
-			foreach($this->matches as $match) {
+			foreach($this->matches as &$match) {
 				$match = null;
 			}
 		}
 
 		if(isset($this->matchesToBeDeleted)) {
-			foreach($this->matchesToBeDeleted as $match) {
+			foreach($this->matchesToBeDeleted as &$match) {
 				$match = null;
 			}
 		}
@@ -435,7 +435,7 @@ class Event extends AbstractData
 	 * Set the end date for this event
 	 * @param $end End date in string format
 	 */
-	public function setEndDate(string $end) {
+	public function setEndDate( string $end ) {
 		$result = false;
 		$test = DateTime::createFromFormat('!Y/m/d',$end);
 		if(false === $test) $test = DateTime::createFromFormat('!Y/n/j',$end);
@@ -450,7 +450,7 @@ class Event extends AbstractData
 			}
 			throw new InvalidEventException($mess);
 		}
-		elseif($test instanceof DateTime) {
+		elseif( $test instanceof DateTime ) {
 			$this->end_date = $test;
 			$result = $this->setDirty();
 		}
@@ -462,16 +462,16 @@ class Event extends AbstractData
 	 * Get the end date for this event in string format
 	 */
 	public function getEndDate_Str() {
-		if(!isset($this->end_date)) return null;
-		else return $this->end_date->format(self::$datetimeformat);
+		if( !isset( $this->end_date ) ) return null;
+		else return $this->end_date->format( self::$datetimeformat );
 	}
 	
 	/**
 	 * Get the end date for this event in ISO 8601 format
 	 */
 	public function getEndDate_ISO() {
-		if(!isset($this->end_date)) return null;
-		else return $this->end_date->format(DateTime::ISO8601);
+		if( !isset( $this->end_date ) ) return null;
+		else return $this->end_date->format( DateTime::ISO8601 );
 	}
 
 	/**
@@ -488,12 +488,12 @@ class Event extends AbstractData
 	 * @param $child child Event
 	 * @return true if succeeds false otherwise
 	 */
-	public function addChild(Event &$child) {
+	public function addChild( Event &$child ) {
 		$result = false;
-		if(isset($child)) {
+		if( isset( $child ) ) {
 			$found = false;
-			foreach($this->getChildEvents() as $ch) {
-				if($child == $ch) {
+			foreach( $this->getChildEvents() as $ch ) {
+				if( $child == $ch ) {
 					$found = true;
 					break;
 				}
@@ -512,20 +512,22 @@ class Event extends AbstractData
 	 * @param $child Event
 	 * @return true if succeeds false otherwise
 	 */
-	public function removeChild(Event &$child) {
+	public function removeChild( Event &$child)  {
 		$result = false;
-		if(isset($child)) {
-			$i=0;
-			if(isset($this->childEventsToBeDeleted)) $this->childEventsToBeDeleted = array();
-			foreach($this->getChildEvents() as $ch) {
-				if($child === $ch) {
-					$this->childEventsToBeDeleted[] = $child->getID();
-					unset($this->childEvents[$i]);
-					$result = $this->setDirty();
-				}
-				$i++;
+		$temp = array();
+		$i=0;
+		foreach( $this->getChildEvents() as $ch ) {
+			if($child === $ch) {
+				$this->childEventsToBeDeleted[] = $child->getID();
+				//unset($this->childEvents[$i]);
+				$result = $this->setDirty();
 			}
+			else {
+				$temp[] = $ch;
+			}
+			$i++;
 		}
+		$this->childEvents = $temp;
 		return $result;
 	}
 
@@ -534,10 +536,10 @@ class Event extends AbstractData
 	 * @param $force When set to true will force loading of child events
 	 *               This will cause unsaved child events to be lost.
 	 */
-	public function getChildEvents($force=false) {
-		if(!isset($this->childEvents) || $force) {
+	public function getChildEvents( $force = false ) {
+		if( !isset( $this->childEvents ) || $force ) {
 			$this->fetchChildEvents();
-			foreach($this->childEvents as $child) {
+			foreach( $this->childEvents as $child ) {
 				$child->parent = $this;
 			}
 		}
@@ -547,7 +549,7 @@ class Event extends AbstractData
 	/**
 	 * Get an Event with a specific name belonging to this Event
 	 */
-	public function getNamedEvent(string $name) {
+	public function getNamedEvent( string $name ) {
 		$result = null;
 
 		foreach($this->getChildEvents() as $evt) {
@@ -566,11 +568,11 @@ class Event extends AbstractData
 	 * most of the time an event is only associated with one club.
 	 * @param $club the Club to be added to this Event
 	 */
-	public function addClub(Club &$club) {
+	public function addClub( Club &$club ) {
 		$result = false;
-		if(isset($club) && $this->isRoot()) {
+		if( isset( $club ) && $this->isRoot() ) {
 			$found = false;
-			foreach($this->getClubs() as $cl) {
+			foreach( $this->getClubs() as $cl ) {
 				if($club === $cl) {
 					$found = true;
 					break;
@@ -584,12 +586,11 @@ class Event extends AbstractData
 		return $result;
 	}
 
-	public function removeClub(Club &$club) {
+	public function removeClub( Club &$club ) {
 		$result = false;
-		if(isset($club)) {
+		if( isset( $club ) ) {
 			$i=0;
-			if(!isset($this->clubsToBeDeleted)) $this->clubsToBeDeleted = array();
-			foreach($this->getClubs() as $cl) {
+			foreach( $this->getClubs() as $cl ) {
 				if($club === $cl) {
 					$this->clubsToBeDeleted[] = $club->getID();
 					unset($this->clubs[$i]);
@@ -606,8 +607,8 @@ class Event extends AbstractData
 	 * @param $force When set to true will force loading of related clubs
 	 *               This will cause unsaved clubs to be lost.
 	 */
-	public function getClubs($force = false) {
-		if(!isset($this->clubs) || $force) $this->fetchClubs();
+	public function getClubs( $force = false ) {
+		if( !isset( $this->clubs ) || $force ) $this->fetchClubs();
 		return $this->clubs;
 	}
 
@@ -619,17 +620,17 @@ class Event extends AbstractData
 	 * @param $seed The seeding of this player
 	 * @return true if succeeds false otherwise
 	 */
-	public function addToDraw(string $name,int $seed=null) {
+	public function addToDraw ( string $name, int $seed = null ) {
 		$result = false;
-		if(isset($name) && $this->isLeaf()) {
+		if( isset( $name ) && $this->isLeaf() ) {
 			$found = false;
-			foreach($this->getDraw() as $d) {
-				if($name === $d->getName()) {
+			foreach( $this->getDraw() as $d ) {
+				if( $name === $d->getName() ) {
 					$found = true;
 				}
 			}
-			if(!$found) {
-				$ent = new Entrant($this->getID(),$name,$seed);
+			if( !$found ) {
+				$ent = new Entrant( $this->getID(), $name, $seed );
 				$this->draw[] = $ent;
 				$result = $this->setDirty();
 			}
@@ -640,11 +641,11 @@ class Event extends AbstractData
 	/**
 	 * Get a contestant in the Draw by name
 	 */
-	public function getNamedEntrant(string $name) {
+	public function getNamedEntrant( string $name ) {
 		$result = null;
 
-		foreach($this->getDraw() as $draw) {
-			if($name === $draw->getName()) {
+		foreach( $this->getDraw() as $draw ) {
+			if( $name === $draw->getName() ) {
 				$result = $draw;
 				break;
 			}
@@ -657,21 +658,33 @@ class Event extends AbstractData
 	 * @param $entrant Entrant in the draw
 	 * @return true if succeeds false otherwise
 	 */
-	public function removeFromDraw(string $name) {
+	public function removeFromDraw( string $name ) {
 		$result = false;
-		if(isset($name)) {
-			$i=0;
-			if(!isset($this->entrantsToBeDeleted)) $this->entrantsToBeDeleted = array();
-			foreach($this->getDraw() as $dr) {
-				if($name == $dr->getName()) {
-					$this->entrantsToBeDeleted[] = $dr->getPosition();
-					unset($this->draw[$i]);
-					$result = $this->setDirty();
-				}
-				$i++;
+		$temp = array();
+		for( $i = 0; $i < count( $this->getDraw() ); $i++) {
+			if($name === $this->draw[$i]->getName()) {
+				$this->entrantsToBeDeleted[] = $this->draw[$i]->getPosition();
+				$result = $this->setDirty();
+			}
+			else {
+				$temp[] = $this->draw[$i];
 			}
 		}
+		$this->draw = $temp;
+
 		return $result;
+	}
+
+	/**
+	 * Destroy the existing draw.
+	 */
+	public function removeDraw() {
+		foreach($this->getDraw() as &$dr) {
+			$this->entrantsToBeDeleted[] = $dr->getPosition();
+			$dr = null;
+		}
+		$this->draw = null;
+		return $this->setDirty();
 	}
 
 	/**
@@ -679,8 +692,8 @@ class Event extends AbstractData
 	 * @param $force When set to true will force loading of entrants from db
 	 *               This will cause unsaved entrants to be lost.
 	 */
-	public function getDraw($force=false) {
-		if(!isset($this->draw) || $force) $this->fetchDraw();
+	public function getDraw( $force=false ) {
+		if(!isset( $this->draw ) || $force) $this->fetchDraw();
 		return $this->draw;
 	}
 
@@ -694,18 +707,18 @@ class Event extends AbstractData
      * @param $visitor
      * @return true if successful; false otherwise
      */
-    public function addNewMatch(int $round, Entrant $home, Entrant $visitor=null) {
+    public function addNewMatch( int $round, Entrant $home, Entrant $visitor=null ) {
         $result = false;
         if(isset($home)) {
 			$this->getMatches();
-			$match = new Match($this->getID(), $round);
-			$match->setEvent($this);
-            $match->setHomeEntrant($home);
+			$match = new Match( $this->getID(), $round );
+			$match->setEvent( $this );
+            $match->setHomeEntrant( $home );
 			if(isset($visitor)) {
-				$match->setVisitorEntrant($visitor);
+				$match->setVisitorEntrant( $visitor );
 			} 
 			else {
-				$match->setIsBye(true);
+				$match->setIsBye( true );
 			}
 			$this->matches[] = $match;
 			$result = $match;
@@ -724,7 +737,7 @@ class Event extends AbstractData
 
         if(isset($match) && $match->isValid()) {
 			$this->getMatches();
-			$match->setEvent($this);
+			$match->setEvent( $this );
             $this->matches[] = $match;
 			$result = $this->setDirty();
         }
@@ -737,8 +750,8 @@ class Event extends AbstractData
 	 * @param $force When set to true will force loading of matches
 	 *               This will cause unsaved matches to be lost.
      */
-    public function getMatches($force=false):array {
-        if(!isset($this->matches) || $force) $this->fetchMatches();
+    public function getMatches( $force=false ):array {
+        if( !isset( $this->matches ) || $force ) $this->fetchMatches();
         return $this->matches;
 	}
 	
@@ -777,12 +790,12 @@ class Event extends AbstractData
 		if(isset($this->matches)) {
 			$i=0;
 			foreach($this->matches as $match) {
-				$this->getMatchesToBeDeleted()[] = clone $match;
+				$this->matchesToBeDeleted[] = $match;
 				unset($this->matches[$i]);
 				$i++;
 			}
 		}
-		$this->matches = array();
+		return $this->setDirty();
 	}
 	
 	/**
@@ -860,27 +873,6 @@ class Event extends AbstractData
 		$this->matches =  Match::find($this->getID());
     }
 
-
-	private function getEventsToBeDeleted() {
-		if(!isset($this->childEventsToBeDeleted)) $this->childEventsToBeDeleted = array();
-		return $this->childEventsToBeDeleted;
-	}
-
-	private function getEntrantsToBeDeleted() {
-		if(!isset($this->entrantsToBeDeleted)) $this->entrantsToBeDeleted = array();
-		return $this->entrantsToBeDeleted;
-	}
-
-	private function getClubsToBeDeleted() {
-		if(!isset($this->clubsToBeDeleted)) $this->clubsToBeDeleted = array();
-		return $this->clubsToBeDeleted;
-	}
-
-	private function getMatchesToBeDeleted() {
-		if(!isset($this->matchesToBeDeleted)) $this->matchesToBeDeleted = array();
-		return $this->matchesToBeDeleted;
-	}
-
 	protected function create() {
         global $wpdb;
         
@@ -948,9 +940,9 @@ class Event extends AbstractData
         $obj->event_type = $row["event_type"];
         $obj->parent_ID  = $row["parent_ID"];
 		$obj->format     = $row["format"];
-		$obj->signup_by  = isset($row['signup_by']) ? new DateTime($row['signup_by']) : null;
-		$obj->start_date = isset($row['start_date']) ? new DateTime($row['start_date']) : null;
-		$obj->end_date   = isset($row["end_date"]) ? new DateTime($row["end_date"]) : null;
+		$obj->signup_by  = isset( $row['signup_by'] )  ? new DateTime( $row['signup_by'] ) : null;
+		$obj->start_date = isset( $row['start_date'] ) ? new DateTime( $row['start_date'] ) : null;
+		$obj->end_date   = isset( $row["end_date"] )   ? new DateTime( $row["end_date"] ) : null;
 	}
 	
 	private function init() {
@@ -968,58 +960,71 @@ class Event extends AbstractData
 		$result = 0;
 
 		//Save each child event
-		foreach($this->getChildEvents() as $evt) {
-			$result += $evt->save();
-		}
-
-		//Delete Events removed from being a child of this Event
-		$evtIds = array_map(function($e){return $e->getID();},$this->getChildEvents());
-		foreach($this->getEventsToBeDeleted() as $id) {
-			if(!in_array($id,$evtIds)) {
-				$result += Event::deleteEvent($id);
+		$evtIds = array();
+		if( isset( $this->childEvents ) ) {
+			foreach($this->childEvents as $evt) {
+				$result += $evt->save();
+				$evtIds[] = $evt->getID();
 			}
 		}
 
-		foreach($this->getDraw() as $draw) {
-			$draw->setEventID($this->getID());
-			$result += $draw->save();
+		//Delete Events removed from being a child of this Event
+		if( count( $this->childEventsToBeDeleted ) > 0 ) {
+			foreach($this->childEventsToBeDeleted as $id) {
+				if(!in_array($id,$evtIds)) {
+					$result += Event::deleteEvent($id);
+				}
+			}
 		}
 
-		//Delete Entrants that were removed from this draw
-		$entrantIds = array_map(function($e){return $e->getID();},$this->getDraw());
-		foreach($this->getEntrantsToBeDeleted() as $entId) {
-			if(!in_array($entId,$entrantIds)) {
-				$result += Entrant::deleteEntrant($this->getID(),$entId);
+		if( isset( $this->draw ) ) {
+			foreach($this->draw as $draw) {
+				$draw->setEventID($this->getID());
+				$result += $draw->save();
+			}
+		}
+
+		//Delete Entrants that were removed from the draw for this Event
+		if(count($this->entrantsToBeDeleted) > 0 ) {
+			$entrantIds = array_map(function($e){return $e->getID();},$this->getDraw());
+			foreach( $this->entrantsToBeDeleted as $entId)  {
+				if(!in_array($entId,$entrantIds)) {
+					$result += Entrant::deleteEntrant($this->getID(),$entId);
+				}
 			}
 		}
 
 		//Save the Clubs related to this Event
-		foreach($this->getClubs() as $cb) {
-			$result += $cb->save();
-		}
-
-		//Remove relation between this Event and Clubs
-		$clubIds = array_map(function($e){return $e->getID();},$this->getClubs());
-		foreach($this->getClubsToBeDeleted() as $clubId) {
-			if(!in_array($clubId,$clubIds)) {
-				$result += ClubEventRelations::remove($clubId,$this->getID());
+		if( isset( $this->clubs) ) {
+			foreach($this->clubs as $cb) {
+				$result += $cb->save();
+				//Create relation between this Event and its Clubs
+				$result += ClubEventRelations::add($cb->getID(),$this->getID());
 			}
 		}
 
-		//Create relation between this Event and Clubs
-		foreach($this->getClubs() as $cb) {
-			$result += ClubEventRelations::add($cb->getID(),$this->getID());
+		//Remove relation between this Event and Clubs
+		if( count( $this->clubsToBeDeleted ) > 0 ) {
+			$clubIds = array_map(function($e){return $e->getID();},$this->getClubs());
+			foreach( $this->clubsToBeDeleted as $clubId ) {
+				if(!in_array($clubId,$clubIds)) {
+					$result += ClubEventRelations::remove($clubId,$this->getID());
+				}
+			}
 		}
-		
+
 		//Create relation between this Matches(round_num,match_num,position) and this Event
-		foreach($this->getMatches() as $match) {
-			$result += $match->save();
+		if( isset( $this->matches ) ) {
+			foreach($this->matches as $match) {
+				$result += $match->save();
+			}
 		}
 
 		//Delete ALL Matches removed from this Event
-		foreach($this->getMatchesToBeDeleted() as $match) {
+		foreach($this->matchesToBeDeleted as $match) {
 			$result += $match->delete();			
 		}
+
 
 		return $result;
 	}

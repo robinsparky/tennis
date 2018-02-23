@@ -17,6 +17,7 @@
     <file>tests/eventTest.php</file>
     <file>tests/drawTest.php</file>
     <file>tests/matchTest.php</file>
+    <file>tests/removalTest.php</file>
   </testsuite>
   <testsuite name="current">
     <file>tests/removalTest.php</file>

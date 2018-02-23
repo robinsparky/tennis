@@ -21,10 +21,10 @@ class Set extends AbstractData
     const MINSETS = 1;
     
     //Primary Keys
-    private $event_ID;
-    private $round_num;
-    private $match_num;
-    private $set_num;
+    private $event_ID  = 0;
+    private $round_num = 0;
+    private $match_num = 0;
+    private $set_num   = 0;
 
     //Various scores
     private $home_wins      = 0;
@@ -51,9 +51,9 @@ class Set extends AbstractData
         $col = array();
  
         $sql = "SELECT event_ID,round_num,match_num,set_num
-                    ,home_wins, visitor_wins 
-                    ,home_tb_pts, visitor_tb_pts 
-                    ,home_ties, visitor_ties
+                      ,home_wins, visitor_wins 
+                      ,home_tb_pts, visitor_tb_pts 
+                      ,home_ties, visitor_ties
                  FROM $table 
                  WHERE event_ID = %d 
                  AND   round_num = %d 
@@ -73,7 +73,8 @@ class Set extends AbstractData
     }
 
 	/**
-	 * Get instance of a Match using it's primary key: event_ID,round_num,match_num,set_num,Set_num
+	 * Get instance of a Set from the database.
+     * @param $pks Primary key identifying a Set: event_ID,round_num,match_num,set_num
 	 */
     static public function get(int ...$pks) {
 		global $wpdb;
@@ -102,15 +103,12 @@ class Set extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $eventID, int $round, int $match,int $set=NULL) {
-        $this->isnew = TRUE;
+	public function __construct(int $eventID, int $round, int $match,int $set=0) {
+        $this->isnew      = true;
         $this->event_ID   = $eventID;
-        $this->round_num = $round;
-        $this->match_num = $match;
-        if( $set >= self::MINSETS && $set <= self::MAXSETS ) {
-            $this->set_num = $set;
-        }
-        $this->init();
+        $this->round_num  = $round;
+        $this->match_num  = $match;
+        $this->set_num    = $set;
     }
 
     public function __destruct() {
@@ -121,7 +119,7 @@ class Set extends AbstractData
         $result = false;
         if( $set >= self::MINSETS && $set <= self::MAXSETS ) {
             $this->set_num = $set;
-            $result = $this->isdirty = TRUE;
+            $result = $this->setDirty();
         }
         return $result;
     }
@@ -181,7 +179,8 @@ class Set extends AbstractData
         if( !isset( $this->event_ID ) )  $mess = __( "Missing event ID." );
         if( !isset( $this->round_num ) ) $mess = __( "Missing round number." );
         if( !isset( $this->match_num ) ) $mess = __( "Misisng match number." );
-        if( !$this->isNew() && !isset( $this->set_num ) ) $mess =  __( "Missing set number." );
+        if( !isset( $this->set_num ) ) $mess =  __( "Missing set number." );
+        if( $this->set_num < self::MINSETS || $this->set_num > self::MAXSETS ) $mess = __("Set number is invalid.");
         if( !isset( $this->home_wins ) && !isset( $this->visitor_wins ))  $mess =  __( "No scores are set." );
         if( 0 === $this->home_wins && 0 === $this->visitor_wins) $mess =  __( "Both home and visitor scores cannot be zero" );
 
@@ -197,9 +196,9 @@ class Set extends AbstractData
 
         $table = $wpdb->prefix . self::$tablename;
         $where = array( 'event_ID' => $this->event_ID
-                        ,'round_num' => $this->round_num
-                        ,'match_num' => $this->match_num
-                        ,'set_num'   => $this->set_num );
+                       ,'round_num' => $this->round_num
+                       ,'match_num' => $this->match_num
+                       ,'set_num'   => $this->set_num );
         $formats_where = array( '%d', '%d', '%d', '%d' );
 
         $wpdb->delete( $table, $where, $formats_where );
@@ -215,24 +214,17 @@ class Set extends AbstractData
         
         parent::create();
         
-		$table = $wpdb->prefix . self::$tablename;
-        $wpdb->query( "LOCK TABLES $table LOW_PRIORITY WRITE;" );
+        $table = $wpdb->prefix . self::$tablename;
         
-		$sql = "SELECT IFNULL(MAX(set_num),0) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
-        $safe = $wpdb->prepare( $sql, $this->event_ID, $this->round_num, $this->match_num );
-        $this->set_num = $wpdb->get_var( $safe,0,0 ) + 1;
-        error_log("Set::create: set number assigned is '$this->set_num'");
+        $sql = "SELECT COUNT(*) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d AND set_num=%d;";
+        $exists = (int) $wpdb->get_var($wpdb->prepare($sql,$this->event_ID, $this->round_num, $this->match_num, $this->set_num),0,0);
         
-        if($this->set_num > self::MAXSETS) {
-            $max = self::MAXSETS;
-            $wpdb->query("UNLOCK TABLES;");
-            $this->isnew = FALSE;
-            $mess = __( "Set number exceed limit of '$max'" );
-            throw new InvalidSetException($mess);
+        //If this set arleady exists call update
+        if($exists > 0) {
+            $this->isnew = false;
+            return $this->update();
         }
-        
-        $this->Set_num =  $wpdb->get_var( $safe,0,1 ) + 1;
-
+ 
         $values = array( 'event_ID'       => $this->event_ID
                         ,'round_num'      => $this->round_num
                         ,'match_num'      => $this->match_num
@@ -246,10 +238,8 @@ class Set extends AbstractData
 		$formats_values = array( '%d','%d','%d','%d','%d','%d','%d','%d','%d','%d' );
 		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
         $result =  $wpdb->rows_affected;
-        $wpdb->query( "UNLOCK TABLES;" );
-
-		$this->isnew = FALSE;
-		$this->isdirty = FALSE;
+		$this->isnew = false;
+		$this->isdirty = false;
 
 		error_log("Set::create $result rows affected.");
 
@@ -274,7 +264,7 @@ class Set extends AbstractData
                       ,'set_num'        => $this->set_num);
 		$formats_where  = array( '%d', '%d', '%d', '%d' );
 		$wpdb->update( $wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where );
-		$this->isdirty = FALSE;
+		$this->isdirty = false;
         $result =  $wpdb->rows_affected;
 
 		error_log("Set::update $result rows affected.");
@@ -287,16 +277,16 @@ class Set extends AbstractData
      */
     protected static function mapData( $obj, $row ) {
         parent::mapData($obj,$row);
-        $obj->event_ID        = $row["event_ID"];
-        $obj->round_num       = $row["round_num"];
-        $obj->match_num       = $row["match_num"];
-        $obj->set_num         = $row["set_num"];
-        $obj->homes_wins      = $row["home_wins"];
-        $obj->visitor_wins    = $row["visitor_wins"];
-        $obj->home_tb_pts     = $row["home_tb_pts"];
-        $obj->visitor_tb_pts  = $row["visitor_tb_pts"];
-        $obj->home_ties       = $row["home_ties"];
-        $obj->visitor_ties    = $row["visitor_ties"];
+        $obj->event_ID        = (int) $row["event_ID"];
+        $obj->round_num       = (int) $row["round_num"];
+        $obj->match_num       = (int) $row["match_num"];
+        $obj->set_num         = (int) $row["set_num"];
+        $obj->homes_wins      = (int) $row["home_wins"];
+        $obj->visitor_wins    = (int) $row["visitor_wins"];
+        $obj->home_tb_pts     = (int) $row["home_tb_pts"];
+        $obj->visitor_tb_pts  = (int) $row["visitor_tb_pts"];
+        $obj->home_ties       = (int) $row["home_ties"];
+        $obj->visitor_ties    = (int) $row["visitor_ties"];
     }
  
     private function getIndex( $obj ) {

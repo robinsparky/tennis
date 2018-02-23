@@ -166,8 +166,8 @@ class Match extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $eventId, int $round=null, int $match=null) {
-        $this->isnew = TRUE;
+	public function __construct(int $eventId, int $round=0, int $match=0) {
+        $this->isnew = true;
         $this->event_ID = $eventId;
         $this->getEvent(true);
         $this->round_num = $round;
@@ -177,7 +177,8 @@ class Match extends AbstractData
 
     public function __destruct() {
         $this->event = null;
-        foreach($this->getSets() as $set) {
+
+        foreach($this->getSets() as &$set) {
             $set = null;
         }
     }
@@ -401,6 +402,7 @@ class Match extends AbstractData
         $result = false;
         $found = false;
 
+        $this->isValid();
         foreach($this->getSets() as $set) {
             if($set->getSetNumber() === $setnum) {
                 $found = true;
@@ -448,13 +450,13 @@ class Match extends AbstractData
     /**
      * Remove a Set from this Match
      */
-    public function removeSet( Set $set ) {
+    public function removeSet( int $set ) {
 		$result = false;
 		if(isset($set)) {
 			$i=0;
 			foreach($this->getSets() as $s) {
-				if($set->getSetNumber() == $s->getSetNumber()) {
-					$this->setsToBeDeleted[] = clone $set;
+				if($set == $s->getSetNumber()) {
+					$this->setsToBeDeleted[] = clone $this->sets[$i];
                     unset($this->sets[$i]);
 					$result = $this->setDirty();
 				}
@@ -507,7 +509,7 @@ class Match extends AbstractData
      * Get the visitor Entrant
      */
     public function getVisitorEntrant():Entrant {
-        if(!isset($this->visitor)) $this->fetchEntrants();
+        if( !isset( $this->visitor ) ) $this->fetchEntrants();
         return $this->visitor;
     }
     
@@ -517,15 +519,31 @@ class Match extends AbstractData
      */
     public function isValid() {
         $mess = '';
+
         $this->getHomeEntrant();
+        
         $this->getVisitorEntrant();
-        if(!isset($this->event_ID)) $mess = __('Match must have an event id.');
-        if(!isset($this->round_num)) $mess = __('Match must have a round number.');
-        if(!$this->isNew() && (!isset($this->match_num) || $this->match_num === 0)) $mess=__('Existing match must have a match number.');
-        if(!isset($this->home_ID)) $mess = __('Match must have a home entrant id.');
-        if(!isset($this->visitor_ID) && !$this->isBye()) $mess = __('Match is not a bye so must have a visitor entrant id.');
-        if(!isset($this->match_type)) $mess = __('Match must have a match type');
-        switch($this->match_type) {
+
+        if( !isset( $this->event_ID ) ) {
+            $mess = __( 'Match must have an event id.' );
+        }
+        if( !isset($this->round_num) ) {
+            $mess = __( 'Match must have a round number.' );
+        }
+        if( !$this->isNew() && ( !isset( $this->match_num ) || $this->match_num === 0 )  ) {
+             $mess = __( 'Existing match must have a match number.' );
+        }
+        if( !isset( $this->home_ID ) ) {
+            $mess = __( 'Match must have a home entrant id.' );
+        }
+        if( !isset( $this->visitor_ID ) && !$this->isBye()) {
+            $mess = __( 'Match is not a bye so must have a visitor entrant id. ');
+        }
+        if( !isset( $this->match_type ) ) {
+            $mess = __( 'Match must have a match type' );
+        }
+        
+        switch( $this->match_type ) {
             case MatchType::MENS_SINGLES:
             case MatchType::WOMENS_SINGLES:
             case MatchType::MENS_DOUBLES:
@@ -533,10 +551,10 @@ class Match extends AbstractData
             case MatchType::MIXED_DOUBLES:
                 break;
             default:
-            $mess = __("Match Type is invalid: $this->match_type");
+            $mess = __( "Match Type is invalid: $this->match_type" );
         }
 
-        if(strlen($mess) > 0) throw new InvalidMatchException($mess);
+        if(strlen($mess) > 0) throw new InvalidMatchException( $mess );
 
         return true;
     }
@@ -557,7 +575,7 @@ class Match extends AbstractData
         $formats_where = array('%d','%d','%d');
 
         $wpdb->delete($table,$where,$formats_where);
-        $result += $wpdb->rows_affected;
+        $result = $wpdb->rows_affected;
 
         error_log("Match.delete: deleted $result rows");
         return $result;
@@ -657,11 +675,13 @@ class Match extends AbstractData
 
         error_log("Match::create: $result rows affected.");
         
-        foreach($this->getSets() as $set) {
-            $result += $set->save();
+        if( isset( $this->sets ) ) {
+            foreach($this->sets as &$set) {
+                $result += $set->save();
+            }
         }
         
-        foreach($this->setsToBeDeleted as $set) {
+        foreach($this->setsToBeDeleted as &$set) {
             $result += $set->delete();
         }
         
@@ -699,8 +719,10 @@ class Match extends AbstractData
 
         error_log( "Match::update $result rows affected." );
         
-        foreach($this->getSets() as $set) {
-            $result += $set->save();
+        if( isset( $this->sets ) ) {
+            foreach( $this->sets as &$set ) {
+                $result += $set->save();
+            }
         }
         
         foreach($this->setsToBeDeleted as $set) {
@@ -722,8 +744,8 @@ class Match extends AbstractData
         $obj->round_num  = $row["round_num"];
         $obj->match_num  = $row["match_num"];
         $obj->match_type = $row["match_type"];
-		$obj->match_date = isset($row["match_date"]) ? new DateTime($row["match_date"]) : null;
-		$obj->match_time = isset($row["match_time"]) ?  new DateTime($row["match_time"]) : null;
+		$obj->match_date = isset ($row["match_date"] ) ? new DateTime( $row["match_date"] ) : null;
+		$obj->match_time = isset( $row["match_time"] ) ?  new DateTime( $row["match_time"] ) : null;
         $obj->is_bye     = $row["is_bye"] == 1 ? true : false;
         $obj->comments   = $row["comments"];
     }
@@ -733,17 +755,6 @@ class Match extends AbstractData
     }
 
     private function init() {
-        // $this->event_ID   = NULL;
-        // $this->round_num  = NULL;
-        // $this->match_num  = NULL;
-        // $this->match_type = NULL;
-        // $this->match_date = NULL;
-        // $this->match_time = NULL;
-        // $this->home_ID    = NULL;
-        // $this->home       = NULL;
-        // $this->visitor_ID = NULL;
-        // $this->visitor    = NULL;
-        // $this->sets      = NULL;
     }
 
 } //end class
