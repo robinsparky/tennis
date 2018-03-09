@@ -700,6 +700,79 @@ class Event extends AbstractData
 	public function drawSize() {
 		return sizeof($this->getDraw());
 	}
+	
+	/**
+	 * Evenly distribute the seeded players throughout the draw
+	 * This function modifies the existing draw but in order to keep the results 'save' must be called.
+	 * @param $withShuffle If true then the draw of unseeded players is randomized before seeded players are distributed.
+	 * @return true if succeeds; false otherwise
+	 */
+	public function distributeSeededPlayers( $withShuffle = true ) {
+		$result = false;
+
+        $seeded = array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $this->getDraw() );
+		
+		if( count( $seeded ) > 1 ) {
+			$redraw = array( $this->drawSize() );
+			$seeded = usort( $seeded, $this->sortBySeedDesc );
+			$unseeded = array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $this->getDraw() );
+			//$unseeded = array_reverse($unseeded); //want in descending position order
+
+			if( $withShuffle ) $unseeded = shuffle($unseeded);
+
+			//Add seeded players to array using an even distribution
+			$slots = count( $seeded ) > 0 ? ceil( count( $redraw ) / count( $seeded ) ) : 0;
+			$redraw[0] = count( $seeded ) > 0 ? array_unshift( $seeded ) : array_unshift( $unseeded );
+			$redraw[count( $redraw ) - 1]  = count( $seeded ) > 0 ? array_pop( $seeded ) : array_pop( $unseeded );
+			$k = 1;
+			while( count( $unseeded ) > 0 && ($k < count( $redraw ) - 1 ) ) {
+				if( $slots > 0 && ( $k % $slots === 0) && count( $seeded ) > 0 ) {
+					$redraw[$k] = ( $k % 2 === 0 ) ? array_unshift( $seeded ) : array_pop( $seeded );           
+				}
+				else {
+					$redraw[$k] = array_unshift( $unseeded );
+				}
+				++$k;
+			}
+
+			if( $k !== $this->drawSize() - 2 ) throw new InvalidEventException( __( "Distribution of seeds did not file the draw: $k was result." ) );
+
+			//Remove the existing draw which is same players but in wrong order now.
+			$this->removeDraw();
+
+			//Now add the same players back into the draw in the new order.
+			for($i = 0; $i < count( $redraw ) - 1; $i++ ) {
+				$ent = $redraw[$i];
+				$this->addToDraw( $ent->getName(), $ent->getSeed() );
+			}
+			$result = $this->setDirty();
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Randomize the order of the entrants in the draw.
+	 * Does not change the existing draw.
+	 * @return array with randomized order of the entrants.
+	 */
+	public function randomizeDraw() {
+		return shuffle($this->getDraw());
+	}
+
+	
+    private function sortBySeedDesc($a,$b) {
+        if($a->getSeed() === $b->getSeed()) return 1; return ($a->getSeed() > $b->getSeed()) ? 1 : -1;
+    }
+    
+    private function sortBySeedAsc($a,$b) {
+        if($a->getSeed() === $b->getSeed()) return 1; return ($a->getSeed() < $b->getSeed()) ? 1 : -1;
+    }
+    
+    private function sortByPositionAsc($a,$b) {
+        if($a->getPosition() === $b->getPosition()) return 1; return ($a->getPosition() < $b->getPosition()) ? 1 : -1;
+    }
+
 
     /**
      * Create a new Match and add itz to this Round using the home and visitor Entrants
@@ -707,11 +780,11 @@ class Event extends AbstractData
      * @param $visitor
      * @return true if successful; false otherwise
      */
-    public function addNewMatch( int $round, Entrant $home, Entrant $visitor=null ) {
+    public function addNewMatch( int $round, Entrant $home, Entrant $visitor = null, $matchnum = 0 ) {
         $result = false;
         if(isset($home)) {
 			$this->getMatches();
-			$match = new Match( $this->getID(), $round );
+			$match = new Match( $this->getID(), $round, $matchnum );
 			$match->setEvent( $this );
             $match->setHomeEntrant( $home );
 			if(isset($visitor)) {
@@ -743,7 +816,7 @@ class Event extends AbstractData
         }
         
         return $result;
-    }
+	}
 
     /**
      * Access all Matches in this Event
