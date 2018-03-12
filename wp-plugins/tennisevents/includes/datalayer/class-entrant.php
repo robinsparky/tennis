@@ -234,7 +234,7 @@ class Entrant extends AbstractData
 	/**
 	 * Assign a position
 	 */
-	public function setPosition(int $pos) {
+	public function setPosition( int $pos ) {
 		$result = false;
 		if(isset($pos)) {
 			if($pos < 1) return;
@@ -254,10 +254,10 @@ class Entrant extends AbstractData
 	/**
 	 * Seed this player(s)
 	 */
-	public function setSeed(int $seed=0) {
+	public function setSeed( int $seed = 0 ) {
 		$result = false;
-		if(isset($seed)) {
-			if($seed < 0) $seed=0;
+		if( isset( $seed ) ) {
+			if( $seed < 0 ) $seed=0;
 			$this->seed = $seed;
 			$result = $this->isdirty = TRUE;
 		}
@@ -276,13 +276,13 @@ class Entrant extends AbstractData
 		$result = 0;
 		$eventId = $this->getEventId();
 		$pos = $this->getPosition();
-		if(isset($eventId) && isset($pos)) {
+		if( isset( $eventId ) && isset( $pos ) ) {
 			$table = $wpdb->prefix . self::$tablename;
 			
-			$wpdb->delete($table,array('event_ID'=>$eventId,'position'=>$pos),array('%d','%d'));
+			$wpdb->delete( $table,array( 'event_ID'=>$eventId,'position'=>$pos ),array( '%d', '%d' ) );
 			$result = $wpdb->rows_affected;
 
-			error_log("Entrant.delete: deleted $result rows");
+			error_log( "Entrant.delete: deleted $result rows" );
 		}
 		return $result;
 	}
@@ -292,11 +292,20 @@ class Entrant extends AbstractData
 	 */
 	public function isValid() {
 		$mess = '';
-		if(!isset($this->event_ID)) $mess = __('Entrant must have and event id.');
-		if(!$this->isNew() && !isset($this->position)) $mess = __('Existing entrant must have a position.');
-		if(!isset($this->name)) $mess = __('Entrant must have a unique name.');
+		$pos = $this->position;
+		if( !isset( $this->event_ID ) ) {
+			$mess = __( "Entrant ($pos) must have and event id." );
+		}
 
-		if(strlen($mess) > 0) throw new InvalidEntrantException($mess);
+		if( !$this->isNew() && !isset( $this->position ) ) {
+			$mess = __( "Existing entrant (in event=$this->event_ID) must have a position." );
+		}
+
+		if( !isset( $this->name ) ) {
+			$mess = __( "Entrant ($pos) must have a unique name." );
+		}
+
+		if( strlen( $mess ) > 0 ) throw new InvalidEntrantException( $mess );
 
 		return true;
 	}

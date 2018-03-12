@@ -3,16 +3,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-/**
- * Event types
- */
-class EventType {
-
-	const TOURNAMENT  = 'tournament';
-	const LEAGUE      = 'league';
-	const LADDER      = 'ladder';
-	const ROUND_ROBIN = 'robin';
-}
 
 /**
  * Formats
@@ -237,7 +227,7 @@ class Event extends AbstractData
 			$this->getParent()->setDirty();
 		}
         $id=$this->getID();
-        error_log(__CLASS__. " $id set Dirty ");
+        //error_log(__CLASS__. " $id set Dirty ");
         return parent::setDirty();
 	}
 	
@@ -750,29 +740,22 @@ class Event extends AbstractData
 
 		return $result;
 	}
-
-	/**
-	 * Randomize the order of the entrants in the draw.
-	 * Does not change the existing draw.
-	 * @return array with randomized order of the entrants.
-	 */
-	public function randomizeDraw() {
-		return shuffle($this->getDraw());
-	}
-
 	
-    private function sortBySeedDesc($a,$b) {
-        if($a->getSeed() === $b->getSeed()) return 1; return ($a->getSeed() > $b->getSeed()) ? 1 : -1;
+    private function sortBySeedDesc( $a, $b ) {
+        if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? 1 : -1;
     }
     
-    private function sortBySeedAsc($a,$b) {
-        if($a->getSeed() === $b->getSeed()) return 1; return ($a->getSeed() < $b->getSeed()) ? 1 : -1;
+    private function sortBySeedAsc( $a, $b ) {
+        if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? -1 : 1;
     }
     
-    private function sortByPositionAsc($a,$b) {
-        if($a->getPosition() === $b->getPosition()) return 1; return ($a->getPosition() < $b->getPosition()) ? 1 : -1;
+    private function sortByPositionAsc( $a, $b ) {
+        if($a->getPosition() === $b->getPosition()) return 0; return ($a->getPosition() < $b->getPosition()) ? 1 : -1;
     }
 
+	private function sortByMatchNumberAsc( $a, $b ) {
+		if($a->getMatchNumber() === $b->getMatchNumber()) return 0; return ($a->getMatchNumber() < $b->getMatchNumber()) ? -1 : 1;
+	}
 
     /**
      * Create a new Match and add itz to this Round using the home and visitor Entrants
@@ -793,6 +776,7 @@ class Event extends AbstractData
 			else {
 				$match->setIsBye( true );
 			}
+			//TODO: MatchType is never set??
 			$this->matches[] = $match;
 			$result = $match;
             $this->setDirty();
@@ -808,7 +792,7 @@ class Event extends AbstractData
     public function addMatch(Match &$match) {
         $result = false;
 
-        if(isset($match) && $match->isValid()) {
+        if(isset($match) /*&& $match->isValid()*/) {
 			$this->getMatches();
 			$match->setEvent( $this );
             $this->matches[] = $match;
@@ -823,7 +807,7 @@ class Event extends AbstractData
 	 * @param $force When set to true will force loading of matches
 	 *               This will cause unsaved matches to be lost.
      */
-    public function getMatches( $force=false ):array {
+    public function getMatches( $force = false ):array {
         if( !isset( $this->matches ) || $force ) $this->fetchMatches();
         return $this->matches;
 	}
@@ -834,8 +818,8 @@ class Event extends AbstractData
      */
 	public function getMatchesByRound(int $rndnum) {
 		$result = array();
-		foreach($this->getMatches() as $match) {
-			if($match->getRoundNumber() === $rndnum) {
+		foreach( $this->getMatches() as $match ) {
+			if( $match->getRoundNumber() === $rndnum ) {
 				$result[] = $match;
 			}
 		}
@@ -846,25 +830,25 @@ class Event extends AbstractData
      * Get the number of matches in this Round
      */
     public function numMatches():int {
-        return count($this->getMatches());
+        return count( $this->getMatches() );
 	}
 	
     /**
      * Get the number of matches in this Round
      */
     public function numMatchesByRound(int $round):int {		
-		return array_reduce(function ($sum,$m) use($round) {if($m->getRound() === $round) ++$sum;},$this->getMatches(),0);
+		return array_reduce( function ($sum,$m) use( $round ) { if( $m->getRound() === $round ) ++$sum; }, $this->getMatches(), 0);
 	}
 	
 	/**
 	 * Remove the collection of Matches
 	 */
 	public function removeAllMatches() {
-		if(isset($this->matches)) {
+		if( isset( $this->matches ) ) {
 			$i=0;
-			foreach($this->matches as $match) {
+			foreach( $this->matches as $match ) {
 				$this->matchesToBeDeleted[] = $match;
-				unset($this->matches[$i]);
+				unset( $this->matches[$i] );
 				$i++;
 			}
 		}
@@ -876,20 +860,21 @@ class Event extends AbstractData
 	 */
 	public function isValid() {
 		$mess = '';
-		if(!isset($this->name)) {
+
+		if( !isset( $this->name ) ) {
 			$mess = __('Event must have a name.');
 		}
-		elseif(!isset($this->event_type) && $this->isRoot()) {
+		elseif( !isset( $this->event_type ) && $this->isRoot() ) {
 			$mess = __('Root Events must have a type.');
 		}
-		elseif(!isset($this->format) && $this->isLeaf()) {
+		elseif( !isset( $this->format ) && $this->isLeaf() ) {
 			$mess = __('Leaf events must have a format.');
 		}
-		elseif($this->isRoot() && count($this->getClubs()) < 1) {
+		elseif( $this->isRoot() && count( $this->getClubs() ) < 1 ) {
 			$mess = __('Root event must be associated with at least one club');
 		}
 
-		if(strlen($mess) > 0) throw new InvalidEventException($mess);
+		if(strlen( $mess ) > 0) throw new InvalidEventException( $mess );
 
 		return true;
 	}
@@ -928,7 +913,7 @@ class Event extends AbstractData
 	 */
 	private function fetchDraw() {
 		if($this->isParent()) $this->draw = array();
-		$this->draw = Entrant::find($this->getID());
+		$this->draw = Entrant::find( $this->getID() );
 	}
 
 	/**
@@ -936,14 +921,14 @@ class Event extends AbstractData
 	 * Root-level Events can be associated with one or more clubs
 	 */
 	private function fetchClubs() {
-		$this->clubs = Club::find($this->getID());
+		$this->clubs = Club::find( $this->getID());
 	}
 
     /**
      * Fetch Matches all Matches from the database
      */
     private function fetchMatches() {
-		$this->matches =  Match::find($this->getID());
+		$this->matches =  Match::find( $this->getID() );
     }
 
 	protected function create() {
@@ -951,7 +936,7 @@ class Event extends AbstractData
         
         parent::create();
 
-		$this->parent_ID = isset($this->parent) ? $this->parent->getID() : null;
+		$this->parent_ID = isset( $this->parent ) ? $this->parent->getID() : null;
 
         $values = array( 'name'       => $this->getName()
 						,'parent_ID'  => $this->parent_ID

@@ -30,7 +30,7 @@ class TennisEvents {
 	 * @since   1.0.0
 	 * @var     string
 	 */
-	const VERSION = '1.0.0';
+	public const VERSION = '1.0.0';
 	
 	/**
 	 * Unique identifier for the plugin.
@@ -40,8 +40,8 @@ class TennisEvents {
 	 * @since    1.0.0
 	 * @var      string
 	 */
-	const PLUGIN_SLUG = 'tennis';
-	const TEXT_DOMAIN = 'tennis_text';
+	public const PLUGIN_SLUG = 'tennis';
+	public const TEXT_DOMAIN = 'tennis_text';
 	
 	
 	/**

@@ -20,7 +20,8 @@ include_once($dir . '/gw-support.php' );
     * A 12-point tie-break is usually played when the score is 8–8 (or 10–10). These are often played with no-ad scoring.
 * Match tie-break
     * This is sometimes played instead of a third set. A match tie-break (also called super tie-break) is played like a regular tie-break, 
-    * but the winner must win ten points instead of seven. Match tie-breaks are used in the Hopman Cup, Grand Slams (excluding Wimbledon) and the Olympic Games for mixed doubles; 
+    * but the winner must win ten points instead of seven. 
+    * Match tie-breaks are used in the Hopman Cup, Grand Slams (excluding Wimbledon) and the Olympic Games for mixed doubles; 
     * on the ATP (since 2006), WTA (since 2007) and ITF (excluding four Grand Slam tournaments and the Davis Cup) tours for doubles and as a player's choice in USTA league play.
 * Fast4
     * Fast4 is a shortened format that offers a "fast" alternative, with four points, four games and four rules: 
@@ -31,14 +32,6 @@ class MatchScoring {
     public const PRO_SET         = "pro set";
     public const MATCH_TIE_BREAK = "match tie break";
     public const FAST4           = "fast4";
-}
-
-class MatchType {
-    public const MENS_SINGLES   = 1.1;
-    public const WOMENS_SINGLES = 1.2;
-    public const MENS_DOUBLES   = 2.1;
-    public const WOMENS_DOUBLES = 2.2;
-    public const MIXED_DOUBLES  = 2.3;
 }
 
 // require_once('class-abstractdata.php');
@@ -186,7 +179,7 @@ class Match extends AbstractData
     public function setDirty() {
         $this->getEvent()->setDirty();
         $id=$this->getMatchNumber();
-        error_log(__CLASS__. " $id set Dirty ");
+        //error_log(__CLASS__. " $id set Dirty ");
         return parent::setDirty();
     }
     
@@ -269,21 +262,21 @@ class Match extends AbstractData
      */
     public function setMatchDate_Str( string $date ) {
 		$result = false;
-		$test = DateTime::createFromFormat(self::$indateformat,$end);
-		if(false === $test) $test = DateTime::createFromFormat('!Y-m-d',$end);
-		if(false === $test) $test = DateTime::createFromFormat('!j/n/Y',$end);
-		if(false === $test) $test = DateTime::createFromFormat('!d/m/Y',$end);
-		if(false === $test) $test = DateTime::createFromFormat('!d-m-Y',$end);
+		$test = DateTime::createFromFormat( self::$indateformat, $end );
+		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $end );
+		if(false === $test) $test = DateTime::createFromFormat( '!j/n/Y', $end );
+		if(false === $test) $test = DateTime::createFromFormat( '!d/m/Y', $end );
+		if(false === $test) $test = DateTime::createFromFormat( '!d-m-Y', $end );
 		$last = DateTIme::getLastErrors();
-		if($last['error_count'] > 0) {
+		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
 			$mess = '';
-			foreach($arr as $err) {
+			foreach( $arr as $err ) {
 				$mess .= $err.':';
 			}
-			throw new InvalidMatchException($mess);
+			throw new InvalidMatchException( $mess );
 		}
-		elseif($test instanceof DateTime) {
+		elseif( $test instanceof DateTime ) {
 			$this->match_date = $test;
 			$result = $this->setDirty();
 		}
@@ -291,35 +284,35 @@ class Match extends AbstractData
         return $result;
     }
 
-    public function setMatchDate(int $year, int $month, int $day) {
-        if(!isset($this->match_date)) $this->match_date = new DateTime();
-        $this->match_date->setDate($year,$month,$day);
-        $this->match_date->setTime(0,0,0);
+    public function setMatchDate( int $year, int $month, int $day ) {
+        if( !isset( $this->match_date ) ) $this->match_date = new DateTime();
+        $this->match_date->setDate( $year, $month, $day );
+        $this->match_date->setTime( 0, 0, 0 );
     }
 
 	/**
 	 * Get the Match date in string format
 	 */
 	public function getMatchDate_Str() {
-		if(!isset($this->match_date)) return null;
-		else return $this->match_date->format(self::$outdateformat);
+		if( !isset( $this->match_date ) ) return null;
+		else return $this->match_date->format( self::$outdateformat );
 	}
 	
 	/**
 	 * Get the Match date in ISO 8601 format
 	 */
 	public function getMatchDate_ISO() {
-		if(!isset($this->match_date)) return null;
-		else return $this->match_date->format(DateTime::ISO8601);
+		if( !isset( $this->match_date ) ) return null;
+		else return $this->match_date->format (DateTime::ISO8601 );
 	}
 
     /**
      * Set the time of the match
      * @param $time is a string in hh-mm-ss format
      */
-    public function setMatchTime_Str(string $time) {
+    public function setMatchTime_Str( string $time ) {
 		$result = false;
-		$test = DateTime::createFromFormat(self::$intimeformat,$end);
+		$test = DateTime::createFromFormat( self::$intimeformat, $end );
 		$last = DateTIme::getLastErrors();
 		if($last['error_count'] > 0) {
 			$arr = $last['errors'];
@@ -327,7 +320,7 @@ class Match extends AbstractData
 			foreach($arr as $err) {
 				$mess .= $err.':';
 			}
-			throw new InvalidMatchException($mess);
+			throw new InvalidMatchException( $mess );
 		}
 		elseif($test instanceof DateTime) {
 			$this->match_time = $test;
@@ -337,38 +330,38 @@ class Match extends AbstractData
         return $result;
     }
 
-    public function setMatchTime(int $hour, int $minutes) {
-        if(!isset($this->match_time)) {
+    public function setMatchTime( int $hour, int $minutes ) {
+        if( !isset( $this->match_time ) ) {
             $this->match_time = new DateTime();
         }
-        $this->match_time->setTime($hour,$minutes);
-        $this->match_time->setDate(0,1,1);
+        $this->match_time->setTime( $hour, $minutes );
+        $this->match_time->setDate ( 0, 1, 1 );
         
         return $this->setDirty();
     }
 
     public function getMatchTime_Str() {
-        if(!isset($this->match_time)) return null;
-        else return $this->match_time->format(self::$outtimeformat);
+        if( !isset( $this->match_time ) ) return null;
+        else return $this->match_time->format( self::$outtimeformat );
     }
 
     public function getMatchTime() {
         return $this->match_time;
     }
 
-    public function setIsBye(bool $by=false) {
-        $this->is_by = $by;
+    public function setIsBye( bool $by = false ) {
+        $this->is_bye = $by;
         return $this->setDirty();
     }
 
     public function isBye() {
-        return $this->is_by;
+        return $this->is_bye;
     }
     
     /**
      * Set this Match's comments
      */
-    public function setComments(string $comment) {
+    public function setComments( string $comment ) {
         $this->comments = $comment;
         $result = $this->setDirty();
         return $result;
@@ -383,7 +376,7 @@ class Match extends AbstractData
      */
     public function getSets() {
         //var_dump(debug_backtrace());
-        if(!isset($this->sets)) $this->fetchSets();
+        if( !isset( $this->sets ) ) $this->fetchSets();
         return $this->sets;
     }
     
@@ -403,19 +396,19 @@ class Match extends AbstractData
         $found = false;
 
         $this->isValid();
-        foreach($this->getSets() as $set) {
-            if($set->getSetNumber() === $setnum) {
+        foreach( $this->getSets() as $set ) {
+            if( $set->getSetNumber() === $setnum ) {
                 $found = true;
-                $set->setHomeScore($home_wins);
-                $set->setVisitorScore($visitor_wins);
+                $set->setHomeScore( $home_wins );
+                $set->setVisitorScore( $visitor_wins );
                 $result = $this->setDirty();
             }
         }
-        if(!$found) {
+        if( !$found ) {
             $set = new Set( $this->event_ID, $this->round_num, $this->match_num, $setnum );
-            if($set->setSetNumber($setnum)) {
-                $set->setHomeScore($home_wins);
-                $set->setVisitorScore($visitor_wins);
+            if( $set->setSetNumber( $setnum ) ) {
+                $set->setHomeScore( $home_wins );
+                $set->setVisitorScore( $visitor_wins );
                 $this->sets[] = $set;
                 $result = $this->setDirty();
                 error_log("Match::setScore: added set with params:$this->event_ID, $this->round_num, $this->match_num in set $setnum");
@@ -468,48 +461,59 @@ class Match extends AbstractData
 
     /**
      * Set the Home opponent for this match
+     * @param $h The home entrant
      */
-    public function setHomeEntrant( Entrant $h = null ) {
+    public function setHomeEntrant( Entrant $h ) {
         $result = false;
-        if(isset($h)) {
+        if( isset( $h ) ) {
             $this->home = $h;
-            $this->home_ID = $h->getID();
+            $this->home_ID = $h->getPosition();
             $result = $this->setDirty();
-        }
-        else {
-            $this->home = null;
-            $this->home_ID = null;
         }
         return $result;
     }
 
-    public function getHomeEntrant():Entrant {
-        if(!isset($this->home)) $this->fetchEntrants();
+    /**
+     * Get the home Entrant
+     * @param $force IF true then Entrants will be fetched and overwrite existing.
+     */
+    public function getHomeEntrant( $force = false ) {
+        if( !isset( $this->home ) || $force ) $this->fetchEntrants();
         return $this->home;
     }
     
     /**
      * Set the Visitor opponent for this match
+     * @param $v The visitor entrant
      */
     public function setVisitorEntrant( Entrant $v ) {
         $result = false;
-        if(isset($v)) {
+        if( isset( $v ) ) {
             $this->visitor = $v;
-            $this->visitor_ID = $v->getID();
+            $this->visitor_ID = $v->getPosition();
             $result = $this->setDirty();
-        }
-        else {
-            $this->visitor = null;
-            $this->visitor_ID = null;
         }
         return $result;
     }
 
     /**
      * Get the visitor Entrant
+     * @param $force IF true then Entrants will be fetched and overwrite existing.
      */
-    public function getVisitorEntrant():Entrant {
-        if( !isset( $this->visitor ) ) $this->fetchEntrants();
+    public function getVisitorEntrant( $force = false ) {
+        $fetch = false;
+        if( !isset( $this->visitor ) && !$this->isBye() ) {
+            $fetch = true;
+        }
+        else if( !isset( $this->home ) && !isset( $this->visitor ) ) {
+            $fetch = true;
+        }
+        else if( $force ) {
+            $fetch = true;
+        }
+        
+        if( $fetch ) $this->fetchEntrants();
+
         return $this->visitor;
     }
     
@@ -520,27 +524,36 @@ class Match extends AbstractData
     public function isValid() {
         $mess = '';
 
-        $this->getHomeEntrant();
-        
-        $this->getVisitorEntrant();
+        $mn = $this->match_num;
+        $home = $this->getHomeEntrant();
+        // $hname = $home->getName();
+        // error_log("Match($mn).isValid: home=$hname");
+        $visitor = $this->getVisitorEntrant();
+
 
         if( !isset( $this->event_ID ) ) {
-            $mess = __( 'Match must have an event id.' );
+            $mess = __( "Match ($mn) must have an event id." );
+        } 
+        else if( !isset($this->round_num) ) {
+            $mess = __( "Match ($mn) must have a round number." );
         }
-        if( !isset($this->round_num) ) {
-            $mess = __( 'Match must have a round number.' );
-        }
-        if( !$this->isNew() && ( !isset( $this->match_num ) || $this->match_num === 0 )  ) {
+        else if( !$this->isNew() && ( !isset( $this->match_num ) || $this->match_num === 0 )  ) {
              $mess = __( 'Existing match must have a match number.' );
+             error_log( $mess . " (eventId=$this->event_ID)");
         }
-        if( !isset( $this->home_ID ) ) {
-            $mess = __( 'Match must have a home entrant id.' );
+        // else if( !isset( $home ) ) {
+        //     $mess = __( "Match ($mn) must have a home entrant." );
+        //     error_log( $mess . " (eventId=$this->event_ID)");
+        // }
+        // else if( !isset( $visitor ) && !$this->isBye()) {
+        //     $mess = __( "Match ($mn) is not a bye so must have a visitor entrant." );
+        // }
+        else if( !isset( $this->match_type ) ) {
+            $mess = __( "Match ($mn) must have a match type." );
         }
-        if( !isset( $this->visitor_ID ) && !$this->isBye()) {
-            $mess = __( 'Match is not a bye so must have a visitor entrant id. ');
-        }
-        if( !isset( $this->match_type ) ) {
-            $mess = __( 'Match must have a match type' );
+        else if( $this->round_num < 0 || $this->round_num > self::MAX_ROUNDS ) {
+            $max = self::MAX_ROUNDS;
+            $mess = __( "Match ($mn) round number not between 1 and $max (inclusive)." );
         }
         
         switch( $this->match_type ) {
@@ -551,10 +564,11 @@ class Match extends AbstractData
             case MatchType::MIXED_DOUBLES:
                 break;
             default:
-            $mess = __( "Match Type is invalid: $this->match_type" );
+            $mess = __( "Match ($mn) - Match Type is invalid: $this->match_type" );
+            error_log( $mess . " (eventId=$this->event_ID)");
         }
 
-        if(strlen($mess) > 0) throw new InvalidMatchException( $mess );
+        if( strlen( $mess ) > 0 ) throw new InvalidMatchException( $mess );
 
         return true;
     }
@@ -569,12 +583,12 @@ class Match extends AbstractData
         // $result += EntrantMatchRelations::remove($this->getEventID(),$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
 
         $table = $wpdb->prefix . self::$tablename;
-        $where = array('event_ID' => $this->event_ID
-                ,'round_num' => $this->round_num
-                ,'match_num' => $this->match_num);
+        $where = array( 'event_ID' => $this->event_ID
+                      , 'round_num' => $this->round_num
+                      , 'match_num' => $this->match_num );
         $formats_where = array('%d','%d','%d');
 
-        $wpdb->delete($table,$where,$formats_where);
+        $wpdb->delete( $table,$where, $formats_where );
         $result = $wpdb->rows_affected;
 
         error_log("Match.delete: deleted $result rows");
@@ -583,24 +597,21 @@ class Match extends AbstractData
 
     /**
      * Fetch the 1,2 or zero Entrants from the database.
-     * @param $force IF true then Entrants will be fetched and overwrite existing.
      */
-    private function fetchEntrants($force=false) {
-        if(isset($this->home) && isset($this->visitor) && !force) return;
-        
-        $contestants = Entrant::find($this->event_ID, $this->round_num, $this->match_num);
-        switch(count($contestants)) {
+    private function fetchEntrants() {
+        $contestants = Entrant::find( $this->event_ID, $this->round_num, $this->match_num );
+        switch( count( $contestants ) ) {
             case 1:
                 $this->home = $contestants[0];
-                $this->home_ID = $this->home->getID();
+                $this->home_ID = $this->home->getPosition();
                 $this->visitor = NULL;
                 $this->visitor_ID = NULL;
                 break;
             case 2:
                 $this->home = $contestants[0];
-                $this->home_ID = $this->home->getID();
+                $this->home_ID = $this->home->getPosition();
                 $this->visitor = $contestants[1];
-                $this->visitor_ID = $this->visitor->getID();
+                $this->visitor_ID = $this->visitor->getPosition();
                 break;
             default:
                 $this->home = NULL;
@@ -617,10 +628,10 @@ class Match extends AbstractData
 	 * @param $force When set to true will force loading of Sets from db
 	 *               This will cause unsaved Sets to be lost.
 	 */
-    private function fetchSets($force=false) {
+    private function fetchSets( $force = false ) {
         //var_dump(debug_backtrace());
-        if(!isset($this->sets) || $force) {
-            $this->sets = Set::find($this->event_ID,$this->round_num,$this->match_num);
+        if( !isset( $this->sets ) || $force ) {
+            $this->sets = Set::find( $this->event_ID, $this->round_num, $this->match_num );
         }
     }
 
@@ -633,24 +644,35 @@ class Match extends AbstractData
 
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
-		$sql = "SELECT IFNULL(MAX(round_num),0) FROM $table WHERE event_ID=%d;";
-        $safe = $wpdb->prepare($sql,$this->event_ID);
-        $nextRound = $wpdb->get_var($safe) + 1;
-        if($nextRound > self::MAX_ROUNDS) {
-            $wpdb->query("UNLOCK TABLES;");
-            $max = self::MAX_ROUNDS;
-            $mess = __( "Round number exceeds limit of '$max'" );
-            throw new InvalidMatchException($mess);
+		// $sql = "SELECT IFNULL(MAX(round_num),0) FROM $table WHERE event_ID=%d;";
+        // $safe = $wpdb->prepare( $sql, $this->event_ID );
+        // $nextRound = $wpdb->get_var($safe) + 1;
+        // if($nextRound > self::MAX_ROUNDS) {
+        //     $wpdb->query("UNLOCK TABLES;");
+        //     $max = self::MAX_ROUNDS;
+        //     $mess = __( "Round number exceeds limit of '$max'" );
+        //     throw new InvalidMatchException( $mess );
+        // }
+
+        if( isset( $this->match_num ) && $this->match_num > 0 ) {
+            //If match_num has a value then use it
+            $sql = "SELECT COUNT(*) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
+            $exists = (int) $wpdb->get_var( $wpdb->prepare( $sql,$this->event_ID, $this->round_num, $this->match_num ),0,0 );
+            
+            //If this match arleady exists call update
+            if( $exists > 0 ) {
+                $wpdb->query( "UNLOCK TABLES;" );
+                $this->isnew = false;
+                return $this->update();
+            }
         }
-        
-
-		$sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
-        $safe = $wpdb->prepare($sql,$this->event_ID,$this->round_num);
-        $this->match_num = $wpdb->get_var($safe) + 1;
-        
-        error_log("Match::create: match number assigned is '$this->match_num'");
-
-        error_log("Match::create: match type is '$this->match_type'");
+        else {
+            //IF match_num is null or zero, then use the next largest value from the db
+            $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
+            $safe = $wpdb->prepare( $sql, $this->event_ID, $this->round_num );
+            $this->match_num = $wpdb->get_var( $safe ) + 1;
+            error_log("Match::create: match number assigned = '$this->match_num' and match type = '$this->match_type'");
+        }
 
         $values = array( 'event_ID'    => $this->event_ID
                         ,'round_num'   => $this->round_num
@@ -659,10 +681,11 @@ class Match extends AbstractData
                         ,'match_date'  => $this->getMatchDate_Str()
                         ,'match_time'  => $this->getMatchTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
-                        ,'comments'    => $this->comments);
-        $formats_values = array('%d','%d','%d','%f','%s','%s','%d','%s');
-		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
-        $wpdb->query("UNLOCK TABLES;");
+                        ,'comments'    => $this->comments );
+        $formats_values = array( '%d', '%d', '%d', '%f', '%s', '%s', '%d', '%s' );
+		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
+        $wpdb->query( "UNLOCK TABLES;" );
+
         $this->isnew = FALSE;
 		$this->isdirty = FALSE;
         $result = $wpdb->rows_affected;
@@ -670,23 +693,21 @@ class Match extends AbstractData
         if($wpdb->last_error) {
             error_log("Match::create: sql error: $wpdb->last_error");
         }
-        
-		$wpdb->query("UNLOCK TABLES;");
 
         error_log("Match::create: $result rows affected.");
-        
+
         if( isset( $this->sets ) ) {
             foreach($this->sets as &$set) {
                 $result += $set->save();
             }
         }
         
-        foreach($this->setsToBeDeleted as &$set) {
+        foreach( $this->setsToBeDeleted as &$set ) {
             $result += $set->delete();
         }
         
-        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
-        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
+        $result += isset( $this->home ) ? EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getHomeEntrant()->getPosition() ) : 0;
+        $result += isset( $this->visitor ) ? EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getVisitorEntrant()->getPosition() ) : 0;
 
 		return $result;
 	}
@@ -698,7 +719,7 @@ class Match extends AbstractData
 
         $md = $this->getMatchDate_Str();
         $mt = $this->getMatchTime_Str();
-        error_log("Match::update values=<$this->match_type,'$md','$mt','$this->is_bye','$this->comments'>");
+        error_log( "Match::update values=<$this->match_type,'$md','$mt','$this->is_bye','$this->comments'>" );
 
         $values = array( 'match_type'  => $this->match_type
                         ,'match_date'  => $this->getMatchDate_Str()
@@ -707,8 +728,8 @@ class Match extends AbstractData
                         ,'comments'    => $this->comments );
 		$formats_values = array( '%f', '%s', '%s', '%d', '%s' );
         $where          = array( 'event_ID'  => $this->event_ID
-                                ,'round_num' => $this->round_num
-                                ,'match_num' => $this->match_num );
+                               , 'round_num' => $this->round_num
+                               , 'match_num' => $this->match_num );
         $formats_where  = array( '%d', '%d', '%d' );
 
         error_log("Match::update: where=$this->event_ID, $this->round_num, $this->match_num");
@@ -730,7 +751,10 @@ class Match extends AbstractData
         }
 
         $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
-        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
+        $visitor = $this->getVisitorEntrant();
+        if( isset( $visitor ) ) {
+            $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
+        }
         
 		return $result;
 	}
