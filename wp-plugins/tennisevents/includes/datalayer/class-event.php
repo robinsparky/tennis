@@ -674,6 +674,7 @@ class Event extends AbstractData
 			$dr = null;
 		}
 		$this->draw = null;
+		$this->removeAllMatches();
 		return $this->setDirty();
 	}
 
@@ -688,7 +689,7 @@ class Event extends AbstractData
 	}
 
 	public function drawSize() {
-		return sizeof($this->getDraw());
+		return isset( $this->draw ) ? sizeof( $this->draw) : 0;
 	}
 	
 	/**
@@ -704,7 +705,7 @@ class Event extends AbstractData
 		
 		if( count( $seeded ) > 1 ) {
 			$redraw = array( $this->drawSize() );
-			$seeded = usort( $seeded, $this->sortBySeedDesc );
+			$seeded = usort( $seeded, array( 'Event', 'sortBySeedDesc' ) );
 			$unseeded = array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $this->getDraw() );
 			//$unseeded = array_reverse($unseeded); //want in descending position order
 
@@ -809,6 +810,7 @@ class Event extends AbstractData
      */
     public function getMatches( $force = false ):array {
         if( !isset( $this->matches ) || $force ) $this->fetchMatches();
+        usort( $this->matches, array( 'Event','sortByMatchNumberAsc' ) );
         return $this->matches;
 	}
 	
@@ -823,6 +825,7 @@ class Event extends AbstractData
 				$result[] = $match;
 			}
 		}
+        usort( $result, array( 'Event','sortByMatchNumberAsc' ) );
 		return $result;
 	}
 

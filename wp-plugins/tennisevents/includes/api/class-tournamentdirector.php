@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $p2Dir = plugin_dir_path( plugin_dir_path( __DIR__ ) );
-require_once($p2Dir . 'tennisevents.php');
-require_once('api-exceptions.php');
+require_once( $p2Dir . 'tennisevents.php' );
+require_once( 'api-exceptions.php' );
 
 /** 
  * Responsible for putting together the
@@ -37,7 +37,7 @@ class TournamentDirector
     private $numRounds;
     private $matchType;
 
-    public function __construct(Event $evt, string $matchType = MatchType::MENS_SINGLES ) {
+    public function __construct( Event $evt, string $matchType = MatchType::MENS_SINGLES ) {
         $this->event = $evt;
         
         switch( $matchType ) {
@@ -57,9 +57,9 @@ class TournamentDirector
         $this->event = null;
     }
 
-    public function createBrackets() {
+    public function createBrackets( $randomizeDraw = false ) {
         $this->calculateEventSize();
-        return $this->scheduleInitialRounds();
+        return $this->scheduleInitialRounds( $randomizeDraw );
     }
 
     public function getEvent() {
@@ -105,12 +105,11 @@ class TournamentDirector
                 if( $round === $match->getRoundNumber() ) {
                     $mn = $match->getMatchNumber();
                     $home = $match->getHomeEntrant();
-                    if(!isset($home)) throw new Exception("Really!");
-                    $hid = $home->getPosition();
-                    $hname = $home->getName();
+                    $hid = isset( $home ) ? $home->getPosition() : '0';
+                    $hname = isset( $home ) ? $home->getName() : 'tba';
                     $visitor = $match->getVisitorEntrant();
-                    $vname = isset($visitor) ? $visitor->getName() : 'tba';
                     $vid = isset($visitor) ? $visitor->getPosition() : '0';
+                    $vname = isset($visitor) ? $visitor->getName() : 'tba';
                     if($match->isBye() ) {
                         echo PHP_EOL . "Match($mn): Home($hid)='$hname' has Bye ";
                     }
@@ -126,51 +125,40 @@ class TournamentDirector
      * in the first round so that the next round has 2^n players 
      * and the elimination rounds can then proceed naturally to the end.
      * The initial question is whether to have a "challenger" round (0)
-     * or to have a few "byes" from round 1 into round 2.
+     * or to have "byes" from round 1 into round 2.
      * The next big question to work out is determining who gets the byes (if any).
-     * And finally the seeded players (who get priority for bye selection) must be distributed
+     * Finally the seeded players (who get priority for bye selection) must be distributed
      * evenly amoung the un-seeded players with the first and second seeds being at opposite ends of the draw.
      */
     private function scheduleInitialRounds( $randomizeDraw = false ) {
         //$entrants = $this->event->distributeSeededPlayers( $randomizeDraw );
         $entrants = $this->event->getDraw();
-        $unseeded = array_filter(array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ));
+        $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
         
         if( $randomizeDraw ) shuffle( $unseeded );
         else usort( $unseeded, array( 'TournamentDirector', 'sortByPositionAsc' ) );
 
-        $seeded = array_filter(array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ));
+        $seeded = array_filter( array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ) );
         usort( $seeded, array( 'TournamentDirector', 'sortBySeedAsc') );
 
         $numInvolved = 2 * $this->numToEliminate;
         $remainder   = $numInvolved > 0 ? $this->event->drawSize() - $numInvolved : 0;
 
-        //Few Byes
-        if( $numInvolved <= $this->decision_table[0] * count( $entrants ) ) {
-            //For this case it is clear that there are so many players requred to be elminated 
-            // (so that tne next round has a power of 2 players) that it has to be treated as round 1
-            // and a few players (probably mostly seeds) get a bye into round 2.
-            $this->processChallengerRound( $seeded, $unseeded );
-        }
-        //Many Byes
-        else if( $numInvolved > $this->decision_table[0] * count( $entrants ) 
-                && $numInvolved <= $this->decision_table[1] * count( $entrants )) {
-            //In this case we have the majority of the unseeded plyaers (but less than 100%) to be eliminated to arrive at power of 2.
-            // So again we treat this as the first round but now there may be many more byes into the second round.
-            // Many unseeded players will get byes and probably all of the seeds.
-            $this->processChallengerRound( $seeded, $unseeded );
-        }
-        //Many Byes
-        else if( $numInvolved > $this->decision_table[1] * count( $entrants ) 
-                && $numInvolved <= $this->decision_table[2] * count( $entrants )) {
-            //In this case we have the majority of the unseeded plyaers (but less than 100%) to be eliminated to arrive at power of 2.
-            // So again we treat this as the first round but now there may be many more byes into the second round.
-            // Many unseeded players will get byes and probably all of the seeds.
-            $this->processByes( $seeded, $unseeded );
+        if($numInvolved > $remainder ) {
+            $seedByes    =  min( count( $seeded ) , $remainder );
+            $unseedByes  = $remainder - $seedByes;
         }
         else {
-            //With less than 50% of the unseeded players to be eliminated in order to create a next round with power of 2 player,
-            // we create an early or challenger round (0) for them.
+            $seedByes = min( count( $seeded ), $numInvolved );
+            $unseedByes = $numInvolved - $seedByes;
+        }
+        $totalByes = $seedByes + $unseedByes;
+        $highMatchnum = ceil( $this->event->drawSize() / 2 );
+        error_log("TournamentDirector.scheduleInitialRounds:highMatchnum=$highMatchnum seedByes=$seedByes unseedByes=$unseedByes");
+        if( $this->numToEliminate < 3 ) {
+            $this->processChallengerRound( $seeded, $unseeded );
+        }
+        else {
             $this->processByes( $seeded, $unseeded );
         }
 
@@ -180,14 +168,11 @@ class TournamentDirector
     }
 
     /**
-     * For this case, we have a large number of players involved in bringing the count
+     * For this case, we could have a large number of players involved in bringing the count
      * down to a power of 2 for the subsequent round. So this is considered the first round
      * and only a few byes need to be defined. It is likely that only seeded players will get the byes.
      */
     private function processByes( array &$seeded, array &$unseeded ) {
-        //Add seeded players as Bye matches using an even distribution
-        //$slot = count( $seeded ) > 0 ? floor( $this->event->drawSize() / count( $seeded ) ) : 0;
-        //$slot = count ( $seeded ) > 0 ? floor( ceil( $this->event->drawSize() / 2.0 ) / count( $seeded ) ) : 0;
         $numInvolved = 2 * $this->numToEliminate;
         $remainder   = $numInvolved > 0 ? $this->event->drawSize() - $numInvolved : 0;
         $highMatchnum = ceil( $this->event->drawSize() / 2 );
@@ -202,13 +187,11 @@ class TournamentDirector
         $seedByes    =  min( count( $seeded ) , $remainder );
         $unseedByes  = $remainder - $seedByes;
 
-        // if( 0 === $remainder ) {
-        //     $seedByes = $unseedByes = 0;
-        // }
-        $slot = ($seedByes + $unseedByes) > 0 ? ceil( ceil( $this->event->drawSize() / 2.0 ) / ($seedByes + $unseedByes) ) : 0;
+        //Add seeded players as Bye matches using an even distribution
+        $slot = ($seedByes + $unseedByes) > 1 ? ceil( ceil( $this->event->drawSize() / 2.0 ) / ($seedByes + $unseedByes) ) : 0;
         $slot = max( 1, $slot );
-        error_log("TournamentDirector.processFewByes: seeds=" . count($seeded) . '; unseeded='.count($unseeded));
-        error_log("TournamentDirector.processFewByes...slot=$slot; numInvolved=$numInvolved; remainder=$remainder; highMatchnum=$highMatchnum; seedByes=$seedByes; unseedByes=$unseedByes");
+        error_log("TournamentDirector.processByes: seeds=" . count($seeded) . '; unseeded='.count($unseeded));
+        error_log("TournamentDirector.processByes...slot=$slot; numInvolved=$numInvolved; remainder=$remainder; highMatchnum=$highMatchnum; seedByes=$seedByes; unseedByes=$unseedByes");
 
         for( $i = 0; $i < $seedByes; $i++ ) {
             if( 0 === $i ) {
@@ -216,7 +199,7 @@ class TournamentDirector
                 array_push( $usedMatchNums, $matchnum );
             }
             else if( 1 === $i ) {
-                $matchnum = $highMatchnum--;
+                $matchnum = 2*$highMatchnum--;
                 array_push( $usedMatchNums, $matchnum );
             }
             else {
@@ -235,9 +218,9 @@ class TournamentDirector
         for( $i = 0; $i < $unseedByes; $i++ ) {
             $home = array_shift( $unseeded );
             $lastSlot += $slot;
-            $matchnum = $lastSlot;
-            array_push( $usedMatchNums, $matchnum );
-            $match = new Match( $this->event->getID(), $initialRound, $matchnum++ );
+            $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
+            array_push( $usedMatchNums, $lastSlot );
+            $match = new Match( $this->event->getID(), $initialRound, $lastSlot );
             $match->setIsBye( true );
             $match->setHomeEntrant( $home );
             $match->setMatchType( $this->matchType );
@@ -246,12 +229,13 @@ class TournamentDirector
 
         //Set the first lot of matches starting from end of the line
         $matchnum = $lowMatchnum;
-        while( count( $unseeded ) > 0 ) {
+        while( count( $unseeded ) > 0 || count( $seeded ) > 0 ) {
             if( count( $seeded ) > 0 ) {
                 $home    = array_shift( $seeded );
                 $visitor = array_shift( $unseeded );
 
                 $lastSlot += $slot;
+                $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
                 array_push( $usedMatchNums, $lastSlot );
                 
                 $match   = new Match( $this->event->getID(), $initialRound, $lastSlot );
@@ -285,14 +269,12 @@ class TournamentDirector
      * the count down to a power of 2. There are no byes but the challenger round happens before round one of the tournament.
      */
     private function processChallengerRound( array &$seeded, array &$unseeded ) {
-        //Add seeded players as Bye matches using an even distribution
-        $slot = count( $seeded ) > 0 ? floor( $this->event->drawSize() / count( $seeded ) ) : 0;
         
         $numInvolved = 2 * $this->numToEliminate;
         $remainder   = $this->event->drawSize() - $numInvolved;
         $highMatchnum    = ceil( $this->event->drawSize() / 2 );
         $lowMatchnum = 1;
-        $matchnum = $highMatchnum;
+        $matchnum = $lowMatchnum;
         $usedMatchNums = array();
         $lastSlot = 0;
         
@@ -300,47 +282,67 @@ class TournamentDirector
         $seedByes     = 0;
         $unseedByes   = 0;
 
+        //Add seeded players as Bye matches using an even distribution
+        $slot = ($seedByes + $unseedByes) > 1 ? ceil( ceil( $this->event->drawSize() / 2.0 ) / ($seedByes + $unseedByes) ) : 0;
+        $slot = max( 1, $slot );
+
         error_log("TournamentDirector.processChallengerRound: seeds=" . count($seeded) . '; unseeded='.count($unseeded));
         error_log("TournamentDirector.processChallengerRound...slot=$slot; numInvolved=$numInvolved; remainder=$remainder; highMatchnum=$highMatchnum; seedByes=$seedByes; unseedByes=$unseedByes");
 
         //Create the challenger round using unseeded players from end of list
+        //Note that $numInvolved is always an even number
         for( $i = $numInvolved; $i > 0; $i -= 2 ) {
             $home    = array_pop( $unseeded );
             $visitor = array_pop( $unseeded );
 
-            $match = new Match( $this->event->getID(), $initialRound, $matchnum-- );
+            $match = new Match( $this->event->getID(), $initialRound, $matchnum++ );
             $match->setHomeEntrant( $home );
             $match->setVisitorEntrant( $visitor );
             $match->setMatchType( $this->matchType );
             $this->event->addMatch( $match );
         }
         
-        //Now create the first round using all the remaining players
         ++$initialRound;
-        $matchnum = $highMatchnum;
+        $matchnum = 1;
+        //Schedule the odd player to wait for the winner of a challenger round
+        if( (1 & $remainder) ) {
+            $home = array_shift( $unseeded );
+            if( !isset( $home ) ) $home = array_shift( $seeded );
+            $mn = $matchnum++;
+            $mn = $this->getNextAvailable( $usedMatchNums, $mn );
+            array_push( $usedMatchNums, $mn );
+            $match = new Match( $this->event->getID(), $initialRound, $mn );
+            $match->setHomeEntrant( $home );
+            $match->setMatchType( $this->matchType );
+            $this->event->addMatch( $match );
+
+        }
+        //Now create the first round using all the remaining players
+        // and there nust be an even number of them
         while( count( $unseeded ) > 0 || count( $seeded ) > 0 ) {
             if( count( $seeded ) > 0 ) {
-                $home    = array_pop( $seeded );
-                $visitor = array_pop( $unseeded );
-                if( !isset( $visitor ) ) $visitor = array_pop( $seeded );
+                $home    = array_shift( $seeded );
+                $visitor = array_shift( $unseeded );
+                if( !isset( $visitor ) ) $visitor = array_shift( $seeded );
 
                 $lastSlot += $slot;
+                $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
                 array_push( $usedMatchNums, $lastSlot );
                 
                 $match = new Match( $this->event->getID(), $initialRound, $lastSlot );
                 $match->setHomeEntrant( $home );
-                //If not paired with a visitor then this match is waiting for
-                // a winner from the challenger round. The opposite of a BYE.
+                
                 if( isset( $visitor ) ) $match->setVisitorEntrant( $visitor );
                 $match->setMatchType( $this->matchType );
                 $this->event->addMatch( $match );                    
             }
             else {
-                $home    = array_pop( $unseeded );
-                $visitor = array_pop( $unseeded );
+                $home    = array_shift( $unseeded );
+                $visitor = array_shift( $unseeded );
 
-                $mn = $matchnum--;
-                if( in_array( $mn, $usedMatchNums) ) $mn = $matchnum--;
+                $mn = $matchnum++;
+                $mn = $this->getNextAvailable( $usedMatchNums, $mn );
+                array_push( $usedMatchNums, $mn );
 
                 $match = new Match( $this->event->getID(), $initialRound, $mn );
                 $match->setHomeEntrant( $home );
@@ -395,8 +397,11 @@ class TournamentDirector
         }
     }
     
-    
-
+    /**
+     * This function calculates how many players must be "eliminated"
+     * in order to bring either the first or second round 
+     * down to a size which is a power of 2
+     */
     private function calculateEventSize() {
         $this->numToEliminate = 0;
         $this->numRounds = 0;
@@ -418,6 +423,10 @@ class TournamentDirector
         return $this->numToEliminate;
     }
 
+    /**
+     * Given the size of the draw calculate the highest 
+     * power of 2 which is less than that size
+     */
 	private function calculateExponent(int $drawSize) {
         $exponent = 0;
         foreach(range(1,8) as $exp) {

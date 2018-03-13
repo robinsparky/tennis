@@ -662,8 +662,8 @@ class Match extends AbstractData
             //If this match arleady exists call update
             if( $exists > 0 ) {
                 $wpdb->query( "UNLOCK TABLES;" );
-                $this->isnew = false;
-                return $this->update();
+                $mn = $this->match_num;
+                throw new InvalidMatchException("Cannot create Match($mn) because it already exists.");
             }
         }
         else {
@@ -717,9 +717,9 @@ class Match extends AbstractData
 
         parent::update();
 
-        $md = $this->getMatchDate_Str();
-        $mt = $this->getMatchTime_Str();
-        error_log( "Match::update values=<$this->match_type,'$md','$mt','$this->is_bye','$this->comments'>" );
+        // $md = $this->getMatchDate_Str();
+        // $mt = $this->getMatchTime_Str();
+        // error_log( "Match::update values=<$this->match_type,'$md','$mt','$this->is_bye','$this->comments'>" );
 
         $values = array( 'match_type'  => $this->match_type
                         ,'match_date'  => $this->getMatchDate_Str()
