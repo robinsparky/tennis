@@ -19,8 +19,10 @@
     <file>tests/matchTest.php</file>
     <file>tests/removalTest.php</file>
   </testsuite>
-  <testsuite name="current">
+  <testsuite name="tournaments">
     <file>tests/tournamentTest.php</file>
+  </testsuite>
+  <testsuite name="current">
   </testsuite>
 </testsuites>
 </phpunit>
