@@ -671,9 +671,9 @@ class Event extends AbstractData
 	public function removeDraw() {
 		foreach($this->getDraw() as &$dr) {
 			$this->entrantsToBeDeleted[] = $dr->getPosition();
-			$dr = null;
+			unset( $dr );
 		}
-		$this->draw = null;
+		$this->draw = array();
 		$this->removeAllMatches();
 		return $this->setDirty();
 	}
@@ -1036,6 +1036,7 @@ class Event extends AbstractData
 					$result += Event::deleteEvent($id);
 				}
 			}
+			$this->childEventsToBeDeleted = array();
 		}
 
 		if( isset( $this->draw ) ) {
@@ -1053,6 +1054,7 @@ class Event extends AbstractData
 					$result += Entrant::deleteEntrant($this->getID(),$entId);
 				}
 			}
+			$this->entrantsToBeDeleted = array();
 		}
 
 		//Save the Clubs related to this Event
@@ -1072,6 +1074,7 @@ class Event extends AbstractData
 					$result += ClubEventRelations::remove($clubId,$this->getID());
 				}
 			}
+			$this->clubsToBeDeleted = array();
 		}
 
 		//Create relation between this Matches(round_num,match_num,position) and this Event
@@ -1082,9 +1085,11 @@ class Event extends AbstractData
 		}
 
 		//Delete ALL Matches removed from this Event
-		foreach($this->matchesToBeDeleted as $match) {
-			$result += $match->delete();			
+		foreach( $this->matchesToBeDeleted as &$match ) {
+			$result += $match->delete();
+			unset( $match );			
 		}
+		$this->matchesToBeDeleted = array();
 
 
 		return $result;

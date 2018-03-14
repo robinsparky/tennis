@@ -308,17 +308,19 @@ class TournamentDirector
         if( (1 & $remainder) ) {
             $home = array_shift( $unseeded );
             if( !isset( $home ) ) $home = array_shift( $seeded );
-            $mn = $matchnum++;
-            $mn = $this->getNextAvailable( $usedMatchNums, $mn );
-            array_push( $usedMatchNums, $mn );
-            $match = new Match( $this->event->getID(), $initialRound, $mn );
-            $match->setHomeEntrant( $home );
-            $match->setMatchType( $this->matchType );
-            $this->event->addMatch( $match );
-
+            if( isset( $home ) ) {
+                $mn = $matchnum++;
+                $mn = $this->getNextAvailable( $usedMatchNums, $mn );
+                array_push( $usedMatchNums, $mn );
+                $match = new Match( $this->event->getID(), $initialRound, $mn );
+                $match->setHomeEntrant( $home );
+                $match->setMatchType( $this->matchType );
+                $this->event->addMatch( $match );
+            }
         }
+
         //Now create the first round using all the remaining players
-        // and there nust be an even number of them
+        // and there must be an even number of them
         while( count( $unseeded ) > 0 || count( $seeded ) > 0 ) {
             if( count( $seeded ) > 0 ) {
                 $home    = array_shift( $seeded );

@@ -239,7 +239,7 @@ class Entrant extends AbstractData
 		if(isset($pos)) {
 			if($pos < 1) return;
 			$this->position = $pos;
-			$result = $this->isdirty = TRUE;
+			$result = $this->setDirty();
 		}
 		return $result;
 	}
@@ -259,7 +259,7 @@ class Entrant extends AbstractData
 		if( isset( $seed ) ) {
 			if( $seed < 0 ) $seed=0;
 			$this->seed = $seed;
-			$result = $this->isdirty = TRUE;
+			$result = $this->setDirty();
 		}
 		return $result;
 	}
@@ -292,20 +292,27 @@ class Entrant extends AbstractData
 	 */
 	public function isValid() {
 		$mess = '';
-		$pos = $this->position;
+		$pos = isset( $this->position ) ? $this->position : '???';
+		$evtId = isset( $this->event_ID ) ? $this->event_ID : '???';
+		$id = "Event($evtId) Position($pos): ";
+		$code = 0;
+
 		if( !isset( $this->event_ID ) ) {
-			$mess = __( "Entrant ($pos) must have and event id." );
+			$mess = __( "$id entrant must have and event id." );
+			$code = 400;
 		}
 
 		if( !$this->isNew() && !isset( $this->position ) ) {
-			$mess = __( "Existing entrant (in event=$this->event_ID) must have a position." );
+			$mess = __( "$id existing entrant must have a position." );
+			$code = 410;
 		}
 
 		if( !isset( $this->name ) ) {
-			$mess = __( "Entrant ($pos) must have a unique name." );
+			$mess = __( "$id entrant must have a unique name." );
+			$code = 420;
 		}
 
-		if( strlen( $mess ) > 0 ) throw new InvalidEntrantException( $mess );
+		if( strlen( $mess ) > 0 ) throw new InvalidEntrantException( $mess, $code );
 
 		return true;
 	}

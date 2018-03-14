@@ -72,9 +72,12 @@ class tournamentTest extends TestCase
 	}
 	
 	public function test_challenger_round()
-	{
+	{        
         $size = 9;
-        $td = new TournamentDirector(self::$tournamentEvt);
+        $title = "+++++++++++++++++++++ test_challenger_round for $size entrants+++++++++++++++++++++++++";
+        echo PHP_EOL . $title;
+        error_log( $title );
+        $td = new TournamentDirector( self::$tournamentEvt );
         $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
 
         $evt = $td->getEvent();
@@ -83,78 +86,126 @@ class tournamentTest extends TestCase
         $entrants = $evt->getDraw();
         $this->assertCount( $size, $entrants );
         $this->assertTrue( $evt->isDirty() );
-        $this->assertGreaterThan( 7,$evt->save() );
+        $this->assertGreaterThan( 7, $evt->save() );
+        
         $td->showDraw();
 
+        $this->assertCount(0, $td->getEvent()->getMatches() );
         $num = $td->createBrackets();
         $ms = $td->getEvent()->getMatches();
+        $this->assertCount( 5, $ms );
 
         $td->showMatches( 0 );
         $td->showMatches( 1 );
-        echo PHP_EOL . PHP_EOL . "Number of matches = $num";
 
-        $this->assertEquals(5,$num, 'Number of matches');
-        $this->assertGreaterThan($num, $td->save(),'td save');
+        echo PHP_EOL . PHP_EOL . "Generated $num matches";
+
+        $this->assertEquals( 5, $num, 'Number of matches' );
+        $this->assertGreaterThan( $num, $td->save(), 'td save' );
     }
 
 	public function test_bye_generation()
-	{
+	{       
         $size = 15;
-        $td = new TournamentDirector(self::$tournamentEvt);
-        $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
-
-        $evt = $td->getEvent();
-        $this->assertTrue( $evt->removeDraw() );
-        $this->assertEquals( 0, $evt->drawSize() );
-
-        $this->createDraw( $size );
-        $entrants = $evt->getDraw();
-        $this->assertCount( $size, $entrants );
-        $this->assertTrue( $evt->isDirty() );
-        $this->assertGreaterThan( 7,$evt->save() );
-        $td->showDraw();
-
-        $num = $td->createBrackets();
-
-        $ms = $td->getEvent()->getMatches();
-
-        $td->showMatches( 0 );
-        $td->showMatches( 1 );
-        echo PHP_EOL . PHP_EOL . "Number of matches = $num";
-
-        $this->assertEquals(8,$num, 'Number of matches');
-        $this->assertGreaterThan($num, $td->save(),'td save');
-    }
-    
-	public function test_shuffle_bye_generation()
-	{
-        $size = 31;
-        $seeds = 6;
+        $title = "++++++++++++++++++++test_bye_generation for $size entrants++++++++++++++++++++++++++";
+        echo PHP_EOL . $title;
+        error_log( $title );
+ 
         $td = new TournamentDirector( self::$tournamentEvt );
         $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
 
         $evt = $td->getEvent();
         $this->assertTrue( $evt->removeDraw() );
         $this->assertEquals( 0, $evt->drawSize() );
+        $evt->save();
 
-        $this->createDraw( $size, $seeds );
+        $this->createDraw( $size );
         $entrants = $evt->getDraw();
         $this->assertCount( $size, $entrants );
         $this->assertTrue( $evt->isDirty() );
-        $this->assertGreaterThan( 7,$evt->save() );
+        $this->assertGreaterThan( 7, $evt->save() );
+        
         $td->showDraw();
 
-        $num = $td->createBrackets( true );
+        $num = $td->createBrackets();
 
         $ms = $td->getEvent()->getMatches();
 
         $td->showMatches( 0 );
         $td->showMatches( 1 );
-        echo PHP_EOL . PHP_EOL . "Number of matches = $num";
-        
-        $this->assertEquals(16, $num, 'Number of matches');
-        $this->assertGreaterThan($num, $td->save(),'td save');
+
+        echo PHP_EOL . PHP_EOL . "Generated $num matches";
+
+        $this->assertEquals( 8, $num, 'Number of matches' );
+        $this->assertGreaterThan( $num, $td->save(), 'td save' );
     }
+    
+	// public function test_shuffle_bye_generation()
+	// {
+    //     echo PHP_EOL . "++++++++++++++++++++++test_shuffle_bye_generation++++++++++++++++++++++++";
+    //     $size = 31;
+    //     $seeds = 10;
+    //     $td = new TournamentDirector( self::$tournamentEvt );
+    //     $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
+
+    //     $evt = $td->getEvent();
+    //     $this->assertTrue( $evt->removeDraw() );
+    //     $this->assertEquals( 0, $evt->drawSize() );
+    //     $evt->save();
+
+    //     $this->createDraw( $size, $seeds );
+    //     $entrants = $evt->getDraw();
+    //     $this->assertCount( $size, $entrants );
+    //     $this->assertTrue( $evt->isDirty() );
+    //     $this->assertGreaterThan( 7,$evt->save() );
+        
+    //     $td->showDraw();
+
+    //     $num = $td->createBrackets( true );
+
+    //     $ms = $td->getEvent()->getMatches();
+
+    //     $td->showMatches( 0 );
+    //     $td->showMatches( 1 );
+        // echo PHP_EOL . PHP_EOL . "Generated $num matches";
+        
+    //     $this->assertEquals(16, $num, 'Number of matches');
+    //     $this->assertGreaterThan($num, $td->save(),'td save');
+    // }
+    
+	// public function test_big_challenger_generation()
+	// {
+    //     echo PHP_EOL . "+++++++++++++++++++++++test_big_challenger_generation+++++++++++++++++++++++";
+    //     $size = 34;
+    //     $seeds = 10;
+    //     $td = new TournamentDirector( self::$tournamentEvt );
+    //     $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
+
+    //     $evt = $td->getEvent();
+    //     $this->assertTrue( $evt->removeDraw() );
+    //     $this->assertEquals( 0, $evt->drawSize() );
+
+    //     $this->createDraw( $size, $seeds );
+    //     $entrants = $evt->getDraw();
+    //     $this->assertCount( $size, $entrants );
+    //     $this->assertTrue( $evt->isDirty() );
+    //     $this->assertGreaterThan( 0, $evt->save() );
+    //     $evt->save();
+
+    //     $td->showDraw();
+
+    //     $num = $td->createBrackets( );
+
+    //     $ms = $td->getEvent()->getMatches();
+
+    //     $td->showMatches( 0 );
+    //     $td->showMatches( 1 );
+        // echo PHP_EOL . PHP_EOL . "Generated $num matches";
+        
+    //     $this->assertEquals(17, $num, 'Number of matches');
+    //     $this->assertGreaterThan($num, $td->save(),'td save');
+    //     $td->save();
+    // }
     
     private function createDraw( int $size, $seeds = 0 ) {
         if($seeds > $size / 2 ) $seeds = 0;

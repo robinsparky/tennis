@@ -52,14 +52,19 @@ class RemovalTest extends TestCase
 
         $draw = self::$mens->getDraw();
         $this->assertEquals(13,count($draw));
+        $i = 0;
         foreach($draw as $ent) {
-            $this->assertTrue(self::$mens->removeFromDraw($ent->getName()));
+            if( $i++ > 6 ) break;
+            $this->assertTrue( self::$mens->removeFromDraw( $ent->getName() ) );
         }
         
         //var_dump(self::$mens->getDraw());
-        $this->assertCount(0,self::$mens->getDraw());
+        $this->assertCount( 6, self::$mens->getDraw() );
 
-        $this->assertEquals(13,self::$mens->save());
+        $this->assertTrue( self::$mens->removeDraw() );
+        $this->assertEquals( 0, self::$mens->drawSize() );
+
+        $this->assertEquals( 13, self::$mens->save() );
 
     }
 

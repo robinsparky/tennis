@@ -357,6 +357,12 @@ class Match extends AbstractData
     public function isBye() {
         return $this->is_bye;
     }
+
+    public function isWaiting() {
+        $result = false;
+        if( isset( $this->home ) && !isset( $this->visitor ) && !$this->isBye() ) $result = true;
+        return $result;
+    }
     
     /**
      * Set this Match's comments
@@ -502,10 +508,7 @@ class Match extends AbstractData
      */
     public function getVisitorEntrant( $force = false ) {
         $fetch = false;
-        if( !isset( $this->visitor ) && !$this->isBye() ) {
-            $fetch = true;
-        }
-        else if( !isset( $this->home ) && !isset( $this->visitor ) ) {
+        if( !isset( $this->home ) && !isset( $this->visitor ) ) {
             $fetch = true;
         }
         else if( $force ) {
@@ -524,36 +527,50 @@ class Match extends AbstractData
     public function isValid() {
         $mess = '';
 
+        $evtId = isset( $this->event_ID ) ? $this->event_ID : '???';
         $mn = $this->match_num;
+        $rn = $this->round_num;
         $home = $this->getHomeEntrant();
-        // $hname = $home->getName();
+        $hname = isset($home) ? $home->getName() : 'unknown';
         // error_log("Match($mn).isValid: home=$hname");
         $visitor = $this->getVisitorEntrant();
-
+        $vname = isset($visitor) ? $visitor->getName() : 'unknown';
+        $id = "Event($evtId) Round($rn) Match ($mn)->$vname vs $hname: ";
+        $code = 0;
 
         if( !isset( $this->event_ID ) ) {
-            $mess = __( "Match ($mn) must have an event id." );
+            $mess = __( "$id must have an event id." );
+            $code = 500;
+            error_log( $mess );
         } 
         else if( !isset($this->round_num) ) {
-            $mess = __( "Match ($mn) must have a round number." );
+            $mess = __( "$id must have a round number." );
+            $code = 510;
+            error_log( $mess );
         }
         else if( !$this->isNew() && ( !isset( $this->match_num ) || $this->match_num === 0 )  ) {
-             $mess = __( 'Existing match must have a match number.' );
-             error_log( $mess . " (eventId=$this->event_ID)");
+             $mess = __( "$id existing match must have a match number." );
+             $code = 520;
+             error_log( $mess );
         }
-        // else if( !isset( $home ) ) {
-        //     $mess = __( "Match ($mn) must have a home entrant." );
-        //     error_log( $mess . " (eventId=$this->event_ID)");
-        // }
+        else if( !isset( $home ) ) {
+            $mess = __( "$id must have a home entrant." );
+            $code = 530;
+            error_log( $mess );
+        }
         // else if( !isset( $visitor ) && !$this->isBye()) {
         //     $mess = __( "Match ($mn) is not a bye so must have a visitor entrant." );
         // }
         else if( !isset( $this->match_type ) ) {
-            $mess = __( "Match ($mn) must have a match type." );
+            $mess = __( "$id must have a match type." );
+            $code = 540;
+            error_log( $mess );
         }
         else if( $this->round_num < 0 || $this->round_num > self::MAX_ROUNDS ) {
             $max = self::MAX_ROUNDS;
-            $mess = __( "Match ($mn) round number not between 1 and $max (inclusive)." );
+            $mess = __( "$id round number not between 1 and $max (inclusive)." );
+            $code = 1;
+            error_log( $mess );
         }
         
         switch( $this->match_type ) {
@@ -564,11 +581,12 @@ class Match extends AbstractData
             case MatchType::MIXED_DOUBLES:
                 break;
             default:
-            $mess = __( "Match ($mn) - Match Type is invalid: $this->match_type" );
-            error_log( $mess . " (eventId=$this->event_ID)");
+            $mess = __( "$id - Match Type is invalid: $this->match_type" );
+            $code = 560;
+            error_log( $mess );
         }
 
-        if( strlen( $mess ) > 0 ) throw new InvalidMatchException( $mess );
+        if( strlen( $mess ) > 0 ) throw new InvalidMatchException( $mess, $code );
 
         return true;
     }
@@ -684,11 +702,10 @@ class Match extends AbstractData
                         ,'comments'    => $this->comments );
         $formats_values = array( '%d', '%d', '%d', '%f', '%s', '%s', '%d', '%s' );
 		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
+        $result = $wpdb->rows_affected;
         $wpdb->query( "UNLOCK TABLES;" );
-
         $this->isnew = FALSE;
 		$this->isdirty = FALSE;
-        $result = $wpdb->rows_affected;
 
         if($wpdb->last_error) {
             error_log("Match::create: sql error: $wpdb->last_error");
@@ -704,9 +721,11 @@ class Match extends AbstractData
         
         foreach( $this->setsToBeDeleted as &$set ) {
             $result += $set->delete();
+            unset( $set );
         }
+        $this->setsToBeDeleted = array();
         
-        $result += isset( $this->home ) ? EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getHomeEntrant()->getPosition() ) : 0;
+        $result += EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getHomeEntrant()->getPosition() );
         $result += isset( $this->visitor ) ? EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getVisitorEntrant()->getPosition() ) : 0;
 
 		return $result;
@@ -746,9 +765,11 @@ class Match extends AbstractData
             }
         }
         
-        foreach($this->setsToBeDeleted as $set) {
+        foreach($this->setsToBeDeleted as &$set) {
             $result += $set->delete();
+            unset( $set );
         }
+        $this->setsToBeDeleted = array();
 
         $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
         $visitor = $this->getVisitorEntrant();
