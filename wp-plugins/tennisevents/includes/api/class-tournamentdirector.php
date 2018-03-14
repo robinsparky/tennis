@@ -11,6 +11,7 @@ require_once( 'api-exceptions.php' );
 /** 
  * Responsible for putting together the
  * necessary Events and schedule for a Tournament
+ * Calculates the inital rounds of tournamet using either byes or challenger round
  * @class  TournamentDirector
  * @package Tennis Events
  * @version 1.0.0
@@ -18,7 +19,6 @@ require_once( 'api-exceptions.php' );
 */
 class TournamentDirector
 { 
-
     public const MENSINGLES    = 'Mens Singles';
     public const MENSDOUBLES   = 'Mens Doubles';
     public const WOMENSINGLES  = 'Womens Singles';
@@ -29,9 +29,6 @@ class TournamentDirector
     private const CHALLENGER = "challenger";
 
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
-
-    private const DECISION_POINT = 0.50;
-    private $decision_table = array(.25,.5,.75);
 
     private $numToEliminate;
     private $numRounds;
@@ -154,7 +151,8 @@ class TournamentDirector
         }
         $totalByes = $seedByes + $unseedByes;
         $highMatchnum = ceil( $this->event->drawSize() / 2 );
-        error_log("TournamentDirector.scheduleInitialRounds:highMatchnum=$highMatchnum seedByes=$seedByes unseedByes=$unseedByes");
+        error_log( "TournamentDirector.scheduleInitialRounds:highMatchnum=$highMatchnum seedByes=$seedByes unseedByes=$unseedByes" );
+        
         if( $this->numToEliminate < 3 ) {
             $this->processChallengerRound( $seeded, $unseeded );
         }
@@ -361,28 +359,28 @@ class TournamentDirector
     /**
      * Sort Draw by seeding in descending order
      */
-    private function sortBySeedDesc($a,$b) {
-        if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? 1 : -1;
+    private function sortBySeedDesc( $a, $b ) {
+        if($a->getSeed() === $b->getSeed()) return 0; return ( $a->getSeed() < $b->getSeed() ) ? 1 : -1;
     }
     
     /**
      * Sort Draw bye seeding in ascending order
      */
-    private function sortBySeedAsc($a,$b) {
-        if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? -1 : 1;
+    private function sortBySeedAsc( $a, $b ) {
+        if($a->getSeed() === $b->getSeed()) return 0; return ( $a->getSeed() < $b->getSeed() ) ? -1 : 1;
     }
     
     /**
      * Sort Draw by position in asending order
      */
-    private function sortByPositionAsc($a,$b) {
-        if($a->getPosition() === $b->getPosition()) return 0; return ($a->getPosition() < $b->getPosition()) ? -1 : 1;
+    private function sortByPositionAsc( $a, $b ) {
+        if($a->getPosition() === $b->getPosition()) return 0; return ( $a->getPosition() < $b->getPosition() ) ? -1 : 1;
     }
     /**
      * Sort matches by match number in ascending order
      */
 	private function sortByMatchNumberAsc( $a, $b ) {
-		if($a->getMatchNumber() === $b->getMatchNumber()) return 0; return ($a->getMatchNumber() < $b->getMatchNumber()) ? -1 : 1;
+		if($a->getMatchNumber() === $b->getMatchNumber()) return 0; return ( $a->getMatchNumber() < $b->getMatchNumber() ) ? -1 : 1;
 	}
 
     /**
@@ -410,17 +408,17 @@ class TournamentDirector
 
         if(!$this->event->isLeaf()) {
             $mess = __( 'Must be a leaf event to generate rounds.', TennisEvents::TEXT_DOMAIN );
-            throw new InvalidEventException($mess);
+            throw new InvalidEventException( $mess );
         }
 
-        if($this->event->drawSize() < self::MINIMUM_ENTRANTS) {
+        if( $this->event->drawSize() < self::MINIMUM_ENTRANTS ) {
             $min = self::MINIMUM_ENTRANTS;
             $mess = __( "Event must have at least $min entrants for an elimination event.", TennisEvents::TEXT_DOMAIN );
-            throw new InvalidEventException($mess);
+            throw new InvalidEventException( $mess );
         }
 
-        $this->numRounds = self::calculateExponent($this->event->drawSize());
-        $this->numToEliminate = $this->event->drawSize() - pow(2,$this->numRounds);
+        $this->numRounds = self::calculateExponent( $this->event->drawSize() );
+        $this->numToEliminate = $this->event->drawSize() - pow( 2, $this->numRounds );
 
         return $this->numToEliminate;
     }
@@ -429,10 +427,10 @@ class TournamentDirector
      * Given the size of the draw calculate the highest 
      * power of 2 which is less than that size
      */
-	private function calculateExponent(int $drawSize) {
+	private function calculateExponent( int $drawSize ) {
         $exponent = 0;
-        foreach(range(1,8) as $exp) {
-            if(pow(2,$exp) > $drawSize) {
+        foreach( range(1,8) as $exp ) {
+            if( pow( 2, $exp ) > $drawSize ) {
                 $exponent = $exp - 1;
                 break;
             }
