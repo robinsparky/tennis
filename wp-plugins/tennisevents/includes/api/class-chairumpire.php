@@ -17,33 +17,44 @@ require_once( 'api-exceptions.php' );
  * @version 1.0.0
  * @since   0.1.0
 */
-class ChairUmpire
+abstract class ChairUmpire
 {
+	private $match;
+	private $numChallenges = 3;
 
-    
-	//This class's singleton
-	private static $_instance;
+	abstract public function recordScores( int $set, int ...$scores );
+	abstract public function whatIsScore();
+	abstract public function whatIsStatus();
+	abstract public function defaultTheMatch();
+	abstract public function whoWonTheMatch();
 
-	/**
-	 * ChairUmpire's Singleton
-	 *
-	 * @since 1.0
-	 * @static
-	 * @see TE()
-	 * @return $_instance --Main instance.
-	 */
-	public static function get_instance() {
-		if ( is_null( self::$_instance ) ) {
-			self::$_instance = new self();
+	public function challengesRemaining() {
+		return $this->numChallenges;
+	}
+
+	public function getHomePlayer() {
+		if( isset( $this->match ) ) {
+			return $this->match->getHomeEntrant()->getName();
 		}
-		return self::$_instance;
-    }
-    
-    public function __construct( ) {
-		// Don't allow more than one instance of the class
-		if ( isset( self::$_instance ) ) {
-			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ),get_class( $this ) ) );
+		else return '';
+	}
+	
+	public function getVisitorPlayer() {
+		if( isset( $this->match ) ) {
+			return $this->match->getVisitorEntrant()->getName();
 		}
-		return self::$_instance;
-    }
+		else return '';
+	}
+
+	public function setMatch( Match $match ) {
+		$result = false;
+		if( $match->isValid() ) {
+			$this->match = $match;
+			$result = true;
+		}
+		return $result;
+	}
+	public function getMatch() {
+		return $this->match;
+	}
 }

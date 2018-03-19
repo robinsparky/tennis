@@ -37,7 +37,7 @@ class Set extends AbstractData
     /**
      * Search for Matches that have a name 'like' the provided criteria
      */
-    public static function search($criteria) {
+    public static function search( $criteria ) {
 		global $wpdb;
 		return array();
     }
@@ -45,7 +45,7 @@ class Set extends AbstractData
     /**
      * Find all Sets belonging to a specific Match;
      */
-    public static function find(...$fk_criteria) {
+    public static function find( ...$fk_criteria ) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
         $col = array();
@@ -76,7 +76,7 @@ class Set extends AbstractData
 	 * Get instance of a Set from the database.
      * @param $pks Primary key identifying a Set: event_ID,round_num,match_num,set_num
 	 */
-    static public function get(int ...$pks) {
+    static public function get( int ...$pks ) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
         $obj = NULL;
@@ -103,7 +103,7 @@ class Set extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $eventID, int $round, int $match,int $set=0) {
+	public function __construct( int $eventID, int $round, int $match,int $set=0 ) {
         $this->isnew      = true;
         $this->event_ID   = $eventID;
         $this->round_num  = $round;
@@ -115,7 +115,7 @@ class Set extends AbstractData
 
     }
     
-    public function setSetNumber(int $set) {
+    public function setSetNumber( int $set ) {
         $result = false;
         if( $set >= self::MINSETS && $set <= self::MAXSETS ) {
             $this->set_num = $set;
@@ -222,7 +222,9 @@ class Set extends AbstractData
         //If this set arleady exists call update
         if($exists > 0) {
             $this->isnew = false;
-            return $this->update();
+            $mess = __( "E($this->event_ID) R($this->round_num) M($this->match_num) Set($this->set_num) already exists." );
+            $code = 600;
+            throw new InvalidSetException( $mess, $code );
         }
  
         $values = array( 'event_ID'       => $this->event_ID

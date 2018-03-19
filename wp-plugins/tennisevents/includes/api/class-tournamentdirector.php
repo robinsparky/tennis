@@ -25,28 +25,42 @@ class TournamentDirector
     public const WOMENSDOUBLES = 'Womens Doubles';
     public const MIXEDDOUBLES  = 'Mixed Doubles';
 
-    private const BYE = "bye";
-    private const CHALLENGER = "challenger";
-
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
 
-    private $numToEliminate;
-    private $numRounds;
+    private $numToEliminate = 0;
+    private $numRounds = 0;
+    private $hasChallengerRound = false;
     private $matchType;
+    private $name = '';
 
     public function __construct( Event $evt, string $matchType = MatchType::MENS_SINGLES ) {
         $this->event = $evt;
         
         switch( $matchType ) {
             case MatchType::MENS_SINGLES:
+                $this->matchType = $matchType;
+                $this->name = self::MENSINGLES;
+                break;
             case MatchType::WOMENS_SINGLES:
+                $this->matchType = $matchType;
+                $this->name = self::WOMENSINGLES;
+                break;
             case MatchType::MENS_DOUBLES:
+                $this->matchType = $matchType;
+                $this->name = self::MENSDOUBLES;
+                break;
             case MatchType::WOMENS_DOUBLES:
+                $this->matchType = $matchType;
+                $this->name = self::WOMENSDOUBLES;
+                break;
             case MatchType::MIXED_DOUBLES:
                 $this->matchType = $matchType;
+                $this->name = self::MIXEDDOUBLES;
                 break;
             default:
                 $this->matchType = MatchType::MENS_SINGLES;
+                $this->name = self::MENSINGLES;
+                break;
         }
     }
 
@@ -54,15 +68,27 @@ class TournamentDirector
         $this->event = null;
     }
 
+    public function tournamentName() {
+        return $this->name;
+    }
+
     public function createBrackets( $randomizeDraw = false ) {
         $this->calculateEventSize();
-        return $this->scheduleInitialRounds( $randomizeDraw );
+        $result = $this->scheduleInitialRounds( $randomizeDraw );
+        $affectedd = $this->event->save();
+        return $result;
     }
 
     public function getEvent() {
         return $this->event;
     }
 
+    /**
+     * Save the results from createBrackets.
+     * Calls save on the underlying Event.
+     * NOTE: if significant changes are made to the underlying Event
+     *       one should save these earlier.
+     */
     public function save() {
         return $this->event->save();
     }
@@ -71,8 +97,50 @@ class TournamentDirector
      * Traverse the Brackets to find
      * the first incomplete Round
      */
-    public function getCurrentRound() {
+    public function currentRound() {
 
+    }
+
+    /**
+     * The total number of rounds for this tennis event.
+     * Not including a challenger round if needed.
+     */
+    public function totalRounds() {
+        if( isset( $this->event ) ) {
+            $this->numRounds = self::calculateExponent( $this->event->drawSize() );
+        }
+        return $this->numRounds;
+    }
+
+    public function hasChallengerRound() {
+        return $this->hasChallengerRound;
+    }
+
+    public function drawSize() {
+        return isset( $this->event ) ? $this->event->drawSize() : 0;
+    }
+
+    public function removeDraw() {
+        $result = 0;
+        if( isset( $this->event ) ) {
+            $this->event->removeDraw();
+            $result = $this->event->save();
+        }
+        return $result;
+    }
+
+    function getMatches( $round = null ) {
+        $matches = array();
+        if( isset( $this->event ) ) {
+            if( is_null( $round ) ) {
+                $matches = $this->event->getMatches();
+            }
+            else {
+                $matches = getMatchesByRound( $round );
+            }
+            usort( $matches, array( 'TournamentDirector', 'sortByMatchNumberAsc' ) );
+        }
+        return $matches;
     }
 
     public function showDraw() {
@@ -90,6 +158,16 @@ class TournamentDirector
         }
     }
 
+    public function showRounds() {
+        if( $this->hasChallengerRound ) {
+            $this->showMatches( 0 );
+        }
+
+        for($i = 1; $i <= $this->totalRounds(); $i++ ) {
+            $this->showMatches( $i );
+        }
+    }
+
     public function showMatches( int $round = 1) {
         $matches = $this->event->getMatches();
         if( count( $matches ) < 1 ) {
@@ -104,14 +182,16 @@ class TournamentDirector
                     $home = $match->getHomeEntrant();
                     $hid = isset( $home ) ? $home->getPosition() : '0';
                     $hname = isset( $home ) ? $home->getName() : 'tba';
+                    $hseed = isset( $home ) && $home->getSeed() > 0 ? '(' . $home->getSeed() . ')' : '';
                     $visitor = $match->getVisitorEntrant();
-                    $vid = isset($visitor) ? $visitor->getPosition() : '0';
-                    $vname = isset($visitor) ? $visitor->getName() : 'tba';
+                    $vid = isset( $visitor ) ? $visitor->getPosition() : '0';
+                    $vname = isset( $visitor ) ? $visitor->getName() : 'tba';
+                    $vseed = isset( $homvisitore ) && $visitor->getSeed() > 0 ? '(' . $visitor->getSeed() .')' : '';
                     if($match->isBye() ) {
-                        echo PHP_EOL . "Match($mn): Home($hid)='$hname' has Bye ";
+                        echo PHP_EOL . "Match($mn): Home($hid)='$hname$hseed' has Bye ";
                     }
                     else {
-                        echo PHP_EOL . "Match($mn): Visitor($vid)='$vname' vs Home($hid)='$hname'  ";
+                        echo PHP_EOL . "Match($mn): Visitor($vid)='$vname$vseed' vs Home($hid)='$hname$hseed'  ";
                     }
                 }
             }
@@ -187,7 +267,7 @@ class TournamentDirector
 
         //Add seeded players as Bye matches using an even distribution
         $slot = ($seedByes + $unseedByes) > 1 ? ceil( ceil( $this->event->drawSize() / 2.0 ) / ($seedByes + $unseedByes) ) : 0;
-        $slot = max( 1, $slot );
+        $slot = max( 2, $slot );
         error_log("TournamentDirector.processByes: seeds=" . count($seeded) . '; unseeded='.count($unseeded));
         error_log("TournamentDirector.processByes...slot=$slot; numInvolved=$numInvolved; remainder=$remainder; highMatchnum=$highMatchnum; seedByes=$seedByes; unseedByes=$unseedByes");
 
@@ -227,11 +307,13 @@ class TournamentDirector
 
         //Set the first lot of matches starting from end of the line
         $matchnum = $lowMatchnum;
+        $num = 0;
         while( count( $unseeded ) > 0 || count( $seeded ) > 0 ) {
             if( count( $seeded ) > 0 ) {
-                $home    = array_shift( $seeded );
+                $home    = array_pop( $seeded );
                 $visitor = array_shift( $unseeded );
 
+                $lastSlot = rand( $lowMatchnum, $highMatchnum );
                 $lastSlot += $slot;
                 $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
                 array_push( $usedMatchNums, $lastSlot );
@@ -267,7 +349,7 @@ class TournamentDirector
      * the count down to a power of 2. There are no byes but the challenger round happens before round one of the tournament.
      */
     private function processChallengerRound( array &$seeded, array &$unseeded ) {
-        
+        $this->hasChallengerRound = true;
         $numInvolved = 2 * $this->numToEliminate;
         $remainder   = $this->event->drawSize() - $numInvolved;
         $highMatchnum    = ceil( $this->event->drawSize() / 2 );
@@ -282,7 +364,7 @@ class TournamentDirector
 
         //Add seeded players as Bye matches using an even distribution
         $slot = ($seedByes + $unseedByes) > 1 ? ceil( ceil( $this->event->drawSize() / 2.0 ) / ($seedByes + $unseedByes) ) : 0;
-        $slot = max( 1, $slot );
+        $slot = max( 2, $slot );
 
         error_log("TournamentDirector.processChallengerRound: seeds=" . count($seeded) . '; unseeded='.count($unseeded));
         error_log("TournamentDirector.processChallengerRound...slot=$slot; numInvolved=$numInvolved; remainder=$remainder; highMatchnum=$highMatchnum; seedByes=$seedByes; unseedByes=$unseedByes");
@@ -325,6 +407,7 @@ class TournamentDirector
                 $visitor = array_shift( $unseeded );
                 if( !isset( $visitor ) ) $visitor = array_shift( $seeded );
 
+                $lastSlot = rand( $lowMatchnum, $highMatchnum );
                 $lastSlot += $slot;
                 $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
                 array_push( $usedMatchNums, $lastSlot );
@@ -356,6 +439,7 @@ class TournamentDirector
             }
         }
     }
+
     /**
      * Sort Draw by seeding in descending order
      */
@@ -395,6 +479,25 @@ class TournamentDirector
         else {
             return $needle;
         }
+    }
+
+    /**
+     * Extract the elements at the given position
+     * and remove it from the array.
+     * @param $target the array to remove element from
+     * @param $index the position of the element
+     * @return the value of the $target at $index.
+     */
+    private function extractRemove( array $target, int $index ) {
+        $result = null;
+        try {
+            $result = $target[$index];
+            array_splice( $target, $index, 1 );
+        }
+        catch( Exception $ex ) {
+            $result = null;
+        }
+        return $result;
     }
     
     /**

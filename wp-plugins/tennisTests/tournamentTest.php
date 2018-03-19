@@ -33,42 +33,13 @@ class tournamentTest extends TestCase
         $club->setName('Tyandaga Tennis Club');
         $club->save();
 
-        self::$yearEndEvt = new Event('Year End Tournament');        
-        self::$yearEndEvt->setEventType(EventType::TOURNAMENT);
-        self::$yearEndEvt->addClub($club);
-        self::$tournamentEvt = new Event(TournamentDirector::MENSINGLES);
+        self::$yearEndEvt = new Event( 'Year End Tournament' );        
+        self::$yearEndEvt->setEventType( EventType::TOURNAMENT );
+        self::$yearEndEvt->addClub( $club );
+        self::$tournamentEvt = new Event( TournamentDirector::MENSINGLES );
         self::$tournamentEvt->setFormat(Format::SINGLE_ELIM);
-        self::$yearEndEvt->addChild(self::$tournamentEvt);
+        self::$yearEndEvt->addChild( self::$tournamentEvt );
         self::$yearEndEvt->save();
-        
-        // self::$tournamentEvt->addToDraw("Mike Flintoff");
-        // self::$tournamentEvt->addToDraw("Steve Knight");
-        // self::$tournamentEvt->addToDraw("Rafa Chiuzi");
-        // self::$tournamentEvt->addToDraw("Jonathan Bremer");
-        // self::$tournamentEvt->addToDraw("Stephen OKeefe");
-        // self::$tournamentEvt->addToDraw("Roger Federer",1);
-        // self::$tournamentEvt->addToDraw("Raphael Nadal",2);
-        // self::$tournamentEvt->addToDraw("Andre Agassi",3);
-        // self::$tournamentEvt->addToDraw("Rodney Devitt");
-        // self::$tournamentEvt->addToDraw("Tom West");
-        // self::$tournamentEvt->addToDraw("Novak Djokavic");
-        // self::$tournamentEvt->addToDraw("Andy Murray",4);
-        // self::$tournamentEvt->addToDraw("Ben Huh");
-        // self::$tournamentEvt->addToDraw("Stephen Cheesman");
-        // self::$tournamentEvt->addToDraw("Jonathan Prinsell");
-        // self::$tournamentEvt->addToDraw("Larry Chud");
-        // self::$tournamentEvt->addToDraw("Player 17");
-        // self::$tournamentEvt->addToDraw("Player 18");
-        // self::$tournamentEvt->addToDraw("Player 19");
-        // self::$tournamentEvt->addToDraw("Player 20");
-        // self::$tournamentEvt->addToDraw("Player 21");
-        // self::$tournamentEvt->addToDraw("Player 22");
-        // self::$tournamentEvt->addToDraw("Player 23");
-        // self::$tournamentEvt->addToDraw("Player 24");
-        // self::$tournamentEvt->addToDraw("Player 25");
-        // self::$tournamentEvt->addToDraw("Player 26");
-        // self::$tournamentEvt->addToDraw("Player 27");
-        // self::$tournamentEvt->addToDraw("Player 28");
 	}
 	
 	public function test_challenger_round()
@@ -77,31 +48,25 @@ class tournamentTest extends TestCase
         $title = "+++++++++++++++++++++ test_challenger_round for $size entrants+++++++++++++++++++++++++";
         echo PHP_EOL . $title;
         error_log( $title );
-        $td = new TournamentDirector( self::$tournamentEvt );
-        $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
 
-        $evt = $td->getEvent();
-        $evt->removeDraw();
-        $this->createDraw( $size );
-        $entrants = $evt->getDraw();
-        $this->assertCount( $size, $entrants );
-        $this->assertTrue( $evt->isDirty() );
-        $this->assertGreaterThan( 7, $evt->save() );
-        
+        $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
+        $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
+
+        $this->assertEquals( 0, $td->removeDraw() );
+
+        $this->createDraw( $size, 2 );
+        $this->assertEquals( $size, $td->drawSize() );
         $td->showDraw();
 
-        $this->assertCount(0, $td->getEvent()->getMatches() );
         $num = $td->createBrackets();
-        $ms = $td->getEvent()->getMatches();
-        $this->assertCount( 5, $ms );
 
-        $td->showMatches( 0 );
-        $td->showMatches( 1 );
+        $rnds = $td->totalRounds();
+        echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
+        $td->showRounds();
 
-        echo PHP_EOL . PHP_EOL . "Generated $num matches";
+        echo PHP_EOL . PHP_EOL . "Tournament has $num matches";
 
         $this->assertEquals( 5, $num, 'Number of matches' );
-        $this->assertGreaterThan( $num, $td->save(), 'td save' );
     }
 
 	public function test_bye_generation()
@@ -111,33 +76,25 @@ class tournamentTest extends TestCase
         echo PHP_EOL . $title;
         error_log( $title );
  
-        $td = new TournamentDirector( self::$tournamentEvt );
-        $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
+        $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
+        $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
-        $evt = $td->getEvent();
-        $this->assertTrue( $evt->removeDraw() );
-        $this->assertEquals( 0, $evt->drawSize() );
-        $evt->save();
+        $this->assertGreaterThan( 0, $td->removeDraw() );
+        $this->assertEquals( 0, $td->drawSize() );
 
-        $this->createDraw( $size );
-        $entrants = $evt->getDraw();
-        $this->assertCount( $size, $entrants );
-        $this->assertTrue( $evt->isDirty() );
-        $this->assertGreaterThan( 7, $evt->save() );
+        $this->createDraw( $size, 3 );
+        $this->assertEquals( $size, $td->drawSize() );
         
         $td->showDraw();
 
         $num = $td->createBrackets();
-
-        $ms = $td->getEvent()->getMatches();
-
-        $td->showMatches( 0 );
-        $td->showMatches( 1 );
+        $rnds = $td->totalRounds();
+        echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
+        $td->showRounds();
 
         echo PHP_EOL . PHP_EOL . "Generated $num matches";
 
-        $this->assertEquals( 8, $num, 'Number of matches' );
-        $this->assertGreaterThan( $num, $td->save(), 'td save' );
+        $this->assertEquals( 8, $num, 'Number of matches' );;
     }
     
 	public function test_shuffle_bye_generation()
@@ -147,33 +104,25 @@ class tournamentTest extends TestCase
         echo PHP_EOL . $title;
         error_log( $title );
 
-        $seeds = 10;
-        $td = new TournamentDirector( self::$tournamentEvt );
-        $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
+        $seeds = 5;
+        $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
+        $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
-        $evt = $td->getEvent();
-        $this->assertTrue( $evt->removeDraw() );
-        $this->assertEquals( 0, $evt->drawSize() );
-        $evt->save();
+       $this->assertGreaterThan( 0, $td->removeDraw() );
+        $this->assertEquals( 0, $td->drawSize() );
 
         $this->createDraw( $size, $seeds );
-        $entrants = $evt->getDraw();
-        $this->assertCount( $size, $entrants );
-        $this->assertTrue( $evt->isDirty() );
-        $this->assertGreaterThan( 7,$evt->save() );
-        
+        $this->assertEquals( $size, $td->drawSize() );
         $td->showDraw();
 
-        $num = $td->createBrackets( true );
+        $num = $td->createBrackets( true ); //with shuffle
+        $rnds = $td->totalRounds();
+        echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
+        $td->showRounds();
 
-        $ms = $td->getEvent()->getMatches();
-
-        $td->showMatches( 0 );
-        $td->showMatches( 1 );
         echo PHP_EOL . PHP_EOL . "Generated $num matches";
         
         $this->assertEquals(16, $num, 'Number of matches');
-        $this->assertGreaterThan($num, $td->save(),'td save');
     }
     
 	public function test_big_challenger_generation()
@@ -184,33 +133,24 @@ class tournamentTest extends TestCase
         error_log( $title );
 
         $seeds = 10;
-        $td = new TournamentDirector( self::$tournamentEvt );
-        $this->assertEquals( self::$tournamentEvt->getName(),TournamentDirector::MENSINGLES );
+        $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
+        $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
-        $evt = $td->getEvent();
-        $this->assertTrue( $evt->removeDraw() );
-        $this->assertEquals( 0, $evt->drawSize() );
-        $evt->save(); //This save is necessary otherwise entrant positions get large because of previous tests
+        $this->assertGreaterThan( 0, $td->removeDraw() );
+        $this->assertEquals( 0, $td->drawSize() );
+        $this->assertEquals( 0, $td->totalRounds() );
 
         $this->createDraw( $size, $seeds );
-        $entrants = $evt->getDraw();
-        $this->assertCount( $size, $entrants );
-        $this->assertTrue( $evt->isDirty() );
-        $this->assertGreaterThan( 0, $evt->save() );
-
+        $this->assertEquals( $size, $td->drawSize() );
         $td->showDraw();
 
         $num = $td->createBrackets( );
+        $rnds = $td->totalRounds();
+        echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
+        $td->showRounds();
 
-        $ms = $td->getEvent()->getMatches();
-
-        $td->showMatches( 0 );
-        $td->showMatches( 1 );
         echo PHP_EOL . PHP_EOL . "Generated $num matches";
-        
         $this->assertEquals(17, $num, 'Number of matches');
-        $this->assertGreaterThan($num, $td->save(),'td save');
-        $td->save();
     }
     
     private function createDraw( int $size, $seeds = 0 ) {
@@ -220,6 +160,7 @@ class tournamentTest extends TestCase
             $s = max( 0, $seeds-- );
             self::$tournamentEvt->addToDraw( "Player $i", $s );
         }
+        return self::$tournamentEvt->save();
     }
    
 }
