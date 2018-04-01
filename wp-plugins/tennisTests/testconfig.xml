@@ -23,6 +23,7 @@
     <file>tests/tournamentTest.php</file>
   </testsuite>
   <testsuite name="current">
+    <file>tests/tournamentTweakTests.php</file>
   </testsuite>
 </testsuites>
 </phpunit>

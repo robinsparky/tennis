@@ -19,14 +19,14 @@ class tournamentTest extends TestCase
         global $wpdb;
 
         $table = "{$wpdb->prefix}tennis_club";
-        $sql = "delete from $table where ID between 1 and 999;";
+        $sql = "delete from $table where ID between 1 and 999999;";
 		$wpdb->query($sql);
 		
-		$sql = "delete from {$wpdb->prefix}tennis_club_event where club_ID between 1 and 999";
+		$sql = "delete from {$wpdb->prefix}tennis_club_event where club_ID between 1 and 999999";
         $wpdb->query($sql);
         
         $table = "{$wpdb->prefix}tennis_event";
-        $sql = "delete from $table where ID between 1 and 999;";
+        $sql = "delete from $table where ID between 1 and 999999;";
         $wpdb->query($sql);
 
 		$club = new Club;

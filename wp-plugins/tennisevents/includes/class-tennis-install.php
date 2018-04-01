@@ -227,21 +227,6 @@ class TE_Install {
 			$wpdb->print_error();
 		}
 
-		/*
-		$sql = "CREATE TABLE `$draw_table` (
-				`ID` INT NOT NULL AUTO_INCREMENT,
-				`event_ID` INT NOT NULL,
-				`name` VARCHAR(45) NOT NULL,
-				`elimination` VARCHAR(45) NOT NULL DEFAULT 'single',
-				PRIMARY KEY (`ID`),
-				FOREIGN KEY (`event_ID`)
-				  REFERENCES `$event_table` (`ID`)
-				  ON DELETE NO ACTION
-				  ON UPDATE NO ACTION);";
-		var_dump( dbDelta( $sql) ); 
-		$wpdb->print_error();
-		*/
-
 		/**
 		 * An entrant into a tournament event.
 		 * The relationship between the event and all entrants is called a draw.
@@ -262,25 +247,6 @@ class TE_Install {
 			var_dump( dbDelta( $sql) );
 			$wpdb->print_error();
 		}
-		
-		/**
-		 * A round is a container of 2 to n matches.
-		 * The number of rounds depends on the number of entrants
-		 */
-		// $sql = "CREATE TABLE `$round_table` (
-		// 		`event_ID` INT NOT NULL,
-		// 		`round_num` INT NOT NULL,
-		// 		`comments` VARCHAR(255) NOT NULL,
-		// 		PRIMARY KEY (`event_ID`, `round_num`),
-		// 		FOREIGN KEY (`event_ID`)
-		// 		  REFERENCES `$event_table` (`ID`)
-		// 		  ON DELETE CASCADE
-		// 		  ON UPDATE CASCADE);";
-		// dbDelta( $sql);
-		// if($withReports) {
-		// 	var_dump( dbDelta( $sql) );
-		// 	$wpdb->print_error();
-		// }
 
 		/**
 		 * A tennis match within a round within an event

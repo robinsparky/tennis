@@ -33,6 +33,9 @@ class TournamentDirector
     private $matchType;
     private $name = '';
 
+    
+    /**************************************************  Public functions ********************************************************** */
+
     public function __construct( Event $evt, string $matchType = MatchType::MENS_SINGLES ) {
         $this->event = $evt;
         
@@ -84,7 +87,7 @@ class TournamentDirector
     }
 
     /**
-     * Save the results from createBrackets.
+     * Save the results from createBrackets, addEntrant, etc.
      * Calls save on the underlying Event.
      * NOTE: if significant changes are made to the underlying Event
      *       one should save these earlier.
@@ -197,6 +200,42 @@ class TournamentDirector
             }
         }
     }
+
+    public function addEntrant( string $name, int $seed = 0 ) {
+        $result = false;
+        if( isset( $this->event ) ) {
+            $this->event->addToDraw( $name, $seed );
+            $result = true;
+        }
+        return $result;
+    }
+    
+    /**
+     * Move a match from its current spot to the target match number.
+     * @param $round The round number of this match
+     * @param $fromMatchNum The match's current number (i.e. place in the lineup)
+     * @param $toMatchNum The intended place for this match
+     * @return true if succeeded; false otherwise
+     */
+    public function moveMatch(int $fromRoundNum, int $fromMatchNum, int $toMatchNum ) {
+        $result = 0;
+        if( isset( $this->event ) ) {
+            $result = Match::move($this->event->getID(), $fromRoundNum, $fromMatchNum, $toMatchNum );
+        }
+        return 1 === $result;
+    }
+
+    public function resequenceMatches( int $start = 1, int $incr = 5 ) {
+        $result = 0;
+        if( isset( $this->event ) ) {
+            $result = Match::resequence( $this->event->getID(), $start, $incr );
+        }
+        return $result > 1;
+
+    }
+
+    /**************************************************  Private functions ********************************************************** */
+
     /**
      * The purpose of this function is to eliminate enough players 
      * in the first round so that the next round has 2^n players 
@@ -314,7 +353,7 @@ class TournamentDirector
                 $visitor = array_shift( $unseeded );
 
                 $lastSlot = rand( $lowMatchnum, $highMatchnum );
-                $lastSlot += $slot;
+                //$lastSlot += $slot;
                 $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
                 array_push( $usedMatchNums, $lastSlot );
                 
@@ -408,7 +447,7 @@ class TournamentDirector
                 if( !isset( $visitor ) ) $visitor = array_shift( $seeded );
 
                 $lastSlot = rand( $lowMatchnum, $highMatchnum );
-                $lastSlot += $slot;
+                //$lastSlot += $slot;
                 $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
                 array_push( $usedMatchNums, $lastSlot );
                 
@@ -479,25 +518,6 @@ class TournamentDirector
         else {
             return $needle;
         }
-    }
-
-    /**
-     * Extract the elements at the given position
-     * and remove it from the array.
-     * @param $target the array to remove element from
-     * @param $index the position of the element
-     * @return the value of the $target at $index.
-     */
-    private function extractRemove( array $target, int $index ) {
-        $result = null;
-        try {
-            $result = $target[$index];
-            array_splice( $target, $index, 1 );
-        }
-        catch( Exception $ex ) {
-            $result = null;
-        }
-        return $result;
     }
     
     /**
