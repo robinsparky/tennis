@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Match Types
+ */
 class MatchType {
     public const MENS_SINGLES   = 1.1;
     public const WOMENS_SINGLES = 1.2;

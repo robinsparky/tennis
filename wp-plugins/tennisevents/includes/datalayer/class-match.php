@@ -140,14 +140,13 @@ class Match extends AbstractData
     static public function move( int $eventId, int $round, int $fromMatchNum, int $toMatchNum, string $cmts = null ) {
 		global $wpdb;
         $table = $wpdb->prefix . self::$tablename;
-        $fromId = "E($eventId) R($round) M($fromMatchNum)";
-        $toId = "E($eventId) R($round) M($toMatchNum)";
+        $fromId = "Match($eventId,$round,$fromMatchNum)";
+        $toId = "Match($eventId,$round,$toMatchNum)";
         $tempMatchNum = 99999;
         
         date_default_timezone_set("America/Toronto");
         $stamp = date("Y-m-d h:i:sa");
         $comments = isset( $cmts ) ? $cmts : "Moved from $fromId to $toId on $stamp";
-        error_log( "Match::move: attempting to move from  '$fromId' to '$toId' with comments='$comments'" );
         $result = 0;
 
         //Check match numbers for appropriate ranges
@@ -156,11 +155,13 @@ class Match extends AbstractData
             return $result; //early return
         }
 
+        error_log( "Match::move: attempting to move from $fromId to $toId with comments='$comments'" );
         $sql = "SELECT count(*) 
                 FROM $table WHERE event_ID = %d AND round_num = %d AND match_num = %d;";
                 
         $safe = $wpdb->prepare( $sql, array( $eventId, $round, $fromMatchNum ) );
         $sourceExists = (int) $wpdb->get_var( $safe );
+        error_log("Move $fromId to $toId: sourceExists=$sourceExists");
 
         if( $sourceExists === 1 ) {
             //Source match exists
@@ -223,7 +224,7 @@ class Match extends AbstractData
 
                 if( $wpdb->last_error ) {
                     $mess = "Moving $fromId to $toId: select for update encountered error: '$wpdb->last_error'";
-                    error_log("Match.move: $mess");
+                    error_log( "Match.move: $mess" );
                     $wpdb->query( "rollback;" ); 
                     throw new InvalidMatchException( $mess ); 
                 }
@@ -262,7 +263,7 @@ class Match extends AbstractData
                 $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
 
                 if( $wpdb->last_error ) {
-                    $mess = "Moving match $fromId to $toId: updating $fromMatchNum to $toMatchNum encountered error: '$wpdb->last_error'";
+                    $mess = "Moving $fromId to $toId: updating $tempMatchNum to $toMatchNum encountered error: '$wpdb->last_error'";
                     error_log("Match.move: $mess");
                     $wpdb->query( "rollback;" ) ; 
                     throw new InvalidMatchException( $mess ); 
@@ -270,7 +271,7 @@ class Match extends AbstractData
                 $result += $wpdb->rows_affected;
                 
                 $wpdb->query( "commit;" );  
-                error_log( "Match::move from $fromMatchNum to $toMatchNum: $result cumulative rows affected." );
+                error_log( "Match::move from $tempMatchNum to $toMatchNum: $result cumulative rows affected." );
             }
         }
         elseif( $sourceExists > 1 ) {
@@ -279,7 +280,7 @@ class Match extends AbstractData
             error_log( $mess );
             throw new InvalidMatchException( $mess, 500 );
         }
-        elseif ( $sourceExists === 0 ) {
+        elseif( $sourceExists === 0 ) {
             $mess = __( "$fromId: does not exist." );
             error_log("Match::move $mess" );
         }
@@ -288,7 +289,7 @@ class Match extends AbstractData
     }
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $eventId, int $round = 0, int $match = 0 ) {
+	public function __construct( int $eventId, int $round = 0, int $match = 0 ) {
         $this->isnew = true;
         $this->event_ID = $eventId;
         $this->getEvent(true);
@@ -335,6 +336,9 @@ class Match extends AbstractData
         return $this->event;
     }
 
+    /**
+     * Set the Match's Round Number
+     */
     public function setRoundNumber( int $rn ) {
         $result = false;
         if($rn > -1 & $rn <= self::MAX_ROUNDS) {
@@ -344,10 +348,16 @@ class Match extends AbstractData
         return $result;
     }
 
+    /**
+     * Get the Match's Round Number
+     */
     public function getRoundNumber():int {
         return $this->round_num;
     }
 
+    /**
+     * Set the Match's Number
+     */
     public function setMatchNumber( int $mn ) {
         $result = false;
         if($mn > 0) {
@@ -357,6 +367,9 @@ class Match extends AbstractData
         return $result;
     }
 
+    /**
+     * Get the Match's Number
+     */
     public function getMatchNumber():int {
         return $this->match_num;
     }
@@ -381,6 +394,9 @@ class Match extends AbstractData
 		return $result;
     }
     
+    /**
+     * Get this Match's match type
+     */
     public function getMatchType() {
         return $this->match_type;
     }
@@ -733,7 +749,7 @@ class Match extends AbstractData
         $where = array( 'event_ID' => $this->event_ID
                       , 'round_num' => $this->round_num
                       , 'match_num' => $this->match_num );
-        $formats_where = array('%d','%d','%d');
+        $formats_where = array( '%d', '%d', '%d' );
 
         $wpdb->delete( $table,$where, $formats_where );
         $result = $wpdb->rows_affected;
@@ -743,7 +759,24 @@ class Match extends AbstractData
     }
 
     /**
-     * Fetch the 1,2 or zero Entrants from the database.
+     * Move this match forward or backward in the round by given number of places
+     * @param $places The number of places to move the match
+     * @param $forward If true then move the match forward; otherwise move it backward
+     * @return true if successful; false otherwise
+     */
+    public function moveBy( int $places, bool $forward = true ) {
+        $result = 0;
+        if( $places > 0 && $places < 257 ) {
+            $from = $this->match_num;
+            $to   = $forward ? $this->match_num + $places : $this->match_num - $places;
+            $to   = max( 1, $to );
+            $result =  Match::move( $this->event_ID, $this->round_num, $from, $to );
+        }
+        return $result > 0;
+    }
+
+    /**
+     * Fetch the zero, 1 or 2 Entrants from the database.
      */
     private function fetchEntrants() {
         $contestants = Entrant::find( $this->event_ID, $this->round_num, $this->match_num );
@@ -790,27 +823,20 @@ class Match extends AbstractData
         $table = $wpdb->prefix . self::$tablename;
 
         $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
-        
-		// $sql = "SELECT IFNULL(MAX(round_num),0) FROM $table WHERE event_ID=%d;";
-        // $safe = $wpdb->prepare( $sql, $this->event_ID );
-        // $nextRound = $wpdb->get_var($safe) + 1;
-        // if($nextRound > self::MAX_ROUNDS) {
-        //     $wpdb->query("UNLOCK TABLES;");
-        //     $max = self::MAX_ROUNDS;
-        //     $mess = __( "Round number exceeds limit of '$max'" );
-        //     throw new InvalidMatchException( $mess );
-        // }
 
         if( isset( $this->match_num ) && $this->match_num > 0 ) {
             //If match_num has a value then use it
             $sql = "SELECT COUNT(*) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
             $exists = (int) $wpdb->get_var( $wpdb->prepare( $sql,$this->event_ID, $this->round_num, $this->match_num ),0,0 );
             
-            //If this match arleady exists call update
+            //If this match arleady exists throw exception
             if( $exists > 0 ) {
                 $wpdb->query( "UNLOCK TABLES;" );
                 $mn = $this->match_num;
-                throw new InvalidMatchException("Cannot create Match($mn) because it already exists.");
+                $rnd = $this->round_num;
+                $evtId = $this->event_ID;
+                $code = 570;
+                throw new InvalidMatchException( "Cannot create Match($evtId,$rnd,$mn) because it already exists.", $code );
             }
         }
         else {
@@ -818,7 +844,7 @@ class Match extends AbstractData
             $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
             $safe = $wpdb->prepare( $sql, $this->event_ID, $this->round_num );
             $this->match_num = $wpdb->get_var( $safe ) + 1;
-            error_log("Match::create: match number assigned = '$this->match_num' and match type = '$this->match_type'");
+            error_log( "Match::create: match number assigned = '$this->match_num' and match type = '$this->match_type'" );
         }
 
         $values = array( 'event_ID'    => $this->event_ID
@@ -865,10 +891,6 @@ class Match extends AbstractData
 
         parent::update();
 
-        // $md = $this->getMatchDate_Str();
-        // $mt = $this->getMatchTime_Str();
-        // error_log( "Match::update values=<$this->match_type,'$md','$mt','$this->is_bye','$this->comments'>" );
-
         $values = array( 'match_type'  => $this->match_type
                         ,'match_date'  => $this->getMatchDate_Str()
                         ,'match_time'  => $this->getMatchTime_Str()
@@ -900,10 +922,10 @@ class Match extends AbstractData
         }
         $this->setsToBeDeleted = array();
 
-        $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
+        $result += EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getHomeEntrant()->getPosition() );
         $visitor = $this->getVisitorEntrant();
         if( isset( $visitor ) ) {
-            $result += EntrantMatchRelations::add($this->event_ID,$this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
+            $result += EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getVisitorEntrant()->getPosition() );
         }
         
 		return $result;

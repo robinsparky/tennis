@@ -152,13 +152,34 @@ class TournamentDirector
         }
         else {
             $entrants = $this->event->getDraw();
-            usort( $entrants, array( 'TournamentDirector','sortByPositionAsc' ) );
+            usort( $entrants, array( 'TournamentDirector', 'sortByPositionAsc' ) );
             foreach( $entrants as $ent ) {
                 $seed = $ent->getSeed() > 0 ? '(' . $ent->getSeed() . ')' : ''; 
-                $e = sprintf("%d. %s %s", $ent->getPosition(), $ent->getName(),$seed);
+                $e = sprintf( "%d. %s %s", $ent->getPosition(), $ent->getName(),$seed );
                 echo PHP_EOL . $e;
             }
         }
+    }
+
+    public function arrShowDraw() {
+        $result = array();
+        if( !isset( $this->event ) ) {
+            $result[] = "Event is missing";
+        }
+        elseif( count( $this->event->getDraw() ) < 1  ) {
+            $result[] = "Draw is empty";
+        }
+        else {
+            $entrants = $this->event->getDraw();
+            usort( $entrants, array( 'TournamentDirector', 'sortByPositionAsc' ) );
+            foreach( $entrants as $ent ) {
+                $seed = $ent->getSeed() > 0 ? '(' . $ent->getSeed() . ')' : ''; 
+                $e = sprintf( "%d. %s %s", $ent->getPosition(), $ent->getName(),$seed );
+                error_log( "TournamentDirector::arrShowDraw: $e" );
+                $result[] = $e;
+            }
+        }
+        return $result;
     }
 
     public function showRounds() {
@@ -199,6 +220,38 @@ class TournamentDirector
                 }
             }
         }
+    }
+
+    public function arrShowMatches( int $round = 1 ){
+        $report = array();
+        $matches = $this->event->getMatches();
+        if( count( $matches ) < 1 ) {
+            $report[] = "No matches defined.";
+        }
+        else {
+            usort($matches, array( 'TournamentDirector', 'sortByMatchNumberAsc' ) );
+            $report [] = "Round $round";
+            foreach( $matches as $match ) {
+                if( $round === $match->getRoundNumber() ) {
+                    $mn = $match->getMatchNumber();
+                    $home = $match->getHomeEntrant();
+                    $hid = isset( $home ) ? $home->getPosition() : '0';
+                    $hname = isset( $home ) ? $home->getName() : 'tba';
+                    $hseed = isset( $home ) && $home->getSeed() > 0 ? '(' . $home->getSeed() . ')' : '';
+                    $visitor = $match->getVisitorEntrant();
+                    $vid = isset( $visitor ) ? $visitor->getPosition() : '0';
+                    $vname = isset( $visitor ) ? $visitor->getName() : 'tba';
+                    $vseed = isset( $homvisitore ) && $visitor->getSeed() > 0 ? '(' . $visitor->getSeed() .')' : '';
+                    if($match->isBye() ) {
+                        $report[] = "Match($mn): Home($hid)='$hname$hseed' has Bye ";
+                    }
+                    else {
+                        $report[] = "Match($mn): Visitor($vid)='$vname$vseed' vs Home($hid)='$hname$hseed'  ";
+                    }
+                }
+            }
+        }
+        return $report;
     }
 
     public function addEntrant( string $name, int $seed = 0 ) {
