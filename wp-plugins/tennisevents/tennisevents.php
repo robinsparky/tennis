@@ -92,7 +92,11 @@ class TennisEvents {
 		include_once( 'includes/class-controller-manager.php' );
 		include_once( 'includes/class-tennis-install.php' );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			include_once( 'includes/commandline/class-displaydraw.php' );
+			include_once( 'includes/commandline/class-cmdlinesupport.php' );
+			include_once( 'includes/commandline/class-environmentcommands.php' );
+			include_once( 'includes/commandline/class-displaycommands.php' );
+			include_once( 'includes/commandline/class-matchcommands.php' );
+			include_once( 'includes/commandline/class-drawcommands.php' );
 		}
 	}
 

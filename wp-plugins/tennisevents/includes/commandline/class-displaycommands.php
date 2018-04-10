@@ -1,0 +1,238 @@
+<?php
+
+WP_CLI::add_command( 'tennis display', 'DisplayCommands' );
+
+/**
+ * Implements all commands for displaying tennis objects.
+ * 
+ *
+ * ## EXAMPLES
+ *
+ *     # Display all clubs.
+ *     $ wp tennis display clubs
+ *     
+ *
+ *     # Display all events for a club
+ *     $ wp tennis display events
+ *     
+ *
+ *     # Display the draw for an event
+ *     $ wp tennis display draw
+ *     
+ *
+ *     # Display all matches for an event
+ *     $ wp tennis display match
+ *     
+ */
+class DisplayCommands extends WP_CLI_Command {
+
+    /**
+     * Display Clubs
+     *
+     * ## EXAMPLES
+     *
+     *     wp tennis display clubs
+     *
+     * @when after_wp_load
+     */
+    function clubs( $args, $assoc_args ) {
+        $allClubs = Club::find();
+        if( count( $allClubs ) > 0 ) {
+            WP_CLI::line( "List of Tennis Clubs" );
+            $items = array();
+            foreach( $allClubs as $club ) {
+                $name = $club->getName();
+                $id = $club->getID();
+                $items[] = array( 'ID' => $club->getID(),'Name' => $club->getName() );
+            }
+            WP_CLI\Utils\format_items( 'table', $items, array( 'ID', 'Name' ) );
+        } 
+        else {
+         WP_CLI::warning( "No clubs found." );
+        }
+    }
+
+    /**
+     * Display Events for a Club
+     *
+     * ## OPTIONS
+     *
+     * <clubId>
+     * : The numeric Id of the tennis club
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis display events 260
+     *
+     * @when after_wp_load
+     */
+    function events( $args, $assoc_args ) {
+        list( $clubId ) = $args;
+        $allEvents = Event::find( array( 'club' => $clubId ) );
+        if( count( $allEvents ) > 0 ) {
+            $club = Club::get( $clubId );
+            $name = $club->getName();
+            WP_CLI::line( "Events For '$name'" );
+            WP_CLI::line( "--------------------------------------------------");
+            $lineNum = 0.0;
+            foreach( $allEvents as $evt ) {
+                $lineNum += 1.0;
+                $this->showEvent( $evt, $lineNum, 0 );
+            }
+        }
+        else {
+            WP_CLI::warning( "No events were found for club with Id '$clubId'" );
+        }
+    }
+
+    /**
+     * Displays the Draw for an Event.
+     *
+     * ## OPTIONS
+     * 
+     * ## EXAMPLES
+     *
+     *     # Display the draw for club 2, event 6.
+     *     $ wp tennis display draw --clubId=2 --eventId=6
+     * 
+     *     # Display the draw for club and event defined in the tennis command environment.
+     *     $ wp tennis display draw
+     *
+     * @when after_wp_load
+     */
+    function draw( $args, $assoc_args ) {
+        //list( $clubId, $eventId ) = isset( $args ) ? $args : array( 0 , 0 );
+
+        $clubId  = array_key_exists( 'clubId', $assoc_args )  ? $assoc_args["clubId"] : 0;
+        $eventId = array_key_exists( 'eventId', $assoc_args ) ? $assoc_args["eventId"] : 0;
+        if( 0 === $clubId || 0 === $eventId ) {
+            $env = CmdlineSupport::get_instance()->getEnv();
+            list( $clubId, $eventId ) = $env;
+        }
+
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                WP_CLI::line( "Draw for '$evtName' at '$name'");
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $items = array();
+                $entrants = $td->getDraw();
+                foreach( $entrants as $ent ) {
+                    $seed = $ent->getSeed() > 0 ? $ent->getSeed() : ''; 
+                    $items[] = array( "Position" => $ent->getPosition()
+                                    , "Name" => $ent->getName()
+                                    , "Seed" => $seed );
+                }
+                WP_CLI\Utils\format_items( 'table', $items, array( 'Position', 'Name', 'Seed' ) );
+            }
+            else {
+                WP_CLI::warning( "tennis display draw ... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis display draw ... could not find any events for club with Id '$clubId'" );
+        }
+    }
+    
+    /**
+     * Displays Matches for an Event.
+     *
+     * ## OPTIONS
+     * 
+     *
+     * ## EXAMPLES
+     *
+     *     # Display matches for club 2, event 6.
+     *     $ wp tennis display match --clubId=2 --eventId=6
+     * 
+     *     # Display matches for club and event defined in the tennis command environment.
+     *     $ wp tennis display match
+     *
+     * @when after_wp_load
+     */
+    function match( $args, $assoc_args ) {
+        $clubId  = array_key_exists( 'clubId', $assoc_args )  ? $assoc_args["clubId"] : 0;
+        $eventId = array_key_exists( 'eventId', $assoc_args ) ? $assoc_args["eventId"] : 0;
+
+        if( 0 === $clubId || 0 === $eventId ) {
+            $env = CmdlineSupport::get_instance()->getEnv();
+            list( $clubId, $eventId ) = $env;
+        }
+
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target =  CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                WP_CLI::line( "Matches for '$evtName' at '$name'");
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $matches = $td->getMatches();
+                foreach( $matches as $match ) {
+                    $round   = $match->getRoundNumber();
+                    $mn      = $match->getMatchNumber();
+                    $home    = $match->getHomeEntrant();
+                    $hid     = isset( $home ) ? $home->getPosition() : '0';
+                    $hname   = isset( $home ) ? $home->getName() : 'tba';
+                    $hseed   = isset( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
+                    $visitor = $match->getVisitorEntrant();
+                    $vid     = isset( $visitor ) ? $visitor->getPosition() : '0';
+                    $vname   = isset( $visitor ) ? $visitor->getName() : 'tba';
+                    $vseed   = isset( $homvisitore ) && $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                    $items[] = array( "Round" => $round
+                                    , "Match Number" => $mn
+                                    , "Home Id" => $hid
+                                    , "Home Name" => $hname
+                                    , "Home Seed" => $home->getSeed()
+                                    , "Visitor Id" => $vid
+                                    , "Visitor Name" => $vname
+                                    , "Visitor Seed" => $vseed );
+                }
+                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Home Id', 'Home Name', 'Home Seed', 'Visitor Id', 'Visitor Name', 'Visitor Seed' ) );
+            }
+            else {
+                WP_CLI::warning( "tennis display match ... could not event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis display match ... could not any events for club with Id '$clubId'" );
+        }
+    }
+    
+    private function showEvent( Event $evt, float $lineNum = 1.0, int $level = 0 ) {
+        $id = $evt->getID();
+        $name = $evt->getName();
+        $tabs = str_repeat( " ", $level );
+        if( 0 === $level ) $lineNum = floor( $lineNum );
+        WP_CLI::line("$tabs $lineNum. $name ($id)");
+        if( count( $evt->getChildEvents() ) > 0 ) {
+            ++$level;
+            foreach( $evt->getChildEvents() as $child ) {
+                $lineNum += 0.1;
+                $this->showEvent( $child, $lineNum, $level );
+            }
+        }
+    }
+
+}

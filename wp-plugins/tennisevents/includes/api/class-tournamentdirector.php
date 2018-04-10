@@ -86,6 +86,13 @@ class TournamentDirector
         return $this->event;
     }
 
+    public function getDraw() {
+        $entrants = isset( $this->event ) ? $this->event->getDraw() : array();
+        usort( $entrants, array( 'TournamentDirector', 'sortByPositionAsc' ) );
+
+        return $entrants;
+    }
+
     /**
      * Save the results from createBrackets, addEntrant, etc.
      * Calls save on the underlying Event.
