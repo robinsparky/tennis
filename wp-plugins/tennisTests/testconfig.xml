@@ -20,10 +20,11 @@
     <file>tests/removalTest.php</file>
   </testsuite>
   <testsuite name="tournaments">
-    <file>tests/tournamentTest.php</file>
+    <file>tests/tournamentSetupTest.php</file>
+    <file>tests/tournamentTweakTest.php</file>
   </testsuite>
   <testsuite name="current">
-    <file>tests/tournamentTweakTests.php</file>
+    <file>tests/tournamentScoringTest.php</file>
   </testsuite>
 </testsuites>
 </phpunit>

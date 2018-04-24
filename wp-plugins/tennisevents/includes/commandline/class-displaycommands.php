@@ -101,7 +101,6 @@ class DisplayCommands extends WP_CLI_Command {
      * @when after_wp_load
      */
     function draw( $args, $assoc_args ) {
-        //list( $clubId, $eventId ) = isset( $args ) ? $args : array( 0 , 0 );
 
         $clubId  = array_key_exists( 'clubId', $assoc_args )  ? $assoc_args["clubId"] : 0;
         $eventId = array_key_exists( 'eventId', $assoc_args ) ? $assoc_args["eventId"] : 0;
@@ -125,7 +124,7 @@ class DisplayCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                WP_CLI::line( "Draw for '$evtName' at '$name'");
+                WP_CLI::line( "Signup for '$evtName' at '$name'");
                 $td = new TournamentDirector( $target, $target->getMatchType() );
                 $items = array();
                 $entrants = $td->getDraw();
@@ -200,6 +199,8 @@ class DisplayCommands extends WP_CLI_Command {
                     $vid     = isset( $visitor ) ? $visitor->getPosition() : '0';
                     $vname   = isset( $visitor ) ? $visitor->getName() : 'tba';
                     $vseed   = isset( $homvisitore ) && $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                    $cmts    = $match->getComments();
+                    $cmts    = isset( $cmts ) ? $cmts : '';
                     $items[] = array( "Round" => $round
                                     , "Match Number" => $mn
                                     , "Home Id" => $hid
@@ -207,9 +208,10 @@ class DisplayCommands extends WP_CLI_Command {
                                     , "Home Seed" => $home->getSeed()
                                     , "Visitor Id" => $vid
                                     , "Visitor Name" => $vname
-                                    , "Visitor Seed" => $vseed );
+                                    , "Visitor Seed" => $vseed 
+                                    , "Comments" => $cmts);
                 }
-                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Home Id', 'Home Name', 'Home Seed', 'Visitor Id', 'Visitor Name', 'Visitor Seed' ) );
+                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Home Id', 'Home Name', 'Home Seed', 'Visitor Id', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
             }
             else {
                 WP_CLI::warning( "tennis display match ... could not event with Id '$eventId' for club with Id '$clubId'" );

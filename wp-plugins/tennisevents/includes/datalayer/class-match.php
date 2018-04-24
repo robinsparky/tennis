@@ -397,7 +397,7 @@ class Match extends AbstractData
     /**
      * Get this Match's match type
      */
-    public function getMatchType() {
+    public function getMatchType():float {
         return $this->match_type;
     }
 
@@ -519,16 +519,31 @@ class Match extends AbstractData
     }
 
     public function getComments():string {
-        return $this->comments;
+        return isset( $this->comments ) ? $this->comments : '';
     }
 
     /**
-     * Get the Sets for this Match
+     * Get all existing Sets for this Match
      */
-    public function getSets() {
+    public function getSets( $force = false ) {
         //var_dump(debug_backtrace());
-        if( !isset( $this->sets ) ) $this->fetchSets();
+        if( !isset( $this->sets ) || $force ) $this->fetchSets();
         return $this->sets;
+    }
+
+    /**
+     * Get a specific numbered Set for this match
+     */
+    public function getSetByNumber( int $setnum ) {
+        $result = null;
+        $sets = $this->getSets();
+        foreach ($sets as $set ) {
+            if( $set->getSetNumber() === $setnum ) {
+                $result = $set;
+                break;
+            }
+        }
+        return $result;
     }
     
     /**
@@ -542,7 +557,7 @@ class Match extends AbstractData
      * @throws nothing
      * @return true if successful false otherwise
      */
-    public function setScore( int $setnum, int $home_wins=0, int $visitor_wins=0 ) {
+    public function setScore( int $setnum, int $home_wins, int $visitor_wins, int $hometb = 0, int $visitortb = 0, $hometies = 0, $visitorties = 0 ) {
         $result = false;
         $found = false;
 
@@ -550,19 +565,20 @@ class Match extends AbstractData
         foreach( $this->getSets() as $set ) {
             if( $set->getSetNumber() === $setnum ) {
                 $found = true;
-                $set->setHomeScore( $home_wins );
-                $set->setVisitorScore( $visitor_wins );
+                $set->setHomeScore( $home_wins, $hometb, $hometies );
+                $set->setVisitorScore( $visitor_wins, $visitortb, $visitorties );
                 $result = $this->setDirty();
+                error_log( "Match::setScore: modified set scores with params:$this->event_ID, $this->round_num, $this->match_num in set $setnum" );
             }
         }
         if( !$found ) {
             $set = new Set( $this->event_ID, $this->round_num, $this->match_num, $setnum );
             if( $set->setSetNumber( $setnum ) ) {
-                $set->setHomeScore( $home_wins );
-                $set->setVisitorScore( $visitor_wins );
+                $set->setHomeScore( $home_wins, $hometb, $hometies );
+                $set->setVisitorScore( $visitor_wins, $visitortb, $visitorties );
                 $this->sets[] = $set;
                 $result = $this->setDirty();
-                error_log("Match::setScore: added set with params:$this->event_ID, $this->round_num, $this->match_num in set $setnum");
+                error_log( "Match::setScore: added set scores with params:$this->event_ID, $this->round_num, $this->match_num in set $setnum" );
             }
         }
         

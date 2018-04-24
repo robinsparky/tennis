@@ -9,9 +9,8 @@ require_once( $p2Dir . 'tennisevents.php' );
 require_once( 'api-exceptions.php' );
 
 /** 
- * Responsible for putting together the
- * necessary Events and schedule for a Tournament
- * Calculates the inital rounds of tournamet using either byes or challenger round
+ * Responsible for putting together the necessary Events and schedule for a Tournament
+ * Calculates the inital rounds of tournament using either byes or challenger round
  * @class  TournamentDirector
  * @package Tennis Events
  * @version 1.0.0
@@ -71,26 +70,47 @@ class TournamentDirector
         $this->event = null;
     }
 
+    /**
+     * Get the name of the tournament
+     */
     public function tournamentName() {
         return $this->name;
     }
 
-    public function createBrackets( $randomizeDraw = false ) {
-        $this->calculateEventSize();
-        $result = $this->scheduleInitialRounds( $randomizeDraw );
-        $affectedd = $this->event->save();
-        return $result;
-    }
 
+    /**
+     * Get the event for this tournament
+     */
     public function getEvent() {
         return $this->event;
     }
 
+    /**
+     * Get the Match Type for this tournament
+     */
+    public function matchType():float {
+        return $this->matchType;
+    }
+
+    /**
+     * Get ths signup for this tournament sorted by position in the draw
+     */
     public function getDraw() {
         $entrants = isset( $this->event ) ? $this->event->getDraw() : array();
         usort( $entrants, array( 'TournamentDirector', 'sortByPositionAsc' ) );
 
         return $entrants;
+    }
+    
+    /**
+     * Generate the matches for the initial rounds of the tournament
+     * @param $randomizeDraw Indicates it the unseeded players should be randomized first
+     */
+    public function createBrackets( $randomizeDraw = false ) {
+        $this->calculateEventSize();
+        $result = $this->scheduleInitialRounds( $randomizeDraw );
+        $affected = $this->event->save();
+        return $result;
     }
 
     /**
@@ -144,11 +164,12 @@ class TournamentDirector
         if( isset( $this->event ) ) {
             if( is_null( $round ) ) {
                 $matches = $this->event->getMatches();
+                usort( $matches, array( 'TournamentDirector', 'sortByRoundMatchNumberAsc') );
             }
             else {
                 $matches = getMatchesByRound( $round );
+                usort( $matches, array( 'TournamentDirector', 'sortByMatchNumberAsc' ) );
             }
-            usort( $matches, array( 'TournamentDirector', 'sortByMatchNumberAsc' ) );
         }
         return $matches;
     }
@@ -559,11 +580,23 @@ class TournamentDirector
     private function sortByPositionAsc( $a, $b ) {
         if($a->getPosition() === $b->getPosition()) return 0; return ( $a->getPosition() < $b->getPosition() ) ? -1 : 1;
     }
+
     /**
      * Sort matches by match number in ascending order
      */
 	private function sortByMatchNumberAsc( $a, $b ) {
 		if($a->getMatchNumber() === $b->getMatchNumber()) return 0; return ( $a->getMatchNumber() < $b->getMatchNumber() ) ? -1 : 1;
+    }
+    
+    /**
+     * Sort matches by round number then match number in ascending order
+     * Assumes that across all matches, the match number is always less than $max
+     */
+	private function sortByRoundMatchNumberAsc( $a, $b, $max = 1000 ) {
+        if($a->getRoundNumber() === $b->getRoundNumber() && $a->getMatchNumber() === $b->getMatchNumber()) return 0; 
+        $compa = $a->getRoundNumber() * $max + $a->getMatchNumber();
+        $compb = $b->getRoundNumber() * $max + $b->getMatchNumber();
+        return ( $compa < $compb  ? -1 : 1 );
 	}
 
     /**

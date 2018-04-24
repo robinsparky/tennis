@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * @group tournament
  */
-class tournamentTest extends TestCase
+class tournamentSetupTest extends TestCase
 {
     public static $yearEndEvt;
     public static $tournamentEvt;

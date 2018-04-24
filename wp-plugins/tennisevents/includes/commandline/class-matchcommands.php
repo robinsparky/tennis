@@ -25,23 +25,31 @@ class MatchCommands extends WP_CLI_Command {
      * ## EXAMPLES
      *
      *     wp tennis move 1 10 16
+     *     wp tennis move 1 10 16 comments='This is a comment'
      *
      * @when after_wp_load
      */
     function move( $args, $assoc_args ) {
 
-        CmdlineSupport::preCondtion();
+        $support = CmdlineSupport::preCondtion();
 
-        list($round, $source, $dest ) = $args;
+        list( $round, $source, $dest ) = $args;
+        list( $clubId, $eventId ) = $support->getEnvError();
 
-        $count = 1000 * $dest;
-        $progress = \WP_CLI\Utils\make_progress_bar( 'Moving matches', $count );
-        for ( $i = 0; $i < $count; $i++ ) {
-            // uses wp_insert_user() to insert the user
-            $progress->tick();
+        $fromId = "Match($eventId,$round,$source)";
+        $toId   = "Match($eventId,$round,$dest)";
+        
+        date_default_timezone_set("America/Toronto");
+        $stamp = date("Y-m-d h:i:sa");
+        $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved from $fromId to $toId on $stamp";
+
+        $result = Match::move( $eventId, $round, $source, $dest, $cmts );
+        if( $result > 0 ) {
+            WP_CLI::success("Match moved. Affected $result rows.");
         }
-        $progress->finish();
-
+        else {
+            WP_CLI::warning("Match was not moved");
+        }
     }
 
     /**
@@ -62,22 +70,36 @@ class MatchCommands extends WP_CLI_Command {
      * ## EXAMPLES
      *
      *     wp tennis moveup 0 1 2
+     *     wp tennis moveup 1 10 3 --comments='This is a comment'
      *
      * @when after_wp_load
      */
     function moveup( $args, $assoc_args ) {
 
-        CmdlineSupport::preCondtion();
+        $support = CmdlineSupport::preCondtion();
 
         list($round, $source, $steps ) = $args;
-
-        $count = 1000 * $steps;
-        $progress = \WP_CLI\Utils\make_progress_bar( 'Moving matches', $count );
-        for ( $i = 0; $i < $count; $i++ ) {
-            // uses wp_insert_user() to insert the user
-            $progress->tick();
+        list( $clubId, $eventId ) = $support->getEnvError();
+        
+        $result = 0;
+        if( $steps > 0 && $steps < 257 ) {
+            $dest   = $source + $steps;
+            $fromId = "Match($eventId,$round,$source)";
+            $toId   = "Match($eventId,$round,$dest)";
+            
+            date_default_timezone_set("America/Toronto");
+            $stamp = date("Y-m-d h:i:sa");
+            $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved up from $fromId by $steps to $toId on $stamp";
+    
+            $result =  Match::move( $eventId, $round, $source, $dest, $cmts );
         }
-        $progress->finish();
+
+        if( $result > 0 ) {
+            WP_CLI::success( "Match moved up. Affected $result rows." );
+        }
+        else {
+            WP_CLI::warning("Match was not moved");
+        }
     }
     
     /**
@@ -97,22 +119,37 @@ class MatchCommands extends WP_CLI_Command {
      *
      * ## EXAMPLES
      *
-     *     wp tennis movedown <round> <source> <steps>
+     *     wp tennis movedown 0 2 1
+     *     wp tennis movedown 1 13 4 --comments='This is a comment'
      *
      * @when after_wp_load
      */
     function movedown( $args, $assoc_args ) {
 
-        CmdlineSupport::preCondtion();
+        $support = CmdlineSupport::preCondtion();
 
-        list($round, $source, $steps ) = $args;
-
-        $count = 1000 * steps;
-        $progress = \WP_CLI\Utils\make_progress_bar( 'Moving matches', $count );
-        for ( $i = 0; $i < $count; $i++ ) {
-            // uses wp_insert_user() to insert the user
-            $progress->tick();
+        list( $round, $source, $steps ) = $args;
+        list( $clubId, $eventId ) = $support->getEnvError();
+        
+        $result = 0;
+        if( $steps > 0 && $steps < 257 ) {
+            $dest   = $source - $steps;
+            $dest   = max( 1, $dest );
+            $fromId = "Match($eventId,$round,$source )";
+            $toId   = "Match($eventId,$round,$dest)";
+            
+            date_default_timezone_set( "America/Toronto" );
+            $stamp = date( "Y-m-d h:i:sa" );
+            $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved down from $fromId by $steps to $toId on $stamp";
+    
+            $result =  Match::move( $eventId, $round, $source, $dest, $cmts );
         }
-        $progress->finish();
+
+        if( $result > 0 ) {
+            WP_CLI::success( "Match moved down. Affected $result rows." );
+        }
+        else {
+            WP_CLI::warning( "Match was not moved" );
+        }
     }
 }

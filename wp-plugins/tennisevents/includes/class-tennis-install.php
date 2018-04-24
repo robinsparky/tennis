@@ -308,6 +308,8 @@ class TE_Install {
 				`visitor_tb_pts` INT NOT NULL DEFAULT 0,
 				`home_ties` INT NOT NULL DEFAULT 0 COMMENT 'For leagues, round robins',
 				`visitor_ties` INT NOT NULL DEFAULT 0 COMMENT 'For leagues, round robins',
+				`early_end` TINYINT DEFAULT 0 COMMENT '0 means set completed normally, 1 means abnormal end home defaulted, 2 means abnormal end visitor defaulted, see comments for details',
+				`comments` VARCHAR(512), 
 				PRIMARY KEY (`event_ID`,`round_num`,`match_num`,`set_num`),
 				FOREIGN KEY (`event_ID`,`round_num`,`match_num`)
 				  REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)

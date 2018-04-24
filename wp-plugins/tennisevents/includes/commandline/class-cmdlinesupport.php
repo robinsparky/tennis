@@ -1,6 +1,4 @@
 <?php
-
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -74,7 +72,18 @@ class CmdlineSupport {
             list( $clubId, $eventId ) = $env;
             array_push( $arr, $clubId, $eventId );
         }
+        else {
+            array_push( $arr, 0, 0 );
+        }
         return $arr;
+    }
+    
+    public function getEnvError() {
+        $env = get_transient( self::ENVNAME );
+        if( is_array( $env ) &&  count( $env ) === 2 ) {
+            return $env;
+        }
+        WP_CLI::error( "Please set the club Id and Event Id in the tennis environment" );
     }
 
     public function getEventRecursively( Event $evt, int $descendantId ) {
