@@ -14,6 +14,7 @@ class tournamentScoringTest extends TestCase
     public static $club;
     public static $yearEndEvt;
     public static $tournamentEvt;
+    public static $tournamentDirector;
 
     public static function setUpBeforeClass()
     {
@@ -41,21 +42,54 @@ class tournamentScoringTest extends TestCase
         self::$tournamentEvt->setFormat(Format::SINGLE_ELIM);
         self::$yearEndEvt->addChild( self::$tournamentEvt );
         self::$yearEndEvt->save();
-    }
-    
-	public function test_start()
-	{    
-        $this->assertGreaterThan( 0, self::$tournamentEvtId );
-        $this->assertTrue( self::$tournamentEvt instanceof Event );
+        
+        self::$tournamentDirector = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
+        
     }
 
-    public function test_set_scores_full_match() {
+    public function test_set_scores_create_chairumpire() {
         
-        $title = "+++++++++++++++++++++ test_set_scores_full_match +++++++++++++++++++++++++";
+        $size = rand( 12, 20 );
+        $seeds = rand( 1, 4 );
+        $title = "+++++++++++++++++++++ test_set_scores_full_match: signup size=$size and seeds=$seeds +++++++++++++++++++++++++";
         error_log( $title );
-        $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
-        $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
-        $this->assertEquals( $td->matchType(), MatchType::MENS_SINGLES );
+        $this->assertEquals( TournamentDirector::MENSINGLES, self::$tournamentDirector->tournamentName() );
+        $this->assertEquals( self::$tournamentDirector->matchType(), MatchType::MENS_SINGLES );
+        $this->assertEquals( 0, self::$tournamentDirector->removeDraw() );
+        $this->assertEquals( 0, self::$tournamentDirector->drawSize() );
+      
+        $this->createDraw( $size, $seeds );
+        $this->assertEquals( $size, self::$tournamentDirector->drawSize() );
+
+        $num = self::$tournamentDirector->createBrackets();
+        $rnds = self::$tournamentDirector->totalRounds();
+        $this->assertGreaterThan( 5, $num, 'Number of matches' );
+        $this->assertEquals( $num, count( self::$tournamentDirector->getMatches() ), ' Count of matches' );
+
+        $umpire = self::$tournamentDirector->getChairUmpire();
+        $this->assertTrue( $umpire instanceof ChairUmpire, 'Instance of ChairUmpire' );
+    }
+
+    public function test_set_scores_each_match() {
+        $umpire = self::$tournamentDirector->getChairUmpire();
+        $this->assertTrue( $umpire instanceof ChairUmpire, 'Instance of ChairUmpire' );
+
+        $currentRound = self::$tournamentDirector->currentRound();
+        $this->assertTrue( (0 === $currentRound) || (1 === $currentRound) );
+        $setNum = 1;
+        foreach( self::$tournamentDirector->getMatches( $currentRound ) as $match ) {
+            $umpire->recordScores( $match, $setNum, 3, 4 );
+        }
+    }
+    
+    private function createDraw( int $size, $seeds = 0 ) {
+        if($seeds > $size / 2 ) $seeds = 0;
+
+        for( $i = 1; $i <= $size; $i++ ) {
+            $s = max( 0, $seeds-- );
+            self::$tournamentEvt->addToDraw( "Player $i", $s );
+        }
+        return self::$tournamentEvt->save();
     }
     
 }

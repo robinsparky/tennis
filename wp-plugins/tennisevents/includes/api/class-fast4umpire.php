@@ -18,5 +18,45 @@ include_once($dir . '/gw-support.php' );
  */
 class Fast4Umpire extends ChairUmpire
 {
+	//This class's singleton
+	private static $_instance;
+
+	/**
+	 * Fast4Umpire Singleton
+	 *
+	 * @since 1.0
+	 * @static
+	 * @return $_instance --Main instance.
+	 */
+	public static function getInstance() {
+		if ( is_null( self::$_instance ) ) {
+			self::$_instance = new self();
+		}
+		return self::$_instance;
+	}
+	
+	/**
+	 *  Constructor.
+	 */
+	public function __construct() {
+		// Don't allow more than one instance of the class
+		if ( isset( self::$_instance ) ) {
+			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ),get_class( $this ) ) );
+		}
+
+	}
+    
+	public function setMaxSets( int $max = 5 ) {
+		switch( $max ) {
+			case 3:
+			case 5:
+				$this->MaxSets = $max;
+				$result = true;
+				break;
+			default:
+			$result = false;
+		}
+		return $result;
+	}
 
 }

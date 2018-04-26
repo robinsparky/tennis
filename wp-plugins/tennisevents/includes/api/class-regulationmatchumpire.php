@@ -8,16 +8,35 @@ $dir = plugin_dir_path( __DIR__ );
 include_once($dir . '/gw-support.php' );
 
 
-class FullMatchUmpire extends ChairUmpire
+class RegulationMatchUmpire extends ChairUmpire
 {
+	//This class's singleton
+	private static $_instance;
 
-    public function __construct( Match $m ) {
-        $this->match = $m;
-    }
+	/**
+	 * RegulationMatchUmpire Singleton
+	 *
+	 * @since 1.0
+	 * @static
+	 * @return $_instance --Main instance.
+	 */
+	public static function getInstance() {
+		if ( is_null( self::$_instance ) ) {
+			self::$_instance = new self();
+		}
+		return self::$_instance;
+	}
+	
+	/**
+	 *  Constructor.
+	 */
+	public function __construct() {
+		// Don't allow more than one instance of the class
+		if ( isset( self::$_instance ) ) {
+			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ), get_class( $this ) ) );
+		}
 
-    public function __destruct() {
-        $this->match = null;
-    }
+	}
     
 	public function setMaxSets( int $max = 5 ) {
 		switch( $max ) {
@@ -33,32 +52,38 @@ class FullMatchUmpire extends ChairUmpire
 	}
 
     /**
-     * Record game and tie breaker scores for a given set.
+     * Record game and tie breaker scores for a given set pf the supplied Match.
+     * @param $match The match whose score are recorded
      * @param $setnum The set number 
      * @param ...$scores if 2 args then game scores; if 4 then games and tiebreaker scores
      */
-	public function recordScores( int $setnum, int ...$scores ) {
+	public function recordScores( Match $match, int $setnum, int ...$scores ) {
 
         switch( count( $scores ) ) {
             case 2:
                 $homewins = $scores[0];
                 $visitorwins = $scores[1];
-                $this->match->setScore( $setnum, $homewins, $visitorwins );
+                $match->setScore( $setnum, $homewins, $visitorwins );
                 break;
             case 4:
                 $homewins = $scores[0];
                 $home_tb_pts = $scores[1];
                 $visitorwins = $scores[2];
                 $visitor_tb_pts = $scores[3];
-                $this->match->setScore( $setnum, $homewins, $visitorwins, $home_tb_pts, $visitor_tb_pts );
+                $match->setScore( $setnum, $homewins, $visitorwins, $home_tb_pts, $visitor_tb_pts );
                 break;
             default:
         }
 
-        return $this->match->save();
+        return $match->save();
     }
 
-	public function homeDefault( string $cmts ) {
+    /**
+     * Default the home player/team for this Match
+     * @param $match The match being played
+     * @param $cmts  Any comments explaining the default.
+     */
+	public function homeDefault( Match $match, string $cmts ) {
         $result = false;
         $sets = $match->getSets();
         $size = count( $sets );
@@ -71,7 +96,12 @@ class FullMatchUmpire extends ChairUmpire
         return $result;
     }	
 
-    public function visitorDefault( string $cmts ) {
+    /**
+     * Default the visitor player/team for this Match
+     * @param $match The match being played
+     * @param $cmts  Any comments explaining the default.
+     */
+    public function visitorDefault( Match $match, string $cmts ) {
         $result = false;
         $sets = $match->getSets();
         $size = count( $sets );
@@ -84,7 +114,12 @@ class FullMatchUmpire extends ChairUmpire
         return $result;
     }
     
-	public function matchStatus() {
+    /**
+     * Get status of the Match
+     * @param $match Match whose status is calculated
+     * @return The status of the given match
+     */
+	public function matchStatus( Match $match ) {
         $sets = $match->getSets();
         $status = self::NOTSTARTED;
         foreach( $sets as $set ) {
@@ -102,11 +137,15 @@ class FullMatchUmpire extends ChairUmpire
         return $status;
     }
 
-    public function matchWinner() {
+    /**
+     * Determine the winner of the given Match
+     * @param $match
+     */
+    public function matchWinner( Match $match ) {
         $andTheWinnerIs = __( 'TBA' );
-        $home = $this->match->getHomeEntrant();
+        $home = $match->getHomeEntrant();
         $homeSetsWon = 0;
-        $visitor = $this->match->getVisitorEntrant();
+        $visitor = $match->getVisitorEntrant();
         $visitorSetsWon = 0;
         $finished = false;
 
@@ -167,11 +206,15 @@ class FullMatchUmpire extends ChairUmpire
         return $andTheWinnerIs;
     }
 
-	public function matchScore() {
+    /**
+     * Return the score by set of the given Match
+     * @param $match
+     */
+	public function matchScore( Match $match ) {
         //$sets = Set::find( $match->getEventId(), $match->getRoundNumber(), $match->getMatchNumber() );
         
-        $home = $this->match->getHomeEntrant()->getName();
-        $visitor = $this->match->getVisitorEntrant()->getName();
+        $home = $match->getHomeEntrant()->getName();
+        $visitor = $match->getVisitorEntrant()->getName();
         $sets = $match->getSets();
         $scores = array();
 

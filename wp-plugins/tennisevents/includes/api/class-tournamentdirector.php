@@ -26,11 +26,14 @@ class TournamentDirector
 
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
 
-    private $numToEliminate = 0;
-    private $numRounds = 0;
-    private $hasChallengerRound = false;
-    private $matchType;
+    private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
+    private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
+    private $hasChallengerRound = false; //Is a challenger round required
+    private $matchType; //The type of match such as mens singles, womens doubles etc
     private $name = '';
+
+    //The ChairUmpire for this tournament
+    private $chairUmpire;
 
     
     /**************************************************  Public functions ********************************************************** */
@@ -77,7 +80,6 @@ class TournamentDirector
         return $this->name;
     }
 
-
     /**
      * Get the event for this tournament
      */
@@ -90,6 +92,22 @@ class TournamentDirector
      */
     public function matchType():float {
         return $this->matchType;
+    }
+
+    public function getChairUmpire( int $scoretype = 0 ):ChairUmpire {
+        if( ($scoretype & ScoreType::NoAd) && ($scoretype & ScoreType::TieBreakAt3) ) {
+            $chairUmpire = ast4Umpire::getInstance();
+        }
+        elseif( $scoretype & ScoreType::TieBreakDecider ) {
+            $chairUmpire = MatchTieBreakUmpire::getInstance();
+        }
+        elseif( !($scoretype & ScoreType::TieBreakDecider) && $scoretype & ScoreType::TieBreak12Pt ) {
+            $chairUmpire = ProSetUmpire::getInstance();
+        }
+        else {
+            $chairUmpire = RegulationMatchUmpire::getInstance();
+        }
+        return $chairUmpire;
     }
 
     /**
@@ -127,8 +145,25 @@ class TournamentDirector
      * Traverse the Brackets to find
      * the first incomplete Round
      */
-    public function currentRound() {
-
+    public function currentRound():int {
+        $currentRound = -1;
+        $umpire = $this->getChairUmpire();
+        $uname = get_class( $umpire );
+        $totalRounds = $this->totalRounds();
+        error_log( __CLASS__ . "::" . __FUNCTION__ . " total rounds=$totalRounds; umpire is '$uname'" );
+        for($i = 0; $i < $totalRounds; $i++ ) {
+            foreach( $this->getMatches( $i ) as $match ) {
+                $status = $umpire->matchStatus( $match );
+                $matnum = $match->getMatchNumber();
+                error_log( __CLASS__ . "::" . __FUNCTION__ . " Round=$i; Match number=$matnum; status=$status" );
+                if( $status === ChairUmpire::NOTSTARTED || $status === ChairUmpire::INPROGRESS ) {
+                    $currentRound = $i;
+                    break;
+                }
+            }
+        }
+        error_log( __CLASS__ . "::" . __FUNCTION__ . " returning $currentRound" );
+        return $currentRound;
     }
 
     /**
@@ -159,7 +194,7 @@ class TournamentDirector
         return $result;
     }
 
-    function getMatches( $round = null ) {
+    public function getMatches( $round = null ) {
         $matches = array();
         if( isset( $this->event ) ) {
             if( is_null( $round ) ) {
@@ -167,7 +202,7 @@ class TournamentDirector
                 usort( $matches, array( 'TournamentDirector', 'sortByRoundMatchNumberAsc') );
             }
             else {
-                $matches = getMatchesByRound( $round );
+                $matches = $this->event->getMatchesByRound( $round );
                 usort( $matches, array( 'TournamentDirector', 'sortByMatchNumberAsc' ) );
             }
         }
@@ -282,6 +317,11 @@ class TournamentDirector
         return $report;
     }
 
+    /**
+     * Add an Entrant to the signup
+     * @param $name The name of the player or doubles team
+     * @param $seed The seeding of this player or doubles team
+     */
     public function addEntrant( string $name, int $seed = 0 ) {
         $result = false;
         if( isset( $this->event ) ) {
@@ -306,7 +346,12 @@ class TournamentDirector
         return 1 === $result;
     }
 
-    public function resequenceMatches( int $start = 1, int $incr = 5 ) {
+    /**
+     * Resequence the match numbers for these matches
+     * @param $start The starting match number
+     * @param $incr The increment to apply to generate the match numbers
+     */
+    public function resequenceMatches( int $start = 1, int $incr = 1 ) {
         $result = 0;
         if( isset( $this->event ) ) {
             $result = Match::resequence( $this->event->getID(), $start, $incr );

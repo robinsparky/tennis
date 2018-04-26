@@ -19,8 +19,6 @@ require_once( 'api-exceptions.php' );
 */
 abstract class ChairUmpire
 {
-	private $match;
-
 	public const INPROGRESS = "In progress";
 	public const NOTSTARTED = "Not started";
 	public const COMPLETED  = "Completed";
@@ -33,42 +31,29 @@ abstract class ChairUmpire
     protected $GamesPerSet = 6;
     protected $TieBreakerMinimum = 7;
 
-	abstract public function recordScores( int $set, int ...$scores );
-	abstract public function matchScore();
-	abstract public function matchStatus();
-	abstract public function homeDefault();
-	abstract public function matchWinner();
-	abstract public function visitorDefault();
+	abstract public function recordScores(Match $match, int $set, int ...$scores );
+	abstract public function matchWinner( Match $match );
+	abstract public function matchScore( Match $match );
+	abstract public function matchStatus( Match $match );
+	abstract public function homeDefault( Match $match, string $cmts );
+	abstract public function visitorDefault( Match $match, string $cmts );
 
 	public function challengesRemaining() {
 		return $this->numChallenges;
 	}
 
-	public function getHomePlayer():string {
-		if( isset( $this->match ) ) {
-			return $this->match->getHomeEntrant()->getName();
+	public function getHomePlayer( Match $match ):string {
+		if( isset( $match ) ) {
+			return $match->getHomeEntrant()->getName();
 		}
 		else return '';
 	}
 	
-	public function getVisitorPlayer():string {
-		if( isset( $this->match ) ) {
+	public function getVisitorPlayer( Match $match ):string {
+		if( isset( $match ) ) {
 			return $this->match->getVisitorEntrant()->getName();
 		}
 		else return '';
-	}
-
-	public function setMatch( Match &$match ) {
-		$result = false;
-		if( $match->isValid() ) {
-			$this->match = $match;
-			$result = true;
-		}
-		return $result;
-	}
-
-	public function getMatch() {
-		return $this->match;
 	}
 
 	public function getMaxSets() {

@@ -288,6 +288,20 @@ class Match extends AbstractData
         return $result;
     }
 
+    /**
+     * Resequence the matches for an event. NOT IMPLEMENTED YET.
+     * @param $evtId The event id
+     * @param $start the value of the starting match number
+     * @parram $inc the increment to use in generating the match numbers
+     */
+    static public function resequence( int $evtId, int $start = 1, $inc = 1 ) {
+        $result = 0;
+        if( $start > 0 && $inc > 0 ) {
+            $result = 0;
+        }
+        return $result;
+    }
+
 	/*************** Instance Methods ****************/
 	public function __construct( int $eventId, int $round = 0, int $match = 0 ) {
         $this->isnew = true;
