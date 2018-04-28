@@ -323,7 +323,6 @@ class Match extends AbstractData
     public function setDirty() {
         $this->getEvent()->setDirty();
         $id=$this->getMatchNumber();
-        //error_log(__CLASS__. " $id set Dirty ");
         return parent::setDirty();
     }
     
@@ -537,7 +536,9 @@ class Match extends AbstractData
     }
 
     /**
-     * Get all existing Sets for this Match
+     * Get the Sets for this Match
+	 * @param $force When set to true will force loading of Sets from db
+	 *               This will cause unsaved Sets to be lost.
      */
     public function getSets( $force = false ) {
         //var_dump(debug_backtrace());
@@ -575,27 +576,43 @@ class Match extends AbstractData
         $result = false;
         $found = false;
 
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $mess = sprintf( "%s(%s) starting", $loc, $this->toString() );
+        error_log( $mess );
+
         $this->isValid();
+
         foreach( $this->getSets() as $set ) {
             if( $set->getSetNumber() === $setnum ) {
                 $found = true;
                 $set->setHomeScore( $home_wins, $hometb, $hometies );
                 $set->setVisitorScore( $visitor_wins, $visitortb, $visitorties );
+                $set->isValid();
                 $result = $this->setDirty();
-                error_log( "Match::setScore: modified set scores with params:$this->event_ID, $this->round_num, $this->match_num in set $setnum" );
+                $mess = sprintf( "%s(%s)-> modified scores"
+                               , $loc, $set->toString() );
+                error_log( $mess );
             }
         }
+    
         if( !$found ) {
             $set = new Set( $this->event_ID, $this->round_num, $this->match_num, $setnum );
             if( $set->setSetNumber( $setnum ) ) {
                 $set->setHomeScore( $home_wins, $hometb, $hometies );
                 $set->setVisitorScore( $visitor_wins, $visitortb, $visitorties );
+                $set->isValid();
                 $this->sets[] = $set;
                 $result = $this->setDirty();
-                error_log( "Match::setScore: added set scores with params:$this->event_ID, $this->round_num, $this->match_num in set $setnum" );
+
+                $mess = sprintf( "%s(%s)-> set added with scores"
+                               , $loc, $set->toString() );
+                error_log( $mess );
             }
         }
         
+        $mess = sprintf( "%s(%s) returning with result=%s", $loc, $this->toString(), $result );
+        error_log( $mess );
+
         return $result;
     }
 
@@ -805,6 +822,10 @@ class Match extends AbstractData
         return $result > 0;
     }
 
+    public function toString() {
+        return sprintf("E%d.R%d.M%d",$this->event_ID, $this->round_num, $this->match_num );
+    }
+
     /**
      * Fetch the zero, 1 or 2 Entrants from the database.
      */
@@ -834,15 +855,10 @@ class Match extends AbstractData
 
 	/**
 	 * Fetch all Sets for this Match
-	 * Root-level Events can be associated with one or more clubs
-	 * @param $force When set to true will force loading of Sets from db
-	 *               This will cause unsaved Sets to be lost.
 	 */
-    private function fetchSets( $force = false ) {
+    private function fetchSets() {
         //var_dump(debug_backtrace());
-        if( !isset( $this->sets ) || $force ) {
-            $this->sets = Set::find( $this->event_ID, $this->round_num, $this->match_num );
-        }
+        $this->sets = Set::find( $this->event_ID, $this->round_num, $this->match_num );
     }
 
 	protected function create() {
@@ -857,7 +873,7 @@ class Match extends AbstractData
         if( isset( $this->match_num ) && $this->match_num > 0 ) {
             //If match_num has a value then use it
             $sql = "SELECT COUNT(*) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
-            $exists = (int) $wpdb->get_var( $wpdb->prepare( $sql,$this->event_ID, $this->round_num, $this->match_num ),0,0 );
+            $exists = (int) $wpdb->get_var( $wpdb->prepare( $sql,$this->event_ID, $this->round_num, $this->match_num ), 0, 0 );
             
             //If this match arleady exists throw exception
             if( $exists > 0 ) {
@@ -966,12 +982,12 @@ class Match extends AbstractData
      */
     protected static function mapData( $obj, $row ) {
         parent::mapData( $obj, $row );
-        $obj->event_ID   = $row["event_ID"];
-        $obj->round_num  = $row["round_num"];
-        $obj->match_num  = $row["match_num"];
-        $obj->match_type = $row["match_type"];
-		$obj->match_date = isset ($row["match_date"] ) ? new DateTime( $row["match_date"] ) : null;
-		$obj->match_time = isset( $row["match_time"] ) ?  new DateTime( $row["match_time"] ) : null;
+        $obj->event_ID   = (int) $row["event_ID"];
+        $obj->round_num  = (int) $row["round_num"];
+        $obj->match_num  = (int) $row["match_num"];
+        $obj->match_type = (float) $row["match_type"];
+		$obj->match_date = isset( $row["match_date"] ) ? new DateTime( $row["match_date"] ) : null;
+		$obj->match_time = isset( $row["match_time"] ) ? new DateTime( $row["match_time"] ) : null;
         $obj->is_bye     = $row["is_bye"] == 1 ? true : false;
         $obj->comments   = $row["comments"];
     }

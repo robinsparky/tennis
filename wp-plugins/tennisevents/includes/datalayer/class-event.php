@@ -62,7 +62,7 @@ class Event extends AbstractData
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Event::search $wpdb->num_rows rows returned using criteria: $criteria");
+		//error_log("Event::search $wpdb->num_rows rows returned using criteria: $criteria");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -120,7 +120,7 @@ class Event extends AbstractData
 		$safe = $wpdb->prepare( $sql, $col_value );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		error_log( "Event::find $wpdb->num_rows rows returned." );
+		//error_log( "Event::find $wpdb->num_rows rows returned." );
 
 		foreach( $rows as $row ) {
             $obj = new Event;
@@ -142,7 +142,7 @@ class Event extends AbstractData
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		$id = $pks[0];
-		error_log( "Event::get($id) $wpdb->num_rows rows returned." );
+		//error_log( "Event::get($id) $wpdb->num_rows rows returned." );
 
 		$obj = NULL;
 		if( count( $rows ) === 1 ) {

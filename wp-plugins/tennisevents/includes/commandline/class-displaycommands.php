@@ -246,6 +246,7 @@ class DisplayCommands extends WP_CLI_Command {
                     $round   = $match->getRoundNumber();
                     $mn      = $match->getMatchNumber();
                     $status  = $umpire->matchStatus( $match );
+                    $score   = $umpire->strGetScores( $match );
                     $home    = $match->getHomeEntrant();
                     $hid     = isset( $home ) ? $home->getPosition() : '0';
                     $hname   = isset( $home ) ? $home->getName() : 'tba';
@@ -259,6 +260,7 @@ class DisplayCommands extends WP_CLI_Command {
                     $items[] = array( "Round" => $round
                                     , "Match Number" => $mn
                                     , "Status" => $status
+                                    , "Score" => $score
                                     , "Home Id" => $hid
                                     , "Home Name" => $hname
                                     , "Home Seed" => $home->getSeed()
@@ -267,7 +269,7 @@ class DisplayCommands extends WP_CLI_Command {
                                     , "Visitor Seed" => $vseed 
                                     , "Comments" => $cmts);
                 }
-                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Home Id', 'Home Name', 'Home Seed', 'Visitor Id', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
+                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Id', 'Home Name', 'Home Seed', 'Visitor Id', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
             }
             else {
                 WP_CLI::warning( "tennis display match ... could not event with Id '$eventId' for club with Id '$clubId'" );

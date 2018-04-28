@@ -49,7 +49,7 @@ class tournamentScoringTest extends TestCase
 
     public function test_set_scores_create_chairumpire() {
         
-        $size = rand( 12, 20 );
+        $size = 29; //rand( 12, 20 );
         $seeds = rand( 1, 4 );
         $title = "+++++++++++++++++++++ test_set_scores_full_match: signup size=$size and seeds=$seeds +++++++++++++++++++++++++";
         error_log( $title );
@@ -71,6 +71,9 @@ class tournamentScoringTest extends TestCase
     }
 
     public function test_set_scores_each_match() {
+        $title = "+++++++++++++++++++++ test_set_scores_each_match +++++++++++++++++++++++++";
+        error_log( $title );
+
         $umpire = self::$tournamentDirector->getChairUmpire();
         $this->assertTrue( $umpire instanceof ChairUmpire, 'Instance of ChairUmpire' );
 
@@ -78,7 +81,36 @@ class tournamentScoringTest extends TestCase
         $this->assertTrue( (0 === $currentRound) || (1 === $currentRound) );
         $setNum = 1;
         foreach( self::$tournamentDirector->getMatches( $currentRound ) as $match ) {
-            $umpire->recordScores( $match, $setNum, 3, 4 );
+            if($match->isBye() || $match->isWaiting() ) continue;
+
+            $this->assertEquals( ChairUmpire::NOTSTARTED
+                                , $umpire->matchStatus( $match )
+                                , sprintf("Status = Not Started for %s", $match->toString()) );
+            $hw = rand( 1, 6 );
+            $vw = rand( 0, 6 );
+            if( $umpire->recordScores( $match, $setNum, $hw, $vw ) ) {
+                $this->assertEquals( ChairUmpire::INPROGRESS, $umpire->matchStatus( $match ),"Status = In Progress with hw=$hw vw=$vw" );
+            }
+        }
+    }
+
+    public function test_set_default_players_at_random() {
+        $title = "+++++++++++++++++++++ test_set_default_players_at_random +++++++++++++++++++++++++";
+        error_log( $title );
+
+        $umpire = self::$tournamentDirector->getChairUmpire();
+        $this->assertTrue( $umpire instanceof ChairUmpire, 'Instance of ChairUmpire' );
+
+        $currentRound = self::$tournamentDirector->currentRound();
+        foreach( self::$tournamentDirector->getMatches( $currentRound ) as $match ) {
+            $coinFlip = rand( 0, 1 );
+            if( 1 === $coinFlip && !$match->isBye() && !$match->isWaiting() ) {
+                $umpire->defaultVisitor( $match, 'Sore knee');
+                $this->assertEquals( ChairUmpire::EARLYEND.':Sore knee' 
+                                   , $umpire->matchStatus( $match )
+                                   , sprintf("Sore knee for %s",$match->toString()) );
+                break;
+            }
         }
     }
     

@@ -56,26 +56,46 @@ class RegulationMatchUmpire extends ChairUmpire
      * @param $match The match whose score are recorded
      * @param $setnum The set number 
      * @param ...$scores if 2 args then game scores; if 4 then games and tiebreaker scores
+     * @return true if scores were recorded; false otherwise
      */
-	public function recordScores( Match $match, int $setnum, int ...$scores ) {
+	public function recordScores( Match & $match, int $setnum, int ...$scores ) {
+
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
+        error_log( $mess );
+
+        if( $match->isBye() || $match->isWaiting() ) {
+            error_log("$loc -> Early Return because match has bye or is watiing.");
+            return false;
+        }
+
+        $status = $this->matchStatus( $match );
+        if( $status === ChairUmpire::COMPLETED || ( strpos( ChairUmpire::EARLYEND, $status ) !== false ) ) {
+            error_log("$loc -> Early Return with status = $status");
+            return false;
+        }
 
         switch( count( $scores ) ) {
             case 2:
-                $homewins = $scores[0];
-                $visitorwins = $scores[1];
+                $homewins    = min( $scores[0], $this->GamesPerSet );
+                $visitorwins = min( $scores[1], $this->GamesPerSet );
                 $match->setScore( $setnum, $homewins, $visitorwins );
                 break;
             case 4:
-                $homewins = $scores[0];
+                $homewins    = min( $scores[0], $this->GamesPerSet );
                 $home_tb_pts = $scores[1];
-                $visitorwins = $scores[2];
+                $visitorwins = min( $scores[2], $this->GamesPerSet );
                 $visitor_tb_pts = $scores[3];
                 $match->setScore( $setnum, $homewins, $visitorwins, $home_tb_pts, $visitor_tb_pts );
                 break;
             default:
+                break;
         }
 
-        return $match->save();
+        error_log("$loc -> calling match->save ...");
+        $result = $match->save() > 0;
+
+        return $result;
     }
 
     /**
@@ -83,17 +103,16 @@ class RegulationMatchUmpire extends ChairUmpire
      * @param $match The match being played
      * @param $cmts  Any comments explaining the default.
      */
-	public function homeDefault( Match $match, string $cmts ) {
-        $result = false;
+	public function defaultHome( Match &$match, string $cmts ) {
         $sets = $match->getSets();
         $size = count( $sets );
         if( $size > 0 ) {
             $sets[$size - 1]->setEarlyEnd( 1 );
             $sets[$size - 1]->setComments( $cmts );
-            $sets[$size - 1]->save();
-            $result = true;
+            $match->setDirty();
         }
-        return $result;
+        $result = $match->save();
+        return $result > 0;
     }	
 
     /**
@@ -101,17 +120,16 @@ class RegulationMatchUmpire extends ChairUmpire
      * @param $match The match being played
      * @param $cmts  Any comments explaining the default.
      */
-    public function visitorDefault( Match $match, string $cmts ) {
-        $result = false;
+    public function defaultVisitor( Match &$match, string $cmts ) {
         $sets = $match->getSets();
         $size = count( $sets );
         if( $size > 0 ) {
             $sets[$size - 1]->setEarlyEnd( 2 );
             $sets[$size - 1]->setComments( $cmts );
-            $sets[$size - 1]->save();
-            $result = true;
+            $match->setDirty();
         }
-        return $result;
+        $result = $match->save();
+        return $result > 0;
     }
     
     /**
@@ -119,21 +137,53 @@ class RegulationMatchUmpire extends ChairUmpire
      * @param $match Match whose status is calculated
      * @return The status of the given match
      */
-	public function matchStatus( Match $match ) {
-        $sets = $match->getSets();
-        $status = self::NOTSTARTED;
-        foreach( $sets as $set ) {
-            if( $set->earlyEnd() ) {
-                $cmts = $set->getComments();
-                $status = self::EARLYEND . ":" . ( isset( $cmts ) ? $cmts : '' );
-                break;
+	public function matchStatus( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
+        error_log( $mess );
+
+        $status = '';
+        if( $match->isBye() ) $status = ChairUmpire::BYE;
+        if( $match->isWaiting() ) $status = ChairUmpire::WAITING;
+
+        if( strlen( $status ) === 0 ) {
+            $sets = $match->getSets();
+            $status = self::NOTSTARTED;
+            foreach( $sets as $set ) {
+                $setnum = $set->getSetNumber();
+                if( $set->earlyEnd() > 0 ) {
+                    $cmts = $set->getComments();
+                    $status = self::EARLYEND . ":" . ( isset( $cmts ) ? $cmts : '' );
+                    break;
+                }
+                $status = self::INPROGRESS;
+                if( $set->getSetNumber() >= $this->getMaxSets() ) {
+                    $arrScores = $this->getScores( $match );
+                    if( array_key_exists( $set->getSetNumber(), $arrScores ) ) {
+                        $scores = $arrScores[ $set->getSetNumber() ];
+                        $mess = sprintf("%s(%s) -> Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                                        , $loc, $set->toString()
+                                        , $scores[0], $scores[1], $scores[2], $scores[3] );
+                        error_log( $mess );
+                        if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                            //Tiebreaker scores
+                            if( abs($scores[2] - $scores[3]) >= 2 ) {
+                                $status = CHAIRUMPIRE::COMPLETED;
+                                break;
+                            }
+                        } 
+                        elseif( ( $scores[0] === $this->GamesPerSet || $scores[1] === $this->GamesPerSet ) && abs( $scores[0] - $scores[1]) >= 2 ) {
+                            //Game scores
+                            $status = CHAIRUMPIRE::COMPLETED;
+                            break;                        
+                        }
+                    }
+                }
             }
-            if( $set->getSetNumber() >= $this->getMaxSets() ) {
-                $status = self::COMPLETED;
-                break;
-            }
-            $status = self::INPROGRESS;
         }
+        $mess = sprintf( "%s(%s) is returning status=%s", $loc,$match->toString(), $status );
+        error_log( $mess );
         return $status;
     }
 
@@ -141,7 +191,12 @@ class RegulationMatchUmpire extends ChairUmpire
      * Determine the winner of the given Match
      * @param $match
      */
-    public function matchWinner( Match $match ) {
+    public function matchWinner( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
+        error_log( $mess );
+
         $andTheWinnerIs = __( 'TBA' );
         $home = $match->getHomeEntrant();
         $homeSetsWon = 0;
@@ -182,7 +237,7 @@ class RegulationMatchUmpire extends ChairUmpire
                     }
                     else { //Tie breaker
                         if( $homeTB > $visitorTB ) {
-                        ++$homeSetsWon;
+                            ++$homeSetsWon;
                         }
                         elseif( $homeTB < $visitorTB ) {
                             ++$visitorSetsWon;
@@ -195,35 +250,75 @@ class RegulationMatchUmpire extends ChairUmpire
             }
         }
 
-        if( ( $homeSetsWon + $visitorSetsWon ) === $this->MaxSets ) {
-            if( $homeSetsWon > $visitorSetsWon ) {
+        //Best 3 of 5 or 2 of 3
+        if( $homeSetsWon >= ceil( $this->MaxSets/2 ) ) {
                 $andTheWinnerIs = $home->getName();
-            }
-            else {
-                $andTheWinnerIs = $visitor->getName();
-            }
         }
+        elseif( $visitorSetsWon >= ceil( $this->MaxSets/2 ) ) {
+            $andTheWinnerIs = $visitor->getName();
+        }
+        
         return $andTheWinnerIs;
     }
 
     /**
      * Return the score by set of the given Match
      * @param $match
+     * @return array of scores
      */
-	public function matchScore( Match $match ) {
-        //$sets = Set::find( $match->getEventId(), $match->getRoundNumber(), $match->getMatchNumber() );
-        
-        $home = $match->getHomeEntrant()->getName();
-        $visitor = $match->getVisitorEntrant()->getName();
+	public function getScores( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
+        error_log( $mess );
+
         $sets = $match->getSets();
         $scores = array();
 
         foreach($sets as $set ) {
             $setnum = (int)$set->getSetNumber();
-            $scores[$setnum] = array( $home => $set->getHomeWins(), $visitor => $set->getVisitorWins(), $home . "-Tiebreaker" => $set->getHomeTieBreaker(), $visitor . "-Tiebreaker" => $set->getVisitorTieBreaker() );
+            // $mess = sprintf("%s(%s) -> Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+            //                , $loc, $set->toString()
+            //                , $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
+            // error_log( $mess );
+            $scores[$setnum] = array( $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
         }
         return $scores;
     }
-
     
-}
+    /**
+     * Return the score by set of the given Match as a string
+     * @param $match
+     * @return string representation of the scores
+     */
+	public function strGetScores( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) called", $loc,$match->toString() );
+        error_log( $mess );
+
+        $arrScores = $this->getScores( $match );
+        if( count( $arrScores) === 0 ) return '...';
+
+        $strScores = '';
+        $sep = ',';
+        $setNums = range( 1, $this->getMaxSets() );
+        foreach( $setNums as $setNum ) {
+            if( $setNum === $this->MaxSets ) $sep = '';
+            if( array_key_exists( $setNum, $arrScores ) ) {
+                $scores = $arrScores[ $setNum ];
+                // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                //                 , $loc, $match->toString(), $setNum
+                //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
+                if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                    $strScores .= sprintf("{%d(%d) %d(%d)}%s ", $scores[0], $scores[2], $scores[1], $scores[3], $sep);
+                } 
+                else {
+                    $strScores .= sprintf("{%d %d}%s ", $scores[0], $scores[1], $sep);
+                }
+            }
+        }
+        return $strScores;
+    }
+
+} //end of class

@@ -8,6 +8,111 @@ WP_CLI::add_command( 'tennis match', 'MatchCommands' );
 class MatchCommands extends WP_CLI_Command {
 
     /**
+     * Create the initial rounds with the current signup
+     * The target club and event must first be set using 'tennis env set'
+     *
+     * ## OPTIONS
+     * 
+     * <watershed>
+     * : The watershed for creating challenger round first
+     * 
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis match initialize 5
+     *
+     * @when after_wp_load
+     */
+    function initialize( $args, $assoc_args ) {
+
+        $support = CmdlineSupport::preCondtion();
+
+        list( $watershed ) = $args;
+        list( $clubId, $eventId ) = $support->getEnvError();
+        
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                try {
+                    $td->createBrackets( false, $watershed);
+                    WP_CLI::success("tennis match initialize ...");
+                }
+                catch( Exception $ex ) { 
+                    WP_CLI::error( sprintf( "tennis match initialize ... %s", $ex->getMessage() ) );
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis match initialize... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis match initialize... could not find any events for club with Id '$clubId'" );
+        }
+    }
+
+    /**
+     * Destroy the brackets for this tennis event
+     * The target club and event must first be set using 'tennis env'
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis match reset
+     *
+     * @when after_wp_load
+     */
+    function reset( $args, $assoc_args ) {
+
+        CmdlineSupport::preCondtion();
+
+        $env = CmdlineSupport::get_instance()->getEnv();
+        list( $clubId, $eventId ) = $env;
+        
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                if( $td->removeDraw() ) {
+                    WP_CLI::success("tennis signup reset");
+                }
+                else {
+                    WP_CLI::error("tennis signup reset ... unable to reset");
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis signup reset... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis signup reset ... could not find any events for club with Id '$clubId'" );
+        }
+    }
+
+    /**
      * Move a match to a given destination.
      * The target club and event must first be set using 'tennis env set'
      *

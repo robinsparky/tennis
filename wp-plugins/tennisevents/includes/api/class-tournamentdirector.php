@@ -94,18 +94,27 @@ class TournamentDirector
         return $this->matchType;
     }
 
+    /**
+     * Get the ChairUmpire for match controlled by this Touornament Director
+     * @param $scoretype A bitmask of scoring features
+     * @see ScoreType class
+     * @return ChairUmpire subclass
+     */
     public function getChairUmpire( int $scoretype = 0 ):ChairUmpire {
         if( ($scoretype & ScoreType::NoAd) && ($scoretype & ScoreType::TieBreakAt3) ) {
-            $chairUmpire = ast4Umpire::getInstance();
+            $chairUmpire = Fast4Umpire::getInstance();
         }
         elseif( $scoretype & ScoreType::TieBreakDecider ) {
             $chairUmpire = MatchTieBreakUmpire::getInstance();
         }
-        elseif( !($scoretype & ScoreType::TieBreakDecider) && $scoretype & ScoreType::TieBreak12Pt ) {
+        elseif( !($scoretype & ScoreType::TieBreakDecider) && ($scoretype & ScoreType::TieBreak12Pt) ) {
             $chairUmpire = ProSetUmpire::getInstance();
         }
         else {
             $chairUmpire = RegulationMatchUmpire::getInstance();
+            if($scoretype & ScoreType::TieBreakAt3 ) {
+                $chairUmpire->setMaxSets( 3 );
+            }
         }
         return $chairUmpire;
     }
@@ -124,9 +133,9 @@ class TournamentDirector
      * Generate the matches for the initial rounds of the tournament
      * @param $randomizeDraw Indicates it the unseeded players should be randomized first
      */
-    public function createBrackets( $randomizeDraw = false ) {
+    public function createBrackets( $randomizeDraw = false, int $watershed = 5 ) {
         $this->calculateEventSize();
-        $result = $this->scheduleInitialRounds( $randomizeDraw );
+        $result = $this->scheduleInitialRounds( $randomizeDraw, $watershed );
         $affected = $this->event->save();
         return $result;
     }
@@ -146,23 +155,26 @@ class TournamentDirector
      * the first incomplete Round
      */
     public function currentRound():int {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        
         $currentRound = -1;
         $umpire = $this->getChairUmpire();
-        $uname = get_class( $umpire );
-        $totalRounds = $this->totalRounds();
-        error_log( __CLASS__ . "::" . __FUNCTION__ . " total rounds=$totalRounds; umpire is '$uname'" );
-        for($i = 0; $i < $totalRounds; $i++ ) {
+        for($i = 0; $i < $this->totalRounds(); $i++ ) {
             foreach( $this->getMatches( $i ) as $match ) {
                 $status = $umpire->matchStatus( $match );
-                $matnum = $match->getMatchNumber();
-                error_log( __CLASS__ . "::" . __FUNCTION__ . " Round=$i; Match number=$matnum; status=$status" );
+                $mess = sprintf( "%s(%s) -> i=%d status='%s'"
+                               , $loc, $match->toString()
+                               , $i, $status );
+                error_log( $mess );
                 if( $status === ChairUmpire::NOTSTARTED || $status === ChairUmpire::INPROGRESS ) {
                     $currentRound = $i;
                     break;
                 }
             }
+            if( $currentRound !== -1 ) break;
         }
-        error_log( __CLASS__ . "::" . __FUNCTION__ . " returning $currentRound" );
+        $mess = sprintf( "%s->returning current round=%d", $loc, $currentRound );
+        error_log( $mess );
         return $currentRound;
     }
 
@@ -181,10 +193,16 @@ class TournamentDirector
         return $this->hasChallengerRound;
     }
 
+    /**
+     * Return the size of the signup for the tennis event
+     */
     public function drawSize() {
         return isset( $this->event ) ? $this->event->drawSize() : 0;
     }
 
+    /**
+     * Remove the signup and all defined matches for a tennis event
+     */
     public function removeDraw() {
         $result = 0;
         if( isset( $this->event ) ) {
@@ -194,6 +212,23 @@ class TournamentDirector
         return $result;
     }
 
+    /**
+     * Remove all defined matches for a tennis event
+     */
+    public function removeBrackets() {
+        $result = 0;
+        if( isset( $this->event ) ) {
+            $this->event->removeAllMatches();
+            $result = $this->event->save();
+        }
+        return $result;
+    }
+
+
+    /**
+     * Return all matches for an event or just for a given round
+     * @param $round The round whose matches are to be retrieved
+     */
     public function getMatches( $round = null ) {
         $matches = array();
         if( isset( $this->event ) ) {
@@ -323,12 +358,25 @@ class TournamentDirector
      * @param $seed The seeding of this player or doubles team
      */
     public function addEntrant( string $name, int $seed = 0 ) {
-        $result = false;
+        $result = 0;
         if( isset( $this->event ) ) {
             $this->event->addToDraw( $name, $seed );
-            $result = true;
+            $result = $this->event->save();
         }
-        return $result;
+        return $result > 0;
+    }
+
+    /**
+     * Remove an Entrant from the signup
+     * @param $name The name of the player or doubles team
+     */
+    public function removeEntrant( string $name ) {
+        $result = 0;
+        if( isset( $this->event ) ) {
+            $this->event->removeFromDraw( $name );
+            $result = $this->event->save();
+        }
+        return $result > 0;
     }
     
     /**
@@ -372,7 +420,7 @@ class TournamentDirector
      * Finally the seeded players (who get priority for bye selection) must be distributed
      * evenly amoung the un-seeded players with the first and second seeds being at opposite ends of the draw.
      */
-    private function scheduleInitialRounds( $randomizeDraw = false ) {
+    private function scheduleInitialRounds( $randomizeDraw = false, $watershed = 5 ) {
         //$entrants = $this->event->distributeSeededPlayers( $randomizeDraw );
         $entrants = $this->event->getDraw();
         $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
@@ -398,7 +446,7 @@ class TournamentDirector
         $highMatchnum = ceil( $this->event->drawSize() / 2 );
         error_log( "TournamentDirector.scheduleInitialRounds:highMatchnum=$highMatchnum seedByes=$seedByes unseedByes=$unseedByes" );
         
-        if( $this->numToEliminate < 3 ) {
+        if( $this->numToEliminate < $watershed ) {
             $this->processChallengerRound( $seeded, $unseeded );
         }
         else {

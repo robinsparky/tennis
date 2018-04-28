@@ -58,6 +58,7 @@ class Set extends AbstractData
                       ,home_wins, visitor_wins 
                       ,home_tb_pts, visitor_tb_pts 
                       ,home_ties, visitor_ties 
+                      ,early_end, comments
                  FROM $table 
                  WHERE event_ID = %d 
                  AND   round_num = %d 
@@ -72,7 +73,7 @@ class Set extends AbstractData
             $obj = new Set( $fk_criteria[0], $fk_criteria[1], $fk_criteria[2] );
             self::mapData( $obj, $row );
 			$col[] = $obj;
-		}
+        }
 		return $col;
     }
 
@@ -88,7 +89,8 @@ class Set extends AbstractData
 		$sql = "SELECT event_ID,round_num,match_num,set_num 
                       ,home_wins, visitor_wins 
                       ,home_tb_pts, visitor_tb_pts 
-                      ,home_ties, visitor_ties 
+                      ,home_ties, visitor_ties
+                      ,early_end, comments 
                 FROM $table 
                 WHERE event_ID  = %d 
                 AND   round_num = %d 
@@ -142,7 +144,7 @@ class Set extends AbstractData
             case 1:
             case 2:
                 $this->early_end = $early;
-                $result = true;
+                $result = $this->setDirty();
                 break;
             default:
                 $result = false;
@@ -156,6 +158,7 @@ class Set extends AbstractData
 
     public function setComments( string $cmts ) {
         $this->comments = $cmts;
+        $this->setDirty();
     }
 
     public function getComments():string {
@@ -168,7 +171,7 @@ class Set extends AbstractData
             $this->home_wins = $wins;
             $this->home_ties = $ties;
             $this->home_tb_pts = $tb_pts;
-            $result = $this->isdirty = TRUE;
+            $result = $this->setDirty();
         }
         return $result;
     }
@@ -191,7 +194,7 @@ class Set extends AbstractData
             $this->visitor_wins = $wins;
             $this->visitor_ties = $ties;
             $this->visitor_tb_pts = $tb_pts;
-            $result = $this->isdirty = TRUE;
+            $result = $this->setDirty();
         }
         return $result;
     }
@@ -210,15 +213,25 @@ class Set extends AbstractData
     
     public function isValid() {
         $mess = '';
-        if( !isset( $this->event_ID ) )  $mess = __( "Missing event ID." );
-        if( !isset( $this->round_num ) ) $mess = __( "Missing round number." );
-        if( !isset( $this->match_num ) ) $mess = __( "Misisng match number." );
-        if( !isset( $this->set_num ) ) $mess =  __( "Missing set number." );
-        if( $this->set_num < 1 || $this->set_num > self::MAXSETS ) $mess = __( "Set number is invalid." );
-        if( !isset( $this->home_wins ) && !isset( $this->visitor_wins ) )  $mess =  __( "No scores are set." );
-        if( 0 === $this->home_wins && 0 === $this->visitor_wins ) $mess =  __( "Both home and visitor scores cannot be zero" );
 
-        if(strlen( $mess ) > 0) throw new InvalidSetException( $mess );
+        if( $this->event_ID < 1) {  
+            $mess = __( "Invalid event ID." );
+        }
+        if( $this->round_num < 0 ) {
+            $mess = __( "Invalid round number." );
+        }
+        if( $this->match_num < 1 ) {
+            $mess = __( "Invalid match number." );
+        }
+        if( $this->set_num < 1 || $this->set_num > self::MAXSETS ) {
+            $mess = __( "Invalid set number." );
+        }
+        if( 0 === $this->home_wins && 0 === $this->visitor_wins && !$this->earlyEnd() ) {
+            $mess =  __( "Both home and visitor scores cannot be zero." );
+        }
+
+        if( strlen( $mess ) > 0 ) throw new InvalidSetException( $mess );
+
         return true;
     }
     
@@ -238,9 +251,13 @@ class Set extends AbstractData
         $wpdb->delete( $table, $where, $formats_where );
         $result = $wpdb->rows_affected;
 
-        error_log( "Set.delete: deleted $result rows" );
+        error_log( "Set::delete: deleted $result rows" );
 
         return $result;
+    }
+    
+    public function toString() {
+        return sprintf("E%d.R%d.M%d.S%d", $this->event_ID, $this->round_num, $this->match_num, $this->set_num );
     }
 
 	protected function create() {
@@ -251,7 +268,7 @@ class Set extends AbstractData
         $table = $wpdb->prefix . self::$tablename;
         
         $sql = "SELECT COUNT(*) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d AND set_num=%d;";
-        $exists = (int) $wpdb->get_var($wpdb->prepare($sql,$this->event_ID, $this->round_num, $this->match_num, $this->set_num),0,0);
+        $exists = (int) $wpdb->get_var($wpdb->prepare( $sql, $this->event_ID, $this->round_num, $this->match_num, $this->set_num ), 0 ,0 );
         
         //If this set arleady exists call update
         if($exists > 0) {
@@ -289,7 +306,7 @@ class Set extends AbstractData
 
         parent::update();
 
-        $values = array( 'home_wins'      => $this->homes_wins
+        $values = array( 'home_wins'      => $this->home_wins
                         ,'visitor_wins'   => $this->visitor_wins
                         ,'home_tb_pts'    => $this->home_tb_pts
                         ,'visitor_tb_pts' => $this->visitor_tb_pts
@@ -321,7 +338,7 @@ class Set extends AbstractData
         $obj->round_num       = (int) $row["round_num"];
         $obj->match_num       = (int) $row["match_num"];
         $obj->set_num         = (int) $row["set_num"];
-        $obj->homes_wins      = (int) $row["home_wins"];
+        $obj->home_wins       = (int) $row["home_wins"];
         $obj->visitor_wins    = (int) $row["visitor_wins"];
         $obj->home_tb_pts     = (int) $row["home_tb_pts"];
         $obj->visitor_tb_pts  = (int) $row["visitor_tb_pts"];
