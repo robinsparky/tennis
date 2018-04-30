@@ -54,11 +54,11 @@ class tournamentSetupTest extends TestCase
 
         $this->assertEquals( 0, $td->removeDraw() );
 
-        $this->createDraw( $size, 2 );
+        $this->createSignup( $size, 2 );
         $this->assertEquals( $size, $td->drawSize() );
         $td->showDraw();
 
-        $num = $td->createBrackets();
+        $num = $td->schedulePreliminaryRounds();
 
         $rnds = $td->totalRounds();
         echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
@@ -82,12 +82,12 @@ class tournamentSetupTest extends TestCase
         $this->assertGreaterThan( 0, $td->removeDraw() );
         $this->assertEquals( 0, $td->drawSize() );
 
-        $this->createDraw( $size, 3 );
+        $this->createSignup( $size, 3 );
         $this->assertEquals( $size, $td->drawSize() );
         
         $td->showDraw();
 
-        $num = $td->createBrackets();
+        $num = $td->schedulePreliminaryRounds();
         $rnds = $td->totalRounds();
         echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
         $td->showRounds();
@@ -111,11 +111,11 @@ class tournamentSetupTest extends TestCase
        $this->assertGreaterThan( 0, $td->removeDraw() );
         $this->assertEquals( 0, $td->drawSize() );
 
-        $this->createDraw( $size, $seeds );
+        $this->createSignup( $size, $seeds );
         $this->assertEquals( $size, $td->drawSize() );
         $td->showDraw();
 
-        $num = $td->createBrackets( true ); //with shuffle
+        $num = $td->schedulePreliminaryRounds( true ); //with shuffle
         $rnds = $td->totalRounds();
         echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
         $td->showRounds();
@@ -140,11 +140,11 @@ class tournamentSetupTest extends TestCase
         $this->assertEquals( 0, $td->drawSize() );
         $this->assertEquals( 0, $td->totalRounds() );
 
-        $this->createDraw( $size, $seeds );
+        $this->createSignup( $size, $seeds );
         $this->assertEquals( $size, $td->drawSize() );
         $td->showDraw();
 
-        $num = $td->createBrackets( );
+        $num = $td->schedulePreliminaryRounds( );
         $rnds = $td->totalRounds();
         echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
         $td->showRounds();
@@ -153,7 +153,7 @@ class tournamentSetupTest extends TestCase
         $this->assertEquals(17, $num, 'Number of matches');
     }
     
-    private function createDraw( int $size, $seeds = 0 ) {
+    private function createSignup( int $size, $seeds = 0 ) {
         if($seeds > $size / 2 ) $seeds = 0;
 
         for( $i = 1; $i <= $size; $i++ ) {

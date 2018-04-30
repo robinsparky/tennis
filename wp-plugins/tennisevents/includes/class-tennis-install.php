@@ -259,6 +259,7 @@ class TE_Install {
 				`match_date` DATE NULL,
 				`match_time` TIME(6) NULL,
 				`is_bye` TINYINT DEFAULT 0,
+				`next_match_num` INT DEFAULT 0,
 				`comments` VARCHAR(255) NULL,
 				PRIMARY KEY (`event_ID`,`round_num`,`match_num`),
 				FOREIGN KEY (`event_ID`)

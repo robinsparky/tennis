@@ -58,10 +58,10 @@ class tournamentScoringTest extends TestCase
         $this->assertEquals( 0, self::$tournamentDirector->removeDraw() );
         $this->assertEquals( 0, self::$tournamentDirector->drawSize() );
       
-        $this->createDraw( $size, $seeds );
+        $this->createSignup( $size, $seeds );
         $this->assertEquals( $size, self::$tournamentDirector->drawSize() );
 
-        $num = self::$tournamentDirector->createBrackets();
+        $num = self::$tournamentDirector->schedulePreliminaryRounds();
         $rnds = self::$tournamentDirector->totalRounds();
         $this->assertGreaterThan( 5, $num, 'Number of matches' );
         $this->assertEquals( $num, count( self::$tournamentDirector->getMatches() ), ' Count of matches' );
@@ -114,7 +114,7 @@ class tournamentScoringTest extends TestCase
         }
     }
     
-    private function createDraw( int $size, $seeds = 0 ) {
+    private function createSignup( int $size, $seeds = 0 ) {
         if($seeds > $size / 2 ) $seeds = 0;
 
         for( $i = 1; $i <= $size; $i++ ) {

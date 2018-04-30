@@ -77,7 +77,7 @@ class tournamentTweakTest extends TestCase
                     ) AS t3; ";
         $safe = $wpdb->prepare( $sql, array( self::$round, self::$round ) );
         $median = (int) $wpdb->get_var( $safe );
-        $this->assertGreaterThan( 3,$median,"Median $median greater than 3" );
+        $this->assertGreaterThan( 3, $median, "Median $median greater than 3" );
 
         $result = Match::move( self::$tournamentEvt, self::$round, $median, $median + 3 );
         $mess = "Move median $median up one: $result matches";

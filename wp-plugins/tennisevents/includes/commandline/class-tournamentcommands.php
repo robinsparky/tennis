@@ -1,14 +1,14 @@
 <?php
 
-WP_CLI::add_command( 'tennis match', 'MatchCommands' );
+WP_CLI::add_command( 'tennis tourney', 'TournamentCommands' );
 
 /**
- * Implements all commands for manipulating tennis match objects
+ * Implements all commands for manipulating a tournament's tennis matches
  */
-class MatchCommands extends WP_CLI_Command {
+class TournamentCommands extends WP_CLI_Command {
 
     /**
-     * Create the initial rounds with the current signup
+     * Create the preliminary rounds for the current signup
      * The target club and event must first be set using 'tennis env set'
      *
      * ## OPTIONS
@@ -16,10 +16,9 @@ class MatchCommands extends WP_CLI_Command {
      * <watershed>
      * : The watershed for creating challenger round first
      * 
-     * 
      * ## EXAMPLES
      *
-     *     wp tennis match initialize 5
+     *     wp tennis tourney initialize 5
      *
      * @when after_wp_load
      */
@@ -28,14 +27,17 @@ class MatchCommands extends WP_CLI_Command {
         $support = CmdlineSupport::preCondtion();
 
         list( $watershed ) = $args;
-        list( $clubId, $eventId ) = $support->getEnvError();
+
+        $env = $support->getEnvError();
+        list( $clubId, $eventId ) = $env;
+
         
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;
         $target = null;
         if( count( $evts ) > 0 ) {
             foreach( $evts as $evt ) {
-                $target = CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                $target = $support->getEventRecursively( $evt, $eventId );
                 if( isset( $target ) ) {
                     $found = true;
                     break;
@@ -47,8 +49,14 @@ class MatchCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target, $target->getMatchType() );
                 try {
-                    $td->createBrackets( false, $watershed);
-                    WP_CLI::success("tennis match initialize ...");
+                    $randomizeDraw = false;
+                    $numMatches = $td->schedulePreliminaryRounds( $randomizeDraw, $watershed );
+                    if( $numMatches > 0 ) {
+                        WP_CLI::success( "tennis match initialize ... generated $numMatches preliminary matches" );
+                    }
+                    else {
+                        throw new Exception( "Failed to generate any matches." );
+                    }
                 }
                 catch( Exception $ex ) { 
                     WP_CLI::error( sprintf( "tennis match initialize ... %s", $ex->getMessage() ) );
@@ -64,12 +72,12 @@ class MatchCommands extends WP_CLI_Command {
     }
 
     /**
-     * Destroy the brackets for this tennis event
+     * Delete all matches for this tennis tournament
      * The target club and event must first be set using 'tennis env'
      * 
      * ## EXAMPLES
      *
-     *     wp tennis match reset
+     *     wp tennis tourney reset
      *
      * @when after_wp_load
      */
@@ -77,7 +85,7 @@ class MatchCommands extends WP_CLI_Command {
 
         CmdlineSupport::preCondtion();
 
-        $env = CmdlineSupport::get_instance()->getEnv();
+        $env = CmdlineSupport::instance()->getEnvError();
         list( $clubId, $eventId ) = $env;
         
         $evts = Event::find( array( "club" => $clubId ) );
@@ -96,24 +104,24 @@ class MatchCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target, $target->getMatchType() );
-                if( $td->removeDraw() ) {
-                    WP_CLI::success("tennis signup reset");
+                if( $td->removeBrackets() ) {
+                    WP_CLI::success("tennis match reset ... all matches removed.");
                 }
                 else {
-                    WP_CLI::error("tennis signup reset ... unable to reset");
+                    WP_CLI::error("tennis match reset ... unable to remove matches.");
                 }
             }
             else {
-                WP_CLI::warning( "tennis signup reset... could not find event with Id '$eventId' for club with Id '$clubId'" );
+                WP_CLI::warning( "tennis match reset... could not find event with Id '$eventId' for club with Id '$clubId'" );
             }
         }
         else {
-            WP_CLI::warning( "tennis signup reset ... could not find any events for club with Id '$clubId'" );
+            WP_CLI::warning( "tennis match reset ... could not find any events for club with Id '$clubId'" );
         }
     }
 
     /**
-     * Move a match to a given destination.
+     * Move a match to a given point in the draw.
      * The target club and event must first be set using 'tennis env set'
      *
      * ## OPTIONS
@@ -129,8 +137,8 @@ class MatchCommands extends WP_CLI_Command {
      * 
      * ## EXAMPLES
      *
-     *     wp tennis move 1 10 16
-     *     wp tennis move 1 10 16 comments='This is a comment'
+     *     wp tennis tourney move 1 10 16
+     *     wp tennis tourney move 1 10 16 comments='This is a comment'
      *
      * @when after_wp_load
      */
@@ -174,8 +182,8 @@ class MatchCommands extends WP_CLI_Command {
      *
      * ## EXAMPLES
      *
-     *     wp tennis moveup 0 1 2
-     *     wp tennis moveup 1 10 3 --comments='This is a comment'
+     *     wp tennis tourney moveup 0 1 2
+     *     wp tennis tourney moveup 1 10 3 --comments='This is a comment'
      *
      * @when after_wp_load
      */
@@ -224,8 +232,8 @@ class MatchCommands extends WP_CLI_Command {
      *
      * ## EXAMPLES
      *
-     *     wp tennis movedown 0 2 1
-     *     wp tennis movedown 1 13 4 --comments='This is a comment'
+     *     wp tennis tourney movedown 0 2 1
+     *     wp tennis tuorney movedown 1 13 4 --comments='This is a comment'
      *
      * @when after_wp_load
      */

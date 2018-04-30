@@ -17,11 +17,16 @@
             "label": "Deploy Test Config",
             "type": "shell",
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\tennisadmin *.xml"
-        },,
+        },
         {
             "label": "Deploy WP-CLI Config",
             "type": "shell",
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\includes\\commandline\\ C:\\webserver\\htdocs\\tennisadmin *.yml"
+        },
+        {
+            "label": "Deploy Signup Data",
+            "type": "shell",
+            "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\ C:\\webserver\\htdocs\\tennisadmin *.xml"
         }
         ,
         {

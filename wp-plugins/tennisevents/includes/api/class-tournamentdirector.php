@@ -31,6 +31,8 @@ class TournamentDirector
     private $hasChallengerRound = false; //Is a challenger round required
     private $matchType; //The type of match such as mens singles, womens doubles etc
     private $name = '';
+    
+    private $adjacencyMatrix = array();
 
     //The ChairUmpire for this tournament
     private $chairUmpire;
@@ -128,16 +130,68 @@ class TournamentDirector
 
         return $entrants;
     }
-    
+
     /**
-     * Generate the matches for the initial rounds of the tournament
-     * @param $randomizeDraw Indicates it the unseeded players should be randomized first
+     * Approve the generated and possibly modified brackets.
+     * This causes the brackets to be fleshed to the final round
+     * with placeholder matches.
+     * For double elimination, the following rules apply:
+     *   1. A separate Losers bracket is used
+     *   2. The Losers bracket must be approved too.
+     *   3. Approval should happen after appropriate modifications
+     *      have been made; such as moving the prelimary matches around.
+     *  ...
+     * Once approved, the brackets cannot be modified, only deleted.
      */
-    public function createBrackets( $randomizeDraw = false, int $watershed = 5 ) {
-        $this->calculateEventSize();
-        $result = $this->scheduleInitialRounds( $randomizeDraw, $watershed );
-        $affected = $this->event->save();
-        return $result;
+    public function approve() {
+        $earlyMatches = $this->getMatches( 0 );
+        $round1Matches = $this->getMatches( 1 );
+        $prelimMatches = array_merge( $earlyMatches, $round1Matches );
+        $newMatchNumbers = range( 1, count( $prelimMatches ), 1 );
+
+        //NOTE: The count of $prelimMatches must be equal to a power of 2; and therefore is an even number
+        while( count( $prelimMatches ) > 0 ) {
+            $nextMatchNum = array_shift( $newMatchNumbers );
+            $m0 = array_unshift( $prelimMatches );
+            $m1 = array_unshift( $prelimMatches );
+            $m0->setNextMatchNumber( $nextMatchNum );
+            $m1->setNextMatchNumber( $nextMatchNum );
+        }
+
+        $this->save();
+
+    }
+
+    /**
+     * Advance completed matches to their respective next rounds.
+     * Implies that players/teams are filled in the placeholder 
+     * matches created by the approve function.
+     */
+    public function advance() {
+    }
+    
+    private function putMatch( Match &$match ) {
+        if( !array_key_exists( $match ) ) {
+            $this->adjacencyMatrix[ $match ] = new SplDoublyLinkedList();
+        }
+    }
+
+    private function fillOut( Match &$match ) {
+        if( $match->getRoundNumber() > $this->totalRounds() ) return;
+
+        $nextMatchNum = $match->getNextMatchNumber();
+        $nextRoundNum = $match->getRoundNumber() + 1;
+        $nextMatch = $next > 0 ? Match::get( $this->event->getID(), $nextRoundNum, $nextMatchNum ) : null;
+        if( is_null( $nextMatch ) ) {
+            $nextMatch = new Match($this->getEvent->getID(), $nextRoundNum, $nextMatchNum );
+            $nextMatch->setHomeEntrant( new Entrant( $this->event->getID(), 'tba' ) );
+        }
+
+        if( !$this->adjacencyMatrix[$match]->offsetExists( $nextMatch ) ) {
+            $this->adjacencyMatrix[$match]->offsetSet( $nextMatch );
+        }
+
+        $this->fillOut( $nextMatch );
     }
 
     /**
@@ -184,7 +238,7 @@ class TournamentDirector
      */
     public function totalRounds() {
         if( isset( $this->event ) ) {
-            $this->numRounds = self::calculateExponent( $this->event->drawSize() );
+            $this->numRounds = $this->calculateExponent( $this->event->drawSize() );
         }
         return $this->numRounds;
     }
@@ -242,6 +296,23 @@ class TournamentDirector
             }
         }
         return $matches;
+    }
+    
+    /**
+     * Return the count of all matches or just for a given round
+     * @param $round The round whose matches are to be counted
+     */
+    public function getMatchCount( $round = null ) {
+        $matches = array();
+        if( isset( $this->event ) ) {
+            if( is_null( $round ) ) {
+                $matches = $this->event->getMatches();
+            }
+            else {
+                $matches = $this->event->getMatchesByRound( $round );
+            }
+        }
+        return count( $matches );
     }
 
     public function showDraw() {
@@ -420,7 +491,17 @@ class TournamentDirector
      * Finally the seeded players (who get priority for bye selection) must be distributed
      * evenly amoung the un-seeded players with the first and second seeds being at opposite ends of the draw.
      */
-    private function scheduleInitialRounds( $randomizeDraw = false, $watershed = 5 ) {
+    private function schedulePreliminaryRounds( $randomizeDraw = false, $watershed = 5 ) {
+
+        if( 0 === $this->drawSize() ) {
+            throw new InvalidTournamentException( __('Cannot generate preliminary matches because there is no sigup.') );
+        }
+
+        if( 0 < $this->getMatchCount() ) {
+            throw new InvalidTournamentException( __('Cannot generate preliminary matches because matches already exist.') );
+        }
+
+        $this->calculateEventSize();
         //$entrants = $this->event->distributeSeededPlayers( $randomizeDraw );
         $entrants = $this->event->getDraw();
         $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
@@ -444,7 +525,7 @@ class TournamentDirector
         }
         $totalByes = $seedByes + $unseedByes;
         $highMatchnum = ceil( $this->event->drawSize() / 2 );
-        error_log( "TournamentDirector.scheduleInitialRounds:highMatchnum=$highMatchnum seedByes=$seedByes unseedByes=$unseedByes" );
+        error_log( "TournamentDirector.schedulePreliminaryRounds:highMatchnum=$highMatchnum seedByes=$seedByes unseedByes=$unseedByes" );
         
         if( $this->numToEliminate < $watershed ) {
             $this->processChallengerRound( $seeded, $unseeded );
@@ -453,7 +534,9 @@ class TournamentDirector
             $this->processByes( $seeded, $unseeded );
         }
 
-        if( (count( $unseeded ) + count( $seeded )) > 0 ) throw new InvalidTournamentException( __( "Did not schedule all players into initial roounds." ) );
+        if( (count( $unseeded ) + count( $seeded )) > 0 ) throw new InvalidTournamentException( __( "Did not schedule all players into initial rounds." ) );
+
+        $this->save();
 
         return $this->event->numMatches();
     }
@@ -693,7 +776,7 @@ class TournamentDirector
 	}
 
     /**
-     * Retunrs the next available integer that is not in the given array of integers
+     * Returns the next available integer that is not in the given array of integers
      * @param $haystack the array to search
      * @param $needle the integer starting point which will be returned if not in the array
      */
@@ -726,15 +809,15 @@ class TournamentDirector
             throw new InvalidEventException( $mess );
         }
 
-        $this->numRounds = self::calculateExponent( $this->event->drawSize() );
+        $this->numRounds = $this->calculateExponent( $this->event->drawSize() );
         $this->numToEliminate = $this->event->drawSize() - pow( 2, $this->numRounds );
 
         return $this->numToEliminate;
     }
 
     /**
-     * Given the size of the draw calculate the highest 
-     * power of 2 which is less than that size
+     * Given the size of the draw (or any integer), calculate the highest 
+     * power of 2 which is less than that size (or integer)
      */
 	private function calculateExponent( int $drawSize ) {
         $exponent = 0;

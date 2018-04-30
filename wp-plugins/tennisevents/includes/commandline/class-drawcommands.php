@@ -165,4 +165,114 @@ class SignupCommands extends WP_CLI_Command {
         }
     }
 
+    /**
+     * Load the signup for this tennis event from an XML file
+     * The target club and event must first be set using 'tennis env'
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis signup load <filename>
+     *
+     * @when after_wp_load
+     */
+    function load( $args, $assoc_args ) {
+
+        CmdlineSupport::preCondtion();
+
+        list( $filename ) = $args;
+
+        $env = CmdlineSupport::get_instance()->getEnv();
+        list( $clubId, $eventId ) = $env;
+        
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $ents = $this->readDatabase( $filename );
+                print_r( $ents );
+                $num = 0;
+                foreach( $ents as $ent ) {
+                    $name = $ent['name'];
+                    $seed = isset( $ent['seed'] ) ? (int)$ent['seed'] : 0;
+                    $td->addEntrant($name,$seed);
+                    ++$num;
+                    $player = sprintf("Added: %s(%d)", $name, $seed );
+                    WP_CLI::line( $player );
+                }
+                if( $num > 0 ) {
+                    WP_CLI::success("Added $num players");
+                }
+                else {
+                    WP_CLI::error("Failed to load any players.");
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis signup load... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis signup load ... could not find any events for club with Id '$clubId'" );
+        }
+    }
+
+    
+    private function readDatabase( $filename ) 
+    {
+        // read the XML database of players
+        $data = implode( "", file( $filename ) );
+
+        if( false === $data) {
+            WP_CLI::error("No such file $filename");
+        }
+
+        $parser = xml_parser_create();
+        xml_parser_set_option( $parser, XML_OPTION_CASE_FOLDING, 0 );
+        xml_parser_set_option( $parser, XML_OPTION_SKIP_WHITE, 1 );
+        xml_parse_into_struct( $parser, $data, $values, $tags );
+        xml_parser_free( $parser );
+
+        // $err = sprintf("XML error: %s at line %d"
+        //               ,xml_error_string(xml_get_error_code( $parser ) )
+        //               ,xml_get_current_line_number( $parser ) );
+        // print_r($err);
+
+        $tdb = array();
+        // loop through the structures
+        foreach ( $tags as $key=>$val ) {
+            if ( $key == "player" ) {
+                $playerData = $val;
+                // each contiguous pair of array entries are the 
+                // lower and upper range for each player definition
+                for ( $i=0; $i < count( $playerData ); $i += 2 )  {
+                    $offset = $playerData[$i] + 1;
+                    $len = $playerData[$i + 1] - $offset;
+                    $tdb[] = $this->parsePlayer( array_slice( $values, $offset, $len ) );
+                }
+            } else {
+                continue;
+            }
+        }
+        return $tdb;
+    }
+
+    private function parsePlayer( $mvalues ) 
+    {
+        for ( $i=0; $i < count( $mvalues ); $i++ ) {
+            $p[$mvalues[$i]["tag"]] = $mvalues[$i]["value"];
+        }
+        return $p; //new Entrant($p['name'],p['seed']);
+    }
+
 }

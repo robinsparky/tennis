@@ -27,6 +27,18 @@ class CmdlineSupport {
 	 * @return $_instance --Main instance.
 	 */
 	public static function get_instance() {
+		return self::instance();
+    }
+
+	/**
+	 * CmdlineSupport Singleton
+	 *
+	 * @since 1.0
+	 * @static
+	 * @see WP_CLI
+	 * @return $_instance --Main instance.
+	 */
+	public static function instance() {
 		if ( is_null( self::$_instance ) ) {
 			self::$_instance = new self();
 		}
@@ -34,7 +46,7 @@ class CmdlineSupport {
     }
     
     public static function preCondtion() {
-        $tcs = self::get_instance();
+        $tcs = self::instance();
         $tcs->checkUserError();
         return $tcs;
     }
