@@ -845,7 +845,7 @@ class Match extends AbstractData
     }
 
     public function toString() {
-        return sprintf("E%d.R%d.M%d",$this->event_ID, $this->round_num, $this->match_num );
+        return sprintf("M(%d,%d,%d)",$this->event_ID, $this->round_num, $this->match_num );
     }
 
     /**
@@ -854,6 +854,12 @@ class Match extends AbstractData
     private function fetchEntrants() {
         $contestants = Entrant::find( $this->event_ID, $this->round_num, $this->match_num );
         switch( count( $contestants ) ) {
+            case 0:
+                $this->home = null;
+                $this->home_ID = null;
+                $this->visitor = null;
+                $this->visitor_ID = null;
+                break;
             case 1:
                 $this->home = $contestants[0];
                 $this->home_ID = $this->home->getPosition();
@@ -861,16 +867,21 @@ class Match extends AbstractData
                 $this->visitor_ID = NULL;
                 break;
             case 2:
-                $this->home = $contestants[0];
-                $this->home_ID = $this->home->getPosition();
-                $this->visitor = $contestants[1];
-                $this->visitor_ID = $this->visitor->getPosition();
+                if( $contestants[0]->isVisitor() ) {
+                    $this->visitor = $contestants[0];
+                    $this->visitor_ID = $this->visitor->getPosition();
+                    $this->home = $contestants[1];
+                    $this->visitor_ID = $this->home->getPosition();
+                }
+                else {
+                    $this->home = $contestants[0];
+                    $this->home_ID = $this->home->getPosition();
+                    $this->visitor = $contestants[1];
+                    $this->visitor_ID = $this->visitor->getPosition();
+                }
                 break;
             default:
-                $this->home = NULL;
-                $this->home_ID = NULL;
-                $this->visitor = NULL;
-                $this->visitor_ID = NULL;
+                throw new InvalidMatchException( sprintf("Match %s has %d entrants.", $this->toString(), count( $contestants ) ) );
             break;
         }
     }
@@ -995,7 +1006,7 @@ class Match extends AbstractData
         $result += EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getHomeEntrant()->getPosition() );
         $visitor = $this->getVisitorEntrant();
         if( isset( $visitor ) ) {
-            $result += EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getVisitorEntrant()->getPosition() );
+            $result += EntrantMatchRelations::add( $this->event_ID, $this->getRoundNumber(), $this->getMatchNumber(), $this->getVisitorEntrant()->getPosition(), 1 );
         }
         
 		return $result;

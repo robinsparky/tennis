@@ -687,6 +687,7 @@ class Event extends AbstractData
 	}
 
 	public function drawSize() {
+		$this->getDraw();
 		return isset( $this->draw ) ? sizeof( $this->draw) : 0;
 	}
 	

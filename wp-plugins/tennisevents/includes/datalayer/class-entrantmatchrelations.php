@@ -38,7 +38,7 @@ class EntrantMatchRelations {
 	/**
 	 * Create a relationship between a Entrant and a Match
 	 */
-	static function add( int $eventId, int $roundNum, int $matchNum, int $pos ):int {
+	static function add( int $eventId, int $roundNum, int $matchNum, int $pos, $visitor = 0 ):int {
 		$result = 0;
 		global $wpdb;
 
@@ -50,8 +50,12 @@ class EntrantMatchRelations {
 
 		if( isset($eventId) && isset($roundNum) && isset($matchNum) && isset($pos) && $num == 0 ) {
 			$wpdb->insert($table
-			             ,array('match_event_ID'=>$eventId,'match_round_num'=>$roundNum,'match_num'=>$matchNum,'entrant_position'=>$pos)
-			             ,array('%d','%d','%d','%d'));
+						 ,array('match_event_ID'=>$eventId
+							   ,'match_round_num'=>$roundNum
+							   ,'match_num'=>$matchNum
+							   ,'entrant_position'=>$pos
+							   ,'is_visitor'=>$visitor )
+			             ,array('%d', '%d', '%d', '%d', '%d'));
 			$result = $wpdb->rows_affected;
 		}
 

@@ -257,7 +257,7 @@ class Set extends AbstractData
     }
     
     public function toString() {
-        return sprintf("E%d.R%d.M%d.S%d", $this->event_ID, $this->round_num, $this->match_num, $this->set_num );
+        return sprintf("S(%d.%d.%d.%d)", $this->event_ID, $this->round_num, $this->match_num, $this->set_num );
     }
 
 	protected function create() {

@@ -8,6 +8,66 @@ WP_CLI::add_command( 'tennis signup', 'SignupCommands' );
 class SignupCommands extends WP_CLI_Command {
 
     /**
+     * Shows the Signup for an Event.
+     *
+     * ## OPTIONS
+     * 
+     * ## EXAMPLES
+     *
+     *     # Display the signup for club 2, event 6.
+     *     $ wp tennis signup show --clubId=2 --eventId=6
+     * 
+     *     # Display the draw for club and event defined in the tennis command environment.
+     *     $ wp tennis signup show
+     *
+     * @when after_wp_load
+     */
+    function show( $args, $assoc_args ) {
+
+        $clubId  = array_key_exists( 'clubId', $assoc_args )  ? $assoc_args["clubId"] : 0;
+        $eventId = array_key_exists( 'eventId', $assoc_args ) ? $assoc_args["eventId"] : 0;
+        if( 0 === $clubId || 0 === $eventId ) {
+            $env = CmdlineSupport::get_instance()->getEnv();
+            list( $clubId, $eventId ) = $env;
+        }
+
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                WP_CLI::line( "Signup for '$evtName' at '$name'");
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $items = array();
+                $entrants = $td->getDraw();
+                foreach( $entrants as $ent ) {
+                    $seed = $ent->getSeed() > 0 ? $ent->getSeed() : ''; 
+                    $items[] = array( "Position" => $ent->getPosition()
+                                    , "Name" => $ent->getName()
+                                    , "Seed" => $seed );
+                }
+                WP_CLI\Utils\format_items( 'table', $items, array( 'Position', 'Name', 'Seed' ) );
+            }
+            else {
+                WP_CLI::warning( "tennis display draw ... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis display draw ... could not find any events for club with Id '$clubId'" );
+        }
+    }
+    
+    /**
      * Add a player to the tennis event
      * The target club and event must first be set using 'tennis env'
      *
@@ -46,11 +106,17 @@ class SignupCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target, $target->getMatchType() );
-                if( $td->addEntrant( $player, $seed ) ) {
-                    WP_CLI::success("tennis signup add ... signed up $player");
+                try {
+                    if( $td->addEntrant( $player, $seed ) ) {
+                        WP_CLI::success("tennis signup add ... signed up $player");
+                    }
+                    else {
+                        WP_CLI::error("tennis signup add ... unable to signed up $player");
+                    }
                 }
-                else {
-                    WP_CLI::error("tennis signup add ... unable to signed up $player");
+                catch( Exception $ex ) {
+                    $mess = $ex->getMessage();
+                    WP_CLI::error("tennis signup add ... unable to signed up $player because '$mess'" );
                 }
             }
             else {
@@ -100,11 +166,17 @@ class SignupCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target, $target->getMatchType() );
-                if( $td->removeEntrant( $player) ) {
-                    WP_CLI::success("tennis signup remove ... $player");
+                try {
+                    if( $td->removeEntrant( $player) ) {
+                        WP_CLI::success("tennis signup remove ... $player");
+                    }
+                    else {
+                        WP_CLI::error("tennis signup remove ... unable to remove $player");
+                    }
                 }
-                else {
-                    WP_CLI::error("tennis signup remove ... unable to remove $player");
+                catch( Exception $ex ) {
+                    $mess = $ex->getMessage();
+                    WP_CLI::error("tennis signup remove ... unable to remove $player because '$mess'" );
                 }
             }
             else {
@@ -201,21 +273,26 @@ class SignupCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target, $target->getMatchType() );
                 $ents = $this->readDatabase( $filename );
-                print_r( $ents );
                 $num = 0;
-                foreach( $ents as $ent ) {
-                    $name = $ent['name'];
-                    $seed = isset( $ent['seed'] ) ? (int)$ent['seed'] : 0;
-                    $td->addEntrant($name,$seed);
-                    ++$num;
-                    $player = sprintf("Added: %s(%d)", $name, $seed );
-                    WP_CLI::line( $player );
+                try {
+                    foreach( $ents as $ent ) {
+                        $name = $ent['name'];
+                        $seed = isset( $ent['seed'] ) ? (int)$ent['seed'] : 0;
+                        $td->addEntrant($name,$seed);
+                        ++$num;
+                        $player = sprintf("Added: %s(%d)", $name, $seed );
+                        WP_CLI::line( $player );
+                    }
+                    if( $num > 0 ) {
+                        WP_CLI::success("Added $num players");
+                    }
+                    else {
+                        WP_CLI::error("Failed to load any players.");
+                    }
                 }
-                if( $num > 0 ) {
-                    WP_CLI::success("Added $num players");
-                }
-                else {
-                    WP_CLI::error("Failed to load any players.");
+                catch( Exception $ex ) {
+                    $mess = $ex->getMessage();
+                    WP_CLI::error("tennis signup load ... unable to load $player because '$mess'" );
                 }
             }
             else {

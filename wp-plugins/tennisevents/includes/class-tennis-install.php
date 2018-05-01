@@ -280,6 +280,7 @@ class TE_Install {
 			`match_round_num` INT NOT NULL,
 			`match_num` INT NOT NULL,
 			`entrant_position` INT NOT NULL,
+			`is_visitor` TINYINT DEFAULT 0,
 			PRIMARY KEY(`match_event_ID`,`match_round_num`,`match_num`,`entrant_position`),
 			FOREIGN KEY (`match_event_ID`,`match_round_num`,`match_num`)
 				REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)

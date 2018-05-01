@@ -95,7 +95,7 @@ class TennisEvents {
 			include_once( 'includes/commandline/class-cmdlinesupport.php' );
 			include_once( 'includes/commandline/class-environmentcommands.php' );
 			include_once( 'includes/commandline/class-displaycommands.php' );
-			include_once( 'includes/commandline/class-matchcommands.php' );
+			include_once( 'includes/commandline/class-tournamentcommands.php' );
 			include_once( 'includes/commandline/class-drawcommands.php' );
 		}
 	}

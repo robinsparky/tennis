@@ -1,11 +1,9 @@
 <signup>
     <player>
         <name>Robin Smith</name>
-        <seed>1</seed>
     </player>
     <player>
         <name>Adrie Bruin</name>
-        <seed>2</seed>
     </player>
     <player>
         <name>Phil Shearn</name>
@@ -15,7 +13,6 @@
     </player>
     <player>
         <name>Paul Collins</name>
-        <seed>3</seed>
     </player>
     <player>
         <name>Steve Knight</name>
@@ -28,5 +25,17 @@
     </player>
     <player>
         <name>Stehpen Cheesman</name>
+    </player>
+    <player>
+        <name>Jim Walker</name>
+        <seed>3</seed>
+    </player>
+    <player>
+        <name>Rafa Chiuzi</name>
+        <seed>2</seed>
+    </player>
+    <player>
+        <name>Jonathan Prinsell</name>
+        <seed>1</seed>
     </player>
 </signup>

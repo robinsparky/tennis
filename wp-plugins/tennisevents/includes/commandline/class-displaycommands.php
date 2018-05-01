@@ -242,34 +242,38 @@ class DisplayCommands extends WP_CLI_Command {
                 $td = new TournamentDirector( $target, $target->getMatchType() );
                 $matches = $td->getMatches();
                 $umpire  = $td->getChairUmpire();
+                $items   = array();
                 foreach( $matches as $match ) {
                     $round   = $match->getRoundNumber();
                     $mn      = $match->getMatchNumber();
                     $status  = $umpire->matchStatus( $match );
                     $score   = $umpire->strGetScores( $match );
+
                     $home    = $match->getHomeEntrant();
-                    $hid     = isset( $home ) ? $home->getPosition() : '0';
-                    $hname   = isset( $home ) ? $home->getName() : 'tba';
-                    $hseed   = isset( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
+                    $hname   = sprintf( "%d %s", $home->getPosition(), $home->getName() );
+                    $hseed   = $home->getSeed() > 0 ? $home->getSeed() : '';
+
                     $visitor = $match->getVisitorEntrant();
-                    $vid     = isset( $visitor ) ? $visitor->getPosition() : '0';
-                    $vname   = isset( $visitor ) ? $visitor->getName() : 'tba';
-                    $vseed   = isset( $homvisitore ) && $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                    $vname   = 'tba';
+                    $vseed   = '';
+                    if( isset( $visitor ) ) {
+                        $vname   = sprintf( "%d %s", $visitor->getPosition(), $visitor->getName()  );
+                        $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                    }
+
                     $cmts    = $match->getComments();
                     $cmts    = isset( $cmts ) ? $cmts : '';
                     $items[] = array( "Round" => $round
                                     , "Match Number" => $mn
                                     , "Status" => $status
                                     , "Score" => $score
-                                    , "Home Id" => $hid
                                     , "Home Name" => $hname
-                                    , "Home Seed" => $home->getSeed()
-                                    , "Visitor Id" => $vid
+                                    , "Home Seed" => $hseed
                                     , "Visitor Name" => $vname
                                     , "Visitor Seed" => $vseed 
                                     , "Comments" => $cmts);
                 }
-                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Id', 'Home Name', 'Home Seed', 'Visitor Id', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
+                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
             }
             else {
                 WP_CLI::warning( "tennis display match ... could not event with Id '$eventId' for club with Id '$clubId'" );

@@ -36,6 +36,11 @@ class Entrant extends AbstractData
 	 * Must be unique
 	 */
 	private $seed;
+
+	/**
+	 * When participating in a match, must determine if entrant is visitor or not
+	 */
+	private $is_visitor;
 	
 	/**
 	 * 1 player for singles; 2 players for doubles;
@@ -92,6 +97,7 @@ class Entrant extends AbstractData
 			$sql = "SELECT   j.match_event_ID as event_ID
 							,j.match_round_num as round_num 
 							,j.match_num as match_num 
+							,j.is_visitor as is_visitor 
 							,e.position as position 
 							,e.name as name 
 							,e.seed as seed 
@@ -112,6 +118,7 @@ class Entrant extends AbstractData
 			$sql = "SELECT j.match_event_ID as event_ID 
 						,j.match_round_num as round_num 
 						,j.match_num as match_num 
+						,j.is_visitor as is_visitor 
 						,e.position as position 
 						,e.name as name 
 						,e.seed  as seed 
@@ -209,7 +216,13 @@ class Entrant extends AbstractData
      */
     public function getName() {
         return $this->name;
-    }
+	}
+	
+	public function isVisitor() {
+		$result = false;
+		if( isset( $this->is_visitor ) && 1 === $this->is_visitor ) $result = true;
+		return $result;
+	}
 
     /**
      * Assign this Entrant to an Event
@@ -317,6 +330,10 @@ class Entrant extends AbstractData
 		return true;
 	}
 
+	public function toString() {
+		return sprintf("P(%d,%d,%s)",$this->event_ID, $this->position, $this->name );
+	}
+
 	/**
 	 * Get all Players for this Entrant.
 	 */
@@ -392,10 +409,13 @@ class Entrant extends AbstractData
      */
     protected static function mapData($obj,$row) {
 		parent::mapData($obj,$row);
-		$obj->event_ID = $row["event_ID"];
-		$obj->position = $row["position"];
+		$obj->event_ID = (int)$row["event_ID"];
+		$obj->position = (int)$row["position"];
         $obj->name = $row["name"];
-		$obj->seed = $row["seed"];
+		$obj->seed = (int)$row["seed"];
+		if( isset( $row["is_visitor"] ) ) {
+			$obj->is_visitor = (int)$row["is_visitor"];
+		}
     }
 
 } //end class

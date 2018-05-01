@@ -8,6 +8,92 @@ WP_CLI::add_command( 'tennis tourney', 'TournamentCommands' );
 class TournamentCommands extends WP_CLI_Command {
 
     /**
+     * Shows Matches for a Tournament
+     *
+     * ## OPTIONS
+     * 
+     *
+     * ## EXAMPLES
+     *
+     *     # Show matches for club 2, event 6.
+     *     $ wp tennis tourney show --clubId=2 --eventId=6
+     * 
+     *     # Show matches for club and event defined in the tennis command environment.
+     *     $ wp tennis tourney show
+     *
+     * @when after_wp_load
+     */
+    function show( $args, $assoc_args ) {
+        $clubId  = array_key_exists( 'clubId', $assoc_args )  ? $assoc_args["clubId"] : 0;
+        $eventId = array_key_exists( 'eventId', $assoc_args ) ? $assoc_args["eventId"] : 0;
+
+        if( 0 === $clubId || 0 === $eventId ) {
+            $env = CmdlineSupport::get_instance()->getEnv();
+            list( $clubId, $eventId ) = $env;
+        }
+
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target =  CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                WP_CLI::line( "Matches for '$evtName' at '$name'");
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $matches = $td->getMatches();
+                $umpire  = $td->getChairUmpire();
+                $items   = array();
+                foreach( $matches as $match ) {
+                    $round   = $match->getRoundNumber();
+                    $mn      = $match->getMatchNumber();
+                    $status  = $umpire->matchStatus( $match );
+                    $score   = $umpire->strGetScores( $match );
+
+                    $home    = $match->getHomeEntrant();
+                    $hname   = sprintf( "%d %s", $home->getPosition(), $home->getName() );
+                    $hseed   = $home->getSeed() > 0 ? $home->getSeed() : '';
+
+                    $visitor = $match->getVisitorEntrant();
+                    $vname   = 'tba';
+                    $vseed   = '';
+                    if( isset( $visitor ) ) {
+                        $vname   = sprintf( "%d %s", $visitor->getPosition(), $visitor->getName()  );
+                        $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                    }
+
+                    $cmts    = $match->getComments();
+                    $cmts    = isset( $cmts ) ? $cmts : '';
+                    $items[] = array( "Round" => $round
+                                    , "Match Number" => $mn
+                                    , "Status" => $status
+                                    , "Score" => $score
+                                    , "Home Name" => $hname
+                                    , "Home Seed" => $hseed
+                                    , "Visitor Name" => $vname
+                                    , "Visitor Seed" => $vseed 
+                                    , "Comments" => $cmts);
+                }
+                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
+            }
+            else {
+                WP_CLI::warning( "tennis display match ... could not event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis display match ... could not any events for club with Id '$clubId'" );
+        }
+    }
+
+    /**
      * Create the preliminary rounds for the current signup
      * The target club and event must first be set using 'tennis env set'
      *
@@ -16,9 +102,12 @@ class TournamentCommands extends WP_CLI_Command {
      * <watershed>
      * : The watershed for creating challenger round first
      * 
+     * <randomize>
+     * : Boolean to indicate if selection of unseeded players should be randomized
+     * 
      * ## EXAMPLES
      *
-     *     wp tennis tourney initialize 5
+     *     wp tennis tourney initialize 5 true
      *
      * @when after_wp_load
      */
@@ -26,11 +115,17 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
-        list( $watershed ) = $args;
+        list( $watershed, $randomizeDraw ) = $args;
 
         $env = $support->getEnvError();
         list( $clubId, $eventId ) = $env;
 
+        if( strcasecmp("true",$randomizeDraw) === 0) {
+            $randomizeDraw = true;
+        }
+        else {
+            $randomizeDraw = false;
+        }
         
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;
@@ -48,8 +143,8 @@ class TournamentCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target, $target->getMatchType() );
+                
                 try {
-                    $randomizeDraw = false;
                     $numMatches = $td->schedulePreliminaryRounds( $randomizeDraw, $watershed );
                     if( $numMatches > 0 ) {
                         WP_CLI::success( "tennis match initialize ... generated $numMatches preliminary matches" );
@@ -75,15 +170,22 @@ class TournamentCommands extends WP_CLI_Command {
      * Delete all matches for this tennis tournament
      * The target club and event must first be set using 'tennis env'
      * 
+     * ## OPTIONS
+     * 
      * ## EXAMPLES
      *
      *     wp tennis tourney reset
+     *     wp tennis tourney reset --force=true
      *
      * @when after_wp_load
      */
     function reset( $args, $assoc_args ) {
 
         CmdlineSupport::preCondtion();
+
+        $force  = array_key_exists( 'force', $assoc_args )  ? $assoc_args["force"] : '';
+        if( strncasecmp( $force,'true') === 0 ) $force = true;
+        else $force = false;
 
         $env = CmdlineSupport::instance()->getEnvError();
         list( $clubId, $eventId ) = $env;
@@ -104,19 +206,24 @@ class TournamentCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target, $target->getMatchType() );
-                if( $td->removeBrackets() ) {
-                    WP_CLI::success("tennis match reset ... all matches removed.");
+                try {
+                    if( $td->removeBrackets( $force ) ) {
+                        WP_CLI::success("tennis tourney reset ... accomplished.");
+                    }
+                    else {
+                        WP_CLI::error("tennis tourney reset ... unable to reset.");
+                    }
                 }
-                else {
-                    WP_CLI::error("tennis match reset ... unable to remove matches.");
+                catch( Exception $ex ) {
+                    WP_CLI::error( sprintf("tennis tourney reset ... unable to reset: %s", $ex->getMessage() ) );
                 }
             }
             else {
-                WP_CLI::warning( "tennis match reset... could not find event with Id '$eventId' for club with Id '$clubId'" );
+                WP_CLI::warning( "tennis match tourney... could not find event with Id '$eventId' for club with Id '$clubId'" );
             }
         }
         else {
-            WP_CLI::warning( "tennis match reset ... could not find any events for club with Id '$clubId'" );
+            WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
         }
     }
 
@@ -149,8 +256,8 @@ class TournamentCommands extends WP_CLI_Command {
         list( $round, $source, $dest ) = $args;
         list( $clubId, $eventId ) = $support->getEnvError();
 
-        $fromId = "Match($eventId,$round,$source)";
-        $toId   = "Match($eventId,$round,$dest)";
+        $fromId = "M($eventId,$round,$source)";
+        $toId   = "M($eventId,$round,$dest)";
         
         date_default_timezone_set("America/Toronto");
         $stamp = date("Y-m-d h:i:sa");

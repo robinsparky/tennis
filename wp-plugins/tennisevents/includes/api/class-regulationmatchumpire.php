@@ -154,7 +154,9 @@ class RegulationMatchUmpire extends ChairUmpire
                 $setnum = $set->getSetNumber();
                 if( $set->earlyEnd() > 0 ) {
                     $cmts = $set->getComments();
-                    $status = self::EARLYEND . ":" . ( isset( $cmts ) ? $cmts : '' );
+                    //$status = self::EARLYEND . ":" . ( isset( $cmts ) ? $cmts : '' );
+                    $who = 1 === $set->earlyEnd() ? "home" : "visitor";
+                    $status = sprintf("%s %s:%s", self::EARLYEND, $who, ( isset( $cmts ) ? $cmts : '' ) );
                     break;
                 }
                 $status = self::INPROGRESS;
