@@ -250,6 +250,7 @@ class TE_Install {
 
 		/**
 		 * A tennis match within a round within an event
+		 * Holds pointers to the next round creating a linked list
 		 */
 		$sql = "CREATE TABLE `$match_table` (
 				`event_ID` INT NOT NULL,
@@ -259,6 +260,7 @@ class TE_Install {
 				`match_date` DATE NULL,
 				`match_time` TIME(6) NULL,
 				`is_bye` TINYINT DEFAULT 0,
+				`next_round_num` INT DEFAULT 0,
 				`next_match_num` INT DEFAULT 0,
 				`comments` VARCHAR(255) NULL,
 				PRIMARY KEY (`event_ID`,`round_num`,`match_num`),

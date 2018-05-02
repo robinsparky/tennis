@@ -37,6 +37,9 @@ class Match extends AbstractData
     private $match_date;
     private $match_time;
     private $is_bye = false;
+
+    //pointers for linked list
+    private $next_round_num = 0;
     private $next_match_num = 0;
 
     //Match needs 2 entrants: home and visitor
@@ -77,27 +80,27 @@ class Match extends AbstractData
         if( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'round_num', $fk_criteria ) ) {
             $eventID = $fk_criteria["event_ID"];
             $roundnum = $fk_criteria["round_num"];
-            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,next_match_num,comments 
+            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND round_ID = %d;";
-            $safe = $wpdb->prepare($sql,$eventID,$roundnum);
+            $safe = $wpdb->prepare( $sql, $eventID, $roundnum );
         }
         elseif( 2 === count( $fk_criteria ) ) {
             list($eventID,$roundnum) = $fk_criteria;
-            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,next_match_num,comments 
+            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND round_ID = %d;";
-            $safe = $wpdb->prepare($sql,$eventID,$roundnum);
+            $safe = $wpdb->prepare( $sql, $eventID, $roundnum );
         }
         else {
             $eventID = $fk_criteria[0];
-            error_log("Match::find using eventID=$eventID");
-            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,next_match_num,comments 
+            error_log( "Match::find using eventID=$eventID" );
+            $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d;";
-            $safe = $wpdb->prepare($sql,$eventID);
+            $safe = $wpdb->prepare( $sql, $eventID );
         }
         
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		foreach($rows as $row) {
+		foreach( $rows as $row ) {
             $obj = $roundnum > 0 ? new Match( $eventID, $roundnum ) : new Match( $eventID );
             self::mapData( $obj, $row );
 			$col[] = $obj;
@@ -114,19 +117,20 @@ class Match extends AbstractData
         $obj = NULL;
         if( count( $pks ) !== 3 ) return $obj;
         
-        $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,next_match_num,comments  
+        $sql = "SELECT event_ID,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments  
                 FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d;";
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		error_log("Match::get(id) $wpdb->num_rows rows returned.");
+		error_log( "Match::get(id) $wpdb->num_rows rows returned." );
 
-		if(count($rows) === 1) {
+		if( count($rows) === 1 ) {
 			$obj = new Match( ...$pks );
             self::mapData( $obj, $rows[0] );
 		}
 		return $obj;
-	}
+    }
+
 
     /**
      * Move a match from its current spot to the target match number.
@@ -323,14 +327,14 @@ class Match extends AbstractData
 
     public function setDirty() {
         $this->getEvent()->setDirty();
-        $id=$this->getMatchNumber();
+        error_log(sprintf("%s(%d) set dirty", __CLASS__, $this->getID() ) );
         return parent::setDirty();
     }
     
     /**
      * Assign this Match to an Event
      */
-    public function setEvent( Event $event ) {
+    public function setEvent( Event &$event ) {
         $result = false;
         if($event->isLeaf()) {
             $this->event = $event;
@@ -355,7 +359,7 @@ class Match extends AbstractData
      */
     public function setRoundNumber( int $rn ) {
         $result = false;
-        if($rn > -1 & $rn <= self::MAX_ROUNDS) {
+        if($rn > -1 && $rn <= self::MAX_ROUNDS) {
             $this->round_num = $rn;
             $result = $this->setDirty();
         }
@@ -389,9 +393,35 @@ class Match extends AbstractData
     }
 
     /**
+     * Set the next Round number
+     * This is the number of the next round that follows
+     * This and the next match number comprise the pointer
+     * for the linked list of matches
+     */
+    public function setNextRoundNumber( int $rn ) {
+        $result = false;
+        if( $rn > -1 && $rn <= self::MAX_ROUNDS) {
+            $this->next_round_num = $rn;
+            $result = $this->setDirty();
+        }
+        return $result;
+    }
+
+    /**
+     * Get the next Round Number
+     * This and the next match number comprise the pointer
+     * for the linked list of matches
+     */
+    public function getNextRoundNumber():int {
+        return $this->next_round_num;
+    }
+
+    /**
      * Set the next Match number
      * This is the number of the match that follows
      * this one in the next round (i.e. the winner plays this one next)
+     * This and the next round number comprise the pointer
+     * for the linked list of matches
      */
     public function setNextMatchNumber( int $mn ) {
         $result = false;
@@ -404,6 +434,8 @@ class Match extends AbstractData
 
     /**
      * Get the next Match Number
+     * This and the next round number comprise the pointer
+     * for the linked list of matches
      */
     public function getNextMatchNumber():int {
         return $this->next_match_num;
@@ -844,6 +876,26 @@ class Match extends AbstractData
         return $result > 0;
     }
 
+    /**
+     * Get the highest match number used in the given round
+     * If no round number is given, then this match's round number is used
+     * @param $rn the round number of interest
+     */
+    public function maxMatchNumber( int $rn = -1 ):int {
+        global $wpdb;
+
+        $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
+        if( $rn >= 0 ) {
+            $safe = $wpdb->prepare( $sql, $this->event_ID, $rn );
+        }
+        else {
+            $safe = $wpdb->prepare( $sql, $this->event_ID, $this->round_num );
+        }
+        $max = (int)$wpdb->get_var( $safe );
+
+        return $max;
+    }
+
     public function toString() {
         return sprintf("M(%d,%d,%d)",$this->event_ID, $this->round_num, $this->match_num );
     }
@@ -933,9 +985,10 @@ class Match extends AbstractData
                         ,'match_date'  => $this->getMatchDate_Str()
                         ,'match_time'  => $this->getMatchTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
+                        ,'next_round_num' => $this->next_round_num
                         ,'next_match_num' => $this->next_match_num
                         ,'comments'    => $this->comments );
-        $formats_values = array( '%d', '%d', '%d', '%f', '%s', '%s', '%d', '%d', '%s' );
+        $formats_values = array( '%d', '%d', '%d', '%f', '%s', '%s', '%d', '%d', '%d', '%s' );
 		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
         $result = $wpdb->rows_affected;
         $wpdb->query( "UNLOCK TABLES;" );
@@ -975,9 +1028,10 @@ class Match extends AbstractData
                         ,'match_date'  => $this->getMatchDate_Str()
                         ,'match_time'  => $this->getMatchTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
+                        ,'next_round_num' => $this->next_round_num
                         ,'next_match_num' => $this->next_match_num
                         ,'comments'    => $this->comments );
-		$formats_values = array( '%f', '%s', '%s', '%d', '%d', '%s' );
+		$formats_values = array( '%f', '%s', '%s', '%d', '%d', '%d', '%s' );
         $where          = array( 'event_ID'  => $this->event_ID
                                , 'round_num' => $this->round_num
                                , 'match_num' => $this->match_num );
@@ -1025,6 +1079,7 @@ class Match extends AbstractData
 		$obj->match_time = isset( $row["match_time"] ) ? new DateTime( $row["match_time"] ) : null;
         $obj->is_bye     = $row["is_bye"] == 1 ? true : false;
         $obj->comments   = $row["comments"];
+        $obj->next_round_num = (int) $row["next_round_num"];
         $obj->next_match_num = (int) $row["next_match_num"];
     }
     

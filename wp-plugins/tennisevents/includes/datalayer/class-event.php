@@ -226,8 +226,7 @@ class Event extends AbstractData
         if(!$this->isRoot()) {
 			$this->getParent()->setDirty();
 		}
-        $id=$this->getID();
-        //error_log(__CLASS__. " $id set Dirty ");
+        error_log(sprintf("%s(%d) set dirty", __CLASS__, $this->getID() ) );
         return parent::setDirty();
 	}
 	
@@ -787,7 +786,7 @@ class Event extends AbstractData
 	}
 
     /**
-     * Get the number of matches in this Round
+     * Get the number of matches in this total
      */
     public function numMatches():int {
         return count( $this->getMatches() );
@@ -799,6 +798,21 @@ class Event extends AbstractData
     public function numMatchesByRound( int $round ):int {		
 		return array_reduce( function ($sum,$m) use( $round ) { if( $m->getRound() === $round ) ++$sum; }, $this->getMatches(), 0);
 	}
+
+    /**
+     * Get the highest match number used in the given round
+	 * in a tournament
+     * @param $rn the round number of interest
+     */
+    public function maxMatchNumber(int $rn ):int {
+        global $wpdb;
+
+        $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
+        $safe = $wpdb->prepare( $sql, $this->getID(), $rn );
+        $max = (int)$wpdb->get_var( $safe );
+
+        return $max;
+    }
 	
 	/**
 	 * Remove the collection of Matches
@@ -877,7 +891,6 @@ class Event extends AbstractData
 
 	/**
 	 * Fetch all Entrants for this event.
-	 * Otherwise known as the draw.
 	 */
 	private function fetchDraw() {
 		if( $this->isParent() ) $this->draw = array();
@@ -897,6 +910,9 @@ class Event extends AbstractData
      */
     private function fetchMatches() {
 		$this->matches =  Match::find( $this->getID() );
+		foreach( $this->matches as $match ) {
+			$match->setEvent( $this );
+		}
     }
 
 	protected function create() {

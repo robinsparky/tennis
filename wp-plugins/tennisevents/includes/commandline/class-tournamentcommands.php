@@ -372,4 +372,80 @@ class TournamentCommands extends WP_CLI_Command {
             WP_CLI::warning( "Match was not moved" );
         }
     }
+
+    /**
+     * Approve the preliminary matches
+     * The target club and event must first be set using 'tennis env set'
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis tourney approve
+     *
+     * @when after_wp_load
+     */
+    function approve( $args, $assoc_args ) {
+
+        $support = CmdlineSupport::preCondtion();
+        $env = $support->getEnvError();
+        list( $clubId, $eventId ) = $env;
+        
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = $support->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                try {
+                    $td->approve();
+                    print_r( $td->getAdjacencyMatrix() );
+                    WP_CLI::success("tennis tourney approve ... accomplished.");
+                }
+                catch( Exception $ex ) {
+                    WP_CLI::error( sprintf("tennis tourney approve ...  %s", $ex->getMessage() ) );
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis match tourney... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
+        }
+    }
+
+    /**
+     * Test PHP code
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis tourney test
+     *
+     * @when before_wp_load
+     */
+    function test( $args, $assoc_args ) {
+        
+        $array = array(00, 11, 22, 33, 44, 55, 66, 77, 88, 99);
+        $this->ref($array, 2, $ref);
+        $ref[0] = 'xxxxxxxxx';
+        var_dump($ref);
+        var_dump($array);
+    }
+
+    private function ref(&$array,int $idx = 1, &$ref = array())
+    {
+            //$ref = array();
+            $ref[] = &$array[$idx];
+    }
+
+
 }
