@@ -165,10 +165,19 @@ class Event extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct( string $name=null ) {
+	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT ) {
 		$this->isnew = TRUE;
 		$this->name = $name;
 		$this->init();
+
+		switch( $eventType ) {
+			case EventType::TOURNAMENT:
+			case EventType::LEAGUE:
+			case EventType::LADDER:
+			case EventType::ROUND_ROBIN:
+				$this->event_type = $eventType;
+				break;
+		}
 	}
 	
     public function __destruct() {
@@ -249,7 +258,7 @@ class Event extends AbstractData
 	 * Set the type of event
 	 * Applies only to a root event
 	 */
-	public function setEventType( string $type = null ) {
+	public function setEventType( string $type = EventType::TOURNAMENT ) {
 		switch($type) {
 			case EventType::TOURNAMENT:
 			case EventType::LEAGUE:
@@ -271,7 +280,7 @@ class Event extends AbstractData
 	 * Set the format
 	 * Applies only to the lowest child event
 	 */
-	public function setFormat( string $format = null ) {
+	public function setFormat( string $format = Format::SINGLE_ELIM ) {
 		$result = false;
 		switch($format) {
 			case Format::SINGLE_ELIM:

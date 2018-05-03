@@ -24,18 +24,39 @@
         <name>Tom West</name>
     </player>
     <player>
-        <name>Stehpen Cheesman</name>
+        <name>Stephen Cheesman</name>
     </player>
     <player>
         <name>Jim Walker</name>
-        <seed>3</seed>
     </player>
     <player>
         <name>Rafa Chiuzi</name>
-        <seed>2</seed>
+        <seed>3</seed>
     </player>
     <player>
         <name>Jonathan Prinsell</name>
+        <seed>2</seed>
+    </player>
+    <player>
+        <name>Mike Flintoff</name>
+    </player>
+    <player>
+        <name>Andrej Grzegorczyk</name>
+    </player>
+    <player>
+        <name>Matt Hill</name>
+    </player>
+    <player>
+        <name>Doug Howard</name>
+    </player>
+    <player>
+        <name>Ron Hurst</name>
+    </player>
+    <player>
+        <name>Rashid Jamalalldeen</name>
+    </player>
+    <player>
+        <name>Samir Marcos</name>
         <seed>1</seed>
     </player>
 </signup>

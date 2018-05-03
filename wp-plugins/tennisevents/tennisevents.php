@@ -92,11 +92,13 @@ class TennisEvents {
 		include_once( 'includes/class-controller-manager.php' );
 		include_once( 'includes/class-tennis-install.php' );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			include_once( 'includes/commandline/class-clubcommands.php' );
+			include_once( 'includes/commandline/class-eventcommands.php' );
 			include_once( 'includes/commandline/class-cmdlinesupport.php' );
 			include_once( 'includes/commandline/class-environmentcommands.php' );
-			include_once( 'includes/commandline/class-displaycommands.php' );
+			include_once( 'includes/commandline/class-showcommands.php' );
 			include_once( 'includes/commandline/class-tournamentcommands.php' );
-			include_once( 'includes/commandline/class-drawcommands.php' );
+			include_once( 'includes/commandline/class-signupcommands.php' );
 		}
 	}
 

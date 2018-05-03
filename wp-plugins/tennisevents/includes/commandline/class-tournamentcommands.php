@@ -49,6 +49,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 WP_CLI::line( "Matches for '$evtName' at '$name'");
                 $td = new TournamentDirector( $target, $target->getMatchType() );
+                $WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
                 $matches = $td->getMatches();
                 $umpire  = $td->getChairUmpire();
                 $items   = array();
@@ -407,8 +408,15 @@ class TournamentCommands extends WP_CLI_Command {
                 $td = new TournamentDirector( $target, $target->getMatchType() );
                 try {
                     $td->approve();
-                    print_r( $td->getAdjacencyMatrix() );
-                    WP_CLI::success("tennis tourney approve ... accomplished.");
+                    // $adj = $td->getAdjacencyMatrix();
+                    // print_r( $adj );
+                    WP_CLI::line(sprintf("Total Rounds=%d", $td->totalRounds()));
+                    $records = $td->strAdjacencyMatrix();
+                    foreach( $records as $line ) {
+                        WP_CLI::line( $line );
+                    }
+                    // WP_CLI\Utils\format_items( 'table', $items, $headings );
+                    // WP_CLI::success("tennis tourney approve ... accomplished.");
                 }
                 catch( Exception $ex ) {
                     WP_CLI::error( sprintf("tennis tourney approve ...  %s", $ex->getMessage() ) );

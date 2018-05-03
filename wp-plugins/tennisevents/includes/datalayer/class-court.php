@@ -105,9 +105,19 @@ class Court extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct() {
+	public function __construct( int $courtType = self::HARD ) {
 		$this->isnew = TRUE;
-        $this->init();
+		$this->init();
+		
+		switch( $courtType ) {
+			case self::HARD:
+			case self::HARDTRUE:
+			case self::CLAY:
+				$this->court_type = $courtType;
+				break;
+			default:
+				$this->court_tyupe = self::HARD;
+		}
 	}
 
 	public function setDirty(){

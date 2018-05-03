@@ -106,7 +106,7 @@ class tournamentScoringTest extends TestCase
             $coinFlip = rand( 0, 1 );
             if( 1 === $coinFlip && !$match->isBye() && !$match->isWaiting() ) {
                 $umpire->defaultVisitor( $match, 'Sore knee');
-                $this->assertEquals( ChairUmpire::EARLYEND.':Sore knee' 
+                $this->assertEquals( ChairUmpire::EARLYEND.' visitor:Sore knee' 
                                    , $umpire->matchStatus( $match )
                                    , sprintf("Sore knee for %s",$match->toString()) );
                 break;

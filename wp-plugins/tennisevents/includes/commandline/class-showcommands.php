@@ -1,37 +1,32 @@
 <?php
 
-WP_CLI::add_command( 'tennis display', 'DisplayCommands' );
+WP_CLI::add_command( 'tennis show', 'ShowCommands' );
 
 /**
  * Implements all commands for displaying tennis objects.
  * 
- *
  * ## EXAMPLES
  *
- *     # Display all clubs.
- *     $ wp tennis display clubs
- *     
+ *     # Show all clubs.
+ *     $ wp tennis show clubs
  *
- *     # Display all events for a club
- *     $ wp tennis display events
- *     
+ *     # Show all events for a club
+ *     $ wp tennis show events
  *
- *     # Display the draw for an event
- *     $ wp tennis display draw
- *     
+ *     # Show the draw for an event
+ *     $ wp tennis show draw
  *
- *     # Display all matches for an event
- *     $ wp tennis display match
- *     
+ *     # Show all matches for an event
+ *     $ wp tennis show match
  */
-class DisplayCommands extends WP_CLI_Command {
+class ShowCommands extends WP_CLI_Command {
 
     /**
-     * Display Clubs
+     * Show Clubs
      *
      * ## EXAMPLES
      *
-     *     wp tennis display clubs
+     *     wp tennis show clubs
      *
      * @when after_wp_load
      */
@@ -53,7 +48,7 @@ class DisplayCommands extends WP_CLI_Command {
     }
 
     /**
-     * Display Events for a Club
+     * Show Events for a Club
      *
      * ## OPTIONS
      *
@@ -62,7 +57,7 @@ class DisplayCommands extends WP_CLI_Command {
      * 
      * ## EXAMPLES
      *
-     *     wp tennis display events 260
+     *     wp tennis show events 260
      *
      * @when after_wp_load
      */
@@ -119,17 +114,17 @@ class DisplayCommands extends WP_CLI_Command {
     }
 
     /**
-     * Displays Both the Signup and Matches (aka the Draw) for an Event.
+     * Shows Both the Signup and Matches (aka the Draw) for an Event.
      *
      * ## OPTIONS
      * 
      * ## EXAMPLES
      *
-     *     # Display the signup and matches for club 2, event 6.
-     *     $ wp tennis display both --clubId=2 --eventId=6
+     *     # Show the signup and matches for club 2, event 6.
+     *     $ wp tennis show both --clubId=2 --eventId=6
      * 
      *     # Display the signup and matches for club and event defined in the tennis command environment.
-     *     $ wp tennis display draw
+     *     $ wp tennis show draw
      *
      * @when after_wp_load
      */
@@ -139,17 +134,17 @@ class DisplayCommands extends WP_CLI_Command {
     }
 
     /**
-     * Displays the Signup for an Event.
+     * Shows the Signup for an Event.
      *
      * ## OPTIONS
      * 
      * ## EXAMPLES
      *
-     *     # Display the signup for club 2, event 6.
-     *     $ wp tennis display signup --clubId=2 --eventId=6
+     *     # Show the signup for club 2, event 6.
+     *     $ wp tennis show signup --clubId=2 --eventId=6
      * 
-     *     # Display the draw for club and event defined in the tennis command environment.
-     *     $ wp tennis display signup
+     *     # Show the draw for club and event defined in the tennis command environment.
+     *     $ wp tennis show signup
      *
      * @when after_wp_load
      */
@@ -190,31 +185,31 @@ class DisplayCommands extends WP_CLI_Command {
                 WP_CLI\Utils\format_items( 'table', $items, array( 'Position', 'Name', 'Seed' ) );
             }
             else {
-                WP_CLI::warning( "tennis display draw ... could not find event with Id '$eventId' for club with Id '$clubId'" );
+                WP_CLI::warning( "Could not find event with Id '$eventId' for club with Id '$clubId'" );
             }
         }
         else {
-            WP_CLI::warning( "tennis display draw ... could not find any events for club with Id '$clubId'" );
+            WP_CLI::warning( "Could not find any events for club with Id '$clubId'" );
         }
     }
     
     /**
-     * Displays Matches for an Event.
+     * Shows Matches for an Event.
      *
      * ## OPTIONS
      * 
      *
      * ## EXAMPLES
      *
-     *     # Display matches for club 2, event 6.
-     *     $ wp tennis display match --clubId=2 --eventId=6
+     *     # Show matches for club 2, event 6.
+     *     $ wp tennis show matches --clubId=2 --eventId=6
      * 
-     *     # Display matches for club and event defined in the tennis command environment.
-     *     $ wp tennis display match
+     *     # Show matches for club and event defined in the tennis command environment.
+     *     $ wp tennis show matches
      *
      * @when after_wp_load
      */
-    function match( $args, $assoc_args ) {
+    function matches( $args, $assoc_args ) {
         $clubId  = array_key_exists( 'clubId', $assoc_args )  ? $assoc_args["clubId"] : 0;
         $eventId = array_key_exists( 'eventId', $assoc_args ) ? $assoc_args["eventId"] : 0;
 
@@ -242,6 +237,7 @@ class DisplayCommands extends WP_CLI_Command {
                 $td = new TournamentDirector( $target, $target->getMatchType() );
                 $matches = $td->getMatches();
                 $umpire  = $td->getChairUmpire();
+                WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
                 $items   = array();
                 foreach( $matches as $match ) {
                     $round   = $match->getRoundNumber();
@@ -276,11 +272,11 @@ class DisplayCommands extends WP_CLI_Command {
                 WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
             }
             else {
-                WP_CLI::warning( "tennis display match ... could not event with Id '$eventId' for club with Id '$clubId'" );
+                WP_CLI::warning( "Could not event with Id '$eventId' for club with Id '$clubId'" );
             }
         }
         else {
-            WP_CLI::warning( "tennis display match ... could not any events for club with Id '$clubId'" );
+            WP_CLI::warning( "Could not any events for club with Id '$clubId'" );
         }
     }
     

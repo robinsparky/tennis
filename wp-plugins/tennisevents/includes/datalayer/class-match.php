@@ -572,7 +572,8 @@ class Match extends AbstractData
 
     public function isWaiting() {
         $result = false;
-        if( isset( $this->home ) && !isset( $this->visitor ) && !$this->isBye() ) $result = true;
+        $noVisitor = !isset( $this->visitor ) || $this->visitor->getName() === 'tba';
+        if( isset( $this->home ) && $noVisitor && !$this->isBye() ) $result = true;
         return $result;
     }
     

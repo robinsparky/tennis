@@ -236,12 +236,12 @@ class Club extends AbstractData
 	/**
 	 * Add a Event to this Club
 	 */
-	public function addEvent($event) {
+	public function addEvent( $event ) {
 		$result = false;
 		if(isset($event) && $event->isRoot()) {
 			$found = false;
 			foreach($this->getEvents() as $ev) {
-				if($event == $ev) {
+				if($event->getID() == $ev->getID()) {
 					$found = true;
 					break;
 				}
@@ -258,13 +258,13 @@ class Club extends AbstractData
 	 * Remove an Event from this Club
 	 */
 	public function removeEvent($event) {
-		if(!isset($event)) return false;
+		if( !isset( $event ) ) return false;
 		
 		$i=0;
-		foreach($this->getEvents() as $ev) {
+		foreach( $this->getEvents() as $ev ) {
 			if($event == $ev) {
 				$this->eventsToBeDeleted[] = $event->getID();
-				unset($this->events[$i]);
+				unset( $this->events[$i] );
 				return $this->setDirty();
 			}
 			$i++;
@@ -273,8 +273,15 @@ class Club extends AbstractData
 	}
 	
 	public function isValid() {
-		$isvalid = TRUE;
-		if(!isset($this->name)) $isvalid = false;
+		$isvalid = true;
+		$mess = '';
+		if( !isset( $this->name ) ) {
+			$mess = "Club must have a name.";
+		}
+
+		if( strlen( $mess ) > 0 ) {
+			throw new InvalidClubException( $mess );
+		}
 
 		return $isvalid;
 	}
