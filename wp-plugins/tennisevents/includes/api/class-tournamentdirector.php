@@ -34,7 +34,7 @@ class TournamentDirector
     
     //An array of doubly linked lists
     // where each list is the full path for each Match in the tournament
-    private $adjacencyMatrix = array();
+    private     $adjacencyMatrix = array();
 
     //The ChairUmpire for this tournament
     private $chairUmpire;
@@ -153,41 +153,45 @@ class TournamentDirector
         /* 
          * First we set the "next pointers" of the preliminary matches to their next matches
         */
-        $earlyMatches = $this->getMatches( 0 );
+        $round0Matches = $this->getMatches( 0 );
         $round1Matches = $this->getMatches( 1 );
         //$maxRound1MatchNum = $this->event->maxMatchNumber( 1 );
 
-        
         // Note: There should be no match in round 1 with the same match number as a round 0 match
         // This makes it easy to point round 0 matches to round 1 without affecting existing round 1 matches
     
         //If we have odd number of challengers then link the 
         // last one to the first round 1 match but only if it is waiting
-        if( count( $earlyMatches ) & 1 ) {
-            if( !$round1Matches[0]->isWaiting() ) {
+        $linkMatch0 = null;
+        $linkMatch1 = null;
+        if( count( $round0Matches ) & 1 ) {
+            if( $round1Matches[0]->isWaiting() ) {
+                $linkMatch1 = $round1Matches[0];
                 $nextMatchNum = $round1Matches[0]->getMatchNumber();
-                $m = array_pop( $earlyMatches );
-                $m->setNextMatchNumber( $nextMatchNum );
-                $m->setNextRoundNumber( 1 );
-                error_log(sprintf("%s -> linked the last match %s from challengers to round 1 match %d", $loc, $m->toString(), $nextMatchNum ) );
+                $linkMatch0 = array_pop( $round0Matches );
+                $linkMatch0->setNextMatchNumber( $nextMatchNum );
+                $linkMatch0->setNextRoundNumber( 1 );
+                error_log(sprintf( "%s -> linked the last match %s from challengers to round 1 match %d"
+                                 , $loc, $linkMatch0->title(), $nextMatchNum ) );
             }
             else {
-                $mess = sprintf( "Match was last of odd numbered challengers but does not have waiting match in round 1:%s - %s"
-                               , $round1Matches[0]->toString(), $round1Matches[0]->getHomeEntrant()->getName() );
+                $linkMatch0 = array_pop( $round0Matches );
+                $mess = sprintf( "Match %s was last of odd numbered challengers but does not have waiting match in round 1 %s"
+                               , $linkMatch0->title(), $round1Matches[0]->title() );
                 throw new InvalidTournamentException( $mess );
             }
         }
 
         //At this point there must be an even number of challenger matches
         $ctr = 1;
-        while( count( $earlyMatches ) > 0 ) {
+        while( count( $round0Matches ) > 0 ) {
             $nextMatchNum = $ctr++;
-            $m1 = array_shift( $earlyMatches );
+            $m1 = array_shift( $round0Matches );
             $m1->setNextMatchNumber( $nextMatchNum );
             $m1->setNextRoundNumber( 1 );
-            error_log(sprintf("%s -> linked %s to round 1 match %d", $loc, $m1->toString(), $nextMatchNum ) );
+            error_log(sprintf("%s -> linked %s to round 1 match %d", $loc, $m1->title(), $nextMatchNum ) );
 
-            $m2 = array_shift( $earlyMatches );
+            $m2 = array_shift( $round0Matches );
 
             if( is_null( $m2 ) ) {
                 throw new InvalidTournamentException( sprintf( "%s Unexpectedly encountered odd number of challengers", $loc ) );
@@ -195,7 +199,7 @@ class TournamentDirector
 
             $m2->setNextMatchNumber( $nextMatchNum );
             $m2->setNextRoundNumber( 1 );
-            error_log(sprintf("%s -> linked %s to round 1 match %d", $loc, $m2->toString(), $nextMatchNum ) );
+            error_log( sprintf( "%s -> linked %s to round 1 match %d", $loc, $m2->title(), $nextMatchNum ) );
         }
 
         //Round 1 could have odd number of matches
@@ -207,27 +211,32 @@ class TournamentDirector
             $m1->setNextRoundNumber( 2 );
 
             $bye = $m1->isBye() ? 'bye' : '';
-            error_log(sprintf("%s -> linked %s (%s) to round 2 match %d", $loc, $m1->toString(), $bye, $nextMatchNum ) );
+            $wait = $m1->isWaiting() ? 'waiting' : '';
+            error_log(sprintf("%s -> linked %s (%s%s) to round 2 match %d", $loc, $m1->title(), $bye, $wait, $nextMatchNum ) );
             
-            if( count( $earlyMatches ) > 0 && $m1->isWaiting() ) {
+            //Skip the waiting match in round 1 because
+            // it will pair up last match in odd-numbered round 0 matches
+            if( $m1->isWaiting() ) {
                 continue;
             }
 
             $m2 = array_shift( $round1Matches );
 
-            if( is_null( $m2 ) ) break;
+            if( is_null( $m2 ) ) {
+                throw new InvalidTournamentException(sprintf("%s -> Odd number of round 1 matches. Could not find partner match for %s", $loc, $m1->title() ) );
+            }
 
             $m2->setNextRoundNumber( 2 );
             $m2->setNextMatchNumber( $nextMatchNum );
 
             $bye = $m2->isBye() ? 'bye' : '';
-            error_log(sprintf("%s -> linked %s (%s) to round 2 match %d", $loc, $m2->toString(), $bye, $nextMatchNum ) );
+            error_log(sprintf("%s -> linked %s (%s) to round 2 match %d", $loc, $m2->title(), $bye, $nextMatchNum ) );
         }
 
-        $this->fillLinkedList();
-
         $this->save();
-        
+
+        $this->generateLinkedLists( $linkMatch0, $linkMatch1 );
+
         error_log( sprintf( "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<%s<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", $loc) );
 
     }
@@ -236,30 +245,35 @@ class TournamentDirector
      * Advance completed matches to their respective next rounds.
      * Implies that players/teams are filled in the placeholder 
      * matches created by the approve function.
+     * 
      */
     public function advance() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
     }
 
-    private function fillLinkedList() {
+    /**
+     * 
+     * @param $link0
+     * @param $link1
+     */
+    private function generateLinkedLists( Match $link0 = null, Match $link1 = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        $matches = $this->getMatches();        
-        usort( $matches, array( __CLASS__, 'sortByRoundMatchNumberAsc' ) );
+        $matches = $this->getMatches( ); 
 
         foreach( $matches as $match ) {
-            $dlist = $this->findListFor( $match->getRoundNumber(), $match->getMatchNumber() );
-            if( is_null( $dlist ) ) {
-                $dlist = new SplDoublyLinkedList();
-                $this->adjacencyMatrix[] = $dlist;
+            $dlist = new SplDoublyLinkedList();
+            $this->adjacencyMatrix[] = $dlist;
+
+            if( !is_null( $link1 ) &&  $match->getRoundNumber() === $link1->getRoundNumber() &&  $match->getMatchNumber() === $link1->getMatchNumber() ) {
+                if( !$match->isWaiting() ) {
+                    $mess = sprintf("%s -> %s should be waiting but it is not!", $loc, $match->title() );
+                    throw new InvalidTournamentException( $mess );
+                }
             }
 
-            $cur = new stdClass;
-            $cur->round_num = $match->getRoundNumber();
-            $cur->match_num = $match->getMatchNumber();
-            $cur->next_round_num = $match->getNextRoundNumber();
-            $cur->next_match_num = $match->getNextMatchNumber();
+            //Create dummy starter in round 0 for this round 1 match
             if( 1 === $match->getRoundNumber() && $dlist->count() === 0 ) {
                 $dummy = new stdClass;
                 $dummy->round_num = 0;
@@ -267,9 +281,29 @@ class TournamentDirector
                 $dummy->next_round_num = $match->getRoundNumber();
                 $dummy->next_match_num = $match->getMatchNumber();
                 $dlist->push( $dummy );
+                error_log( sprintf("%s -> Pushed Dummy(%d,%d->%d,%d) onto list from %s"
+                         , $loc, $dummy->round_num, $dummy->match_num,$dummy->next_round_num,$dummy->next_match_num, $match->title() ) );
             }
+            $cur = new stdClass;
+            $cur->round_num = $match->getRoundNumber();
+            $cur->match_num = $match->getMatchNumber();
+            $cur->next_round_num = $match->getNextRoundNumber();
+            $cur->next_match_num = $match->getNextMatchNumber();
             $dlist->push( $cur );
-            error_log(sprintf("%s -> Pushed Cur(%d,%d->%d,%d) onto list from %s", $loc, $cur->round_num, $cur->match_num,$cur->next_round_num,$cur->next_match_num, $match->toString() ) );
+            error_log( sprintf("%s -> Pushed Cur(%d,%d->%d,%d) onto list from %s"
+                     , $loc, $cur->round_num, $cur->match_num,$cur->next_round_num,$cur->next_match_num, $match->title() ) );
+            
+            //Link final round 0 match with the first round 1 match
+            if( !is_null( $link0 ) &&  $match->getRoundNumber() === $link0->getRoundNumber()  &&  $match->getMatchNumber() === $link0->getMatchNumber() ) {
+                $obj = new stdClass;
+                $obj->round_num = $link0->getNextRoundNumber();
+                $obj->match_num = $link0->getNextMatchNumber();
+                $obj->next_round_num = $link1->getNextRoundNumber();
+                $obj->next_match_num = $link1->getNextMatchNumber();
+                $dlist->push( $obj );
+                error_log( sprintf("%s -> Also pushed Obj(%d,%d->%d,%d) onto same list from %s"
+                         , $loc, $obj->round_num, $obj->match_num,$obj->next_round_num,$obj->next_match_num, $match->title() ) );
+            }
         }
 
         foreach( $this->adjacencyMatrix as $dlist ) {
@@ -293,6 +327,10 @@ class TournamentDirector
         }
     }
 
+    /**
+     * Get array of strings representing
+     * the adjacency matrix
+     */
     public function strAdjacencyMatrix() {
         $result = array();
         foreach( $this->adjacencyMatrix as $dlist ) {
@@ -687,7 +725,6 @@ class TournamentDirector
         $this->removeBrackets();
 
         $this->calculateEventSize();
-        //$entrants = $this->event->distributeSeededPlayers( $randomizeDraw );
         $entrants = $this->event->getDraw();
         $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
         
@@ -870,7 +907,6 @@ class TournamentDirector
             $visitor = array_pop( $unseeded );
             
             $mn = $matchnum++;
-            $mn = $this->getNextAvailable( $usedMatchNums, $mn );
             array_push( $usedMatchNums, $mn );
 
             $match = new Match( $this->event->getID(), $initialRound, $mn );
@@ -878,20 +914,19 @@ class TournamentDirector
             $match->setVisitorEntrant( $visitor );
             $match->setMatchType( $this->matchType );
             $this->event->addMatch( $match );
-            error_log( sprintf( "%s -> added  unseeded players '%s' vs '%s' to challenger round %d with match num=%d", $loc, $home->getName(),$visitor->getName(), $initialRound, $mn ) );
+            error_log( sprintf( "%s -> added  unseeded players '%s' vs '%s' to challenger round %d with match num=%d"
+                              , $loc, $home->getName(),$visitor->getName(), $initialRound, $mn ) );
         }
         
         ++$initialRound;
-        //Schedule the odd player to wait for the winner of a challenger round
+        //Schedule the odd player to wait for the winner of the last challenger round
         if( (1 & $remainder) ) {
             $home = array_shift( $unseeded );
             if( !isset( $home ) ) $home = array_shift( $seeded );
             if( isset( $home ) ) {
-                $mn = $matchnum++; //use the last match number from round 0
-                $mn = $this->getNextAvailable( $usedMatchNums, $mn );
-                array_push( $usedMatchNums, $mn );
-
+                $mn = $matchnum++;
                 $match = new Match( $this->event->getID(), $initialRound, $mn );
+                array_push( $usedMatchNums, $mn );
                 $match->setHomeEntrant( $home );
                 $match->setMatchType( $this->matchType );
                 $this->event->addMatch( $match );
@@ -927,7 +962,8 @@ class TournamentDirector
                 if( !is_null( $visitor ) ) $match->setVisitorEntrant( $visitor );
                 $match->setMatchType( $this->matchType );
                 $this->event->addMatch( $match ); 
-                error_log( sprintf( "%s -> added match for seeded player '%s' vs unseeded '%s'  in round %d using match number %d", $loc, $home->getName(), $visitor->getName(),$initialRound, $lastSlot ) );                   
+                error_log( sprintf( "%s -> added match for seeded player '%s' vs unseeded '%s'  in round %d using match number %d"
+                                  , $loc, $home->getName(), $visitor->getName(),$initialRound, $lastSlot ) );                   
             }
             else {
                 $home    = array_shift( $unseeded );
@@ -946,7 +982,8 @@ class TournamentDirector
 
                 $match->setMatchType( $this->matchType );
                 $this->event->addMatch( $match );               
-                 error_log( sprintf( "%s -> added match for unseeded players '%s' vs '%s' in round %d using match number %d", $loc, $home->getName(), $visitor->getName(), $initialRound, $mn ) );
+                 error_log( sprintf( "%s -> added match for unseeded players '%s' vs '%s' in round %d using match number %d"
+                                   , $loc, $home->getName(), $visitor->getName(), $initialRound, $mn ) );
             }
             ++$ctr;
         }

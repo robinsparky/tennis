@@ -235,7 +235,7 @@ class Event extends AbstractData
         if(!$this->isRoot()) {
 			$this->getParent()->setDirty();
 		}
-        error_log(sprintf("%s(%d) set dirty", __CLASS__, $this->getID() ) );
+        //error_log(sprintf("%s(%d) set dirty", __CLASS__, $this->getID() ) );
         return parent::setDirty();
 	}
 	
@@ -698,22 +698,6 @@ class Event extends AbstractData
 		$this->getDraw();
 		return isset( $this->draw ) ? sizeof( $this->draw) : 0;
 	}
-	
-    private function sortBySeedDesc( $a, $b ) {
-        if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? 1 : -1;
-    }
-    
-    private function sortBySeedAsc( $a, $b ) {
-        if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? -1 : 1;
-    }
-    
-    private function sortByPositionAsc( $a, $b ) {
-        if($a->getPosition() === $b->getPosition()) return 0; return ($a->getPosition() < $b->getPosition()) ? 1 : -1;
-    }
-
-	private function sortByMatchNumberAsc( $a, $b ) {
-		if($a->getMatchNumber() === $b->getMatchNumber()) return 0; return ($a->getMatchNumber() < $b->getMatchNumber()) ? -1 : 1;
-	}
 
     /**
      * Create a new Match and add it to this Event.
@@ -769,13 +753,13 @@ class Event extends AbstractData
 	}
 
     /**
-     * Access all Matches in this Event
+     * Access all Matches in this Event sorted by round number then match number
 	 * @param $force When set to true will force loading of matches
 	 *               This will cause unsaved matches to be lost.
      */
     public function getMatches( $force = false ):array {
         if( !isset( $this->matches ) || $force ) $this->fetchMatches();
-        usort( $this->matches, array( 'Event', 'sortByMatchNumberAsc' ) );
+        usort( $this->matches, array( __CLASS__, 'sortByRoundMatchNumberAsc' ) );
         return $this->matches;
 	}
 	
@@ -790,7 +774,7 @@ class Event extends AbstractData
 				$result[] = $match;
 			}
 		}
-        usort( $result, array( 'Event', 'sortByMatchNumberAsc' ) );
+        usort( $result, array( __CLASS__, 'sortByMatchNumberAsc' ) );
 		return $result;
 	}
 
@@ -922,7 +906,34 @@ class Event extends AbstractData
 		foreach( $this->matches as $match ) {
 			$match->setEvent( $this );
 		}
+	}
+	
+    private function sortBySeedDesc( $a, $b ) {
+        if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? 1 : -1;
     }
+    
+    private function sortBySeedAsc( $a, $b ) {
+        if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? -1 : 1;
+    }
+    
+    private function sortByPositionAsc( $a, $b ) {
+        if($a->getPosition() === $b->getPosition()) return 0; return ($a->getPosition() < $b->getPosition()) ? 1 : -1;
+    }
+
+	private function sortByMatchNumberAsc( $a, $b ) {
+		if($a->getMatchNumber() === $b->getMatchNumber()) return 0; return ($a->getMatchNumber() < $b->getMatchNumber()) ? -1 : 1;
+	}
+
+    /**
+     * Sort matches by round number then match number in ascending order
+     * Assumes that across all matches, the max match number is less than $max
+     */
+	private function sortByRoundMatchNumberAsc( $a, $b, $max = 1000 ) {
+        if($a->getRoundNumber() === $b->getRoundNumber() && $a->getMatchNumber() === $b->getMatchNumber()) return 0; 
+        $compa = $a->getRoundNumber() * $max + $a->getMatchNumber();
+        $compb = $b->getRoundNumber() * $max + $b->getMatchNumber();
+        return ( $compa < $compb  ? -1 : 1 );
+	}
 
 	protected function create() {
         global $wpdb;

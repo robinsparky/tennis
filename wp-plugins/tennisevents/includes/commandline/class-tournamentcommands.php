@@ -49,7 +49,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 WP_CLI::line( "Matches for '$evtName' at '$name'");
                 $td = new TournamentDirector( $target, $target->getMatchType() );
-                $WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
+                WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
                 $matches = $td->getMatches();
                 $umpire  = $td->getChairUmpire();
                 $items   = array();

@@ -571,9 +571,13 @@ class Match extends AbstractData
     }
 
     public function isWaiting() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
         $result = false;
-        $noVisitor = !isset( $this->visitor ) || $this->visitor->getName() === 'tba';
-        if( isset( $this->home ) && $noVisitor && !$this->isBye() ) $result = true;
+        $this->getHomeEntrant();
+        $this->getVisitorEntrant();
+        if( isset( $this->home ) && !isset( $this->visitor )  && !$this->isBye() ) $result = true;
+        // error_log(sprintf( "%s -> isset home=%d; isset visitor=%d; is bye=%d"
+        //                  ,$loc, isset( $this->home ), isset( $this->visitor ), $this->isBye() ) );
         return $result;
     }
     
@@ -899,6 +903,14 @@ class Match extends AbstractData
 
     public function toString() {
         return sprintf("M(%d,%d,%d)",$this->event_ID, $this->round_num, $this->match_num );
+    }
+
+    public function title() {
+        $home = $this->getHomeEntrant();
+        $visitor = $this->getVisitorEntrant();
+        $hname = isset( $home ) ? $home->getName() : 'tba';
+        $vname = isset( $visitor ) ? $visitor->getName() : 'tba';
+        return sprintf( "%s:'%s' vs '%s'", $this->toString(), $hname, $vname );
     }
 
     /**
