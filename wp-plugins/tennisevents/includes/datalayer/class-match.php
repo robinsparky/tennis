@@ -327,7 +327,7 @@ class Match extends AbstractData
 
     public function setDirty() {
         $this->getEvent()->setDirty();
-        error_log(sprintf("%s(%d) set dirty", __CLASS__, $this->getID() ) );
+        //error_log( sprintf("%s(%d) set dirty", __CLASS__, $this->getID() ) );
         return parent::setDirty();
     }
     
@@ -590,6 +590,9 @@ class Match extends AbstractData
         return $result;
     }
 
+    /**
+     * Get the match's comments
+     */
     public function getComments():string {
         return isset( $this->comments ) ? $this->comments : '';
     }
@@ -601,8 +604,15 @@ class Match extends AbstractData
      */
     public function getSets( $force = false ) {
         //var_dump(debug_backtrace());
-        if( !isset( $this->sets ) || $force ) $this->fetchSets();
+        if( !isset( $this->sets ) || $force ) {
+            $this->fetchSets();
+        }
+        usort( $this->sets, array( __CLASS__, 'sortBySetNumberAsc' ) );
         return $this->sets;
+    }
+
+    private function sortBySetNumberAsc( $a, $b ) {
+        if($a->getSetNumber() === $b->getSetNumber()) return 0; return ($a->getSetNumber() < $b->getSetNumber()) ? 1 : -1;
     }
 
     /**
@@ -636,8 +646,7 @@ class Match extends AbstractData
         $found = false;
 
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        $mess = sprintf( "%s(%s) starting", $loc, $this->toString() );
-        error_log( $mess );
+        error_log( sprintf( "%s starting for %s", $loc, $this->title() ) );
 
         $this->isValid();
 
@@ -669,7 +678,7 @@ class Match extends AbstractData
             }
         }
         
-        $mess = sprintf( "%s(%s) returning with result=%s", $loc, $this->toString(), $result );
+        $mess = sprintf( "%s(%s) returning with result=%d", $loc, $this->toString(), $result );
         error_log( $mess );
 
         return $result;

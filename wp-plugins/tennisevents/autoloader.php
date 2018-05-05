@@ -11,7 +11,7 @@ class Autoloader
             $class_filename = __DIR__ . "\\includes\\datalayer\\class-$class" . ".php";
             $file = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
             if ( file_exists( $file ) ) {
-                error_log( "Register Data class - loading: $class_filename" );
+                //error_log( "Register Data class - loading: $class_filename" );
                 require $file;
                 return true;
             }
@@ -45,7 +45,7 @@ class Autoloader
             require_once $file;
             return true;
         }
-        error_log( "Register Command class failed: $class_filename" );
+        //error_log( "Register Command class failed: $class_filename" );
         return false;
     }
 }

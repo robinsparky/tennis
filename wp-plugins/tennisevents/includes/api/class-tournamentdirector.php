@@ -134,6 +134,20 @@ class TournamentDirector
     }
 
     /**
+     * Get a specific match from this tournament
+     */
+    public function getMatch( int $roundnum, int $matchnum ) {
+        $result = null;
+        foreach( $this->event->getMatchesByRound( $roundnum ) as $match ) {
+            if( $matchnum === $match->getMatchNumber() ) {
+                $result = $match;
+                break;
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Approve the generated and possibly modified brackets.
      * This causes the brackets to be fleshed to the final round
      * with placeholder matches.
@@ -233,7 +247,7 @@ class TournamentDirector
             error_log(sprintf("%s -> linked %s (%s) to round 2 match %d", $loc, $m2->title(), $bye, $nextMatchNum ) );
         }
 
-        $this->save();
+        $this->save(); //save all matchtes to db before generating linked lists
 
         $this->generateLinkedLists( $linkMatch0, $linkMatch1 );
 
@@ -253,14 +267,15 @@ class TournamentDirector
     }
 
     /**
-     * 
-     * @param $link0
-     * @param $link1
+     * Generate a linked list for each preliminary match.
+     * These lists form the basis for the entire bracket
+     * @param $link0 The match in round 0 that needs to link to a waiting match in round 1
+     * @param $link1 The match in ournd 1 that is waiting to be linked with a match in round 0
      */
     private function generateLinkedLists( Match $link0 = null, Match $link1 = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        $matches = $this->getMatches( ); 
+        $matches = $this->getMatches( null, true ); //force reloading all matches from db
 
         foreach( $matches as $match ) {
             $dlist = new SplDoublyLinkedList();
@@ -345,6 +360,9 @@ class TournamentDirector
         return $result;
     }
 
+    /**
+     * Get the array containing all of the linked lists
+     */
     public function getAdjacencyMatrix() {
         return $this->adjacencyMatrix;
     }
@@ -358,8 +376,7 @@ class TournamentDirector
         foreach( $this->adjacencyMatrix as $dlist ) {
             $dlist->setIteratorMode( SplDoublyLinkedList::IT_MODE_FIFO );
             for( $dlist->rewind(); $dlist->valid(); $dlist->next() ) {
-                if( ( $dlist->current()->round_num === $r ) &&  ( $dlist->current()->match_num === $m ) 
-                ||  ( $dlist->current()->next_round_num === $r ) &&  ( $dlist->current()->next_match_num === $m)) {
+                if( ( $dlist->current()->round_num === $r ) &&  ( $dlist->current()->match_num === $m ) ) {
                     $dlist->rewind();
                     $result = $dlist;
                     break;
@@ -403,7 +420,7 @@ class TournamentDirector
             }
             if( $currentRound !== -1 ) break;
         }
-        $mess = sprintf( "%s->returning current round=%d", $loc, $currentRound );
+        $mess = sprintf( "%s -> returning current round=%d", $loc, $currentRound );
         error_log( $mess );
         return $currentRound;
     }
@@ -430,6 +447,17 @@ class TournamentDirector
         return $started;
     }
 
+    /**
+     * The minimum exponent giving a number less than the signup size
+     * TODO: this should be used in the calcs rather than totalRounds which currently is wrong
+     */
+    public function minExponent( ) {
+        if( isset( $this->event ) ) {
+            $this->numRounds = $this->calculateExponent( $this->event->drawSize() );
+        }
+        return $this->numRounds;
+    }
+    
     /**
      * The total number of rounds for this tennis event.
      * Including a challenger round if needed.
@@ -487,12 +515,13 @@ class TournamentDirector
     /**
      * Return all matches for an event or just for a given round
      * @param $round The round whose matches are to be retrieved
+     * @param $force Force reloading from database
      */
-    public function getMatches( $round = null ) {
+    public function getMatches( $round = null, $force = false ) {
         $matches = array();
         if( isset( $this->event ) ) {
             if( is_null( $round ) ) {
-                $matches = $this->event->getMatches();
+                $matches = $this->event->getMatches( $force );
                 usort( $matches, array( 'TournamentDirector', 'sortByRoundMatchNumberAsc' ) );
             }
             else {

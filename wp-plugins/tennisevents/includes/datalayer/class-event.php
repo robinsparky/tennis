@@ -767,9 +767,9 @@ class Event extends AbstractData
      * Access all Matches in this Event for a specific round
 	 * @param $rndnum The round number of interest
      */
-	public function getMatchesByRound( int $rndnum ) {
+	public function getMatchesByRound( int $rndnum, $force = false ) {
 		$result = array();
-		foreach( $this->getMatches() as $match ) {
+		foreach( $this->getMatches( $force ) as $match ) {
 			if( $match->getRoundNumber() === $rndnum ) {
 				$result[] = $match;
 			}

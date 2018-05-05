@@ -29,7 +29,7 @@ abstract class ChairUmpire
 	
     //General Tennis Scoring Rules
 	protected $numChallenges = 3;
-    protected $MaxSets = 5;
+    protected $MaxSets = 3;
     protected $GamesPerSet = 6;
     protected $TieBreakerMinimum = 7;
 
@@ -39,7 +39,8 @@ abstract class ChairUmpire
 	abstract public function matchStatus( Match &$match );
 	abstract public function defaultHome( Match &$match, string $cmts );
 	abstract public function defaultVisitor( Match &$match, string $cmts );
-
+	abstract public function setMaxSets( int $max = 3 );
+	
 	public function challengesRemaining() {
 		return $this->numChallenges;
 	}

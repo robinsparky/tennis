@@ -49,7 +49,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 WP_CLI::line( "Matches for '$evtName' at '$name'");
                 $td = new TournamentDirector( $target, $target->getMatchType() );
-                WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
+                WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() + 1 ) );
                 $matches = $td->getMatches();
                 $umpire  = $td->getChairUmpire();
                 $items   = array();
@@ -58,6 +58,7 @@ class TournamentCommands extends WP_CLI_Command {
                     $mn      = $match->getMatchNumber();
                     $status  = $umpire->matchStatus( $match );
                     $score   = $umpire->strGetScores( $match );
+                    $winner  = $umpire->matchWinner( $match );
 
                     $home    = $match->getHomeEntrant();
                     $hname   = sprintf( "%d %s", $home->getPosition(), $home->getName() );
@@ -81,9 +82,10 @@ class TournamentCommands extends WP_CLI_Command {
                                     , "Home Seed" => $hseed
                                     , "Visitor Name" => $vname
                                     , "Visitor Seed" => $vseed 
-                                    , "Comments" => $cmts);
+                                    , "Comments" => $cmts
+                                    , "Winner" => $winner );
                 }
-                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
+                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments', 'Winner' ) );
             }
             else {
                 WP_CLI::warning( "tennis display match ... could not event with Id '$eventId' for club with Id '$clubId'" );
@@ -430,6 +432,100 @@ class TournamentCommands extends WP_CLI_Command {
             WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
         }
     }
+
+    
+    /**
+     * Record the score for a match
+     * The target club and event must first be set using 'tennis env set'
+     * 
+     * ## OPTIONS
+     * 
+     * <roundnum>
+     * : The round number
+     * 
+     * <matchnum>
+     * : The match number
+     * 
+     * <setnum>
+     * : The set number
+     * 
+     * [--type=<type>]
+     * : 
+     * ---
+     * default: home
+     * options:
+     *   - home
+     *   - visitor
+     * ---
+     * 
+     * [--<field>=<value>]
+     * :The home player's tie breaker score
+     * 
+     * ## EXAMPLES
+     *
+     *  wp tennis tourney score 1 3 2 --home=6 --visitor=6
+     *  wp tennis tourney score 1 3 2 --hometb=7 --visitortb=3
+     *
+     * @when after_wp_load
+     */
+    function score( $args, $assoc_args ) {
+
+        $support = CmdlineSupport::preCondtion();
+
+        $env = $support->getEnvError();
+        list( $clubId, $eventId ) = $env;
+
+        //Get the round, match and set numbers from the args
+        list( $roundnum, $matchnum, $setnum ) = $args;
+        
+        
+        $home      = array_key_exists( 'home', $assoc_args )  ? $assoc_args["home"] : 0;
+        $visitor   = array_key_exists( 'visitor', $assoc_args )  ? $assoc_args["visitor"] : 0;
+        $hometb    = array_key_exists( 'hometb', $assoc_args )  ? $assoc_args["hometb"] : 0;
+        $visitortb = array_key_exists( 'visitortb', $assoc_args )  ? $assoc_args["visitortb"] : 0;
+
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = $support->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $td = new TournamentDirector( $target, $target->getMatchType() );
+                try {
+                    $match = $td->getMatch( $roundnum, $matchnum );
+                    if( !isset( $match ) ) {
+                        throw new InvalidTournamentException("No such match.");
+                    }
+
+                    $umpire = $td->getChairUmpire();
+                    if( !$umpire->recordScores($match, $setnum, $home, $hometb, $visitor, $visitortb ) ) {
+                        throw new InvalidTournamentException( "Failed to record scores." );
+                    }
+
+                    WP_CLI::success( sprintf("Recorded score %d(%d) : %d(%d) in match '%s'", $home, $hometb, $visitor, $visitortb, $match->title() ) );
+                }
+                catch( Exception $ex ) {
+                    WP_CLI::error( sprintf("tennis tourney score ...  %s", $ex->getMessage() ) );
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis match tourney score... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis match tourney score ... could not find any events for club with Id '$clubId'" );
+        }
+    }
+
 
     /**
      * Test PHP code
