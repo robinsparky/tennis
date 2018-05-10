@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
  * @group draw
  * @group all
  */
-class DrawTest extends TestCase
+class SignupTest extends TestCase
 {
     public static $dsize;
 	
@@ -27,7 +27,7 @@ class DrawTest extends TestCase
     /**
      * 
      */
-    public function test_add_entrants_to_draw() {
+    public function test_add_entrants_to_signup() {
         $clubs = Club::search('Tyandaga');
         $this->assertEquals(1,count($clubs));
         $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
@@ -43,34 +43,34 @@ class DrawTest extends TestCase
 
         $this->assertInstanceOf(Event::class,$menSingles);
 
-        $this->assertCount(0,$menSingles->getDraw());
-        $this->assertTrue($menSingles->addToDraw("Mike Flintoff"),'Test add to draw 1');
-        $this->assertTrue($menSingles->addToDraw("Steve Knight"),'Test add to draw 2');
-        $this->assertTrue($menSingles->addToDraw("Rafa Chiuzi",2),'Test add to draw 3');
-        $this->assertTrue($menSingles->addToDraw("Jonathan Bremer",1),'Test add to draw 4');
-        $this->assertTrue($menSingles->addToDraw("Stephen OKeefe"),'Test add to draw 5');
-        $this->assertTrue($menSingles->addToDraw("Roger Federer"),'Test add to draw 6');
-        $this->assertTrue($menSingles->addToDraw("Raphael Nadal"),'Test add to draw 7');
-        $this->assertTrue($menSingles->addToDraw("Andre Agassi"),'Test add to draw 8');
-        $this->assertTrue($menSingles->addToDraw("Rodney Devitt"),'Test add to draw 9');
-        $this->assertTrue($menSingles->addToDraw("Tom West"),'Test add to draw 10');
-        $this->assertTrue($menSingles->addToDraw("Novak Djokavic"),'Test add to draw 11');
-        $this->assertTrue($menSingles->addToDraw("Andy Murray"),'Test add to draw 12');
-        $this->assertTrue($menSingles->addToDraw("Ben Huh"),'Test add to draw 13');
-        $this->assertTrue($menSingles->addToDraw("Remove Me"),'Test add to draw 14');
+        $this->assertCount(0,$menSingles->getSignup());
+        $this->assertTrue($menSingles->addToSignup("Mike Flintoff"),'Test add to draw 1');
+        $this->assertTrue($menSingles->addToSignup("Steve Knight"),'Test add to draw 2');
+        $this->assertTrue($menSingles->addToSignup("Rafa Chiuzi",2),'Test add to draw 3');
+        $this->assertTrue($menSingles->addToSignup("Jonathan Bremer",1),'Test add to draw 4');
+        $this->assertTrue($menSingles->addToSignup("Stephen OKeefe"),'Test add to draw 5');
+        $this->assertTrue($menSingles->addToSignup("Roger Federer"),'Test add to draw 6');
+        $this->assertTrue($menSingles->addToSignup("Raphael Nadal"),'Test add to draw 7');
+        $this->assertTrue($menSingles->addToSignup("Andre Agassi"),'Test add to draw 8');
+        $this->assertTrue($menSingles->addToSignup("Rodney Devitt"),'Test add to draw 9');
+        $this->assertTrue($menSingles->addToSignup("Tom West"),'Test add to draw 10');
+        $this->assertTrue($menSingles->addToSignup("Novak Djokavic"),'Test add to draw 11');
+        $this->assertTrue($menSingles->addToSignup("Andy Murray"),'Test add to draw 12');
+        $this->assertTrue($menSingles->addToSignup("Ben Huh"),'Test add to draw 13');
+        $this->assertTrue($menSingles->addToSignup("Remove Me"),'Test add to draw 14');
 
         self::$dsize = 14;
-        $this->assertCount( self::$dsize, $menSingles->getDraw(), 'Test draw size is 14' );
-        $this->assertEquals( self::$dsize, $menSingles->drawSize() );
+        $this->assertCount( self::$dsize, $menSingles->getSignup(), 'Test draw size is 14' );
+        $this->assertEquals( self::$dsize, $menSingles->signupSize() );
 
         $this->assertGreaterThan(0,$menSingles->save());
 
     }
 
     /**
-     * @depends test_add_entrants_to_draw
+     * @depends test_add_entrants_to_signup
      */
-    public function test_remove_entrants_from_draw() {
+    public function test_remove_entrants_from_signup() {
         $clubs = Club::search('Tyandaga');
         $this->assertEquals(1,count($clubs));
         $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
@@ -85,10 +85,10 @@ class DrawTest extends TestCase
         $this->assertInstanceOf( Event::class, $menSingles );
         $this->assertEquals('Mens Singles',$menSingles->getName());
         $this->assertEquals($event->getName(),$menSingles->getRoot()->getName());
-        $this->assertCount( self::$dsize, $menSingles->getDraw() );
+        $this->assertCount( self::$dsize, $menSingles->getSignup() );
 
-        $this->assertTrue($menSingles->removeFromDraw("Remove Me"));
-        $this->assertCount( self::$dsize - 1, $menSingles->getDraw() );
+        $this->assertTrue($menSingles->removeFromSignup("Remove Me"));
+        $this->assertCount( self::$dsize - 1, $menSingles->getSignup() );
         $this->assertGreaterThan( 0, $menSingles->save() );        
 
     }

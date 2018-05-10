@@ -19,20 +19,24 @@ abstract class AbstractData
     abstract static public function search($criteria);
     abstract static public function find(...$fk_criteria);
     abstract static public function get(int ...$pks);
-
     abstract public function isValid();
+    
+   //Default constructor
+   public function __construct() {
+        $this->isnew = true;
+    }
     
     /**
      * Map incoming row of data to an object
      * This function s/b called from child object's
      * implemetation as parent::mapData
      */
-    static protected function mapData($obj,$row) {
+    static protected function mapData( $obj, $row ) {
         $obj->ID = NULL;
-        if(isset($row["ID"])) {
+        if( isset($row["ID"]) ) {
             $obj->ID = $row["ID"];
         }
-        $obj->isnew = FALSE;
+        $obj->isnew = false;
     }
     
     /**
@@ -85,12 +89,12 @@ abstract class AbstractData
      * Support for sorting array of objects
      * The object needs to supply the "indexFunction"
      */
-    protected function objSort(&$objArray,$indexFunction,$sort_flags=0) {
+    protected function objSort( &$objArray, $indexFunction, $sort_flags=0) {
         $indices = array();
-        foreach($objArray as $obj) {
-            $indeces[] = $indexFunction($obj);
+        foreach( $objArray as $obj ) {
+            $indeces[] = $indexFunction( $obj );
         }
-        return array_multisort($indeces,$objArray,$sort_flags);
+        return array_multisort( $indeces, $objArray, $sort_flags );
     }  
 
 	protected $isdirty = FALSE;

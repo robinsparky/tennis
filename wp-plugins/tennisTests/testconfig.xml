@@ -11,20 +11,24 @@
         stopOnSkipped="false"
         stopOnRisky="false"
 <testsuites>
+  <testsuite name="schema">
+    <file>tests/schemaTest.php</file>
+  </testsuite>
   <testsuite name="crud">
     <file>tests/clubTest.php</file>
     <file>tests/courtTest.php</file>
     <file>tests/eventTest.php</file>
-    <file>tests/drawTest.php</file>
+    <file>tests/signupTest.php</file>
     <file>tests/matchTest.php</file>
     <file>tests/removalTest.php</file>
   </testsuite>
   <testsuite name="tournaments">
     <file>tests/tournamentSetupTest.php</file>
     <file>tests/tournamentTweakTest.php</file>
+    <file>tests/tournamentScoringTest.php</file>
   </testsuite>
   <testsuite name="current">
-    <file>tests/tournamentScoringTest.php</file>
+    <file>tests/matchTest.php</file>
   </testsuite>
 </testsuites>
 </phpunit>

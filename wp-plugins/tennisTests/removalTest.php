@@ -29,9 +29,12 @@ class RemovalTest extends TestCase
         self::$mens = $mainevent->getNamedEvent('Mens Singles');
         $this->assertFalse(self::$mens->isDirty());
 
-        $matches = self::$mens->getMatches(true);
+        $bracket = self::$mens->getBracket();
+        $this->assertEquals( Bracket::WINNERS, $bracket->getName(),'Winners bracket');
+        $this->assertEquals( self::$mens, $bracket->getEvent(), 'Bracket event equals mens' );
+        $matches = $bracket->getMatches(true);
 
-        $this->assertEquals(count($matches),count(self::$mens->getMatchesByRound(1)));
+        $this->assertEquals(count($matches),count($bracket->getMatchesByRound(1)));
 
         foreach($matches as $match) {
             $sets = $match->getSets();
@@ -43,26 +46,38 @@ class RemovalTest extends TestCase
 
     public function test_remove_matches() {
         
-        $this->assertTrue(self::$mens->removeAllMatches(),'Remove all matches');
-        $this->assertEquals(0,self::$mens->numMatches(),'Number of matches should be zero');
+        $bracket = self::$mens->getBracket();
+        $this->assertEquals( Bracket::WINNERS, $bracket->getName(),'Winners bracket');
+        $this->assertEquals( self::$mens, $bracket->getEvent(), 'Bracket event equals mens' );
+        
+        $this->assertTrue($bracket->removeAllMatches(),'Remove all matches');
+        $this->assertEquals(0,$bracket->numMatches(),'Number of matches should be zero');
+        $this->assertTrue( self::$mens->isDirty());
         $this->assertGreaterThan(0,self::$mens->save());
     }
 
-    public function test_remove_draw() {
+    public function test_remove_signup() {
 
-        $draw = self::$mens->getDraw();
-        $this->assertEquals(13,count($draw));
+        $bracket = self::$mens->getBracket();
+        $this->assertEquals( Bracket::WINNERS, $bracket->getName(),'Winners bracket');
+        $this->assertEquals( self::$mens, $bracket->getEvent(), 'Bracket event equals mens' );
+        
+        $signup = self::$mens->getSignup();
+        $this->assertEquals(13,count($signup));
+        $this->assertEquals( self::$mens->signupSize(), $bracket->signupSize(), '1. Event and bracket equal signup size');
+
         $i = 0;
-        foreach($draw as $ent) {
+        foreach($signup as $ent) {
             if( $i++ > 6 ) break;
-            $this->assertTrue( self::$mens->removeFromDraw( $ent->getName() ) );
+            $this->assertTrue( self::$mens->removeFromSignup( $ent->getName() ) );
         }
         
-        //var_dump(self::$mens->getDraw());
-        $this->assertCount( 6, self::$mens->getDraw() );
+        $this->assertCount( 6, self::$mens->getSignup() );
+        $this->assertEquals( self::$mens->signupSize(), $bracket->signupSize(), '2. Event and bracket equal signup size');
 
-        $this->assertTrue( self::$mens->removeDraw() );
-        $this->assertEquals( 0, self::$mens->drawSize() );
+        $this->assertTrue( self::$mens->removeSignup() );
+        $this->assertEquals( 0, self::$mens->signupSize() );
+        $this->assertEquals( self::$mens->signupSize(), $bracket->signupSize(), '3. Event and bracket equal signup size');
 
         $this->assertEquals( 13, self::$mens->save() );
 

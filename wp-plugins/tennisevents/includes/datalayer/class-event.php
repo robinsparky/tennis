@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Format {
 	const SINGLE_ELIM = 'selim';
 	const DOUBLE_ELIM = 'delim';
+	const CONSOLATION = 'consolation';
 	const GAMES       = 'games';
 	const SETS        = 'sets';
 }
@@ -40,13 +41,13 @@ class Event extends AbstractData
     
 	private $clubs; //array of related clubs for this root event
 	private $childEvents; //array of child events
-	private $draw; //array of entrants for this leaf event
-	private $matches; //array of matches in a round for this leaf event
+	private $signup; //array of entrants who signed up for this leaf event
+	private $brackets; //array of 1 or 2 brackets for this leaf event
 
 	private $clubsToBeDeleted = array(); //array of club Id's to be removed from relations with this Event
 	private $childEventsToBeDeleted = array(); //array of child ID's events to be deleted
 	private $entrantsToBeDeleted = array(); //array of Entrants to be removed from the draw
-	private $matchesToBeDeleted = array(); //array of round Id's to be deleted
+	private $bracketsToBeDeleted = array(); //array of bracket Id's to be deleted
     
     /**
      * Search for Events have a name 'like' the provided criteria
@@ -124,7 +125,7 @@ class Event extends AbstractData
 
 		foreach( $rows as $row ) {
             $obj = new Event;
-            self::mapData($obj,$row);
+            self::mapData( $obj, $row );
 			$col[] = $obj;
 		}
 		return $col;
@@ -136,13 +137,12 @@ class Event extends AbstractData
     static public function get( int ...$pks ) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "SELECT ID,event_type,`name`,format,parent_ID,`signup_by`,`start_date`,`end_date` 
-		        FROM $table WHERE ID=%d";
-		$safe = $wpdb->prepare($sql,$pks);
-		$rows = $wpdb->get_results($safe, ARRAY_A);
+		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
+		        FROM $table WHERE `ID`=%d";
+		$safe = $wpdb->prepare( $sql, $pks );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		$id = $pks[0];
-		//error_log( "Event::get($id) $wpdb->num_rows rows returned." );
+		//error_log( sprintf("Event::get(%d) -> %d rows returned.", $pks, $wpdb->num_rows ) );
 
 		$obj = NULL;
 		if( count( $rows ) === 1 ) {
@@ -154,21 +154,19 @@ class Event extends AbstractData
 	
 	static public function deleteEvent( int $eventId ) {
 		$result = 0;
-		if(isset($eventId)) {
-			global $wpdb;
-			$table = $wpdb->prefix . self::$tablename;
-			$wpdb->delete( $table,array( 'ID'=>$eventId ), array( '%d' ) );
-			$result = $wpdb->rows_affected;
-		}
-		error_log( "Event.deleteEvent: deleted $result" );
+		global $wpdb;
+		$table = $wpdb->prefix . self::$tablename;
+		$wpdb->delete( $table,array( 'ID'=>$eventId ), array( '%d' ) );
+		$result = $wpdb->rows_affected;
+		error_log( sprintf("Event.deleteEvent(%d) -> deleted %d row(s)", $eventId, $result ) );
 		return $result;
 	}
 
 	/*************** Instance Methods ****************/
 	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT ) {
-		$this->isnew = TRUE;
+		$this->isnew = true;
 		$this->name = $name;
-		$this->init();
+		$this->format = Format::SINGLE_ELIM;
 
 		switch( $eventType ) {
 			case EventType::TOURNAMENT:
@@ -194,21 +192,21 @@ class Event extends AbstractData
 			}
 		}
 
-		if( isset( $this->draw ) ) {
-			foreach($this->draw as &$draw) {
+		if( isset( $this->signup ) ) {
+			foreach($this->signup as &$draw) {
 				$draw = null;
 			}
 		}
 
-		if( isset( $this->matches ) ) {
-			foreach($this->matches as &$match) {
-				$match = null;
+		if( isset( $this->brackets ) ) {
+			foreach($this->brackets as &$bracket) {
+				$bracket = null;
 			}
 		}
 
-		if( isset( $this->matchesToBeDeleted ) ) {
-			foreach($this->matchesToBeDeleted as &$match) {
-				$match = null;
+		if( isset( $this->bracketsToBeDeleted ) ) {
+			foreach($this->bracketsToBeDeleted as &$bracket) {
+				$bracket = null;
 			}
 		}
 	}
@@ -258,7 +256,7 @@ class Event extends AbstractData
 	 * Set the type of event
 	 * Applies only to a root event
 	 */
-	public function setEventType( string $type = EventType::TOURNAMENT ) {
+	public function setEventType( string $type ) {
 		switch($type) {
 			case EventType::TOURNAMENT:
 			case EventType::LEAGUE:
@@ -280,7 +278,7 @@ class Event extends AbstractData
 	 * Set the format
 	 * Applies only to the lowest child event
 	 */
-	public function setFormat( string $format = Format::SINGLE_ELIM ) {
+	public function setFormat( string $format ) {
 		$result = false;
 		switch($format) {
 			case Format::SINGLE_ELIM:
@@ -517,7 +515,6 @@ class Event extends AbstractData
 		foreach( $this->getChildEvents() as $ch ) {
 			if( $child === $ch ) {
 				$this->childEventsToBeDeleted[] = $child->getID();
-				//unset($this->childEvents[$i]);
 				$result = $this->setDirty();
 			}
 			else {
@@ -616,31 +613,84 @@ class Event extends AbstractData
 	 * @param $seed The seeding of this player
 	 * @return true if succeeds false otherwise
 	 */
-	public function addToDraw ( string $name, int $seed = null ) {
+	public function addToSignup ( string $name, int $seed = null ) {
 		$result = false;
 		if( isset( $name ) && $this->isLeaf() ) {
 			$found = false;
-			foreach( $this->getDraw() as $d ) {
+			foreach( $this->getSignup() as $d ) {
 				if( $name === $d->getName() ) {
 					$found = true;
 				}
 			}
 			if( !$found ) {
 				$ent = new Entrant( $this->getID(), $name, $seed );
-				$this->draw[] = $ent;
+				$this->signup[] = $ent;
 				$result = $this->setDirty();
 			}
 		}
 		return $result;
 	}
+	
+	/**
+	 * Remove an Entrant from the signup
+	 * @param $entrant Entrant in the draw
+	 * @return true if succeeds false otherwise
+	 */
+	public function removeFromSignup( string $name ) {
+		$result = false;
+		$temp = array();
+		for( $i = 0; $i < count( $this->getSignup() ); $i++) {
+			if( $name === $this->signup[$i]->getName() ) {
+				$this->entrantsToBeDeleted[] = $this->signup[$i]->getPosition();
+				$result = $this->setDirty();
+			}
+			else {
+				$temp[] = $this->signup[$i];
+			}
+		}
+		$this->signup = $temp;
 
+		return $result;
+	}
+
+	/**
+	 * Destroy the existing signup and all related brackets.
+	 */
+	public function removeSignup() {
+		foreach( $this->getSignup() as &$dr ) {
+			$this->entrantsToBeDeleted[] = $dr->getPosition();
+			unset( $dr );
+		}
+		$this->signup = array();
+		$this->removeBrackets();
+		return $this->setDirty();
+	}
+	
+	/**
+	 * Get the signup for this Event
+	 * @param $force When set to true will force loading of entrants from db
+	 *               This will cause unsaved entrants to be lost.
+	 */
+	public function getSignup( $force=false ) {
+		if( !isset( $this->signup ) || $force ) $this->fetchSignup();
+		return $this->signup;
+	}
+	
+	/**
+	 * Get the size of the signup for this event
+	 */
+	public function signupSize() {
+		$this->getSignup();
+		return isset( $this->signup ) ? sizeof( $this->signup ) : 0;
+	}
+	
 	/**
 	 * Get a contestant in the Draw by name
 	 */
 	public function getNamedEntrant( string $name ) {
 		$result = null;
 
-		foreach( $this->getDraw() as $draw ) {
+		foreach( $this->getSignup() as $draw ) {
 			if( $name === $draw->getName() ) {
 				$result = $draw;
 				break;
@@ -649,187 +699,121 @@ class Event extends AbstractData
 		return $result;
 	}
 	
-	/**
-	 * Remove an Entrant from Draw
-	 * @param $entrant Entrant in the draw
-	 * @return true if succeeds false otherwise
-	 */
-	public function removeFromDraw( string $name ) {
-		$result = false;
-		$temp = array();
-		for( $i = 0; $i < count( $this->getDraw() ); $i++) {
-			if( $name === $this->draw[$i]->getName() ) {
-				$this->entrantsToBeDeleted[] = $this->draw[$i]->getPosition();
-				$result = $this->setDirty();
-			}
-			else {
-				$temp[] = $this->draw[$i];
-			}
-		}
-		$this->draw = $temp;
-
-		return $result;
-	}
-
-	/**
-	 * Destroy the existing draw.
-	 */
-	public function removeDraw() {
-		foreach( $this->getDraw() as &$dr ) {
-			$this->entrantsToBeDeleted[] = $dr->getPosition();
-			unset( $dr );
-		}
-		$this->draw = array();
-		$this->removeAllMatches();
-		return $this->setDirty();
-	}
-
-	/**
-	 * Get the draw for this Event
-	 * @param $force When set to true will force loading of entrants from db
-	 *               This will cause unsaved entrants to be lost.
-	 */
-	public function getDraw( $force=false ) {
-		if(!isset( $this->draw ) || $force) $this->fetchDraw();
-		return $this->draw;
-	}
-
-	public function drawSize() {
-		$this->getDraw();
-		return isset( $this->draw ) ? sizeof( $this->draw) : 0;
-	}
-
-    /**
-     * Create a new Match and add it to this Event.
-	 * The Match must pass validity checks
-	 * @param $round The round number for this match
-     * @param $home
-	 * @param $matchType The type of match @see MatchType class
-     * @param $visitor
-	 * @param $matchnum The match number if known
-     * @return Match if successful; null otherwise
-     */
-    public function addNewMatch( int $round, Entrant $home, float $matchType, Entrant $visitor = null, $matchnum = 0 ) {
-		$result = null;
-		
-        if( isset( $home ) ) {
-			$this->getMatches();
-			$match = new Match( $this->getID(), $round, $matchnum );
-			$match->setEvent( $this );
-			$match->setHomeEntrant( $home );
-			if( isset( $visitor ) ) {
-				$match->setVisitorEntrant( $visitor );
-			} 
-			else {
-				$match->setIsBye( true );
-			}
-			$match->setMatchType( $matchType );
-			if( $match->isValid() ) {
-				$this->matches[] = $match;
-				$this->setDirty();
-				$result = &$match;
-			}
-        }
-
-        return $result;
-    }
-
-    /**
-     * Add a Match to this Round
-	 * The Match must pass validity checks
-     * @param $match
-     */
-    public function addMatch( Match &$match ) {
-        $result = false;
-
-        if( isset( $match ) && $match->isValid() ) {
-			$this->getMatches();
-			$match->setEvent( $this );
-            $this->matches[] = $match;
-			$result = $this->setDirty();
-        }
-        
-        return $result;
-	}
-
-    /**
-     * Access all Matches in this Event sorted by round number then match number
-	 * @param $force When set to true will force loading of matches
-	 *               This will cause unsaved matches to be lost.
-     */
-    public function getMatches( $force = false ):array {
-        if( !isset( $this->matches ) || $force ) $this->fetchMatches();
-        usort( $this->matches, array( __CLASS__, 'sortByRoundMatchNumberAsc' ) );
-        return $this->matches;
-	}
-	
-    /**
-     * Access all Matches in this Event for a specific round
-	 * @param $rndnum The round number of interest
-     */
-	public function getMatchesByRound( int $rndnum, $force = false ) {
-		$result = array();
-		foreach( $this->getMatches( $force ) as $match ) {
-			if( $match->getRoundNumber() === $rndnum ) {
-				$result[] = $match;
-			}
-		}
-        usort( $result, array( __CLASS__, 'sortByMatchNumberAsc' ) );
-		return $result;
-	}
-
-    /**
-     * Get the number of matches in this total
-     */
-    public function numMatches():int {
-        return count( $this->getMatches() );
-	}
-	
-    /**
-     * Get the number of matches in this Round
-     */
-    public function numMatchesByRound( int $round ):int {		
-		return array_reduce( function ($sum,$m) use( $round ) { if( $m->getRound() === $round ) ++$sum; }, $this->getMatches(), 0);
-	}
-
-    /**
-     * Get the highest match number used in the given round
-	 * in a tournament
-     * @param $rn the round number of interest
-     */
-    public function maxMatchNumber(int $rn ):int {
-        global $wpdb;
-
-        $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND round_num=%d;";
-        $safe = $wpdb->prepare( $sql, $this->getID(), $rn );
-        $max = (int)$wpdb->get_var( $safe );
-
-        return $max;
-    }
-	
-	/**
-	 * Remove the collection of Matches
-	 */
-	public function removeAllMatches() {
-		if( isset( $this->matches ) ) {
-			$i=0;
-			foreach( $this->matches as $match ) {
-				$this->matchesToBeDeleted[] = $match;
-				unset( $this->matches[$i] );
-				$i++;
-			}
-		}
-		return $this->setDirty();
-	}
-
-	public function getMatchType() {
-		if( $this->numMatches() > 0 ) {
-			return $this->matches[0]->getMatchType();
+	public function getBrackets( $force = false ) {
+		if( $this->isLeaf() ) {
+			if( !isset( $this->brackets ) || $force ) $this->fetchBrackets();
 		}
 		else {
-			return 0.0;
+			return array();
 		}
+		return $this->brackets;
 	}
+
+	/**
+	 * Get a bracket by its name
+	 */
+	public function getBracket( string $bracketName = Bracket::WINNERS ) {
+		$result = null;
+
+		foreach( $this->getBrackets() as $bracket ) {
+			if( $bracketName === $bracket->getName() ) {
+				$result = $bracket;
+				break;
+			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Get the winners bracket for this event.
+	 */
+	public function getWinnersBracket( ) {
+		return $this->getBracket( Bracket::WINNERS );
+	}
+	
+    /**
+     * Add a Bracket to this Event
+	 * For regulation single elimination tournaments there should be only 1 bracket
+	 * For regulation double elimination tournaments there should be only 2 brackets
+	 * For all other situations it depends on the nature of the event
+     */
+    public function addBracket( Bracket &$bracket ) {
+		$result = false;
+		$found = false;
+        if( $this->isLeaf() && $bracket->getEvent()->getID() === $this->getID() && $bracket->isValid() ) {
+			foreach( $this->getBrackets() as $b ) {
+				if($b->getBracketNumber() === $bracket->getBracketNumber() ) {
+					$found = true;
+					break;
+				}
+			}
+			if( !$found ) {
+				$this->brackets[] = $bracket;
+				$bracket->setEvent( $this );
+				$result = $this->setDirty();
+			}
+        }
+        return $result;
+	}
+
+	/**
+	 * Create a bracket with the given name.
+	 * If a bracket with that name already exists it is returned.
+	 * @param $name
+	 */
+	public function createBracket( string $name ) {
+		$num = 0;
+		$found = false;
+		$result = null;
+		foreach( $this->getBrackets() as $b ) {
+			++$num;
+			if( $b->getName() === $name ) {
+				$found = true;
+				$result = $b;
+			}
+		}
+		if( !$found ) {
+			$result = new Bracket( $this );
+			$result->setName( $name );
+			$this->brackets[] = $result;
+			$result->setEvent( $this );
+			$this->setDirty();
+		}
+		return $result;
+	}
+	
+	/**
+	 * Remove a bracket with the given name.
+	 * @param $name
+	 */
+	public function removeBracket( string $name ) {
+		$num = 0;
+		$result = false;
+		foreach( $this->getBrackets() as &$bracket ) {
+			if( $bracket->getName() === $name ) {
+				$result = true;
+				$this->bracketsToBeDeleted[] = $bracket;
+				unset( $this->brackets[$num] );
+			}
+			++$num;
+		}
+		return $result;
+	}
+	
+	/**
+	 * Remove the collection of Brackets
+	 */
+	public function removeBrackets() {
+		if( isset( $this->brackets ) ) {
+			$i=0;
+			foreach( $this->brackets as $bracket ) {
+				$this->bracketsToBeDeleted[] = $bracket;
+				unset( $this->brackets[$i++] );
+			}
+		}
+		return $this->setDirty();
+	}
+
 	
 	/**
 	 * Check to see if this Event has valid data
@@ -838,16 +822,29 @@ class Event extends AbstractData
 		$mess = '';
 
 		if( !isset( $this->name ) ) {
-			$mess = __('Event must have a name.');
+			$mess = __('Event must have a name.', TennisEvents::TEXT_DOMAIN );
 		}
 		elseif( !isset( $this->event_type ) && $this->isRoot() ) {
-			$mess = __('Root Events must have a type.');
+			$mess = __('Root Events must have a type.', TennisEvents::TEXT_DOMAIN );
 		}
 		elseif( !isset( $this->format ) && $this->isLeaf() ) {
-			$mess = __('Leaf events must have a format.');
+			$mess = __('Leaf events must have a format.', TennisEvents::TEXT_DOMAIN );
 		}
 		elseif( $this->isRoot() && count( $this->getClubs() ) < 1 ) {
-			$mess = __('Root event must be associated with at least one club');
+			$mess = __('Root event must be associated with at least one club', TennisEvents::TEXT_DOMAIN );
+		}
+
+		if( isset( $this->brackets ) ) {
+			$found = false;
+			foreach( $this->getBrackets() as $bracket ) {
+				if( Bracket::WINNERS === $bracket->getName() ) {
+					$found = true;
+					break;
+				}
+			}
+			if( !$found && $this->isLeaf() ) {
+				$mess = __('Leaf event must have at least a Winners bracket.', TennisEvents::TEXT_DOMAIN );
+			}
 		}
 
 		if(strlen( $mess ) > 0) throw new InvalidEventException( $mess );
@@ -875,6 +872,10 @@ class Event extends AbstractData
 		return $result;
 	}
 
+	public function toString() {
+		return sprintf("E(%d)", $this->getID() );
+	}
+
 	/**
 	 * Fetch all children of this event.
 	 */
@@ -885,9 +886,9 @@ class Event extends AbstractData
 	/**
 	 * Fetch all Entrants for this event.
 	 */
-	private function fetchDraw() {
-		if( $this->isParent() ) $this->draw = array();
-		$this->draw = Entrant::find( $this->getID() );
+	private function fetchSignup() {
+		if( $this->isParent() ) $this->signup = array();
+		$this->signup = Entrant::find( $this->getID() );
 	}
 
 	/**
@@ -898,13 +899,17 @@ class Event extends AbstractData
 		$this->clubs = Club::find( $this->getID() );
 	}
 
-    /**
-     * Fetch Matches all Matches from the database
-     */
-    private function fetchMatches() {
-		$this->matches =  Match::find( $this->getID() );
-		foreach( $this->matches as $match ) {
-			$match->setEvent( $this );
+	/**
+	 * Fetch the brackets for this event from the database
+	 */
+	private function fetchBrackets() {
+		$this->brackets = Bracket::find( $this->getID() );
+		if( count( $this->brackets ) === 0 ) {
+			$this->createBracket( Bracket::WINNERS );
+		}
+
+		foreach( $this->brackets as $bracket ){
+			$bracket->setEvent( $this );
 		}
 	}
 	
@@ -920,20 +925,6 @@ class Event extends AbstractData
         if($a->getPosition() === $b->getPosition()) return 0; return ($a->getPosition() < $b->getPosition()) ? 1 : -1;
     }
 
-	private function sortByMatchNumberAsc( $a, $b ) {
-		if($a->getMatchNumber() === $b->getMatchNumber()) return 0; return ($a->getMatchNumber() < $b->getMatchNumber()) ? -1 : 1;
-	}
-
-    /**
-     * Sort matches by round number then match number in ascending order
-     * Assumes that across all matches, the max match number is less than $max
-     */
-	private function sortByRoundMatchNumberAsc( $a, $b, $max = 1000 ) {
-        if($a->getRoundNumber() === $b->getRoundNumber() && $a->getMatchNumber() === $b->getMatchNumber()) return 0; 
-        $compa = $a->getRoundNumber() * $max + $a->getMatchNumber();
-        $compb = $b->getRoundNumber() * $max + $b->getMatchNumber();
-        return ( $compa < $compb  ? -1 : 1 );
-	}
 
 	protected function create() {
         global $wpdb;
@@ -959,7 +950,7 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( "Event::create: $result rows affected." );
+		error_log( sprintf( "Event::create(%d) -> %d rows affected.", $this->getID(), $result ) );
 
 		return $result;
 	}
@@ -988,7 +979,7 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( "Event::update: $result rows affected." );
+		error_log( sprintf( "Event::update(%d) -> %d rows affected.", $this->getID(), $result ) );
 		
 		return $result;
 	}
@@ -1034,22 +1025,22 @@ class Event extends AbstractData
 		if( count( $this->childEventsToBeDeleted ) > 0 ) {
 			foreach( $this->childEventsToBeDeleted as $id ) {
 				if(!in_array($id,$evtIds)) {
-					$result += Event::deleteEvent($id);
+					$result += Event::deleteEvent( $id );
 				}
 			}
 			$this->childEventsToBeDeleted = array();
 		}
 
-		if( isset( $this->draw ) ) {
-			foreach($this->draw as $draw) {
-				$draw->setEventID($this->getID());
-				$result += $draw->save();
+		if( isset( $this->signup ) ) {
+			foreach($this->signup as $ent) {
+				$ent->setEventID( $this->getID() );
+				$result += $ent->save();
 			}
 		}
 
 		//Delete Entrants that were removed from the draw for this Event
 		if(count($this->entrantsToBeDeleted) > 0 ) {
-			$entrantIds = array_map(function($e){return $e->getID();},$this->getDraw());
+			$entrantIds = array_map( function($e){return $e->getID();}, $this->getSignup() );
 			foreach( $this->entrantsToBeDeleted as $entId )  {
 				if( !in_array( $entId, $entrantIds ) ) {
 					$result += Entrant::deleteEntrant( $this->getID(), $entId );
@@ -1078,19 +1069,22 @@ class Event extends AbstractData
 			$this->clubsToBeDeleted = array();
 		}
 
-		//Create relation between this Matches(round_num,match_num,position) and this Event
-		if( isset( $this->matches ) ) {
-			foreach( $this->matches as $match ) {
-				$result += $match->save();
+		//Save brackets
+		if( isset( $this->brackets ) ) {
+			foreach( $this->brackets as $bracket ) {
+				$result += $bracket->save();
 			}
 		}
 
-		//Delete ALL Matches removed from this Event
-		foreach( $this->matchesToBeDeleted as &$match ) {
-			$result += $match->delete();
-			unset( $match );			
+		//Delete ALL Brackets removed from this Event
+		foreach( $this->bracketsToBeDeleted as &$bracket ) {
+			$bracketnums = array_map( function($e){return $e->getBracketNumber();}, $this->getBrackets() );
+			if( !in_array( $bracket->getBracketNumber, $bracketnums ) ) {
+				$result += $bracket->delete();
+				unset( $bracket );		
+			}	
 		}
-		$this->matchesToBeDeleted = array();
+		$this->bracketsToBeDeleted = array();
 
 
 		return $result;

@@ -1,10 +1,11 @@
 <?php 
-require('./wp-load.php'); 
+require('./wp-load.php');
 if ( ! defined( 'ABSPATH' ) ) {
 	echo "ABSPATH MISSING!";
 	exit;
 }
 ?>
+
 <?php 
 use PHPUnit\Framework\TestCase;
 /**
@@ -18,8 +19,8 @@ class MatchTest extends TestCase
     public static function setUpBeforeClass()
     {
         global $wpdb;
-        $table = "{$wpdb->prefix}tennis_match";
-        $sql = "delete from $table where match_num between 1 and 999;";
+        $table = "{$wpdb->prefix}tennis_bracket";
+        $sql = "delete from $table where bracket_num between 1 and 999;";
         $wpdb->query($sql);
         
         //fwrite(STDOUT, __METHOD__ . "\n");
@@ -44,30 +45,43 @@ class MatchTest extends TestCase
         $mike = self::$mens->getNamedEntrant( 'Mike Flintoff' );
         $this->assertEquals( 'Mike Flintoff', $mike->getName() );
 
-        $all = self::$mens->getDraw();
+        $all = self::$mens->getSignup();
         $this->assertCount( 13, $all );
 
+        $bracket = self::$mens->getBracket();
+        $this->assertEquals( Bracket::WINNERS, $bracket->getName(), 'Winners bracket');
+        $this->assertTrue( self::$mens->getID() === $bracket->getEvent()->getID(), 'Mens equals parent' );
+        $this->assertTrue( self::$mens->isDirty() );
+        $this->assertEquals( 1, self::$mens->save());
+
+        $round = 1;
+        $matchnum = 0;
         for( $i=0; $i < count($all) - 1; $i += 2 ) {
-            $match = self::$mens->addNewMatch( 1, $all[$i], MatchType::MENS_SINGLES, $all[$i+1] );
+            $match = $bracket->addNewMatch( $round, MatchType::MENS_SINGLES, $matchnum, $all[$i], $all[$i+1] );
             $this->assertTrue( $match instanceof Match );
             $this->assertEquals( MatchType::MENS_SINGLES, $match->getMatchType() );
+            $this->assertFalse( $match->isBye() );
         }
 
-        $this->assertEquals( 6, self::$mens->numMatches() );
-        $matches = self::$mens->getMatches();
+        $this->assertEquals( 6, $bracket->numMatches() );
+        $matches = $bracket->getMatches();
         $this->assertCount( 6, $matches );
-        //var_dump($mens);
+
         $this->assertTrue( self::$mens->isDirty() );
         $this->assertGreaterThan( 10, self::$mens->save() );
-        //var_dump($mens);
     }
 
     public function test_match_scoring() {
 
-        $this->assertFalse(self::$mens->isDirty());
-        $this->assertEquals(6, self::$mens->numMatches());
+        $bracket = self::$mens->getBracket();
+        $this->assertEquals( Bracket::WINNERS, $bracket->getName(),'Winners bracket');
+        $this->assertTrue( self::$mens->getID() === $bracket->getEvent()->getID(), 'Mens equals parent' );
 
-        $matches = self::$mens->getMatches();
+        $this->assertFalse(self::$mens->isDirty());
+        $this->assertFalse( $bracket->isDirty() );
+        $this->assertEquals(6, $bracket->numMatches());
+
+        $matches = $bracket->getMatches();
         $this->assertCount( 6, $matches );
 
         foreach($matches as $match) {
@@ -79,7 +93,7 @@ class MatchTest extends TestCase
             $hscore = rand( 1, 6 );
             $vscore = rand( 1, 6 );
             $this->assertTrue( $match->setScore( 1, $hscore, $vscore) );
-            $set = $match->getSetByNumber( 1 );
+            $set = $match->getSet( 1 );
             $this->assertTrue( isset( $set ) );
             $this->assertEquals( 1, $set->getSetNumber() );
             $this->assertEquals( 0, $set->earlyEnd() );
@@ -87,8 +101,9 @@ class MatchTest extends TestCase
             $this->assertEquals( $vscore, $set->getVisitorWins(), 'Visitor wins' );
             $this->assertTrue( $match->isDirty(), 'Match is dirty 1' );
             $this->assertTrue( $match->setComments( 'Results for match.' ) );
-            $this->assertTrue( $match->getEvent()->isDirty(), 'Matches parent is dirty 2' );
-            $this->assertEquals( self::$mens, $match->getEvent(), 'Mens equals parent' );
+            $this->assertTrue( $match->getBracket()->isDirty(), 'Matches parent bracket is dirty 2' );
+            $this->assertTrue( $match->getBracket()->getEvent()->isDirty(), 'Matchws grandarent event is dirty 2' );
+            $this->assertEquals( $match->getBracket(), $bracket );
         }
         
         $this->assertTrue( self::$mens->isDirty(), 'Mens singles must be dirty!' );

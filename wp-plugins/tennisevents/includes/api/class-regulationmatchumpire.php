@@ -38,6 +38,11 @@ class RegulationMatchUmpire extends ChairUmpire
 
 	}
     
+    /**
+     * Set the maximum nuber of sets in this tournament
+     * @param $max the maximum
+     * @return true if successful, false otherwise
+     */
 	public function setMaxSets( int $max = 3 ) {
 		switch( $max ) {
 			case 3:
@@ -56,23 +61,19 @@ class RegulationMatchUmpire extends ChairUmpire
      * @param $match The match whose score are recorded
      * @param $setnum The set number 
      * @param ...$scores if 2 args then game scores; if 4 then games and tiebreaker scores
-     * @return true if scores were recorded; false otherwise
      */
 	public function recordScores( Match &$match, int $setnum, int ...$scores ) {
 
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        $mess = sprintf( "%s(%s) starting", $loc,$match->title() );
-        error_log( $mess );
 
         if( $match->isBye() || $match->isWaiting() ) {
-            error_log( sprintf( "%s -> Early return because %s has bye or is watiing.", $loc,$match->title() ) );
-            return false;
+            error_log( sprintf( "%s -> Cannot record  scores because '%s' has bye or is watiing.", $loc,$match->title() ) );
+            throw new ChairUmpireException( sprintf("Cannot record scores because '%s' has bye or is wating.",$match->title() ) );
         }
 
-        $status = $this->matchStatus( $match );
-        if( $status === ChairUmpire::COMPLETED || ( strpos( ChairUmpire::EARLYEND, $status ) !== false ) ) {
-            error_log( sprintf("%s -> Early return with status=%s", $loc, $status) );
-            return false;
+        if( $this->isLocked() ) {
+            error_log( sprintf("%s -> Cannot record scores because match '%s' is locked", $loc) );
+            throw new ChairUmpireException( sprintf("Cannot record scores because '%s' is locked.",$match->title() ) );
         }
 
         switch( count( $scores ) ) {
@@ -97,16 +98,14 @@ class RegulationMatchUmpire extends ChairUmpire
                 break;
         }
 
-        error_log(sprintf( "%s calling save on match %s", $loc, $match->title() ));
-        $result = $match->save() > 0;
-
-        return $result;
+        $match->save();
     }
 
     /**
      * Default the home player/team for this Match
      * @param $match The match being played
      * @param $cmts  Any comments explaining the default.
+     * @return true if successful, false otherwise
      */
 	public function defaultHome( Match &$match, string $cmts ) {
         $sets = $match->getSets();
@@ -140,7 +139,7 @@ class RegulationMatchUmpire extends ChairUmpire
     /**
      * Get status of the Match
      * @param $match Match whose status is calculated
-     * @return The status of the given match
+     * @return Status of the given match
      */
 	public function matchStatus( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -155,43 +154,40 @@ class RegulationMatchUmpire extends ChairUmpire
             foreach( $sets as $set ) {
                 $setnum = $set->getSetNumber();
                 $status = self::INPROGRESS;
-
                 if( $set->earlyEnd() > 0 ) {
                     $cmts = $set->getComments();
-                    //$status = self::EARLYEND . ":" . ( isset( $cmts ) ? $cmts : '' );
                     $who = 1 === $set->earlyEnd() ? "home" : "visitor";
-                    $status = sprintf("%s %s:%s", self::EARLYEND, $who, ( isset( $cmts ) ? $cmts : '' ) );
+                    $status = sprintf("%s %s:%s", self::EARLYEND, $who, $cmts );
                     break;
                 }                
             }
-            if( $status === self::INPROGRESS && 'TBA' !== $this->matchWinner( $match) ) $status = CHAIRUMPIRE::COMPLETED;
+            if( $status === self::INPROGRESS && !is_null( $this->matchWinner( $match) ) ) $status = ChairUmpire::COMPLETED;
         }
-        $mess = sprintf( "%s(%s) is returning status=%s", $loc,$match->toString(), $status );
-        error_log( $mess );
+
+        error_log( sprintf( "%s(%s) is returning status=%s", $loc, $match->toString(), $status ) );
+
         return $status;
     }
 
     /**
      * Determine the winner of the given Match
      * @param $match
+     * @return Entrant who won or null if not completed yet
      */
     public function matchWinner( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
-        error_log( $mess );
-
-        $andTheWinnerIs = __( 'TBA' );
+        $andTheWinnerIs = null;
         $home = $match->getHomeEntrant();
         $homeSetsWon = 0;
         $visitor = $match->getVisitorEntrant();
         $visitorSetsWon = 0;
         $finished = false;
 
-        if( $match->isWaiting() ) {
-            $andTheWinnerIs = __( 'Match Not Set' );
+        if( $match->isBye() ) {
+            $andTheWinnerIs = $home;
         }
-        else {
+        elseif( !$match->isWaiting() ) {
             $sets = $match->getSets();
             foreach( $sets as $set ) {
                 if( 1 === $set->earlyEnd() ) {
@@ -240,10 +236,10 @@ class RegulationMatchUmpire extends ChairUmpire
 
         //Best 3 of 5 or 2 of 3
         if( $homeSetsWon >= ceil( $this->MaxSets/2 ) ) {
-                $andTheWinnerIs = $home->getName();
+                $andTheWinnerIs = $home;
         }
         elseif( $visitorSetsWon >= ceil( $this->MaxSets/2 ) ) {
-            $andTheWinnerIs = $visitor->getName();
+            $andTheWinnerIs = $visitor;
         }
         
         return $andTheWinnerIs;
@@ -307,6 +303,22 @@ class RegulationMatchUmpire extends ChairUmpire
             }
         }
         return $strScores;
+    }
+
+    /**
+     * A match is locked if it has been completed or if there was a default/early retirement
+     * @return true or false
+     */
+    public function isLocked( Match $match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $locked = false;
+        $status = $this->matchStatus( $match );
+        if($status === ChairUmpire::COMPLETED || ( strpos( ChairUmpire::EARLYEND, $status ) !== false ) ) {
+            $locked = true;
+        }
+
+        return $locked;
     }
 
 } //end of class

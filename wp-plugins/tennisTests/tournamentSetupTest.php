@@ -46,26 +46,20 @@ class tournamentSetupTest extends TestCase
 	{        
         $size = 9;
         $title = "+++++++++++++++++++++ test_challenger_round for $size entrants+++++++++++++++++++++++++";
-        echo PHP_EOL . $title;
         error_log( $title );
 
         $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
         $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
-        $this->assertEquals( 0, $td->removeDraw() );
+        $this->assertEquals( 0, $td->removeSignup() );
 
         $this->createSignup( $size, 2 );
-        $this->assertEquals( $size, $td->drawSize() );
-        $td->showDraw();
+        $this->assertEquals( $size, $td->signupSize() );
 
         $num = $td->schedulePreliminaryRounds();
-
         $rnds = $td->totalRounds();
-        echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
-        $td->showRounds();
 
-        echo PHP_EOL . PHP_EOL . "Tournament has $num matches";
-
+        $this->assertEquals( 2, $rounds, 'Number of rounds');
         $this->assertEquals( 5, $num, 'Number of matches' );
     }
 
@@ -73,27 +67,21 @@ class tournamentSetupTest extends TestCase
 	{       
         $size = 15;
         $title = "++++++++++++++++++++test_bye_generation for $size entrants++++++++++++++++++++++++++";
-        echo PHP_EOL . $title;
         error_log( $title );
  
         $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
         $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
-        $this->assertGreaterThan( 0, $td->removeDraw() );
-        $this->assertEquals( 0, $td->drawSize() );
+        $this->assertGreaterThan( 0, $td->removeSignup() );
+        $this->assertEquals( 0, $td->signupSize() );
 
         $this->createSignup( $size, 3 );
-        $this->assertEquals( $size, $td->drawSize() );
-        
-        $td->showDraw();
+        $this->assertEquals( $size, $td->signupSize() );
 
         $num = $td->schedulePreliminaryRounds();
         $rnds = $td->totalRounds();
-        echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
-        $td->showRounds();
 
-        echo PHP_EOL . PHP_EOL . "Generated $num matches";
-
+        $this->assertEquals( 3, $rnds,'Number of rounds');
         $this->assertEquals( 8, $num, 'Number of matches' );;
     }
     
@@ -101,27 +89,22 @@ class tournamentSetupTest extends TestCase
 	{        
         $size = 31;
         $title = "++++++++++++++++++++++test_shuffle_bye_generation for $size entrants++++++++++++++++++++++++";
-        echo PHP_EOL . $title;
         error_log( $title );
 
         $seeds = 5;
         $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
         $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
-       $this->assertGreaterThan( 0, $td->removeDraw() );
-        $this->assertEquals( 0, $td->drawSize() );
+        $this->assertGreaterThan( 0, $td->removeSignup() );
+        $this->assertEquals( 0, $td->signupSize() );
 
         $this->createSignup( $size, $seeds );
-        $this->assertEquals( $size, $td->drawSize() );
-        $td->showDraw();
+        $this->assertEquals( $size, $td->signupSize() );
 
         $num = $td->schedulePreliminaryRounds( true ); //with shuffle
         $rnds = $td->totalRounds();
-        echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
-        $td->showRounds();
-
-        echo PHP_EOL . PHP_EOL . "Generated $num matches";
         
+        $this->assertEquals( 4, $rnds,'Number of rounds');
         $this->assertEquals(16, $num, 'Number of matches');
     }
     
@@ -129,27 +112,23 @@ class tournamentSetupTest extends TestCase
 	{        
         $size = 34;
         $title = "+++++++++++++++++++++++test_big_challenger_generation for $size entrants+++++++++++++++++++++++";
-        echo PHP_EOL . $title;
         error_log( $title );
 
         $seeds = 10;
         $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
         $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
-        $this->assertGreaterThan( 0, $td->removeDraw() );
-        $this->assertEquals( 0, $td->drawSize() );
+        $this->assertGreaterThan( 0, $td->removeSignup() );
+        $this->assertEquals( 0, $td->signupSize() );
         $this->assertEquals( 0, $td->totalRounds() );
 
         $this->createSignup( $size, $seeds );
-        $this->assertEquals( $size, $td->drawSize() );
-        $td->showDraw();
+        $this->assertEquals( $size, $td->signupSize() );
 
         $num = $td->schedulePreliminaryRounds( );
         $rnds = $td->totalRounds();
-        echo PHP_EOL . PHP_EOL . "Tournament has $rnds rounds";
-        $td->showRounds();
 
-        echo PHP_EOL . PHP_EOL . "Generated $num matches";
+        $this->assertEquals( 5, $rnds,'Number of rounds');
         $this->assertEquals(17, $num, 'Number of matches');
     }
     

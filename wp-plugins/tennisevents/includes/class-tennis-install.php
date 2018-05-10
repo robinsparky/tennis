@@ -55,9 +55,8 @@ class TE_Install {
 		$this->dbTableNames = array("club"					=> $wpdb->prefix . "tennis_club"
 								   ,"court"					=> $wpdb->prefix . "tennis_court"
 								   ,"event"					=> $wpdb->prefix . "tennis_event"
-								   ,"draw"					=> $wpdb->prefix . "tennis_draw"
+								   ,"bracket"				=> $wpdb->prefix . "tennis_bracket"
 								   ,"entrant"				=> $wpdb->prefix . "tennis_entrant"
-								   ,"round"					=> $wpdb->prefix . "tennis_round"
 								   ,"match"					=> $wpdb->prefix . "tennis_match"
 								   ,"set"					=> $wpdb->prefix . "tennis_set"
 								   ,"player"				=> $wpdb->prefix . "tennis_player"
@@ -128,9 +127,8 @@ class TE_Install {
 		$club_table 				= $this->dbTableNames["club"];
 		$court_table 				= $this->dbTableNames["court"];
 		$event_table 				= $this->dbTableNames["event"];
-		$draw_table 				= $this->dbTableNames["draw"];
+		$bracket_table 				= $this->dbTableNames["bracket"];
 		$entrant_table 				= $this->dbTableNames["entrant"];
-		$round_table 				= $this->dbTableNames["round"];
 		$match_table 				= $this->dbTableNames["match"];
 		$set_table 					= $this->dbTableNames["set"];
 		$player_table 				= $this->dbTableNames["player"];
@@ -143,7 +141,8 @@ class TE_Install {
 		$booking_match_table 		= $this->dbTableNames["match_court_booking"];
 		$club_event_table			= $this->dbTableNames["club_event"];
 
-		if($wpdb->get_var("SHOW TABLES LIKE '$club_table'") == $club_table) {
+		//Check if schema already installed
+		if( $wpdb->get_var("SHOW TABLES LIKE '$club_table'") == $club_table ) {
 			return;
 		}
 
@@ -154,9 +153,9 @@ class TE_Install {
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(255) NOT NULL,
 				PRIMARY KEY (`ID`) );";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -172,9 +171,9 @@ class TE_Install {
 				  REFERENCES `$club_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -198,9 +197,9 @@ class TE_Install {
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 
@@ -221,9 +220,9 @@ class TE_Install {
 					REFERENCES `$event_table` (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE NO ACTION);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 
@@ -242,9 +241,25 @@ class TE_Install {
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
+			$wpdb->print_error();
+		}
+		
+		$sql = "CREATE TABLE `$bracket_table` (
+			`event_ID` INT NOT NULL,
+			`bracket_num` INT NOT NULL,
+			`is_approved` TINYINT NOT NULL DEFAULT 0,
+			`name` VARCHAR(256) NOT NULL,
+			PRIMARY KEY (`event_ID`, `bracket_num`),
+			FOREIGN KEY (`event_ID`)
+			   REFERENCES `$event_table` (`ID`)
+			  ON DELETE CASCADE
+			  ON UPDATE CASCADE);";
+		dbDelta( $sql );
+		if($withReports) {
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 
@@ -253,24 +268,25 @@ class TE_Install {
 		 * Holds pointers to the next round creating a linked list
 		 */
 		$sql = "CREATE TABLE `$match_table` (
-				`event_ID` INT NOT NULL,
-				`round_num` INT NOT NULL,
-				`match_num` INT NOT NULL,
-				`match_type` DECIMAL(3,1) NOT NULL COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles',
-				`match_date` DATE NULL,
-				`match_time` TIME(6) NULL,
-				`is_bye` TINYINT DEFAULT 0,
-				`next_round_num` INT DEFAULT 0,
-				`next_match_num` INT DEFAULT 0,
-				`comments` VARCHAR(255) NULL,
-				PRIMARY KEY (`event_ID`,`round_num`,`match_num`),
-				FOREIGN KEY (`event_ID`)
-				  REFERENCES `$event_table` (`ID`)
-				  ON DELETE CASCADE
+				`event_ID` INT NOT NULL, 
+				`bracket_num` INT NOT NULL DEFAULT 0, 
+				`round_num` INT NOT NULL  DEFAULT 0, 
+				`match_num` INT NOT NULL  DEFAULT 0, 
+				`match_type` DECIMAL(3,1) NOT NULL COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles', 
+				`match_date` DATE NULL, 
+				`match_time` TIME(6) NULL, 
+				`is_bye` TINYINT DEFAULT 0, 
+				`next_round_num` INT DEFAULT 0, 
+				`next_match_num` INT DEFAULT 0, 
+				`comments` VARCHAR(255) NULL, 
+				PRIMARY KEY (`event_ID`,`round_num`,`match_num`), 
+				FOREIGN KEY (`event_ID`, `bracket_num`) 
+				  REFERENCES `$bracket_table` (`event_ID`, `bracket_num`) 
+				  ON DELETE CASCADE 
 				  ON UPDATE CASCADE);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -279,22 +295,23 @@ class TE_Install {
 		 */
 		$sql = "CREATE TABLE `$match_entrant_table` (
 			`match_event_ID` INT NOT NULL,
+			`match_bracket_num` INT NOT NULL,
 			`match_round_num` INT NOT NULL,
 			`match_num` INT NOT NULL,
 			`entrant_position` INT NOT NULL,
 			`is_visitor` TINYINT DEFAULT 0,
-			PRIMARY KEY(`match_event_ID`,`match_round_num`,`match_num`,`entrant_position`),
-			FOREIGN KEY (`match_event_ID`,`match_round_num`,`match_num`)
-				REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)
+			PRIMARY KEY(`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`,`entrant_position`),
+			FOREIGN KEY (`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`)
+				REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE,
 			FOREIGN KEY (`match_event_ID`,`entrant_position`)
 				REFERENCES `$entrant_table` (`event_ID`,`position`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -303,6 +320,7 @@ class TE_Install {
 		 */
 		$sql = "CREATE TABLE `$set_table` (
 				`event_ID` INT NOT NULL,
+				`bracket_num` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
 				`set_num` INT NOT NULL,
@@ -314,14 +332,14 @@ class TE_Install {
 				`visitor_ties` INT NOT NULL DEFAULT 0 COMMENT 'For leagues, round robins',
 				`early_end` TINYINT DEFAULT 0 COMMENT '0 means set completed normally, 1 means abnormal end home defaulted, 2 means abnormal end visitor defaulted, see comments for details',
 				`comments` VARCHAR(512), 
-				PRIMARY KEY (`event_ID`,`round_num`,`match_num`,`set_num`),
-				FOREIGN KEY (`event_ID`,`round_num`,`match_num`)
-				  REFERENCES `$match_table` (`event_ID`,`round_num`,`match_num`)
+				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`,`set_num`),
+				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
+				  REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -342,9 +360,9 @@ class TE_Install {
 				REFERENCES `$event_table` (`ID`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -362,9 +380,9 @@ class TE_Install {
 				REFERENCES `$team_table` (`event_ID`,`team_num`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -383,9 +401,9 @@ class TE_Install {
 			  `phoneMobile` VARCHAR(45),
 			  `phoneBusiness` VARCHAR(45),
 			  PRIMARY KEY (`ID`));";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -405,9 +423,9 @@ class TE_Install {
 					REFERENCES $squad_table (`event_ID`,`team_num`,`division`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE);";	
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 
@@ -427,9 +445,9 @@ class TE_Install {
 					REFERENCES $entrant_table (`event_ID`,`position`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE );";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 		
@@ -447,9 +465,9 @@ class TE_Install {
 				  REFERENCES $court_table (`club_ID`,`court_num`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
 
@@ -470,11 +488,13 @@ class TE_Install {
 					REFERENCES $match_table (`event_ID`,`round_num`,`match_num`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE);";
-		dbDelta( $sql);
+		dbDelta( $sql );
 		if($withReports) {
-			var_dump( dbDelta( $sql) );
+			var_dump( dbDelta( $sql ) );
 			$wpdb->print_error();
 		}
+
+		return $wpdb->last_error;
 
 	} //end add schema
 
@@ -505,14 +525,13 @@ class TE_Install {
 		$sql = $sql . "," . $this->dbTableNames["player"];
 		$sql = $sql . "," . $this->dbTableNames["set"];
 		$sql = $sql . "," . $this->dbTableNames["match"];
-		$sql = $sql . "," . $this->dbTableNames["round"];
 		$sql = $sql . "," . $this->dbTableNames["entrant"];
-		$sql = $sql . "," . $this->dbTableNames["draw"];
+		$sql = $sql . "," . $this->dbTableNames["bracket"];
 		$sql = $sql . "," . $this->dbTableNames["event"];
 		$sql = $sql . "," . $this->dbTableNames["court"];
 		$sql = $sql . "," . $this->dbTableNames["club"];
 
-		return $wpdb->query($sql);
+		return $wpdb->query( $sql );
 	}
 
 	/**

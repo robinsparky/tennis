@@ -21,10 +21,11 @@ class Set extends AbstractData
     const MAXSETS  = 99; //arbitrary
     
     //Primary Keys
-    private $event_ID  = 0;
-    private $round_num = 0;
-    private $match_num = 0;
-    private $set_num   = 0;
+    private $event_ID    = 0;
+    private $bracket_num = 0;
+    private $round_num   = 0;
+    private $match_num   = 0;
+    private $set_num     = 0;
 
     //Score Results
     private $home_wins      = 0;
@@ -37,6 +38,7 @@ class Set extends AbstractData
     //Misc
     private $early_end = 0;
     private $comments;
+    private $match; //object whose primary key is event_ID and bracket_num
     
     /**
      * Search for Matches that have a name 'like' the provided criteria
@@ -54,23 +56,24 @@ class Set extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
         $col = array();
  
-        $sql = "SELECT event_ID,round_num,match_num,set_num 
+        $sql = "SELECT event_ID,bracket_num,round_num,match_num,set_num 
                       ,home_wins, visitor_wins 
                       ,home_tb_pts, visitor_tb_pts 
                       ,home_ties, visitor_ties 
                       ,early_end, comments
                  FROM $table 
                  WHERE event_ID = %d 
+                 AND   bracket_num = %d 
                  AND   round_num = %d 
                  AND   match_num = %d;";
 
 		$safe = $wpdb->prepare( $sql, $fk_criteria );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 		
-		error_log( "Set::find $wpdb->num_rows rows returned" );
+		error_log( sprintf("Set::find(%d,%d,%d,%d) -> %d rows returned", $fk_criteria[0], $fk_criteria[1], $fk_criteria[2], $fk_criteria[3], $wpdb->num_rows ) );
 
 		foreach( $rows as $row ) {
-            $obj = new Set( $fk_criteria[0], $fk_criteria[1], $fk_criteria[2] );
+            $obj = new Set( $fk_criteria );
             self::mapData( $obj, $row );
 			$col[] = $obj;
         }
@@ -86,39 +89,33 @@ class Set extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
         $obj = NULL;
         
-		$sql = "SELECT event_ID,round_num,match_num,set_num 
+		$sql = "SELECT event_ID,bracket_num,round_num,match_num,set_num 
                       ,home_wins, visitor_wins 
                       ,home_tb_pts, visitor_tb_pts 
                       ,home_ties, visitor_ties
                       ,early_end, comments 
                 FROM $table 
-                WHERE event_ID  = %d 
-                AND   round_num = %d 
-                AND   match_num = %d
-                and   set_num   = %d;";
+                WHERE event_ID    = %d 
+                AND   bracket_num = %d
+                AND   round_num   = %d 
+                AND   match_num   = %d
+                and   set_num     = %d;";
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
 		error_log( "Set::get(id) $wpdb->num_rows rows returned." );
 
 		if( count( $rows) === 1 ) {
-            $obj = new Set( $pks[0], $pks[1], $pks[2], $pks[3] );
+            $obj = new Set;
             self::mapData( $obj, $rows[0] );
 		}
 		return $obj;
 	}
 
-	/*************** Instance Methods ****************/
-	public function __construct( int $eventID, int $round, int $match, int $set=0 ) {
-        $this->isnew      = true;
-        $this->event_ID   = $eventID;
-        $this->round_num  = $round;
-        $this->match_num  = $match;
-        $this->set_num    = $set;
-    }
+    /*************** Instance Methods ****************/
 
     public function __destruct() {
-
+        $this->match = null;
     }
     
     public function setSetNumber( int $set ) {
@@ -132,6 +129,22 @@ class Set extends AbstractData
 
     public function getSetNumber():int {
         return $this->set_num;
+    }
+
+    public function setMatch( Match &$match ) {
+        $match->isValid();
+        $this->match       = $match;
+        $this->event_ID    = $match->getBracket()->getEvent()->getID();
+        $this->bracket_num = $match->getBracket()->getBracketNumber();
+        $this->match_num   = $match->getMatchNumber();
+        $this->round_num   = $match->getRoundNumber();
+    }
+
+    public function getMatch() {
+        if( !isset( $this->match ) || $force ) {
+            $this->match = $this->fetchMatch();
+        }
+        return $this->match;
     }
 
     /**
@@ -217,16 +230,19 @@ class Set extends AbstractData
         if( $this->event_ID < 1) {  
             $mess = __( "Invalid event ID." );
         }
-        if( $this->round_num < 0 ) {
+        elseif( $this->bracket_num < 1 ) {
+            $mess = __( "Invalid bracket number.");
+        }
+        elseif( $this->round_num < 0 ) {
             $mess = __( "Invalid round number." );
         }
-        if( $this->match_num < 1 ) {
+        elseif( $this->match_num < 1 ) {
             $mess = __( "Invalid match number." );
         }
-        if( $this->set_num < 1 || $this->set_num > self::MAXSETS ) {
+        elseif( $this->set_num < 1 || $this->set_num > self::MAXSETS ) {
             $mess = __( "Invalid set number." );
         }
-        if( 0 === $this->home_wins && 0 === $this->visitor_wins && !$this->earlyEnd() ) {
+        elseif( 0 === $this->home_wins && 0 === $this->visitor_wins && !$this->earlyEnd() ) {
             $mess =  __( "Both home and visitor scores cannot be zero." );
         }
 
@@ -242,43 +258,60 @@ class Set extends AbstractData
         global $wpdb;
 
         $table = $wpdb->prefix . self::$tablename;
-        $where = array( 'event_ID' => $this->event_ID
-                       ,'round_num' => $this->round_num
-                       ,'match_num' => $this->match_num
-                       ,'set_num'   => $this->set_num );
-        $formats_where = array( '%d', '%d', '%d', '%d' );
+        $where = array( 'event_ID'    => $this->event_ID
+                       ,'bracket_num' => $this->bracket_num
+                       ,'round_num'   => $this->round_num
+                       ,'match_num'   => $this->match_num
+                       ,'set_num'     => $this->set_num );
+        $formats_where = array( '%d', '%d', '%d', '%d', '%d' );
 
         $wpdb->delete( $table, $where, $formats_where );
         $result = $wpdb->rows_affected;
 
-        error_log( "Set::delete: deleted $result rows" );
+        error_log( sprintf("Set::delete(%s) deleted %d rows", $this->toString(), $result ) );
 
         return $result;
     }
     
     public function toString() {
-        return sprintf("S(%d.%d.%d.%d)", $this->event_ID, $this->round_num, $this->match_num, $this->set_num );
+        return sprintf("S(%d,%d,%d,%d,%d)", $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num, $this->set_num );
+    }
+
+    private function fetchMatch() {
+        $this->match = Match::get( $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num, $this->set_num );
     }
 
 	protected function create() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
         global $wpdb;
         
         parent::create();
         
         $table = $wpdb->prefix . self::$tablename;
+        $wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE;");
         
-        $sql = "SELECT COUNT(*) FROM $table WHERE event_ID=%d AND round_num=%d AND match_num=%d AND set_num=%d;";
-        $exists = (int) $wpdb->get_var($wpdb->prepare( $sql, $this->event_ID, $this->round_num, $this->match_num, $this->set_num ), 0 ,0 );
-        
-        //If this set arleady exists call update
-        if($exists > 0) {
-            $this->isnew = false;
-            $mess = __( "E($this->event_ID) R($this->round_num) M($this->match_num) Set($this->set_num) already exists." );
-            $code = 600;
-            throw new InvalidSetException( $mess, $code );
+        if( $this->set_num > 0 ) {
+            $sql = "SELECT COUNT(*) FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d AND match_num=%d AND set_num=%d;";
+            $exists = (int) $wpdb->get_var($wpdb->prepare( $sql, $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num, $this->set_num ), 0 ,0 );
+            
+            if($exists > 0) {
+                $this->isnew = false;
+                $mess = __( sprintf("%s -> %s already exists.",$loc, $this->toString() ) );
+                $code = 600;
+                throw new InvalidSetException( $mess, $code );
+            }
         }
+        else {
+            //If set_num is null or zero, then use the next largest value from the db
+            $sql = "SELECT IFNULL(MAX(set_num),0) FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d AND match_num=%d;";
+            $safe = $wpdb->prepare( $sql, $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num );
+            $this->set_num = $wpdb->get_var( $safe ) + 1;
+            error_log( sprintf("%s %s set number assigned.", $loc, $this->toString() ) );
+        }
+        
  
         $values = array( 'event_ID'       => $this->event_ID
+                        ,'bracket_num'    => $this->bracket_num
                         ,'round_num'      => $this->round_num
                         ,'match_num'      => $this->match_num
                         ,'set_num'        => $this->set_num
@@ -290,19 +323,21 @@ class Set extends AbstractData
                         ,'visitor_ties'   => $this->visitor_ties
                         ,'early_end'      => $this->early_end
                         ,'comments'       => $this->comments );
-		$formats_values = array( '%d','%d','%d','%d','%d','%d','%d','%d','%d','%d', '%d', '%s' );
+		$formats_values = array( '%d', '%d','%d','%d','%d','%d','%d','%d','%d','%d','%d', '%d', '%s' );
 		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
         $result =  $wpdb->rows_affected;
+        $wpdb->query( "UNLOCK TABLES;" );
 		$this->isnew = false;
-		$this->isdirty = false;
-
-		error_log( "Set::create $result rows affected." );
+        $this->isdirty = false;
+        
+        error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result) );
 
 		return $result;
 	}
 
 	protected function update() {
 		global $wpdb;
+        $loc = __CLASS__ . '::' . __FUNCTION__;
 
         parent::update();
 
@@ -316,15 +351,16 @@ class Set extends AbstractData
                         ,'comments'       => $this->comments );
 		$formats_values = array( '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s'  );
         $where = array('event_ID'       => $this->event_ID
+                      ,'bracket_num'    => $this->bracket_num
                       ,'round_num'      => $this->round_num
                       ,'match_num'      => $this->match_num
                       ,'set_num'        => $this->set_num );
-		$formats_where  = array( '%d', '%d', '%d', '%d' );
+		$formats_where  = array( '%d', '%d', '%d', '%d', '%d' );
 		$wpdb->update( $wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where );
 		$this->isdirty = false;
         $result =  $wpdb->rows_affected;
 
-		error_log( "Set::update $result rows affected." );
+        error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result) );
 
 		return $result;
     }
@@ -335,6 +371,7 @@ class Set extends AbstractData
     protected static function mapData( $obj, $row ) {
         parent::mapData( $obj, $row );
         $obj->event_ID        = (int) $row["event_ID"];
+        $obj->bracket_num     = (int) $row["bracket_num"];
         $obj->round_num       = (int) $row["round_num"];
         $obj->match_num       = (int) $row["match_num"];
         $obj->set_num         = (int) $row["set_num"];
@@ -346,10 +383,6 @@ class Set extends AbstractData
         $obj->visitor_ties    = (int) $row["visitor_ties"];
         $obj->early_end       = (int) $row["early_end"];
         $obj->comments        = $row["comments"];
-    }
- 
-    private function getIndex( $obj ) {
-        return $obj->getPosition();
     }
 
     private function init() {
