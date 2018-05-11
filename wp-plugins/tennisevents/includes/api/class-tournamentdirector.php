@@ -481,7 +481,7 @@ class TournamentDirector
         $started = false;
         $umpire = $this->getChairUmpire();
         $bracket = $this->event->getBracket( $bracketName );
-        if( !isnull( $bracket ) ) {
+        if( !is_null( $bracket ) ) {
             foreach( $bracket->getMatches() as $match ) {
                 $status = $umpire->matchStatus( $match );
                 error_log( sprintf( "%s(%s) -> %s's bracket has status='%s'", $loc, $match->toString(), $bracketName, $status ) );
@@ -525,7 +525,7 @@ class TournamentDirector
      */
     public function signupSize( string $bracketName = Bracket::WINNERS ) {
         $bracket = $this->event->getBracket( $bracketName );
-        return isset( $bracket) ? 0 : $bracket->signupSize( );
+        return !isset( $bracket) ? 0 : $bracket->signupSize( );
     }
 
     /**

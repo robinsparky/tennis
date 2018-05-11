@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * @group move
  */
-class tournamentTweakTest extends TestCase
+class tournamentMoveTest extends TestCase
 {
     public static $tournamentEvt = 0;
     public static $round = 1;

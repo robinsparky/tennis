@@ -616,6 +616,9 @@ class Match extends AbstractData
         //var_dump(debug_backtrace());
         if( !isset( $this->sets ) || $force ) {
             $this->fetchSets();
+            foreach( $this->sets as $set ) {
+                $set->setMatch( $this );
+            }
         }
         usort( $this->sets, array( __CLASS__, 'sortBySetNumberAsc' ) );
         return $this->sets;
@@ -793,6 +796,7 @@ class Match extends AbstractData
      * @throws InvalidMatchException
      */
     public function isValid() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
         $mess = '';
 
         $evtId = isset( $this->event_ID ) ? $this->event_ID : '???';
@@ -836,12 +840,12 @@ class Match extends AbstractData
             $code = 530;
             error_log( $mess );
         }
-        elseif( $this->round_num === 0 && ( !isset( $this->home) || !isset( $this->visitor ) ) ) {
+        elseif( $this->round_num === 0 && ( !isset( $this->home ) || !isset( $this->visitor ) ) ) {
             $mess = __( "$id is a round 0 match and must have both home and visitor entrants." );
             $code = 535;
             error_log( $mess );
         }
-        elseif( $this->round_num === 1 && !isset( $this->home) ) {
+        elseif( $this->round_num === 1 && !isset( $this->home ) ) {
             $mess = __( "$id is a round 1 match and must have at least a home entrant." );
             $code = 540;
             error_log( $mess );
@@ -948,6 +952,8 @@ class Match extends AbstractData
      * Fetch the zero, 1 or 2 Entrants from the database.
      */
     private function fetchEntrants() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
         $contestants = Entrant::find( $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num );
         switch( count( $contestants ) ) {
             case 0:
@@ -980,6 +986,7 @@ class Match extends AbstractData
                 throw new InvalidMatchException( sprintf( "Match %s has %d entrants.", $this->toString(), count( $contestants ) ) );
             break;
         }
+        error_log( sprintf( "%s(%s) has %d entrants.", $loc, $this->toString(), count( $contestants ) ) );
     }
 
 	/**
@@ -988,9 +995,6 @@ class Match extends AbstractData
     private function fetchSets() {
         //var_dump(debug_backtrace());
         $this->sets = Set::find( $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num );
-        foreach( $this->sets as $set ) {
-            $set->setMatch( $this );
-        }
     }
 
 	protected function create() {

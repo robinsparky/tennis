@@ -56,7 +56,8 @@ class tournamentSetupTest extends TestCase
         $this->createSignup( $size, 2 );
         $this->assertEquals( $size, $td->signupSize() );
 
-        $num = $td->schedulePreliminaryRounds();
+        $watershed = 2;
+        $num = $td->schedulePreliminaryRounds( false, $watershed );
         $rnds = $td->totalRounds();
 
         $this->assertEquals( 2, $rounds, 'Number of rounds');
@@ -137,7 +138,7 @@ class tournamentSetupTest extends TestCase
 
         for( $i = 1; $i <= $size; $i++ ) {
             $s = max( 0, $seeds-- );
-            self::$tournamentEvt->addToDraw( "Player $i", $s );
+            self::$tournamentEvt->addToSignup( "Player $i", $s );
         }
         return self::$tournamentEvt->save();
     }

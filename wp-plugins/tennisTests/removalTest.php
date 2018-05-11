@@ -16,6 +16,9 @@ class RemovalTest extends TestCase
     public static $mens;
 
     public function test_remove_sets() {
+        $title = "Remove Sets";
+        error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>$title>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+
         $clubs = Club::search('Tyandaga');
         $this->assertCount(1,$clubs);
         $club = $clubs[0];  
@@ -57,6 +60,8 @@ class RemovalTest extends TestCase
     }
 
     public function test_remove_signup() {
+        $title = "Remove Signup";
+        error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>$title>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
         $bracket = self::$mens->getBracket();
         $this->assertEquals( Bracket::WINNERS, $bracket->getName(),'Winners bracket');
@@ -79,12 +84,13 @@ class RemovalTest extends TestCase
         $this->assertEquals( 0, self::$mens->signupSize() );
         $this->assertEquals( self::$mens->signupSize(), $bracket->signupSize(), '3. Event and bracket equal signup size');
 
-        $this->assertEquals( 13, self::$mens->save() );
+        $this->assertEquals( 14, self::$mens->save() ); //The 14th row deleted is the Bracket
 
     }
 
     public function test_remove_events() {
-
+        $title = "Remove Events";
+        error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>$title>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         $children = self::$mens->getChildEvents();
         $root = self::$mens->getRoot();
         $this->assertCount(3,$root->getChildEvents());

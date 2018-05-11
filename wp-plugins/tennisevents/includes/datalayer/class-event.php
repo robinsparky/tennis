@@ -834,19 +834,6 @@ class Event extends AbstractData
 			$mess = __('Root event must be associated with at least one club', TennisEvents::TEXT_DOMAIN );
 		}
 
-		if( isset( $this->brackets ) ) {
-			$found = false;
-			foreach( $this->getBrackets() as $bracket ) {
-				if( Bracket::WINNERS === $bracket->getName() ) {
-					$found = true;
-					break;
-				}
-			}
-			if( !$found && $this->isLeaf() ) {
-				$mess = __('Leaf event must have at least a Winners bracket.', TennisEvents::TEXT_DOMAIN );
-			}
-		}
-
 		if(strlen( $mess ) > 0) throw new InvalidEventException( $mess );
 
 		return true;
@@ -906,6 +893,7 @@ class Event extends AbstractData
 		$this->brackets = Bracket::find( $this->getID() );
 		if( count( $this->brackets ) === 0 ) {
 			$this->createBracket( Bracket::WINNERS );
+			$this->setDirty();
 		}
 
 		foreach( $this->brackets as $bracket ){
@@ -927,6 +915,8 @@ class Event extends AbstractData
 
 
 	protected function create() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+
         global $wpdb;
         
         parent::create();
@@ -950,12 +940,14 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( sprintf( "Event::create(%d) -> %d rows affected.", $this->getID(), $result ) );
+		error_log( sprintf( "%s(%d) -> %d rows affected.", $loc, $this->getID(), $result ) );
 
 		return $result;
 	}
 
 	protected function update() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+
 		global $wpdb;
 
         parent::update();
@@ -979,7 +971,7 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( sprintf( "Event::update(%d) -> %d rows affected.", $this->getID(), $result ) );
+		error_log( sprintf( "%s(%d) -> %d rows affected.",$loc, $this->getID(), $result ) );
 		
 		return $result;
 	}
@@ -987,8 +979,8 @@ class Event extends AbstractData
     /**
      * Map incoming data to an instance of Event
      */
-    protected static function mapData($obj,$row) {
-		parent::mapData($obj,$row);
+    protected static function mapData( $obj, $row ) {
+		parent::mapData( $obj, $row );
         $obj->name       = $row["name"];
         $obj->event_type = $row["event_type"];
         $obj->parent_ID  = $row["parent_ID"];
@@ -1079,7 +1071,7 @@ class Event extends AbstractData
 		//Delete ALL Brackets removed from this Event
 		foreach( $this->bracketsToBeDeleted as &$bracket ) {
 			$bracketnums = array_map( function($e){return $e->getBracketNumber();}, $this->getBrackets() );
-			if( !in_array( $bracket->getBracketNumber, $bracketnums ) ) {
+			if( !in_array( $bracket->getBracketNumber(), $bracketnums ) ) {
 				$result += $bracket->delete();
 				unset( $bracket );		
 			}	

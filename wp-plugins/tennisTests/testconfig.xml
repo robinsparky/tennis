@@ -5,8 +5,8 @@
         convertNoticesToExceptions="true"
         convertWarningsToExceptions="true"
         strict="true"
-        stopOnError="false"
-        stopOnFailure="false"
+        stopOnError="true"
+        stopOnFailure="true"
         stopOnIncomplete="false"
         stopOnSkipped="false"
         stopOnRisky="false"
@@ -24,11 +24,11 @@
   </testsuite>
   <testsuite name="tournaments">
     <file>tests/tournamentSetupTest.php</file>
-    <file>tests/tournamentTweakTest.php</file>
+    <file>tests/tournamentMoveTest.php</file>
     <file>tests/tournamentScoringTest.php</file>
   </testsuite>
   <testsuite name="current">
-    <file>tests/matchTest.php</file>
+    <file>tests/tournamentSetupTest.php</file>
   </testsuite>
 </testsuites>
 </phpunit>

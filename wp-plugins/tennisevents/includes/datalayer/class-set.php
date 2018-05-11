@@ -132,7 +132,6 @@ class Set extends AbstractData
     }
 
     public function setMatch( Match &$match ) {
-        $match->isValid();
         $this->match       = $match;
         $this->event_ID    = $match->getBracket()->getEvent()->getID();
         $this->bracket_num = $match->getBracket()->getBracketNumber();

@@ -79,6 +79,8 @@ class Entrant extends AbstractData
 	 * assigned to a Match in a Round
      */
     public static function find(...$fk_criteria) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
@@ -86,65 +88,86 @@ class Entrant extends AbstractData
 		
 		if(isset($fk_criteria[0]) && is_array($fk_criteria[0])) $fk_criteria = $fk_criteria[0];
 
-		if(array_key_exists('event_ID',$fk_criteria)
-		&& array_key_exists('round_num',$fk_criteria)
-		&& array_key_exists('match_num',$fk_criteria)) {
+		if(array_key_exists( 'event_ID', $fk_criteria )
+		&& array_key_exists( 'bracket_num', $fk_criteria )
+		&& array_key_exists( 'round_num', $fk_criteria )
+		&& array_key_exists( 'match_num', $fk_criteria ) ) {
 			$where[] = $fk_criteria["event_ID"];
+			$where[] = $fk_criteria["bracket_num"];
 			$where[] = $fk_criteria["round_num"];
 			$where[] = $fk_criteria["match_num"];
-			$joinTable = $wpdb->prefix . "tennis_match_entrant";
+			$bracketTable = $wpdb->prefix . "tennis_bracket";
+			$matchEntrantTable = $wpdb->prefix . "tennis_match_entrant";
 			
-			$sql = "SELECT   j.match_event_ID as event_ID
-							,j.match_round_num as round_num 
-							,j.match_num as match_num 
-							,j.is_visitor as is_visitor 
-							,e.position as position 
-							,e.name as name 
-							,e.seed as seed 
-					FROM $table e 
-					INNER JOIN $joinTable j ON j.match_event_ID = e.event_ID 
-											AND j.entrant_position = e.position 
-					WHERE e.event_ID=%d 
-					AND   j.match_round_num=%d 
-					AND   j.match_num=%d 
-					ORDER BY e.position;";
+			$sql = "SELECT   me.match_event_ID as event_ID
+							,me.match_bracket_num as bracket_num
+							,me.match_round_num as round_num 
+							,me.match_num as match_num 
+							,me.is_visitor as is_visitor 
+							,ent.position as position 
+							,ent.name as name 
+							,ent.seed as seed 
+					FROM $table ent 
+					INNER JOIN $matchEntrantTable me on me.entrant_position=ent.position AND me.match_event_ID=ent.event_ID
+					INNER JOIN $bracketTable b ON b.event_ID=me.match_event_ID AND b.bracket_num=me.match_bracket_num  
+					WHERE ent.event_ID=%d 
+					and   b.bracket_num=%d 
+					AND   me.match_round_num=%d 
+					AND   me.match_num=%d 
+					ORDER BY ent.position;";
+			$format = "%s(%d,%d,%d,%d) -> %d rows returned.";
 		} 
-		elseif(count($fk_criteria) === 3) {
+		elseif(count($fk_criteria) === 4) {
 				$where[] = $fk_criteria[0]; //Event
-				$where[] = $fk_criteria[1]; //Round
-				$where[] = $fk_criteria[2]; //Match
-				$joinTable = $wpdb->prefix . "tennis_match_entrant";
+				$where[] = $fk_criteria[1]; //Bracket
+				$where[] = $fk_criteria[2]; //Round
+				$where[] = $fk_criteria[3]; //Match
+				$bracketTable = $wpdb->prefix . "tennis_bracket";
+				$matchEntrantTable = $wpdb->prefix . "tennis_match_entrant";
 				
-			$sql = "SELECT j.match_event_ID as event_ID 
-						,j.match_round_num as round_num 
-						,j.match_num as match_num 
-						,j.is_visitor as is_visitor 
-						,e.position as position 
-						,e.name as name 
-						,e.seed  as seed 
-				FROM $table e 
-				INNER JOIN $joinTable j ON j.match_event_ID = e.event_ID 
-										AND j.entrant_position = e.position 
-				WHERE e.event_ID=%d 
-				AND   j.match_round_num=%d 
-				AND   j.match_num=%d 
-				ORDER BY e.position;";
+			$sql = "SELECT   me.match_event_ID as event_ID
+							,me.match_bracket_num as bracket_num
+							,me.match_round_num as round_num 
+							,me.match_num as match_num 
+							,me.is_visitor as is_visitor 
+							,ent.position as position 
+							,ent.name as name 
+							,ent.seed as seed 
+				FROM $table ent 
+				INNER JOIN $matchEntrantTable me on me.entrant_position=ent.position AND me.match_event_ID=ent.event_ID
+				INNER JOIN $bracketTable b ON b.event_ID=me.match_event_ID AND b.bracket_num=me.match_bracket_num  
+				WHERE ent.event_ID=%d 
+				and   b.bracket_num=%d 
+				AND   me.match_round_num=%d 
+				AND   me.match_num=%d 
+				ORDER BY ent.position;";
+
+			$format = "%s(%d,%d,%d,%d) -> %d rows returned.";
 		}
 		elseif(count($fk_criteria) === 1) {
 			$where[] = $fk_criteria[0];
 			$sql = "select event_ID,position,name,seed 
 					from $table where event_ID = %d order by position;";
+			$format = "%s(%d) -> %d rows returned.";
 		}
 		else {
+			error_log( sprintf("%s -> received %d args so 0 rows returned.", $loc, $count( $fk_criteria) ) );
 			return $col;
 		}
 
 		$safe = $wpdb->prepare($sql,$where);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
+		if( count( $where) > 1 ) {
+			error_log( sprintf($format, $loc, $where[0], $where[1], $where[2], $where[3], $wpdb->num_rows ) );
+		}
+		else {
+			error_log( sprintf($format, $loc, $where[0], $wpdb->num_rows ) );
+		}
+		
 		foreach($rows as $row) {
             $obj = new Entrant;
-            self::mapData($obj,$row);
+            self::mapData( $obj, $row );
 			$col[] = $obj;
 		}
 		return $col;
@@ -153,35 +176,39 @@ class Entrant extends AbstractData
 	/**
 	 * Get instance of a Entrant using it's primary key: event_ID, position
 	 */
-    static public function get(int ...$pks) {
+    static public function get( int ...$pks ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$obj = NULL;
-		if(count($pks) !== 2) return $obj;
+
+		if( count( $pks ) !== 2 ) return $obj;
 
 		$sql = "select event_ID,position,name,seed 
 				from $table where event_ID=%d and position=%d;";
-		$safe = $wpdb->prepare($sql,$pks);
-		$rows = $wpdb->get_results($safe, ARRAY_A);
+		$safe = $wpdb->prepare( $sql, $pks );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		error_log("Entrant::get(pks) $wpdb->num_rows rows returned.");
+		error_log( sprintf("%s(%d,%d) -> %d rows returned.", $loc, $pks[0], $pks[1], $wpdb->num_rows ) );
 
 		if($rows.length === 1) {
-			$obj = new Entrant(...$pks);
-			self::mapData($obj,$rows[0]);
+			$obj = new Entrant( ...$pks );
+			self::mapData( $obj, $rows[0] );
 		}
 		return $obj;
 	}
 
-	static public function deleteEntrant(int $eventId, int $pos) {
+	static public function deleteEntrant( int $eventId, int $pos ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		
+		global $wpdb;
 		$result = 0;
-		if(isset($eventId) && isset($pos)) {
-			global $wpdb;
-			$table = $wpdb->prefix . self::$tablename;
-			$wpdb->delete($table,array('event_ID'=>$eventId,'position'=>$pos),array('%d','%d'));
-			$result = $wpdb->rows_affected;
-		}
-		error_log("Entrant.deleteEntrant: deleted $result");
+		$table = $wpdb->prefix . self::$tablename;
+		$wpdb->delete( $table, array( 'event_ID'=>$eventId, 'position'=>$pos), array( '%d', '%d' ) );
+		$result = $wpdb->rows_affected;
+
+		error_log( sprintf( "%s(%d,%d) -> deleted %d row(s)", $loc, $eventId, $pos, $result ) );
 		return $result;
 	}
 
