@@ -105,16 +105,18 @@ class Bracket extends AbstractData
 	/*************** Instance Methods ****************/
 
 	public function __destruct() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        error_log("$loc ... ");
 
 		if( isset( $this->matches ) ) {
 			foreach($this->matches as &$match) {
-				$match = null;
+				unset( $match );
 			}
         }
         
 		if( isset( $this->matchesToBeDeleted ) ) {
 			foreach($this->matchesToBeDeleted as &$match) {
-				$match = null;
+				unset( $match );
 			}
 		}
     }
@@ -358,9 +360,10 @@ class Bracket extends AbstractData
 			$i=0;
 			foreach( $this->matches as $match ) {
 				$this->matchesToBeDeleted[] = $match;
-				unset( $this->matches[$i++] );
+				$match = null;
 			}
-		}
+        }
+        $this->matches = array();
 		return $this->setDirty();
     }
     

@@ -335,10 +335,15 @@ class Match extends AbstractData
     }
 
     public function __destruct() {
-        $this->event = null;
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        error_log("$loc ... ");
 
-        foreach($this->getSets() as &$set) {
-            $set = null;
+        unset( $this->event );
+
+        if(isset( $this->sets ) ) {
+            foreach($this->sets as &$set) {
+                unset( $set );
+            }
         }
     }
 

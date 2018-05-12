@@ -434,6 +434,8 @@ class TournamentDirector
      *       one should save these earlier.
      */
     public function save() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        error_log("$loc -> called ...");
         return $this->event->save();
     }
 
@@ -555,7 +557,7 @@ class TournamentDirector
     }
 
     /**
-     * Remove all brackets and matches for a tennis event specific bracket
+     * Remove all brackets and matches for a tennis event
      */
     public function removeBrackets( $force = false ) {
         $result = 0;
@@ -736,6 +738,7 @@ class TournamentDirector
         if( isset( $loserbracket ) && $this->event->getFormat() === Format::SINGLE_ELIM ) {
             throw new InvalidTournamentException( __("Loser bracket defined for single elimination tournament.", TennisEvents::TEXT_DOMAIN ) );
         }
+
         if( !isset( $loserbracket ) && $this->event->getFormat() === Format::DOUBLE_ELIM) {
             $loserbracket = $this->event->createBracket( Bracket::LOSERS );
         }
@@ -763,6 +766,7 @@ class TournamentDirector
             //Remove any existing matches ... we know they have not started yet
             error_log( sprintf("%s remove existing matches...", $loc ) );
             $this->removeMatches( $bracket->getName() );
+            $this->save();
             $this->calculateEventSize( $bracket->getName() );
 
             error_log( sprintf("%s getting signup...", $loc ) );
@@ -800,7 +804,6 @@ class TournamentDirector
             if( (count( $unseeded ) + count( $seeded )) > 0 ) throw new InvalidTournamentException( __( "Did not schedule all players into initial rounds." ) );
 
             $matchesCreated += $bracket->numMatches();
-            error_log( sprintf("%s saving...", $loc ) );
             $this->save();
         }
         error_log("<<<<<<<<<<<<<<<<<<<<<<<$loc<<<<<<<<<<<<<<<<<<<<<<<<<<<");
@@ -925,7 +928,7 @@ class TournamentDirector
             }
             ++$ctr;
         }
-        error_log('>>>>>');
+        error_log('<<<<<');
     }
     
     /**
@@ -971,30 +974,26 @@ class TournamentDirector
         error_log( "$loc template ...");
         $template->setIteratorMode(SplDoublyLinkedList::IT_MODE_FIFO);
         $ctr = 0;
-        //1. deal with bye matches
-        for( $template->rewind(); $template->valid(); $template->next() ) {
-            if( !$template->current()->is_bye ) continue;
-            error_log( sprintf("    round=%d, match_num=%d, is_bye=%d", $template->current()->round, $template->current()->match_num, $template->current()->is_bye ) );
-
-            $match =  new Match( $this->event->getID()
-                               , $bracket->getBracketNumber()
-                               , $initialRound
-                               , $template->current()->match_num ); 
-            $match->setIsBye( true );
-            $match->setMatchType( $this->matchType );
-            $home = $ctr & 1 ? array_pop( $seeded ) : array_shift( $seeded );
-            if( is_null( $home ) ) $home = array_shift( $unseeded );
-            $match->setHomeEntrant( $home );
-            $bracket->addMatch( $match );
-            ++$ctr;
-        }
-
-        //2. deal with all other matches
         $template->setIteratorMode( SplDoublyLinkedList::IT_MODE_FIFO );
         for( $template->rewind(); $template->valid(); $template->next() ) {
-            if( $template->current()->is_bye ) continue;
-
             error_log( sprintf("    round=%d, match_num=%d, is_bye=%d", $template->current()->round, $template->current()->match_num, $template->current()->is_bye ) );
+            
+            if( $template->current()->is_bye ) {
+                $match =  new Match( $this->event->getID()
+                                   , $bracket->getBracketNumber()
+                                   , $initialRound
+                                   , $template->current()->match_num ); 
+                $match->setIsBye( true );
+                $match->setMatchType( $this->matchType );
+                $home = $ctr & 1 ? array_pop( $seeded ) : array_shift( $seeded );
+                if( is_null( $home ) ) $home = array_shift( $unseeded );
+                $match->setHomeEntrant( $home );
+                $bracket->addMatch( $match );
+                error_log( sprintf( "    Created Match=%s",$match->title() ) );
+                ++$ctr;
+                continue;
+            }
+
             $match =  new Match( $this->event->getID()
                                , $bracket->getBracketNumber()
                                , $initialRound
@@ -1009,21 +1008,25 @@ class TournamentDirector
             $visitor = array_shift( $unseeded );
             $match->setVisitorEntrant( $visitor );
             $bracket->addMatch( $match );
+            error_log( sprintf( "    Created Match=%s",$match->title() ) );
             ++$ctr;
         }
-        error_log( "$loc -> Created $ctr matches!"); 
-        error_log('>>>>>');    
+        error_log( sprintf("%s -> ctr=%d; bracket=%d", $loc, $ctr, $bracket->numMatches())); 
+        error_log('<<<<<');    
     }
 
     private function makeTemplate( int $round, int $size, &$template ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        error_log( sprintf("%s called with round=%d, size=%d", $loc, $round, $size) );
+        static $numCalls = 0;
 
         if( $size <= 0 ) return $size;
 
+        ++$numCalls;
+        error_log( sprintf("%s call #%d with round=%d, size=%d", $loc, $numCalls, $round, $size) );
+
         $numRounds = $this->calculateExponent( $size );
         $numToEliminate = $size - pow( 2, $numRounds );
-        error_log( sprintf("%s numRounds=%d, numToEliminate=%d", $loc, $numRounds, $numToEliminate) );
+        error_log( sprintf("%s ---- numRounds=%d, numToEliminate=%d", $loc, $numRounds, $numToEliminate) );
 
         if( 0 === $numToEliminate ) {
             while( $size > 0 ) {
@@ -1037,20 +1040,39 @@ class TournamentDirector
             return 0;
         }
         elseif( 3 < $numToEliminate ) {
-            $bholder = new stdClass;
-            $bholder->round = $round;
-            $bholder->match_num = $template->isEmpty() ? 1 : $template->top()->match_num + 1;
-            $bholder->is_bye = true;
-            $template->push( $bholder );
-            $size -= 1;
+            if( $numCalls & 2 ) {
+                $bholder = new stdClass;
+                $bholder->round = $round;
+                $bholder->match_num = $template->isEmpty() ? 1 : $template->top()->match_num + 1;
+                $bholder->is_bye = true;
+                $template->push( $bholder );
+                $size -= 1;
 
-            for( $i = 0; $i < 3; $i++ ) {
-                $holder = new stdClass;
-                $holder->round = $round;
-                $holder->match_num = $template->isEmpty() ? 1 : $template->top()->match_num + 1;
-                $holder->is_bye = false;
-                $template->push( $holder );
-                $size -= 2;
+                for( $i = 0; $i < 3; $i++ ) {
+                    $holder = new stdClass;
+                    $holder->round = $round;
+                    $holder->match_num = $template->isEmpty() ? 1 : $template->top()->match_num + 1;
+                    $holder->is_bye = false;
+                    $template->push( $holder );
+                    $size -= 2;
+                }
+            }
+            else {
+                for( $i = 0; $i < 3; $i++ ) {
+                    $holder = new stdClass;
+                    $holder->round = $round;
+                    $holder->match_num = $template->isEmpty() ? 1 : $template->top()->match_num + 1;
+                    $holder->is_bye = false;
+                    $template->push( $holder );
+                    $size -= 2;
+                }
+                
+                $bholder = new stdClass;
+                $bholder->round = $round;
+                $bholder->match_num = $template->isEmpty() ? 1 : $template->top()->match_num + 1;
+                $bholder->is_bye = true;
+                $template->push( $bholder );
+                $size -= 1;
             }
         }
         else {

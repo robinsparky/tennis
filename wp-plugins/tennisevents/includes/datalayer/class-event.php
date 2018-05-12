@@ -180,34 +180,37 @@ class Event extends AbstractData
 	}
 	
     public function __destruct() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log("$loc ... ");
+		
 		$this->parent = null;
 			if(isset($this->childEvents)) {
 			foreach($this->childEvents as &$event){
-				$event = null;
+				unset( $event );
 			}
 		}
 	
 		if(isset( $this->clubs ) ) {
-			foreach($this->clubs as &$club) {
-				$club = null;
+			foreach( $this->clubs as &$club ) {
+				unset( $club );
 			}
 		}
 
 		if( isset( $this->signup ) ) {
 			foreach($this->signup as &$draw) {
-				$draw = null;
+				unset( $draw );
 			}
 		}
 
 		if( isset( $this->brackets ) ) {
 			foreach($this->brackets as &$bracket) {
-				$bracket = null;
+				unset( $bracket );
 			}
 		}
 
 		if( isset( $this->bracketsToBeDeleted ) ) {
 			foreach($this->bracketsToBeDeleted as &$bracket) {
-				$bracket = null;
+				unset( $bracket );
 			}
 		}
 	}

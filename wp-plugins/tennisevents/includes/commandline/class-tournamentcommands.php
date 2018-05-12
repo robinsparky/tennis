@@ -196,7 +196,7 @@ class TournamentCommands extends WP_CLI_Command {
         CmdlineSupport::preCondtion();
 
         $force  = array_key_exists( 'force', $assoc_args )  ? $assoc_args["force"] : '';
-        if( strncasecmp( $force,'true') === 0 ) $force = true;
+        if( strcasecmp( $force,'true') === 0 ) $force = true;
         else $force = false;
 
         $env = CmdlineSupport::instance()->getEnvError();
