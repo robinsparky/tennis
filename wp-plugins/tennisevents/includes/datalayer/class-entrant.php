@@ -312,6 +312,7 @@ class Entrant extends AbstractData
 	}
 	
 	public function delete() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 		global $wpdb;
 		$result = 0;
 		$eventId = $this->getEventId();
@@ -322,8 +323,9 @@ class Entrant extends AbstractData
 			$wpdb->delete( $table,array( 'event_ID'=>$eventId,'position'=>$pos ),array( '%d', '%d' ) );
 			$result = $wpdb->rows_affected;
 
-			error_log( "Entrant.delete: deleted $result rows" );
+			error_log( sprintf("%s(%s): deleted %d rows", $loc, $this->toString(), $result ) );
 		}
+		$this->setDirty();
 		return $result;
 	}
 
@@ -334,7 +336,7 @@ class Entrant extends AbstractData
 		$mess = '';
 		$pos = isset( $this->position ) ? $this->position : '???';
 		$evtId = isset( $this->event_ID ) ? $this->event_ID : '???';
-		$id = "Event($evtId) Position($pos): ";
+		$id = $this->toString();
 		$code = 0;
 
 		if( !isset( $this->event_ID ) ) {

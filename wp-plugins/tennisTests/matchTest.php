@@ -48,11 +48,11 @@ class MatchTest extends TestCase
         $all = self::$mens->getSignup();
         $this->assertCount( 13, $all );
 
-        $bracket = self::$mens->getBracket();
+        $bracket = self::$mens->getWinnersBracket();
         $this->assertEquals( Bracket::WINNERS, $bracket->getName(), 'Winners bracket');
         $this->assertTrue( self::$mens->getID() === $bracket->getEvent()->getID(), 'Mens equals parent' );
         $this->assertTrue( self::$mens->isDirty() );
-        $this->assertEquals( 1, self::$mens->save());
+        $this->assertEquals( 0, self::$mens->save()); //zero because GetWinnersBracket does a save
 
         $round = 1;
         $matchnum = 0;
@@ -79,13 +79,13 @@ class MatchTest extends TestCase
 
         $this->assertFalse(self::$mens->isDirty());
         $this->assertFalse( $bracket->isDirty() );
-        $this->assertEquals(6, $bracket->numMatches());
+        $this->assertEquals(6, $bracket->numMatches(), 'numMatches is 6');
 
         $matches = $bracket->getMatches();
-        $this->assertCount( 6, $matches );
+        $this->assertCount( 6, $matches, 'count matches is 6' );
 
         foreach($matches as $match) {
-            $this->assertGreaterThan( 0, $match->getMatchNumber(),'Match number > 0' );
+            $this->assertGreaterThan( 0, $match->getMatchNumber(), 'Match number > 0' );
             $match->setMatchDate( 2018, 4, 16 );
             $this->assertEquals( '2018-04-16', $match->getMatchDate_Str(), 'Test match date');
             $match->setMatchTime( 2, 30 );

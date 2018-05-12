@@ -153,12 +153,13 @@ class Event extends AbstractData
 	}
 	
 	static public function deleteEvent( int $eventId ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$result = 0;
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$wpdb->delete( $table,array( 'ID'=>$eventId ), array( '%d' ) );
 		$result = $wpdb->rows_affected;
-		error_log( sprintf("Event.deleteEvent(%d) -> deleted %d row(s)", $eventId, $result ) );
+		error_log( sprintf("%s(%d) -> deleted %d row(s)",$loc, $eventId, $result ) );
 		return $result;
 	}
 
@@ -662,7 +663,7 @@ class Event extends AbstractData
 			unset( $dr );
 		}
 		$this->signup = array();
-		$this->removeBrackets();
+		$this->removeBrackets(); //With no signups, must get rid of brackets and matches
 		return $this->setDirty();
 	}
 	
@@ -728,7 +729,45 @@ class Event extends AbstractData
 	 * Get the winners bracket for this event.
 	 */
 	public function getWinnersBracket( ) {
-		return $this->getBracket( Bracket::WINNERS );
+		$bracket = $this->getBracket( Bracket::WINNERS );
+		if( is_null( $bracket ) ) {
+			if( !$this->createBracket( Bracket::WINNERS ) ) {
+				throw new InvalidEventException(__("Could not create Winners bracket.",TennisEvents::TEXT_DOMAIN) );
+			}
+			$bracket = $this->getBracket( Bracket::WINNERS );
+			$bracket->save();
+		}
+		return $bracket;
+	}
+
+	/**
+	 * Get the losers bracket for this event.
+	 */
+	public function getLosersBracket( ) {
+		$bracket = $this->getBracket( Bracket::LOSERS );
+		if( is_null( $bracket ) ) {
+			if( !$this->createBracket( Bracket::LOSERS ) ) {
+				throw new InvalidEventException(__("Could not create Losers bracket.",TennisEvents::TEXT_DOMAIN) );
+			}
+			$bracket = $this->getBracket( Bracket::LOSERS );
+			$bracket->save();
+		}
+		return $bracket;
+	}
+	
+	/**
+	 * Get the consolation bracket for this event.
+	 */
+	public function getConsolationBracket( ) {
+		$bracket = $this->getBracket( Bracket::CONSOLATION );
+		if( is_null( $bracket ) ) {
+			if( !$this->createBracket( Bracket::CONSOLATION ) ) {
+				throw new InvalidEventException(__("Could not create Consolation bracket.",TennisEvents::TEXT_DOMAIN) );
+			}
+			$bracket = $this->getBracket( Bracket::CONSOLATION );
+			$bracket->save();
+		}
+		return $bracket;
 	}
 	
     /**
@@ -807,6 +846,7 @@ class Event extends AbstractData
 		if( isset( $this->brackets ) ) {
 			$i=0;
 			foreach( $this->brackets as $bracket ) {
+				$bracket->removeAllMatches();
 				$this->bracketsToBeDeleted[] = $bracket;
 				unset( $this->brackets[$i++] );
 			}
@@ -844,23 +884,26 @@ class Event extends AbstractData
 	 * All child objects will be deleted via DB Cascade
 	 */
 	public function delete() {
-		$result = 0;
-		$id = $this->getID();
-		if( isset( $id ) ) {
-			global $wpdb;
-			$table = $wpdb->prefix . self::$tablename;
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		global $wpdb;
+		$table = $wpdb->prefix . self::$tablename;
+		$where = array( 'ID'=>$this->getID() );
+		$formats_where = array( '%d' );
+		$wpdb->delete( $table, $where, $formats_where );
+		$result = $wpdb->rows_affected;
+		error_log( sprintf("%s(%s): deleted %d row(s)", $loc, $this->toString(), $result ) );
 
-			$where = array( 'ID'=>$id );
-			$formats_where = array( '%d' );
-			$wpdb->delete( $table, $where, $formats_where );
-			$result = $wpdb->rows_affected;
-			error_log( "Event.delete: deleted $result rows" );
-		}
 		return $result;
 	}
 
 	public function toString() {
 		return sprintf("E(%d)", $this->getID() );
+	}
+
+	public function save():int {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log( sprintf("%s called ...", $loc) );
+		return parent::save();
 	}
 
 	/**
@@ -891,14 +934,10 @@ class Event extends AbstractData
 	 */
 	private function fetchBrackets() {
 		$this->brackets = Bracket::find( $this->getID() );
-		if( count( $this->brackets ) === 0 ) {
-			$this->createBracket( Bracket::WINNERS );
-			$this->setDirty();
-		}
-
 		foreach( $this->brackets as $bracket ){
 			$bracket->setEvent( $this );
 		}
+
 	}
 	
     private function sortBySeedDesc( $a, $b ) {
@@ -940,7 +979,7 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( sprintf( "%s(%d) -> %d rows affected.", $loc, $this->getID(), $result ) );
+		error_log( sprintf( "%s(%s) -> %d rows affected.", $loc, $this->toString(), $result ) );
 
 		return $result;
 	}
@@ -971,7 +1010,7 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( sprintf( "%s(%d) -> %d rows affected.",$loc, $this->getID(), $result ) );
+		error_log( sprintf( "%s(%s) -> %d rows affected.",$loc, $this->toString(), $result ) );
 		
 		return $result;
 	}
@@ -988,17 +1027,6 @@ class Event extends AbstractData
 		$obj->signup_by  = isset( $row['signup_by'] )  ? new DateTime( $row['signup_by'] ) : null;
 		$obj->start_date = isset( $row['start_date'] ) ? new DateTime( $row['start_date'] ) : null;
 		$obj->end_date   = isset( $row["end_date"] )   ? new DateTime( $row["end_date"] ) : null;
-	}
-	
-	private function init() {
-		$this->parent_ID = NULL;
-		$this->parent = NULL;
-		$this->signup_by = null;
-		$this->start_date = null;
-		$this->end_date = null;
-		// $this->name = NULL;
-		// $this->event_type = NULL;
-		// $this->format = NULL;
 	}
 
 	private function manageRelatedData():int {
@@ -1022,7 +1050,25 @@ class Event extends AbstractData
 			}
 			$this->childEventsToBeDeleted = array();
 		}
+		
+		//Save brackets
+		if( isset( $this->brackets ) ) {
+			foreach( $this->brackets as $bracket ) {
+				$result += $bracket->save();
+			}
+		}
 
+		//Delete Brackets removed from this Event
+		foreach( $this->bracketsToBeDeleted as &$bracket ) {
+			$bracketnums = array_map( function($e){return $e->getBracketNumber();}, $this->getBrackets() );
+			if( !in_array( $bracket->getBracketNumber(), $bracketnums ) ) {
+				$result += $bracket->delete();
+				unset( $bracket );		
+			}	
+		}
+		$this->bracketsToBeDeleted = array();
+
+		//Save signups
 		if( isset( $this->signup ) ) {
 			foreach($this->signup as $ent) {
 				$ent->setEventID( $this->getID() );
@@ -1030,7 +1076,7 @@ class Event extends AbstractData
 			}
 		}
 
-		//Delete Entrants that were removed from the draw for this Event
+		//Delete signups (Entrants) that were removed from the draw for this Event
 		if(count($this->entrantsToBeDeleted) > 0 ) {
 			$entrantIds = array_map( function($e){return $e->getID();}, $this->getSignup() );
 			foreach( $this->entrantsToBeDeleted as $entId )  {
@@ -1060,24 +1106,6 @@ class Event extends AbstractData
 			}
 			$this->clubsToBeDeleted = array();
 		}
-
-		//Save brackets
-		if( isset( $this->brackets ) ) {
-			foreach( $this->brackets as $bracket ) {
-				$result += $bracket->save();
-			}
-		}
-
-		//Delete ALL Brackets removed from this Event
-		foreach( $this->bracketsToBeDeleted as &$bracket ) {
-			$bracketnums = array_map( function($e){return $e->getBracketNumber();}, $this->getBrackets() );
-			if( !in_array( $bracket->getBracketNumber(), $bracketnums ) ) {
-				$result += $bracket->delete();
-				unset( $bracket );		
-			}	
-		}
-		$this->bracketsToBeDeleted = array();
-
 
 		return $result;
 	}

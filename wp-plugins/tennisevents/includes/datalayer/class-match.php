@@ -452,7 +452,7 @@ class Match extends AbstractData
     }
     
 	/**
-	 * Choose whether this mmatch is a mens, ladies or mixed event.
+	 * Choose whether this match is a mens, ladies or mixed event.
 	 * @param $mtype 1.1=mens singles, 1.2=ladies singles, 2.1=mens dodubles, 2.2=ladies doubles, 2.3=mixed douibles
 	 * @return true if successful; false otherwise
 	 */
@@ -870,14 +870,13 @@ class Match extends AbstractData
     }
     
     /**
-     * Delete this match
+     * Delete this match.
+     * The related objects are deleted by db cascade.
      */
     public function delete() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
         global $wpdb;		
         
-        // $result = EntrantMatchRelations::remove($this->getEventID(), $this->getBracketNumber(), $this->getRoundNumber(),$this->getMatchNumber(),$this->getHomeEntrant()->getPosition());
-        // $result += EntrantMatchRelations::remove($this->getEventID(), $this->getBracketNumber(), $this->getRoundNumber(),$this->getMatchNumber(),$this->getVisitorEntrant()->getPosition());
-
         $table = $wpdb->prefix . self::$tablename;
         $where = array( 'event_ID' => $this->event_ID
                       , 'bracket_num' => $this->bracket_num
@@ -885,10 +884,10 @@ class Match extends AbstractData
                       , 'match_num' => $this->match_num );
         $formats_where = array( '%d', '%d', '%d', '%d' );
 
-        $wpdb->delete( $table,$where, $formats_where );
+        $wpdb->delete( $table, $where, $formats_where );
         $result = $wpdb->rows_affected;
+        error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
 
-        error_log( sprintf( "Match.delete(%s) -> deleted %d row(s)", $this->toString(), $wpdb->num_rows ) );
         return $result;
     }
 
@@ -930,7 +929,7 @@ class Match extends AbstractData
     }
 
     public function toString() {
-        return sprintf( "M(%d[%d],%d,%d)", $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num );
+        return sprintf( "M(%d,%d,%d,%d)", $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num );
     }
 
     public function title() {
@@ -998,6 +997,7 @@ class Match extends AbstractData
     }
 
 	protected function create() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
         global $wpdb;
         
         parent::create();
@@ -1015,11 +1015,11 @@ class Match extends AbstractData
             if( $exists > 0 ) {
                 $wpdb->query( "UNLOCK TABLES;" );                
                 $code = 570;
-                throw new InvalidMatchException( sprintf("Cannot create '%s' because it already exists", $this->toString() ), $code );
+                throw new InvalidMatchException( sprintf("Cannot create '%s' because it already exists (%d)", $this->toString(), $exists ), $code );
             }
         }
         else {
-            //If match_num is null or zero, then use the next largest value from the db
+            //If match_num is not provided, then use the next largest value from the db
             $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d;";
             $safe = $wpdb->prepare( $sql, $this->event_ID, $this->bracket_num, $this->round_num );
             $this->match_num = $wpdb->get_var( $safe ) + 1;
@@ -1045,10 +1045,10 @@ class Match extends AbstractData
 		$this->isdirty = false;
 
         if($wpdb->last_error) {
-            error_log( sprintf("Match::create(%s) -> sql error: %s", $this->toString(), $wpdb->last_error )  );
+            error_log( sprintf("%s(%s) -> sql error: %s", $loc, $this->toString(), $wpdb->last_error )  );
         }
 
-        error_log( sprintf("Match::create(%s) -> %d rows affected.", $this->toString(), $result ) );
+        error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result ) );
 
         if( isset( $this->sets ) ) {
             foreach($this->sets as &$set) {
@@ -1069,8 +1069,9 @@ class Match extends AbstractData
 	}
 
 	protected function update() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        
 		global $wpdb;
-
         parent::update();
 
         $values = array( 'match_type'  => $this->match_type
@@ -1091,7 +1092,7 @@ class Match extends AbstractData
         $this->isdirty = FALSE;
         $result = $wpdb->rows_affected;
 
-        error_log( sprintf( "Match::update(%s) -> %d rows affected.", $this->toString(), $result ) );
+        error_log( sprintf( "%s(%s) -> %d rows affected.", $loc, $this->toString(), $result ) );
         
         if( isset( $this->sets ) ) {
             foreach( $this->sets as &$set ) {

@@ -17,7 +17,7 @@ class RemovalTest extends TestCase
 
     public function test_remove_sets() {
         $title = "Remove Sets";
-        error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>$title>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
 
         $clubs = Club::search('Tyandaga');
         $this->assertCount(1,$clubs);
@@ -61,7 +61,7 @@ class RemovalTest extends TestCase
 
     public function test_remove_signup() {
         $title = "Remove Signup";
-        error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>$title>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
 
         $bracket = self::$mens->getBracket();
         $this->assertEquals( Bracket::WINNERS, $bracket->getName(),'Winners bracket');
@@ -90,16 +90,16 @@ class RemovalTest extends TestCase
 
     public function test_remove_events() {
         $title = "Remove Events";
-        error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>$title>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
         $children = self::$mens->getChildEvents();
         $root = self::$mens->getRoot();
         $this->assertCount(3,$root->getChildEvents());
         foreach($root->getChildEvents() as $child) {
-           $this->assertTrue($root->removeChild($child));
+           $this->assertTrue( $root->removeChild( $child ) );
         }
 
-        $this->assertEquals(3,$root->save());
-        $this->assertEquals(1,$root->delete());
+        $this->assertEquals( 3, $root->save() );
+        $this->assertEquals( 1, $root->delete() );
     }
 
     public function test_remove_clubs() {

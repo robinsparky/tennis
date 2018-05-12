@@ -396,6 +396,7 @@ class Bracket extends AbstractData
 	 * Delete this Bracket
 	 */
 	public function delete() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
 		$result = 0;
         global $wpdb;
         $table = $wpdb->prefix . self::$tablename;
@@ -404,7 +405,7 @@ class Bracket extends AbstractData
         $wpdb->delete( $table, $where, $formats_where );
         $result = $wpdb->rows_affected;
 
-		error_log( sprintf( "Bracket.delete(%s) -> deleted %d row(s)", $this->toString(), $result ) );
+		error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
 		return $result;
     }
     
@@ -520,14 +521,13 @@ class Bracket extends AbstractData
 	private function manageRelatedData():int {
 		$result = 0;
 
-		//Create relation between this Matches(round_num,match_num,position) and this Event
 		if( isset( $this->matches ) ) {
 			foreach( $this->matches as $match ) {
 				$result += $match->save();
 			}
 		}
 
-		//Delete ALL Matches removed from this Event
+		//Delete ALL Matches removed from this Bracket
 		foreach( $this->matchesToBeDeleted as &$match ) {
 			$result += $match->delete();
 			unset( $match );			
@@ -547,9 +547,6 @@ class Bracket extends AbstractData
         $obj->is_approved   = (int) $row["is_approved"];
         $obj->name          = $row["name"];
 		$obj->is_approved   = $obj->is_approved === 0 ? false : true;
-	}
-	
-	private function init() {
 	}
 
 } //end class

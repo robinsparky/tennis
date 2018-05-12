@@ -279,7 +279,7 @@ class TE_Install {
 				`next_round_num` INT DEFAULT 0, 
 				`next_match_num` INT DEFAULT 0, 
 				`comments` VARCHAR(255) NULL, 
-				PRIMARY KEY (`event_ID`,`round_num`,`match_num`), 
+				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`), 
 				FOREIGN KEY (`event_ID`, `bracket_num`) 
 				  REFERENCES `$bracket_table` (`event_ID`, `bracket_num`) 
 				  ON DELETE CASCADE 
@@ -478,14 +478,15 @@ class TE_Install {
 		$sql = "CREATE TABLE $booking_match_table (
 				`booking_ID` INT NOT NULL,
 				`event_ID` INT NOT NULL,
+				`bracket_num` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
 				FOREIGN KEY (`booking_ID`)
 					REFERENCES $booking_table (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE NO ACTION,
-				FOREIGN KEY (`event_ID`,`round_num`,`match_num`)
-					REFERENCES $match_table (`event_ID`,`round_num`,`match_num`)
+				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
+					REFERENCES $match_table (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE);";
 		dbDelta( $sql );
