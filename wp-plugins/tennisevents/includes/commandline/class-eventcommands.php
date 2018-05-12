@@ -70,7 +70,8 @@ class EventCommands extends WP_CLI_Command {
                 }
 
                 $event = new Event( $evtName );
-                $event->setEventType(); //uses default type
+                //TODO: get event type from args
+                $event->setEventType( EventType::TOURNAMENT );
                 $event->addClub( $club );
                 $event->save();
                 WP_CLI::success(sprintf("Created event (%d) '%s' attached to %s'", $event->getID(), $event->getName(), $club->getName() ) );
@@ -112,7 +113,8 @@ class EventCommands extends WP_CLI_Command {
         try {
             $parentEvent = Event::get( $parentId );
             $subEvent = new Event( $evtName );
-            $subEvent->setFormat();
+            //TODO: get format from args
+            $subEvent->setFormat( Format::SINGLE_ELIM );
             $parentEvent->addChild( $subEvent );
             $parentEvent->save();
             WP_CLI::success(sprintf("Add sub event '%s' to parent event '%s'",$evtName, $parentEvent->getName() ) );

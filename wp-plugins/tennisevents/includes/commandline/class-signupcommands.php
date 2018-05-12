@@ -46,10 +46,11 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
+                $bracket = $target->getWinnersBracket();
                 WP_CLI::line( "Signup for '$evtName' at '$name'");
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 $items = array();
-                $entrants = $td->getDraw();
+                $entrants = $td->getSignup();
                 foreach( $entrants as $ent ) {
                     $seed = $ent->getSeed() > 0 ? $ent->getSeed() : ''; 
                     $items[] = array( "Position" => $ent->getPosition()
@@ -105,7 +106,8 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 try {
                     if( $td->addEntrant( $player, $seed ) ) {
                         WP_CLI::success("tennis signup add ... signed up $player");
@@ -165,7 +167,8 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 try {
                     if( $td->removeEntrant( $player) ) {
                         WP_CLI::success("tennis signup remove ... $player");
@@ -220,8 +223,9 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
-                if( $td->removeDraw() ) {
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
+                if( $td->removeSignup() ) {
                     WP_CLI::success("tennis signup reset");
                 }
                 else {
@@ -271,7 +275,8 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 $ents = $this->readDatabase( $filename );
                 $num = 0;
                 try {

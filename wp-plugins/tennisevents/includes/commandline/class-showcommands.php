@@ -124,13 +124,13 @@ class ShowCommands extends WP_CLI_Command {
      *     $ wp tennis show both --clubId=2 --eventId=6
      * 
      *     # Display the signup and matches for club and event defined in the tennis command environment.
-     *     $ wp tennis show draw
+     *     $ wp tennis show both
      *
      * @when after_wp_load
      */
-    function draw( $args, $assoc_args ) {
+    function both( $args, $assoc_args ) {
         $this->signup( $args, $assoc_args );
-        $this->match( $args, $assoc_args );
+        $this->matches( $args, $assoc_args );
     }
 
     /**
@@ -172,10 +172,11 @@ class ShowCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
+                $bracket = $target->getWinnersBracket();
                 WP_CLI::line( "Signup for '$evtName' at '$name'");
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 $items = array();
-                $entrants = $td->getDraw();
+                $entrants = $td->getSignup();
                 foreach( $entrants as $ent ) {
                     $seed = $ent->getSeed() > 0 ? $ent->getSeed() : ''; 
                     $items[] = array( "Position" => $ent->getPosition()
@@ -233,9 +234,10 @@ class ShowCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
+                $bracket = $target->getWinnersBracket();
                 WP_CLI::line( "Matches for '$evtName' at '$name'");
-                $td = new TournamentDirector( $target, $target->getMatchType() );
-                $matches = $td->getMatches();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
+                $matches = $bracket->getMatches();
                 $umpire  = $td->getChairUmpire();
                 WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
                 $items   = array();

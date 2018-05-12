@@ -47,9 +47,10 @@ class TournamentCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 WP_CLI::line( "Matches for '$evtName' at '$name'");
-                $td = new TournamentDirector( $target, $target->getMatchType() );
-                WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() + 1 ) );
+                WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
                 $matches = $td->getMatches();
                 $umpire  = $td->getChairUmpire();
                 $items   = array();
@@ -102,15 +103,15 @@ class TournamentCommands extends WP_CLI_Command {
      *
      * ## OPTIONS
      * 
-     * <watershed>
-     * : The watershed for creating challenger round first
-     * 
      * <randomize>
      * : Boolean to indicate if selection of unseeded players should be randomized
      * 
+     * <useChallengers>
+     * : Causes preliminary rounds to use put players into challenger round (0) if necessary
+     * 
      * ## EXAMPLES
      *
-     *     wp tennis tourney initialize 5 true
+     *     wp tennis tourney initialize true false
      *
      * @when after_wp_load
      */
@@ -118,16 +119,23 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
-        list( $watershed, $randomizeDraw ) = $args;
+        list( $randomizeDraw, $useChallenger ) = $args;
 
         $env = $support->getEnvError();
         list( $clubId, $eventId ) = $env;
 
-        if( strcasecmp("true",$randomizeDraw) === 0) {
+        if( strcasecmp( "true", $randomizeDraw ) === 0) {
             $randomizeDraw = true;
         }
         else {
             $randomizeDraw = false;
+        }
+
+        if( strcasecmp( "true", $useChallenger) === 0) {
+            $useChallenger = true;
+        }
+        else {
+            $useChallenger = false;
         }
         
         $evts = Event::find( array( "club" => $clubId ) );
@@ -145,10 +153,11 @@ class TournamentCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 
                 try {
-                    $numMatches = $td->schedulePreliminaryRounds( $randomizeDraw, $watershed );
+                    $numMatches = $td->schedulePreliminaryRounds( $randomizeDraw, $useChallenger );
                     if( $numMatches > 0 ) {
                         WP_CLI::success( "tennis match initialize ... generated $numMatches preliminary matches" );
                     }
@@ -208,7 +217,8 @@ class TournamentCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 try {
                     if( $td->removeBrackets( $force ) ) {
                         WP_CLI::success("tennis tourney reset ... accomplished.");
@@ -258,7 +268,7 @@ class TournamentCommands extends WP_CLI_Command {
 
         list( $round, $source, $dest ) = $args;
         list( $clubId, $eventId ) = $support->getEnvError();
-
+        
         $fromId = "M($eventId,$round,$source)";
         $toId   = "M($eventId,$round,$dest)";
         
@@ -266,13 +276,38 @@ class TournamentCommands extends WP_CLI_Command {
         $stamp = date("Y-m-d h:i:sa");
         $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved from $fromId to $toId on $stamp";
 
-        $result = Match::move( $eventId, $round, $source, $dest, $cmts );
-        if( $result > 0 ) {
-            WP_CLI::success("Match moved. Affected $result rows.");
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = $support->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
+                if( $td->matchMove($bracket->getName(), $round, $source, $dest, $cmts ) ) {
+                    WP_CLI::success("Match moved.");
+                }
+                else {
+                    WP_CLI::warning("Match was not moved");
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis match tourney... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
         }
         else {
-            WP_CLI::warning("Match was not moved");
+            WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
         }
+
     }
 
     /**
@@ -292,12 +327,12 @@ class TournamentCommands extends WP_CLI_Command {
      *
      * ## EXAMPLES
      *
-     *     wp tennis tourney moveup 0 1 2
-     *     wp tennis tourney moveup 1 10 3 --comments='This is a comment'
+     *     wp tennis tourney moveby 0 1 2
+     *     wp tennis tourney moveby 1 10 -3 --comments='This is a comment'
      *
      * @when after_wp_load
      */
-    function moveup( $args, $assoc_args ) {
+    function moveby( $args, $assoc_args ) {
 
         $support = CmdlineSupport::preCondtion();
 
@@ -305,77 +340,51 @@ class TournamentCommands extends WP_CLI_Command {
         list( $clubId, $eventId ) = $support->getEnvError();
         
         $result = 0;
-        if( $steps > 0 && $steps < 257 ) {
-            $dest   = $source + $steps;
-            $fromId = "Match($eventId,$round,$source)";
-            $toId   = "Match($eventId,$round,$dest)";
-            
-            date_default_timezone_set("America/Toronto");
-            $stamp = date("Y-m-d h:i:sa");
-            $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved up from $fromId by $steps to $toId on $stamp";
-    
-            $result =  Match::move( $eventId, $round, $source, $dest, $cmts );
+        $dest   = $source + $steps;
+        if( $steps > 256 || $dest < 1 ) {
+            WP_CLI::error("Invalid step value");
         }
 
-        if( $result > 0 ) {
-            WP_CLI::success( "Match moved up. Affected $result rows." );
-        }
-        else {
-            WP_CLI::warning("Match was not moved");
-        }
-    }
-    
-    /**
-     * Move a match backward by given steps.
-     * The target club and event must first be set using 'tennis env set'
-     * 
-     * ## OPTIONS
-     * 
-     * <round>
-     * : The round containing the match
-     * 
-     * <source>
-     * : The match number of the source match
-     * 
-     * <steps>
-     * : The number of places to move match number back
-     *
-     * ## EXAMPLES
-     *
-     *     wp tennis tourney movedown 0 2 1
-     *     wp tennis tuorney movedown 1 13 4 --comments='This is a comment'
-     *
-     * @when after_wp_load
-     */
-    function movedown( $args, $assoc_args ) {
-
-        $support = CmdlineSupport::preCondtion();
-
-        list( $round, $source, $steps ) = $args;
-        list( $clubId, $eventId ) = $support->getEnvError();
+        $fromId = "Match($round,$source)";
+        $toId   = "Match($round,$dest)";
         
-        $result = 0;
-        if( $steps > 0 && $steps < 257 ) {
-            $dest   = $source - $steps;
-            $dest   = max( 1, $dest );
-            $fromId = "Match($eventId,$round,$source )";
-            $toId   = "Match($eventId,$round,$dest)";
-            
-            date_default_timezone_set( "America/Toronto" );
-            $stamp = date( "Y-m-d h:i:sa" );
-            $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved down from $fromId by $steps to $toId on $stamp";
-    
-            $result =  Match::move( $eventId, $round, $source, $dest, $cmts );
-        }
+        date_default_timezone_set("America/Toronto");
+        $stamp = date("Y-m-d h:i:sa");
+        $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved up from $fromId by $steps to $toId on $stamp";
 
-        if( $result > 0 ) {
-            WP_CLI::success( "Match moved down. Affected $result rows." );
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = $support->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
+                if( $td->matchMove($bracket->getName(), $round, $source, $dest, $cmts ) ) {
+                    WP_CLI::success("Match moved.");
+                }
+                else {
+                    WP_CLI::warning("Match was not moved");
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis match tourney... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
         }
         else {
-            WP_CLI::warning( "Match was not moved" );
+            WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
         }
     }
-
+    
     /**
      * Approve the preliminary matches
      * The target club and event must first be set using 'tennis env set'
@@ -475,6 +484,7 @@ class TournamentCommands extends WP_CLI_Command {
         $env = $support->getEnvError();
         list( $clubId, $eventId ) = $env;
 
+        //TODO: FIX THIS >>> need to identify the bracket!!!!!!!!s
         //Get the round, match and set numbers from the args
         list( $roundnum, $matchnum, $setnum ) = $args;
         
@@ -499,9 +509,10 @@ class TournamentCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $bracket = $target->getWinnersBracket();
+                $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 try {
-                    $match = $td->getMatch( $roundnum, $matchnum );
+                    $match = $bracket->getMatch( $roundnum, $matchnum );
                     if( !isset( $match ) ) {
                         throw new InvalidTournamentException("No such match.");
                     }
