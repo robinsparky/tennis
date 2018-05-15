@@ -25,6 +25,7 @@ class TournamentDirector
     public const MIXEDDOUBLES  = 'Mixed Doubles';
 
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
+    public const MAXIMUM_ENTRANTS = 256; //maximum for an elimination tournament
 
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
@@ -712,12 +713,12 @@ class TournamentDirector
      * Finally the seeded players (who get priority for bye selection) must be distributed
      * evenly amoung the un-seeded players with the first and second seeds being at opposite ends of the draw.
      */
-    public function schedulePreliminaryRounds( $randomizeDraw = false, $useChallenger = false ) {
+    public function schedulePreliminaryRounds( string $method, $randomizeDraw = false ) {
 
         $loc = __CLASS__ . "::" . __FUNCTION__;
         error_log(' ');
         error_log(">>>>>>>>>>>>>>>>>>>>>$loc>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-        error_log( sprintf( "%s called with randomize=%d and challenger=%d", $loc, $randomizeDraw, $useChallenger ) ); 
+        error_log( sprintf( "%s called with method=%s, randomize=%d", $loc, $method, $randomizeDraw ) ); 
 
         $matchesCreated = 0;
         $winnerbracket = null;
@@ -792,13 +793,19 @@ class TournamentDirector
             }
             $totalByes = $seedByes + $unseedByes;
             $highMatchnum = ceil( $bracket->signupSize() / 2 );
-            error_log( sprintf("%s: highMatchnum=%d seedByes=%d unseedByes=%d",$loc, $highMatchnum, $seedByes, $unseedByes ) );
+            error_log( sprintf("%s: highMatchnum=%d seedByes=%d unseedByes=%d", $loc, $highMatchnum, $seedByes, $unseedByes ) );
             
-            if( $useChallenger ) {
-                $this->processChallengerRound( $bracket, $seeded, $unseeded );
-            }
-            else {
-                $this->makeMatches( $bracket, $seeded, $unseeded );
+            switch( $method ) {
+                case "challenger":
+                    $this->processChallengerRound( $bracket, $seeded, $unseeded );
+                    break;
+                case "bye":
+                    $this->processByes( $bracket, $seeded, $unseeded );
+                case "recurse":
+                    $this->makeMatches( $bracket, $seeded, $unseeded );
+                    break;
+                default :
+                    throw new InvalidTournamentException(__("Invalid scheduling algorithm.", TennisEvents::TEXT_DOMAIN ) );
             }
 
             if( (count( $unseeded ) + count( $seeded )) > 0 ) throw new InvalidTournamentException( __( "Did not schedule all players into initial rounds." ) );
@@ -930,6 +937,118 @@ class TournamentDirector
         }
         error_log('<<<<<');
     }
+    
+    /**
+     * For this case, we could have a large number of players involved in bringing the count
+     * down to a power of 2 for the subsequent round. So this is considered the first round
+     * and only a few byes need to be defined. It is likely that only seeded players will get the byes.
+     */
+    private function processByes( Bracket $bracket, array &$seeded, array &$unseeded ) {
+        
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $numInvolved = 2 * $this->numToEliminate;
+        $remainder   = $numInvolved > 0 ? $bracket->signupSize() - $numInvolved : 0;
+        $highMatchnum = ceil( $bracket->signupSize() / 2 );
+        $lowMatchnum = 1;
+        $usedMatchNums = array();
+        $lastSlot = 0;
+        
+        $initialRound = 1;
+        $seedByes = 0;
+        $unseedByes = 0;
+        $seedByes    =  min( count( $seeded ) , $remainder );
+        $unseedByes  = $remainder - $seedByes;
+
+        //Add seeded players as Bye matches using an even distribution
+        $slot = ($seedByes + $unseedByes) > 1 ? ceil( ceil( $bracket->signupSize() / 2.0 ) / ($seedByes + $unseedByes) ) : 0;
+        $slot = max( 2, $slot );
+
+        error_log(' ');
+        error_log( sprintf(">>>>>%s -> bracket=%s seeds=%d; unseeded=%d", $loc, $bracket->getName(), count( $seeded ), count( $unseeded ) ) );
+        error_log( sprintf("     %s -> bracket=%s slot=%d; numInvolved=%d; remainder=%d; highMatchNum=%d; seedByes=%d; unseedByes=%d", $loc, $bracket->getName(), $slot, $numInvolved, $remainder, $highMatchnum, $seedByes, $unseedByes) );
+
+        for( $i = 0; $i < $seedByes; $i++ ) {
+            if( 0 === $i ) {
+                $lastSlot = $lowMatchnum++;
+                array_push( $usedMatchNums, $lastSlot );
+            }
+            else if( 1 === $i ) {
+                $lastSlot = 3 * $highMatchnum;
+                array_push( $usedMatchNums, $lastSlot );
+            }
+            else {
+                //$lastSlot += $slot;
+                $lastSlot = $lowMatchnum + $i * $slot;
+                array_push( $usedMatchNums, $lastSlot );
+            }
+            $home = array_shift( $seeded );
+            $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
+            $match->setIsBye( true );
+            $match->setHomeEntrant( $home );
+            $match->setMatchType( $this->matchType );
+            $bracket->addMatch( $match );
+            error_log( sprintf( "%s -> added bye for seeded player %s to round %d using match number %d", $loc, $home->getName(), $initialRound, $lastSlot ) );
+        }
+
+        $matchnum = $lowMatchnum;
+        for( $i = 0; $i < $unseedByes; $i++ ) {
+            $home = array_shift( $unseeded );
+            $mn = $matchnum++;
+            $mn = $this->getNextAvailable( $usedMatchNums, $mn );
+            array_push( $usedMatchNums, $mn );
+            $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );
+            $match->setIsBye( true );
+            $match->setHomeEntrant( $home );
+            $match->setMatchType( $this->matchType );
+            $bracket->addMatch( $match );            
+            error_log( sprintf( "%s -> added bye for unseeded player %s in round %d using match number %d", $loc, $home->getName(), $initialRound, $mn ) );
+        }
+
+        //Set the first lot of matches starting from end of the line
+        $ctr = 0;
+        while( count( $unseeded ) > 0 || count( $seeded ) > 0 ) {
+            if( count( $seeded ) > 0 ) {
+                $home    = array_pop( $seeded );
+                $visitor = array_shift( $unseeded );
+
+                // $lastSlot = rand( $lowMatchnum, $highMatchnum );
+                // $lastSlot += $slot;
+                if( $ctr & 2 ) $lastSlot = $highMatchnum - $ctr * $slot;
+                else           $lastSlot = $lowMatchnum  + $ctr * $slot;
+                $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
+                array_push( $usedMatchNums, $lastSlot );
+                
+                $match   = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
+                $match->setHomeEntrant( $home );
+                $match->setVisitorEntrant( $visitor );
+                $match->setMatchType( $this->matchType );
+                $bracket->addMatch( $match );  
+                error_log( sprintf( "%s -> added match for seeded player '%s' vs unseeded '%s' in round %d using match number %d", $loc, $home->getName(), $visitor->getName(), $initialRound, $lastSlot ) );                  
+            }
+            else {
+                $home    = array_shift( $unseeded );
+                $visitor = array_shift( $unseeded );
+
+                $mn = $matchnum++;
+                $mn = $this->getNextAvailable( $usedMatchNums, $mn );
+                array_push( $usedMatchNums, $mn );
+
+                $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );
+                $match->setHomeEntrant( $home );
+
+                if( !is_null( $visitor ) ) $match->setVisitorEntrant( $visitor );
+                else $match->setIsBye( true );
+
+                $match->setMatchType( $this->matchType );
+                $bracket->addMatch( $match );
+                error_log( sprintf( "%s -> added match for unseeded players '%s' vs '%s' in round %d using match number %d", $loc, $home->getName(), $visitor->getName(), $initialRound, $mn ) );
+            }
+            ++$ctr;
+        }
+        error_log('<<<<<');
+    }
+
     
     /**
      * Make matches by recursively reducing the number of players to deal with
@@ -1182,12 +1301,15 @@ class TournamentDirector
 
     /**
      * Given the size of the draw (or any integer), calculate the highest 
-     * power of 2 which is less than that size (or integer)
+     * power of 2 which is less than or equal to that size (or integer)
+     * @param $size 
+     * @param $upper The upper limit of the search; default is 8
+     * @return The exponent if found; zero otherwise
      */
-	private function calculateExponent( int $size ) {
+	private function calculateExponent( int $size, $upper = 8 ) {
         $exponent = 0;
-        foreach( range(1,8) as $exp ) {
-            if( pow( 2, $exp ) > $size ) {
+        foreach( range( 1, 8 ) as $exp ) {
+            if( pow( 2, $upper ) > $size ) {
                 $exponent = $exp - 1;
                 break;
             }
@@ -1195,116 +1317,21 @@ class TournamentDirector
         return $exponent;
     }
     
-    //TODO: Delete the function processByes
     /**
-     * For this case, we could have a large number of players involved in bringing the count
-     * down to a power of 2 for the subsequent round. So this is considered the first round
-     * and only a few byes need to be defined. It is likely that only seeded players will get the byes.
+     * Determine if this integer is a power of 2
+     * @param $size 
+     * @param $upper The upper limit of the search; default is 8
+     * @return The exponent if found; zero otherwise
      */
-    private function processByes( Bracket $bracket, array &$seeded, array &$unseeded ) {
-        
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-
-        error_log(' ');
-        $numInvolved = 2 * $this->numToEliminate;
-        $remainder   = $numInvolved > 0 ? $bracket->signupSize() - $numInvolved : 0;
-        $highMatchnum = ceil( $bracket->signupSize() / 2 );
-        $lowMatchnum = 1;
-        $usedMatchNums = array();
-        $lastSlot = 0;
-        
-        $initialRound = 1;
-        $seedByes = 0;
-        $unseedByes = 0;
-        $seedByes    =  min( count( $seeded ) , $remainder );
-        $unseedByes  = $remainder - $seedByes;
-
-        //Add seeded players as Bye matches using an even distribution
-        $slot = ($seedByes + $unseedByes) > 1 ? ceil( ceil( $bracket->signupSize() / 2.0 ) / ($seedByes + $unseedByes) ) : 0;
-        $slot = max( 2, $slot );
-
-        error_log( sprintf(">>>>>%s -> bracket=%s seeds=%d; unseeded=%d", $loc, $bracket->getName(), count( $seeded ), count( $unseeded ) ) );
-        error_log( sprintf("     %s -> bracket=%s slot=%d; numInvolved=%d; remainder=%d; highMatchNum=%d; seedByes=%d; unseedByes=%d", $loc, $bracket->getName(), $slot, $numInvolved, $remainder, $highMatchnum, $seedByes, $unseedByes) );
-
-        for( $i = 0; $i < $seedByes; $i++ ) {
-            if( 0 === $i ) {
-                $lastSlot = $lowMatchnum++;
-                array_push( $usedMatchNums, $lastSlot );
+	private function isPowerOf2( int $size, $upper = 8 ) {
+        $exponent = 0;
+        foreach( range( 1, $upper ) as $exp ) {
+            if( pow( 2, $exp ) === $size ) {
+                $exponent = $exp;
+                break;
             }
-            else if( 1 === $i ) {
-                $lastSlot = 3 * $highMatchnum;
-                array_push( $usedMatchNums, $lastSlot );
-            }
-            else {
-                //$lastSlot += $slot;
-                $lastSlot = $lowMatchnum + $i * $slot;
-                array_push( $usedMatchNums, $lastSlot );
-            }
-            $home = array_shift( $seeded );
-            $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
-            $match->setIsBye( true );
-            $match->setHomeEntrant( $home );
-            $match->setMatchType( $this->matchType );
-            $bracket->addMatch( $match );
-            error_log( sprintf( "%s -> added bye for seeded player %s to round %d using match number %d", $loc, $home->getName(), $initialRound, $lastSlot ) );
         }
-
-        $matchnum = $lowMatchnum;
-        for( $i = 0; $i < $unseedByes; $i++ ) {
-            $home = array_shift( $unseeded );
-            $mn = $matchnum++;
-            $mn = $this->getNextAvailable( $usedMatchNums, $mn );
-            array_push( $usedMatchNums, $mn );
-            $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );
-            $match->setIsBye( true );
-            $match->setHomeEntrant( $home );
-            $match->setMatchType( $this->matchType );
-            $bracket->addMatch( $match );            
-            error_log( sprintf( "%s -> added bye for unseeded player %s in round %d using match number %d", $loc, $home->getName(), $initialRound, $mn ) );
-        }
-
-        //Set the first lot of matches starting from end of the line
-        $ctr = 0;
-        while( count( $unseeded ) > 0 || count( $seeded ) > 0 ) {
-            if( count( $seeded ) > 0 ) {
-                $home    = array_pop( $seeded );
-                $visitor = array_shift( $unseeded );
-
-                // $lastSlot = rand( $lowMatchnum, $highMatchnum );
-                // $lastSlot += $slot;
-                if( $ctr & 2 ) $lastSlot = $highMatchnum - $ctr * $slot;
-                else           $lastSlot = $lowMatchnum  + $ctr * $slot;
-                $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
-                array_push( $usedMatchNums, $lastSlot );
-                
-                $match   = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
-                $match->setHomeEntrant( $home );
-                $match->setVisitorEntrant( $visitor );
-                $match->setMatchType( $this->matchType );
-                $bracket->addMatch( $match );  
-                error_log( sprintf( "%s -> added match for seeded player '%s' vs unseeded '%s' in round %d using match number %d", $loc, $home->getName(), $visitor->getName(), $initialRound, $lastSlot ) );                  
-            }
-            else {
-                $home    = array_shift( $unseeded );
-                $visitor = array_shift( $unseeded );
-
-                $mn = $matchnum++;
-                $mn = $this->getNextAvailable( $usedMatchNums, $mn );
-                array_push( $usedMatchNums, $mn );
-
-                $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );
-                $match->setHomeEntrant( $home );
-
-                if( !is_null( $visitor ) ) $match->setVisitorEntrant( $visitor );
-                else $match->setIsBye( true );
-
-                $match->setMatchType( $this->matchType );
-                $bracket->addMatch( $match );
-                error_log( sprintf( "%s -> added match for unseeded players '%s' vs '%s' in round %d using match number %d", $loc, $home->getName(), $visitor->getName(), $initialRound, $mn ) );
-            }
-            ++$ctr;
-        }
-        error_log('>>>>>');
+        return $exponent;
     }
-
+    
 }

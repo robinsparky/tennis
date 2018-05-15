@@ -49,8 +49,8 @@ class TournamentCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 $bracket = $target->getWinnersBracket();
                 $td = new TournamentDirector( $target, $bracket->getMatchType() );
-                WP_CLI::line( "Matches for '$evtName' at '$name'");
-                WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
+                WP_CLI::line( sprintf( "Matches for '%s' at '%s'", $evtName, $name ) );
+                WP_CLI::line( sprintf( "%s Bracket: %d Rounds", $bracket->getName(), $td->totalRounds() ) );
                 $matches = $td->getMatches();
                 $umpire  = $td->getChairUmpire();
                 $items   = array();
@@ -103,15 +103,30 @@ class TournamentCommands extends WP_CLI_Command {
      *
      * ## OPTIONS
      * 
-     * <randomize>
-     * : Boolean to indicate if selection of unseeded players should be randomized
+     * [<method>]
+     * : Choose algorithm
+     * ---
+     * default: recurse
+     * options:
+     *   - recurse
+     *   - challenger
+     *   - bye
+     * ---
      * 
-     * <useChallengers>
-     * : Causes preliminary rounds to use put players into challenger round (0) if necessary
+     * [--shuffle=<values>]
+     * : If present causes draw to be randomized
+     * ---
+     * default: no
+     * options:
+     *   - yes
+     *   - no
+     * ---
+     * 
      * 
      * ## EXAMPLES
      *
-     *     wp tennis tourney initialize true false
+     *  wp tennis tourney initialize challenger
+     *  wp tennis tourney initialize shuffle
      *
      * @when after_wp_load
      */
@@ -119,24 +134,14 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
-        list( $randomizeDraw, $useChallenger ) = $args;
+        list($method) = $args;
+
+        $shuffle = $assoc_args["shuffle"];
+        if( strcasecmp("yes", $shuffle) === 0 ) $shuffle = true;
+        else $shuffle = false;
 
         $env = $support->getEnvError();
         list( $clubId, $eventId ) = $env;
-
-        if( strcasecmp( "true", $randomizeDraw ) === 0) {
-            $randomizeDraw = true;
-        }
-        else {
-            $randomizeDraw = false;
-        }
-
-        if( strcasecmp( "true", $useChallenger) === 0) {
-            $useChallenger = true;
-        }
-        else {
-            $useChallenger = false;
-        }
         
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;
@@ -157,7 +162,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 
                 try {
-                    $numMatches = $td->schedulePreliminaryRounds( $randomizeDraw, $useChallenger );
+                    $numMatches = $td->schedulePreliminaryRounds( $method, $shuffle );
                     if( $numMatches > 0 ) {
                         WP_CLI::success( "tennis match initialize ... generated $numMatches preliminary matches" );
                     }
@@ -534,48 +539,237 @@ class TournamentCommands extends WP_CLI_Command {
         }
     }
 
+    /**
+     * Simulate alternatives for preliminary rounds
+     * ## OPTIONS
+     * <n>
+     * : Number of players
+     * 
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis tourney simulate 15
+     *
+     * @when before_wp_load
+     */
+
+    function simulate( $args, $assoc_args ) {
+
+        list( $n ) = $args;
+
+        // $byePoss = $this->byePossibilities( $n );
+        // $titles = array_keys( $byePoss[0] );
+        // WP_CLI::line("Using Byes");
+        // WP_CLI\Utils\format_items( 'table', $byePoss, $titles );
+        
+        // $challengerPoss = $this->challengerPossibilities( $n );
+        // $titles = array_keys( $challengerPoss[0] );
+        // WP_CLI::line("Using Challenger Round");
+        // WP_CLI\Utils\format_items( 'table', $challengerPoss, $titles );
+
+        $defbyes        = $this->byeCount( $n );
+        $defchallengers = $this->challengerCount( $n );
+        WP_CLI::line(sprintf("Default # of byes=%d, Default # of challengers=%d", $defbyes, $defchallengers ) );
+
+        if( $defchallengers < $defbyes ) {
+            WP_CLI::success("Use $defchallengers challengers.");
+        }
+        else {
+            WP_CLI::success("Use $defbyes byes");
+        }
+    }
 
     /**
      * Test PHP code
      * 
+     * ## OPTIONS
+     * <n>
+     * : Number of players
+     * 
      * ## EXAMPLES
      *
-     *     wp tennis tourney test
+     *     wp tennis tourney test 15
      *
      * @when before_wp_load
      */
-    function test( $args, $assoc_args ) {
-        
+    function test( $args, $assoc_args ) {        
         /*
          * 1. Reference test
          */
-        // $array = array(00, 11, 22, 33, 44, 55, 66, 77, 88, 99);
-        // $this->ref($array, 2, $ref);
-        // $ref[0] = 'xxxxxxxxx';
-        // var_dump($ref);
-        // var_dump($array);
+        $array = array(00, 11, 22, 33, 44, 55, 66, 77, 88, 99);
+        $this->ref($array, 2, $ref);
+        $ref[0] = 'xxxxxxxxx';
+        var_dump($ref);
+        var_dump($array);
 
         /*
-         * Overloaded constructors test
-         * Proved that this cannot handle references in the overloaded functions
+         * 2. Overloaded constructors test
+         * Proved that this cannot handle references in the overloaded functions' args
          */
-        $obj1 = new stdClass;
-        $obj1->name = 'Robin';
-        try {
-        $test = new Test( $obj1 );
-        }
-        catch( Exception $ex ) {
-            WP_CLI::error( $ex->getMessage() );
-        }
+        // $obj1 = new stdClass;
+        // $obj1->name = 'Robin';
+        // try {
+        // $test = new Test( $obj1 );
+        // }
+        // catch( Exception $ex ) {
+        //     WP_CLI::error( $ex->getMessage() );
+        // }
     }
+
+    /**
+     * Calculates the number of byes in round 1
+     * to cause the number of players in round 2 be a power of 2
+     * The number of players and the number of byes must be 
+     * of the same parity (i.e.both even or both odd)
+     */
+    private function byeCount( int $n ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $result = -1;
+
+        if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
+
+        $lowexp  =  $this->calculateExponent( $n );
+        $highexp = $lowexp + 1;
+        $target  = pow( 2, $lowexp ); //or 2 * $lowexp
+        $result  = 2 * $target - $n; // target = (n + b) / 2
+        // echo "$loc: n=$n; lowexp=$lowexp; highexp=$highexp; target=$target; byes=$result; " . PHP_EOL;
+        if( !($n & 1) && ($result & 1) ) $result = -1;
+        elseif( ($n & 1) && !($result & 1) ) $result = -1;
+        elseif( $this->isPowerOf2( $n ) ) $result = 0;
+        
+        // $elimRange = range( 1, $pow2 - 1 );
+        // foreach( $elimRange as $byes ) {
+        //     $round1 = $n - $byes;
+        //     if( $round1 & 1 ) continue;
+        //     else {
+        //         $round2 = $byes + $round1 / 2;
+        //         if( $this->isPowerOf2( $round2 ) ) {
+        //             $result = $byes;
+        //             break;
+        //         }
+        //     }
+        // }
+        return $result;
+    }
+
+    /**
+     * Calculate the number of challengers (if using early round 0)
+     * to bring round 1 to a power of 2
+     * The number of players and the number of challengers must be of opposite parity
+     * (i.e. if one is odd the other must be even and visa versa )
+     */
+    private function challengerCount( int $n ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $result = -1;
+
+        if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
+
+        $lowexp   =  $this->calculateExponent( $n );
+        $highexp  = $lowexp + 1;
+        $target   = pow(2, $lowexp );
+        $result   = $n - $target;
+        $round1   = $n - $result; // players in r1 = target = (n - 2p + p)
+        // echo "$loc: n=$n; lowexp=$lowexp; highexp=$highexp; round1=$round1; target=$target; challengers=$result; " . PHP_EOL;
+        if( ($round1 & 1) ) $result = -1;
+        elseif( $this->isPowerOf2( $n ) ) $result = 0;
+        
+        // $elimRange = range( 1, $pow2 - 1 );
+        // foreach( $elimRange as $challengers ) {
+        //     if( $challengers & 1 ) continue;
+        //     $round1 = $n - $challengers;
+        //     if( $round1 & 1 ) continue;
+        //     if( $this->isPowerOf2( $round1 ) ) {
+        //         $result = $challengers;
+        //         break;
+        //     }
+        // }
+
+        return $result;
+    }
+
+    private function byePossibilities( int $n ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $result = array();
+        if( $n <= 8 || $n > pow( 2, 8 ) ) return $result;
+
+        $exp2 =  $this->calculateExponent( $n );
+        $pow2 = pow(2, $exp2 );
+        $maxToEliminate = $n - $pow2;
+        $elimRange = range( 1, $pow2 - 1 );
+
+        foreach( $elimRange as $byes ) {
+            $possibility = array();
+            $possibility["Signup"] = $n;
+            $possibility["Elimination"] = $byes;
+            $possibility["Round 1"] = $n - $byes;
+            $possibility["Round 2"] = $byes + ($n - $byes)/2;
+            array_push ($result, $possibility );
+        }
+
+        return $result;
+    }
+
+    private function challengerPossibilities( int $n ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $result = array();
+        if( $n < 0 || $n > pow( 2, 8 ) && $n & 1 ) return $result;
+
+        $exp2 =  $this->calculateExponent( $n );
+        $pow2 = pow(2, $exp2 );
+        $maxToEliminate = $n - $pow2;
+        $elimRange = range( 1, $pow2 - 1 );
+        
+        foreach( $elimRange as $challengers ) {
+            $possibility = array();
+            $possibility["Signup"] = $n;
+            $possibility["Elimination"] = $challengers;
+            $possibility["Round 0"] = 2 * $challengers;
+            $possibility["Round 1"] = $n - $challengers;
+            array_push ($result, $possibility );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Given the size of the draw (or any integer), calculate the highest 
+     * power of 2 which is less than that size (or integer)
+     */
+	private function calculateExponent( int $size, $upper = 8 ) {
+        $exponent = 0;
+        foreach( range( 1, $upper ) as $exp ) {
+            if( pow( 2, $exp ) > $size ) {
+                $exponent = $exp - 1;
+                break;
+            }
+        }
+        return $exponent;
+    }
+    
+    /**
+     * Determine if this integer is a power of 2
+     * @param $size 
+     * @param $upper The upper limit of the search; default is 8
+     * @return The exponent if found; zero otherwise
+     */
+	private function isPowerOf2( int $size, $upper = 8 ) {
+        $exponent = 0;
+        foreach( range( 1, $upper ) as $exp ) {
+            if( pow( 2, $exp ) === $size ) {
+                $exponent = $exp;
+                break;
+            }
+        }
+        return $exponent;
+    }
+
+
 
     private function ref( &$array, int $idx = 1, &$ref = array() )
     {
             //$ref = array();
             $ref[] = &$array[$idx];
     }
-
-
 
 }
 
