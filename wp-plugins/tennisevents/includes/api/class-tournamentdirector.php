@@ -27,6 +27,10 @@ class TournamentDirector
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
     public const MAXIMUM_ENTRANTS = 256; //maximum for an elimination tournament
 
+    private const CHALLENGERS = "challengers";
+    private const BYES = "byes";
+    private const AUTO = "auto";
+
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
     private $hasChallengerRound = false; //Is a challenger round required
@@ -793,19 +797,29 @@ class TournamentDirector
             }
             $totalByes = $seedByes + $unseedByes;
             $highMatchnum = ceil( $bracket->signupSize() / 2 );
-            error_log( sprintf("%s: highMatchnum=%d seedByes=%d unseedByes=%d", $loc, $highMatchnum, $seedByes, $unseedByes ) );
+            error_log( sprintf( "%s: highMatchnum=%d seedByes=%d unseedByes=%d", $loc, $highMatchnum, $seedByes, $unseedByes ) );
             
+            //Determine which method to use to generate this bracket's initial round(s)
             switch( $method ) {
-                case "challenger":
+                case self::CHALLENGERS:
                     $this->processChallengerRound( $bracket, $seeded, $unseeded );
                     break;
-                case "bye":
+                case self::BYES:
                     $this->processByes( $bracket, $seeded, $unseeded );
-                case "recurse":
-                    $this->makeMatches( $bracket, $seeded, $unseeded );
+                    break;
+                case self::AUTO:
+                    $byes        = $this->byeCount( $n );
+                    $challengers = $this->challengerCount( $n );
+            
+                    if( $challengers < $byes ) {
+                        $this->processChallengerRound( $bracket, $seeded, $unseeded );                    
+                    }
+                    else {
+                        $this->processByes( $bracket, $seeded, $unseeded );
+                    }
                     break;
                 default :
-                    throw new InvalidTournamentException(__("Invalid scheduling algorithm.", TennisEvents::TEXT_DOMAIN ) );
+                    throw new InvalidTournamentException(__( "Invalid scheduling algorithm.", TennisEvents::TEXT_DOMAIN ) );
             }
 
             if( (count( $unseeded ) + count( $seeded )) > 0 ) throw new InvalidTournamentException( __( "Did not schedule all players into initial rounds." ) );
@@ -817,7 +831,7 @@ class TournamentDirector
 
         return $matchesCreated;
     }
-
+    
     /**
      * An advanced or "challenger" round is required when only a very few players are involved in order to bring 
      * the count down to a power of 2. There are no byes but the challenger round happens before round one of the tournament.
@@ -1332,6 +1346,55 @@ class TournamentDirector
             }
         }
         return $exponent;
+    }
+    /**
+     * Calculates the number of byes in round 1
+     * to cause the number of players in round 2 be a power of 2
+     * The number of players and the number of byes must be 
+     * of the same parity (i.e.both even or both odd)
+     * @param $n The bracket's signup size
+     */
+    private function byeCount( int $n ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $result = -1;
+
+        if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
+
+        $lowexp  =  $this->calculateExponent( $n );
+        $highexp = $lowexp + 1;
+        $target  = pow( 2, $lowexp ); //or 2 * $lowexp
+        $result  = 2 * $target - $n; // target = (n + b) / 2
+        error_log( sprintf("%s: n=%d; lowexp=%d; highexp=%d; target=%d; byes=%d; ", $loc, $n, $lowexp, $highexp, $target, $result ) );
+        if( !($n & 1) && ($result & 1) ) $result = -1;
+        elseif( ($n & 1) && !($result & 1) ) $result = -1;
+        elseif( $this->isPowerOf2( $n ) ) $result = 0;
+        
+        return $result;
+    }
+
+    /**
+     * Calculate the number of challengers (if using early round 0)
+     * to bring round 1 to a power of 2
+     * The number of players and the number of challengers must be of opposite parity
+     * (i.e. if one is odd the other must be even and visa versa )
+     * @param $n The bracket's signup size
+     */
+    private function challengerCount( int $n ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $result = -1;
+
+        if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
+
+        $lowexp   =  $this->calculateExponent( $n );
+        $highexp  = $lowexp + 1;
+        $target   = pow(2, $lowexp );
+        $result   = $n - $target;
+        $round1   = $n - $result; // players in r1 = target = (n - 2p + p)
+        error_log( sprintf("%s: n=%d; lowexp=%d; highexp=%d; round1=%d; target=%d; challengers=%d;", $loc, $n, $lowexp, $highexp, $round1, $target, $result ) );
+        if( ($round1 & 1) ) $result = -1;
+        elseif( $this->isPowerOf2( $n ) ) $result = 0;
+
+        return $result;
     }
     
 }

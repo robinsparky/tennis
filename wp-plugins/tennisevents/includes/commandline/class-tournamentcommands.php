@@ -104,13 +104,13 @@ class TournamentCommands extends WP_CLI_Command {
      * ## OPTIONS
      * 
      * [<method>]
-     * : Choose algorithm
+     * : Choose algorithm for generating initial round(s)
      * ---
-     * default: recurse
+     * default: auto
      * options:
-     *   - recurse
-     *   - challenger
-     *   - bye
+     *   - auto
+     *   - challengers
+     *   - byes
      * ---
      * 
      * [--shuffle=<values>]
@@ -122,10 +122,11 @@ class TournamentCommands extends WP_CLI_Command {
      *   - no
      * ---
      * 
-     * 
      * ## EXAMPLES
      *
-     *  wp tennis tourney initialize challenger
+     *  wp tennis tourney initialize 
+     *  wp tennis tourney initialize auto
+     *  wp tennis tourney initialize challengers shuffle
      *  wp tennis tourney initialize shuffle
      *
      * @when after_wp_load
@@ -134,7 +135,7 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
-        list($method) = $args;
+        list( $method ) = $args;
 
         $shuffle = $assoc_args["shuffle"];
         if( strcasecmp("yes", $shuffle) === 0 ) $shuffle = true;
@@ -572,48 +573,25 @@ class TournamentCommands extends WP_CLI_Command {
         WP_CLI::line(sprintf("Default # of byes=%d, Default # of challengers=%d", $defbyes, $defchallengers ) );
 
         if( $defchallengers < $defbyes ) {
-            WP_CLI::success("Use $defchallengers challengers.");
+            $tb = new ChallengerTemplateBuilder( $n, $defchallengers );
+            $tb->build();
+            //print_r( $tb->getTemplate() );
+            $template = $tb->arrGetTemplate();
+            foreach( $template as $line ) {
+                WP_CLI::line( $line );
+            }
+            WP_CLI::success("Used $defchallengers challengers.");
         }
         else {
-            WP_CLI::success("Use $defbyes byes");
+            $byeTB = new ByeTemplateBuilder( $n, $defbyes );
+            $byeTB->build();
+            // print_r( $byeTB->getTemplate() );
+            $template = $byeTB->arrGetTemplate();
+            foreach( $template as $line ) {
+                WP_CLI::line( $line );
+            }
+            WP_CLI::success("Used $defbyes byes");
         }
-    }
-
-    /**
-     * Test PHP code
-     * 
-     * ## OPTIONS
-     * <n>
-     * : Number of players
-     * 
-     * ## EXAMPLES
-     *
-     *     wp tennis tourney test 15
-     *
-     * @when before_wp_load
-     */
-    function test( $args, $assoc_args ) {        
-        /*
-         * 1. Reference test
-         */
-        $array = array(00, 11, 22, 33, 44, 55, 66, 77, 88, 99);
-        $this->ref($array, 2, $ref);
-        $ref[0] = 'xxxxxxxxx';
-        var_dump($ref);
-        var_dump($array);
-
-        /*
-         * 2. Overloaded constructors test
-         * Proved that this cannot handle references in the overloaded functions' args
-         */
-        // $obj1 = new stdClass;
-        // $obj1->name = 'Robin';
-        // try {
-        // $test = new Test( $obj1 );
-        // }
-        // catch( Exception $ex ) {
-        //     WP_CLI::error( $ex->getMessage() );
-        // }
     }
 
     /**
@@ -637,18 +615,6 @@ class TournamentCommands extends WP_CLI_Command {
         elseif( ($n & 1) && !($result & 1) ) $result = -1;
         elseif( $this->isPowerOf2( $n ) ) $result = 0;
         
-        // $elimRange = range( 1, $pow2 - 1 );
-        // foreach( $elimRange as $byes ) {
-        //     $round1 = $n - $byes;
-        //     if( $round1 & 1 ) continue;
-        //     else {
-        //         $round2 = $byes + $round1 / 2;
-        //         if( $this->isPowerOf2( $round2 ) ) {
-        //             $result = $byes;
-        //             break;
-        //         }
-        //     }
-        // }
         return $result;
     }
 
@@ -672,17 +638,6 @@ class TournamentCommands extends WP_CLI_Command {
         // echo "$loc: n=$n; lowexp=$lowexp; highexp=$highexp; round1=$round1; target=$target; challengers=$result; " . PHP_EOL;
         if( ($round1 & 1) ) $result = -1;
         elseif( $this->isPowerOf2( $n ) ) $result = 0;
-        
-        // $elimRange = range( 1, $pow2 - 1 );
-        // foreach( $elimRange as $challengers ) {
-        //     if( $challengers & 1 ) continue;
-        //     $round1 = $n - $challengers;
-        //     if( $round1 & 1 ) continue;
-        //     if( $this->isPowerOf2( $round1 ) ) {
-        //         $result = $challengers;
-        //         break;
-        //     }
-        // }
 
         return $result;
     }
@@ -764,6 +719,43 @@ class TournamentCommands extends WP_CLI_Command {
     }
 
 
+    /**
+     * Test PHP code
+     * 
+     * ## OPTIONS
+     * <n>
+     * : Number of players
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis tourney test 15
+     *
+     * @when before_wp_load
+     */
+    function test( $args, $assoc_args ) {        
+        /*
+         * 1. Reference test
+         */
+        $array = array(00, 11, 22, 33, 44, 55, 66, 77, 88, 99);
+        $this->ref($array, 2, $ref);
+        $ref[0] = 'xxxxxxxxx';
+        var_dump($ref);
+        var_dump($array);
+
+        /*
+         * 2. Overloaded constructors test
+         * Proved that this cannot handle references in the overloaded functions' args
+         */
+        // $obj1 = new stdClass;
+        // $obj1->name = 'Robin';
+        // try {
+        // $test = new Test( $obj1 );
+        // }
+        // catch( Exception $ex ) {
+        //     WP_CLI::error( $ex->getMessage() );
+        // }
+    }
+
 
     private function ref( &$array, int $idx = 1, &$ref = array() )
     {
@@ -827,3 +819,4 @@ class Test extends OverloadedConstructors {
         WP_CLI::success('Third construct');
     }
  }
+
