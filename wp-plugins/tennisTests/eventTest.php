@@ -25,6 +25,9 @@ class EventTest extends TestCase
 	
 	public function test_parent_event()
 	{
+        $title = "Test Parent Event";
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
+
         $clubs = Club::search('Tyandaga');
         $this->assertCount(1,$clubs);
 		$this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
@@ -39,6 +42,9 @@ class EventTest extends TestCase
      * 
      */
     public function test_persisting_events() {
+        $title = "Test Persisting Events";
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
+
         $clubs = Club::search('Tyandaga');
         $this->assertCount(1,$clubs);
         $club = $clubs[0];
@@ -90,6 +96,9 @@ class EventTest extends TestCase
      * Test signup, start and end dates for a match
      */
     public function test_event_dates() {
+        $title = "Test Creating Events with Dates";
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
+
         $clubs = Club::search('Tyandaga');
         $this->assertCount(1,$clubs);
         $club = $clubs[0];
@@ -109,6 +118,7 @@ class EventTest extends TestCase
         $child = new Event('Mens Singles');
         $this->assertEquals('Mens Singles',$child->getName());
         $this->assertTrue($child->setFormat(Format::SINGLE_ELIM),'Setting format for child 1');
+        $this->assertEquals( $child->getMatchType(), MatchType::MENS_SINGLES );
         $this->assertEquals(Format::SINGLE_ELIM,$child->getFormat());
         $this->assertFalse($child->isParent(),'Test for child 1 not parent');
         $this->assertTrue($parent->addChild($child),'Adding child');
@@ -136,14 +146,15 @@ class EventTest extends TestCase
         $this->assertEquals('2018-02-20T00:00:00+0000',$test);
         // $mess = isset($test) ? " ***** end ISO = $test" : " **** end ISO is null";
         // fwrite(STDOUT,PHP_EOL .  __METHOD__ .$mess . PHP_EOL);
-
     }
     
-
     /**
      * @depends test_persisting_events
      */
     public function test_removing_children() {
+        $title = "Test Removing Child Events";
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
+
         $events = Event::search('Year End');
         $this->assertCount(1,$events);
         $mainevent = $events[0];

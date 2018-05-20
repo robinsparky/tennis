@@ -28,22 +28,25 @@ class SignupTest extends TestCase
      * 
      */
     public function test_add_entrants_to_signup() {
+        $title = "Add Entrants to Signup";
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
+
         $clubs = Club::search('Tyandaga');
-        $this->assertEquals(1,count($clubs));
-        $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());
+        $this->assertEquals( 1, count($clubs) ,'Expect one club to be present');
+        $this->assertEquals( 'Tyandaga Tennis Club', $clubs[0]->getName() );
 
         $club = $clubs[0];
         $events = $club->getEvents();
-        $this->assertCount(1,$club->getEvents(),'Test club has only one root event');
+        $this->assertCount( 1, $club->getEvents(), 'Test club has only one root event' );
         $event = $events[0];
-        $this->assertTrue($event->isRoot());
-        $this->assertCount(3,$event->getChildEvents());
+        $this->assertTrue( $event->isRoot() );
+        $this->assertCount( 3, $event->getChildEvents() );
 
-        $menSingles = $event->getNamedEvent('Mens Singles');
+        $menSingles = $event->getNamedEvent( 'Mens Singles' );
+        $this->assertInstanceOf( Event::class, $menSingles );
+        $this->assertEquals( $menSingles->getMatchType(), MatchType::MENS_SINGLES, 'Test match type is mens singles' );
 
-        $this->assertInstanceOf(Event::class,$menSingles);
-
-        $this->assertCount(0,$menSingles->getSignup());
+        $this->assertCount( 0, $menSingles->getSignup() );
         $this->assertTrue($menSingles->addToSignup("Mike Flintoff"),'Test add to draw 1');
         $this->assertTrue($menSingles->addToSignup("Steve Knight"),'Test add to draw 2');
         $this->assertTrue($menSingles->addToSignup("Rafa Chiuzi",2),'Test add to draw 3');
@@ -63,7 +66,7 @@ class SignupTest extends TestCase
         $this->assertCount( self::$dsize, $menSingles->getSignup(), 'Test draw size is 14' );
         $this->assertEquals( self::$dsize, $menSingles->signupSize() );
 
-        $this->assertGreaterThan(0,$menSingles->save());
+        $this->assertGreaterThan( 0, $menSingles->save() );
 
     }
 
@@ -71,6 +74,9 @@ class SignupTest extends TestCase
      * @depends test_add_entrants_to_signup
      */
     public function test_remove_entrants_from_signup() {
+        $title = "Remove Entrants From Signup";
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
+
         $clubs = Club::search('Tyandaga');
         $this->assertEquals(1,count($clubs));
         $this->assertEquals('Tyandaga Tennis Club',$clubs[0]->getName());

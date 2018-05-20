@@ -188,6 +188,7 @@ class TE_Install {
 				`name` VARCHAR(256) NOT NULL,
 				`parent_ID` INT NULL COMMENT 'Parent event',
 				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder, round robin',
+				`match_type` DECIMAL(3,1) DEFAULT 0.0 COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles', 
 				`format` VARCHAR(25) NULL COMMENT 'single elimination, double elimination, games won, sets won',
 				`signup_by` DATE NULL,
 				`start_date` DATE NULL,

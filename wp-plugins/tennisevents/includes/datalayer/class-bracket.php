@@ -157,12 +157,13 @@ class Bracket extends AbstractData
      */
     public function approve() {
         $this->is_approved = true;
+        $this->setDirty();
     }
 
     /**
      * Is this bracket approved?
      */
-    public function is_approved() {
+    public function isApproved() {
         return $this->is_approved;
     }
 
@@ -210,6 +211,24 @@ class Bracket extends AbstractData
         }
         return size;
     }
+
+    /**
+     * Get this bracket's signup
+     * TODO: Figure out how to get losers/consolation signup
+     */
+    public function getSignup() {
+        $result = array();
+        if( self::WINNERS === $this->getName() ) {
+            $result = $this->getEvent()->getSignup();
+        }
+        elseif( self::LOSERS === $this->getName() ) {
+            
+        }
+        elseif( self::CONSOLATION === $this->getName() ) {
+            
+        }
+        return $result;
+    }
     
     /**
      * Create a new Match and add it to this Event.
@@ -249,7 +268,7 @@ class Bracket extends AbstractData
     }
 
     /**
-     * Add a Match to this Round
+     * Add a Match to this Bracket
 	 * The Match must pass validity checks
      * @param $match
 	 * @return true if successful, false otherwise
@@ -313,7 +332,7 @@ class Bracket extends AbstractData
 	public function getMatch( int $rndnum, int $matchnum, $force = false ) {
 		$result = null;
 		foreach( $this->getMatches( $force ) as $match ) {
-			if( $match->getRoundNumber() === $rndnum  && $match->getMatchNumber === $matchnum ) {
+			if( $match->getRoundNumber() === $rndnum  && $match->getMatchNumber() === $matchnum ) {
 				$result = $match;
 			}
 		}
@@ -367,6 +386,7 @@ class Bracket extends AbstractData
 		return $this->setDirty();
     }
     
+    //TODO: Fix this ... use the owning event
 	public function getMatchType() {
 		if( $this->numMatches() > 0 ) {
 			return $this->matches[0]->getMatchType();

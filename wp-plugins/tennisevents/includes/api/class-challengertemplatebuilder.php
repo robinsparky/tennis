@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         //Need to have even number of challengers for the early round
         if( $players & 1 ) {            
-            throw new TennisConfigurationException( __( "Cannot create round 1 matches because invalid number of players.", TennisEvents::TEXT_DOMAIN ) );
+            throw new TennisConfigurationException( __( "Cannot create round 1 matches because invalid number of players ($players).", TennisEvents::TEXT_DOMAIN ) );
         }
         
         //Round 0 matches

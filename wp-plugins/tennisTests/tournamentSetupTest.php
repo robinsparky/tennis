@@ -37,6 +37,7 @@ class tournamentSetupTest extends TestCase
         self::$yearEndEvt->setEventType( EventType::TOURNAMENT );
         self::$yearEndEvt->addClub( $club );
         self::$tournamentEvt = new Event( TournamentDirector::MENSINGLES );
+        self::$tournamentEvt->setMatchType( MatchType::MENS_SINGLES );
         self::$tournamentEvt->setFormat(Format::SINGLE_ELIM);
         self::$yearEndEvt->addChild( self::$tournamentEvt );
         self::$yearEndEvt->save();
@@ -79,7 +80,7 @@ class tournamentSetupTest extends TestCase
         $title = "+++++++++++++++++++++ test_challenger_round for $size entrants+++++++++++++++++++++++++";
         error_log( $title );
 
-        $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
+        $td = new TournamentDirector( self::$tournamentEvt );
         $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
         $td->removeSignup(); //This removes all brackets and matches too
@@ -89,7 +90,7 @@ class tournamentSetupTest extends TestCase
         $this->assertEquals( $size, $td->signupSize() );
 
         $watershed = 2;
-        $num = $td->schedulePreliminaryRounds( false, $watershed );
+        $num = $td->schedulePreliminaryRounds( "Winners", "challenger", false );
         $rounds = $td->totalRounds();
 
         $this->assertEquals( 4, $rounds, 'Number of rounds');
@@ -102,7 +103,7 @@ class tournamentSetupTest extends TestCase
         $title = "++++++++++++++++++++test_bye_generation for $size entrants++++++++++++++++++++++++++";
         error_log( $title );
  
-        $td = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
+        $td = new TournamentDirector( self::$tournamentEvt );
         $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
 
         $td->removeSignup();
@@ -112,12 +113,36 @@ class tournamentSetupTest extends TestCase
         $this->assertEquals( $size, self::$tournamentEvt->signupSize() );
 
         $watershed = 0;
-        $num = $td->schedulePreliminaryRounds( false, $watershed );
+        $num = $td->schedulePreliminaryRounds( "Winners", "bye", false );
         $rnds = $td->totalRounds();
 
         $this->assertEquals( 3, $rnds,'Number of rounds');
         $this->assertEquals( 8, $num, 'Number of matches' );
     }
+    
+	public function test_auto_generation()
+	{       
+        $size = 15;
+        $title = "++++++++++++++++++++test_auto_generation for $size entrants++++++++++++++++++++++++++";
+        error_log( $title );
+ 
+        $td = new TournamentDirector( self::$tournamentEvt );
+        $this->assertEquals( TournamentDirector::MENSINGLES, $td->tournamentName() );
+
+        $td->removeSignup();
+        $this->assertEquals( 0, $td->signupSize() );
+
+        $this->createSignup( $size, 3 );
+        $this->assertEquals( $size, self::$tournamentEvt->signupSize() );
+
+        $watershed = 0;
+        $num = $td->schedulePreliminaryRounds( "Winners", "auto", false );
+        $rnds = $td->totalRounds();
+
+        $this->assertEquals( 3, $rnds,'Number of rounds');
+        $this->assertEquals( 8, $num, 'Number of matches' );
+    }
+    
     
 	// public function test_shuffle_bye_generation()
 	// {        

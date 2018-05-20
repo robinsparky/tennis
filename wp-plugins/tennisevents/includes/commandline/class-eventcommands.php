@@ -54,7 +54,7 @@ class EventCommands extends WP_CLI_Command {
      * ## EXAMPLES
      *
      *     # Create event for club  with id 2
-     *     $ wp tennis event create "My New Event" --clubId=2
+     *     $ wp tennis events create "My New Event" --clubId=2
      *
      * @when after_wp_load
      */
@@ -88,7 +88,6 @@ class EventCommands extends WP_CLI_Command {
         }
     }
 
-    
     /**
      * Create a new sub-event
      *
@@ -99,28 +98,53 @@ class EventCommands extends WP_CLI_Command {
      * <parentId>
      * :The id of the parent event
      * 
-     *
+     * [<matchtype>]
+     * :The type of matches in the brackets. Where 1.1 is mens singles; 2.1 is women's singles etc.
+     * ---
+     * default: 1.1
+     * options:
+     *   - 1.1
+     *   - 2.1
+     *   - 1.2
+     *   - 2.2
+     *   - 2.3
+     * ---
+     * 
+     * [<format>]
+     * :The format of brackets. e.g. selim is single elimination
+     * ---
+     * default: selim
+     * options:
+     *   - selim
+     *   - delim
+     *   - games
+     *   - sets
+     * ---
+     * 
      * ## EXAMPLES
      *
-     *     # Create sub event with parent with id 1
-     *     $ wp tennis event createsub "Mens Singles" 1
+     *     # Create sub event with parent id=1  and which defaults to men's singles
+     *     $ wp tennis events createsub "Guys playing other guys" 1
+     * 
+     *     # Create sub event with parent id=1 and with match type of mixed doubles
+     *     $ wp tennis events createsub "Name of event" 1 mixedoubles
      *
      * @when after_wp_load
      */
     function createsub( $args, $assoc_args ) {
-        list( $evtName, $parentId ) = $args;
-
+        list( $evtName, $parentId, $matchType, $format ) = $args;
+        $matchType = (float) $matchType;
         try {
             $parentEvent = Event::get( $parentId );
             $subEvent = new Event( $evtName );
-            //TODO: get format from args
-            $subEvent->setFormat( Format::SINGLE_ELIM );
             $parentEvent->addChild( $subEvent );
+            $subEvent->setMatchType( $matchType );
+            $subEvent->setFormat( $format );
             $parentEvent->save();
-            WP_CLI::success(sprintf("Add sub event '%s' to parent event '%s'",$evtName, $parentEvent->getName() ) );
+            WP_CLI::success(sprintf("wp tennis events createsub ... Added sub event '%s' to parent event '%s'",$evtName, $parentEvent->getName() ) );
         }
         catch ( Exception $ex ) {
-            WP_CLI::error( sprintf( "Create event failed: %s", $ex->getMessage() ) );
+            WP_CLI::error( sprintf( "wp tennis events createsub ... failed: %s", $ex->getMessage() ) );
         }
     }
 
@@ -144,7 +168,7 @@ class EventCommands extends WP_CLI_Command {
 
         Event::deleteEvent( $eventId );
 
-        WP_CLI::sucess("Deleted event with id $eventId");
+        WP_CLI::success("Deleted event with id $eventId");
     }
     
     /**

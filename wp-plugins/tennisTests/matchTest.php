@@ -28,6 +28,8 @@ class MatchTest extends TestCase
 
 
     public function test_create_matches() {
+        $title = "Test Create Matches";
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
         
         $clubs = Club::search( 'Tyandaga' );
         $this->assertCount( 1, $clubs );
@@ -72,6 +74,8 @@ class MatchTest extends TestCase
     }
 
     public function test_match_scoring() {
+        $title = "Test Match Scoring";
+        error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
 
         $bracket = self::$mens->getBracket();
         $this->assertEquals( Bracket::WINNERS, $bracket->getName(),'Winners bracket');

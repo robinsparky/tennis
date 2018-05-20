@@ -40,10 +40,11 @@ class tournamentScoringTest extends TestCase
         self::$yearEndEvt->addClub( self::$club );
         self::$tournamentEvt = new Event( TournamentDirector::MENSINGLES );
         self::$tournamentEvt->setFormat(Format::SINGLE_ELIM);
+        self::$tournamentEvt->setMatchType( MatchType::MENS_SINGLES );
         self::$yearEndEvt->addChild( self::$tournamentEvt );
         self::$yearEndEvt->save();
         
-        self::$tournamentDirector = new TournamentDirector( self::$tournamentEvt, MatchType::MENS_SINGLES );
+        self::$tournamentDirector = new TournamentDirector( self::$tournamentEvt );
         
     }
 
@@ -61,7 +62,7 @@ class tournamentScoringTest extends TestCase
         $this->createSignup( $size, $seeds );
         $this->assertEquals( $size, self::$tournamentDirector->drawSize() );
 
-        $num = self::$tournamentDirector->schedulePreliminaryRounds();
+        $num = self::$tournamentDirector->schedulePreliminaryRounds( "Winners", "auto", false );
         $rnds = self::$tournamentDirector->totalRounds();
         $this->assertGreaterThan( 5, $num, 'Number of matches' );
         $this->assertEquals( $num, count( self::$tournamentDirector->getMatches() ), ' Count of matches' );

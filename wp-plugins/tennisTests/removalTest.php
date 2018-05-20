@@ -64,11 +64,11 @@ class RemovalTest extends TestCase
         error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
 
         $bracket = self::$mens->getBracket();
-        $this->assertEquals( Bracket::WINNERS, $bracket->getName(),'Winners bracket');
+        $this->assertEquals( Bracket::WINNERS, $bracket->getName(), 'Winners bracket' );
         $this->assertEquals( self::$mens, $bracket->getEvent(), 'Bracket event equals mens' );
         
-        $signup = self::$mens->getSignup();
-        $this->assertEquals(13,count($signup));
+        $signup = $bracket->getSignup();
+        $this->assertEquals( 13, count($signup) );
         $this->assertEquals( self::$mens->signupSize(), $bracket->signupSize(), '1. Event and bracket equal signup size');
 
         $i = 0;
