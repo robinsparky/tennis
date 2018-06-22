@@ -606,6 +606,31 @@ class Event extends AbstractData
 		}
 		return $result;
 	}
+	
+	/**
+	 * Get a specific descendant event
+	 * Uses recursion up to 10 levels deep
+	 * @param $descendantId The id of the descendant event
+	 */
+    public function getDescendant( int $descendantId ) {
+        static $attempts = 0;
+        if( $descendantId === $this->getID() ) return $this;
+
+        if( count( $this->getChildEvents() ) > 0 ) {
+            if( ++$attempts > 10 ) return null;
+            foreach( $this->getChildEvents() as $child ) {
+                if( $descendantId === $child->getID() ) {
+                    return $child;
+                }
+                else { 
+                    return $this->getDescendant( $child, $descendantId );
+                }
+            }
+        }
+        else {
+            return null;
+        }
+    }
 
 	/**
 	 * A root level Event can be associated with one or more clubs. 

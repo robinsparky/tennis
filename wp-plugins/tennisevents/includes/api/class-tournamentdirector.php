@@ -199,7 +199,7 @@ class TournamentDirector
      * Advance completed matches to their respective next rounds.
      * 
      */
-    public function advance() {
+    public function advance( int $bracketNum ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $bracket;

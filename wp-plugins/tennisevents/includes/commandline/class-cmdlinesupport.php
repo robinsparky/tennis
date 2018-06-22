@@ -105,12 +105,11 @@ class CmdlineSupport {
         if( count( $evt->getChildEvents() ) > 0 ) {
             if( ++$attempts > 10 ) return null;
             foreach( $evt->getChildEvents() as $child ) {
-                $test = $child->getID();
                 if( $descendantId === $child->getID() ) {
                     return $child;
                 }
                 else { 
-                    return $this->getEvent( $child, $descendantId );
+                    return $this->getEventRecursively( $child, $descendantId );
                 }
             }
         }

@@ -43,7 +43,7 @@ class ShowCommands extends WP_CLI_Command {
             WP_CLI\Utils\format_items( 'table', $items, array( 'ID', 'Name' ) );
         } 
         else {
-         WP_CLI::warning( "No clubs found." );
+         WP_CLI::warning( "wp tennis show clubs ... no clubs found." );
         }
     }
 
@@ -61,7 +61,7 @@ class ShowCommands extends WP_CLI_Command {
      *
      * @when after_wp_load
      */
-    function events( $args, $assoc_args ) {
+    function clubEvents( $args, $assoc_args ) {
         list( $clubId ) = $args;
         $allEvents = Event::find( array( 'club' => $clubId ) );
         if( count( $allEvents ) > 0 ) {
@@ -76,7 +76,7 @@ class ShowCommands extends WP_CLI_Command {
             }
         }
         else {
-            WP_CLI::warning( "No events were found for club with Id '$clubId'" );
+            WP_CLI::warning( "wp tennis show clubEvents ... no events were found for club with Id '$clubId'" );
         }
     }
 
@@ -87,11 +87,11 @@ class ShowCommands extends WP_CLI_Command {
      * 
      * ## EXAMPLES
      *
-     *     wp tennis display clubsEvents
+     *     wp tennis show allClubsEvents
      *
      * @when after_wp_load
      */
-    function clubsEvents( $args, $assoc_args ) {
+    function allClubsEvents( $args, $assoc_args ) {
         $allClubs = Club::find();
         if( count( $allClubs ) > 0 ) {
             WP_CLI::line( "Tennis Clubs" );
@@ -109,7 +109,7 @@ class ShowCommands extends WP_CLI_Command {
             WP_CLI\Utils\format_items( 'table', $items, array( 'ID', 'Name', 'Events') );
         } 
         else {
-         WP_CLI::warning( "No clubs found." );
+         WP_CLI::warning( "wp tennis show allClubsEvents ... no clubs found." );
         }
     }
 
@@ -186,11 +186,11 @@ class ShowCommands extends WP_CLI_Command {
                 WP_CLI\Utils\format_items( 'table', $items, array( 'Position', 'Name', 'Seed' ) );
             }
             else {
-                WP_CLI::warning( "Could not find event with Id '$eventId' for club with Id '$clubId'" );
+                WP_CLI::warning( "wp tennis show signup ... could not find event with Id '$eventId' for club with Id '$clubId'" );
             }
         }
         else {
-            WP_CLI::warning( "Could not find any events for club with Id '$clubId'" );
+            WP_CLI::warning( "wp tennis show signup ... could not find any events for club with Id '$clubId'" );
         }
     }
     
@@ -234,51 +234,57 @@ class ShowCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $bracket = $target->getWinnersBracket();
+                $brackets = $target->getBrackets();
                 WP_CLI::line( "Matches for '$evtName' at '$name'");
-                $td = new TournamentDirector( $target, $bracket->getMatchType() );
-                $matches = $bracket->getMatches();
+                $td = new TournamentDirector( $target );
                 $umpire  = $td->getChairUmpire();
-                WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
-                $items   = array();
-                foreach( $matches as $match ) {
-                    $round   = $match->getRoundNumber();
-                    $mn      = $match->getMatchNumber();
-                    $status  = $umpire->matchStatus( $match );
-                    $score   = $umpire->strGetScores( $match );
+                foreach( $brackets as $bracket ) {
+                    $matches = $bracket->getMatches();
+                    WP_CLI::line( sprintf( "Total Rounds = %d", $td->totalRounds() ) );
+                    $items   = array();
+                    foreach( $matches as $match ) {
+                        $round   = $match->getRoundNumber();
+                        $mn      = $match->getMatchNumber();
+                        $status  = $umpire->matchStatus( $match );
+                        $score   = $umpire->strGetScores( $match );
 
-                    $home    = $match->getHomeEntrant();
-                    $hname   = sprintf( "%d %s", $home->getPosition(), $home->getName() );
-                    $hseed   = $home->getSeed() > 0 ? $home->getSeed() : '';
+                        $home    = $match->getHomeEntrant();
+                        $hname   = 'tba';
+                        $hseed   = '';
+                        if( isset( $home ) ) {
+                            $hname   = sprintf( "%d %s", $home->getPosition(), $home->getName() );
+                            $hseed   = $home->getSeed() > 0 ? $home->getSeed() : '';
+                        }
 
-                    $visitor = $match->getVisitorEntrant();
-                    $vname   = 'tba';
-                    $vseed   = '';
-                    if( isset( $visitor ) ) {
-                        $vname   = sprintf( "%d %s", $visitor->getPosition(), $visitor->getName()  );
-                        $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                        $visitor = $match->getVisitorEntrant();
+                        $vname   = 'tba';
+                        $vseed   = '';
+                        if( isset( $visitor ) ) {
+                            $vname   = sprintf( "%d %s", $visitor->getPosition(), $visitor->getName()  );
+                            $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                        }
+
+                        $cmts    = $match->getComments();
+                        $cmts    = isset( $cmts ) ? $cmts : '';
+                        $items[] = array( "Round" => $round
+                                        , "Match Number" => $mn
+                                        , "Status" => $status
+                                        , "Score" => $score
+                                        , "Home Name" => $hname
+                                        , "Home Seed" => $hseed
+                                        , "Visitor Name" => $vname
+                                        , "Visitor Seed" => $vseed 
+                                        , "Comments" => $cmts);
                     }
-
-                    $cmts    = $match->getComments();
-                    $cmts    = isset( $cmts ) ? $cmts : '';
-                    $items[] = array( "Round" => $round
-                                    , "Match Number" => $mn
-                                    , "Status" => $status
-                                    , "Score" => $score
-                                    , "Home Name" => $hname
-                                    , "Home Seed" => $hseed
-                                    , "Visitor Name" => $vname
-                                    , "Visitor Seed" => $vseed 
-                                    , "Comments" => $cmts);
+                    WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
                 }
-                WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
             }
             else {
-                WP_CLI::warning( "Could not event with Id '$eventId' for club with Id '$clubId'" );
+                WP_CLI::warning( "wp tennis show match ... could not find event with Id '$eventId' for club with Id '$clubId'" );
             }
         }
         else {
-            WP_CLI::warning( "Could not any events for club with Id '$clubId'" );
+            WP_CLI::warning( "wp tennis show match ... could not find any events for club with Id '$clubId'" );
         }
     }
     

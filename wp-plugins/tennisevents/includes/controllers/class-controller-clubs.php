@@ -82,10 +82,7 @@ class ClubsController extends WP_REST_Controller
     public function get_items( $request ) {
       $items = array(); //do a query, call another class, etc
       //In the meantime ...
-      $items = array(
-        array('name' => 'Tyandaga Tennis Club', 'id' => 1),
-        array('name' => 'Burlington Fitness and Rackets', 'id' => 2)
-      );
+      $items = array( Club::find() );
       $data = array();
       foreach( $items as $item ) {
         $itemdata = $this->prepare_item_for_response( $item, $request );
@@ -105,7 +102,7 @@ class ClubsController extends WP_REST_Controller
       //get parameters from request
       $params = $request->get_params();
 
-      $item = array();//do a query, call another class, etc
+      $item = array( Club::find( $params ) );//do a query, call another class, etc
 
       $data = $this->prepare_item_for_response( $item, $request );
    

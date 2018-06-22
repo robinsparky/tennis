@@ -51,31 +51,43 @@ class TennisControllerManager
     */
     private function __construct()
     {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log( "$loc ++++++++++++++++++++++++++++++++++");
         $this->includes();
+		//wp_enqueue_script( 'wp-api' );
+		//wp_enqueue_script( 'my_script', 'path/to/my/script', array( 'wp-api' ) );
 
     } // end constructor
 
 	private function includes() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log( "$loc ++++++++++++++++++++++++++++++++++");
 		include_once('gw-support.php');
-		include_once('controllers/class-controller-clubs.php');
-		include_once('controllers/class-controller-courts.php');
-		include_once('controllers/class-controller-events.php');
-		include_once('controllers/class-controller-draws.php');
+		// include_once('controllers/class-controller-clubs.php');
+		// include_once('controllers/class-controller-courts.php');
+		// include_once('controllers/class-controller-events.php');
+		// include_once('controllers/class-controller-draws.php');
+		include_once('controllers/class-controller-brackets.php');
 	}
 
 	//Register Routes and Endpoints
 	public function register_tennis_rest_routes() {
-		
-		$controller = new ClubsController();
-		$controller->register_routes();
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log( "$loc ++++++++++++++++++++++++++++++++++");
 
-		$controller = new EventsController();
-		$controller->register_routes();
+		// $controller = new ClubsController();
+		// $controller->register_routes();
+
+		// $controller = new EventsController();
+		// $controller->register_routes();
 		
-		$controller = new CourtsController();
-		$controller->register_routes();
+		// $controller = new CourtsController();
+		// $controller->register_routes();
 		
-		$controller = new DrawsController();
+		// $controller = new DrawsController();
+		// $controller->register_routes();
+
+		$controller = new BracketsController();
 		$controller->register_routes();
 		
 	}

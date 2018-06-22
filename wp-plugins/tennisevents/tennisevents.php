@@ -1,11 +1,11 @@
 <?php
 /*
 	Plugin Name: Tennis Events
-	Plugin URI: xlconsultinggroup.com
-	Description: Tennis Events front-end support
+	Plugin URI: grayware.ca/tennisevents
+	Description: Tennis Events Management
 	Version: 1.0
 	Author: Robin Smith
-	Author URI: xlconsultinggroup.com
+	Author URI: grayware.ca
 */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -49,7 +49,6 @@ class TennisEvents {
 	 */
 	public static $TE_Installer;
 
-	
 	/**
 	 * Endpoint Controller Manager singleton
 	 */
@@ -87,7 +86,7 @@ class TennisEvents {
 	}
 	
 	public function includes() {
-		include_once('autoloader.php');
+		include_once( 'autoloader.php' );
 		include_once( 'includes/gw-support.php' );
 		include_once( 'includes/class-controller-manager.php' );
 		include_once( 'includes/class-tennis-install.php' );
@@ -107,23 +106,29 @@ class TennisEvents {
 	 * @since  1.0
 	 */
 	private function init_hooks() {
-		add_action('init',array($this,'init'));
 		
 		self::$TE_Installer = TE_Install::get_instance();
+		self::$ControllerManager = TennisControllerManager::get_instance();
+        // Register hooks
 		register_activation_hook( __FILE__, array( self::$TE_Installer , 'on_activate' ) );
-		register_deactivation_hook (__FILE__, array( self::$TE_Installer ,'on_deactivate' ) );
-		register_uninstall_hook (__FILE__,array( __class__ ,'on_uninstall' ) );
-		add_action( 'rest_api_init', array(self::$ControllerManager, 'register_tennis_rest_routes') );
-	}
+		register_deactivation_hook ( __FILE__, array( self::$TE_Installer , 'on_deactivate' ) );
+		register_uninstall_hook ( __FILE__, array( __class__ , 'on_uninstall' ) );
 
+        // Add actions
+		add_action('init', array( $this, 'init') );
+		add_action( 'rest_api_init', array( self::$ControllerManager, 'register_tennis_rest_routes' ) );
+	}   
+	
 	/**
 	 * Init Tennis Events 
 	 * 1. Instantiate the installer
 	 * 2. Instantiate the Endpoints/routes Controller
 	 */
 	public function init() {
-		self::$TE_Installer = TE_Install::get_instance();
-		self::$ControllerManager = TennisControllerManager::get_instance();
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log( sprintf( ">>>>>>>>>>>%s>>>>>>>>>", $loc ) );
+		// self::$TE_Installer = TE_Install::get_instance();
+		// self::$ControllerManager = TennisControllerManager::get_instance();
 	}
 
 	public static function on_uninstall() {
@@ -132,8 +137,9 @@ class TennisEvents {
 	}
 	
 	public function get_plugin_path() {
-		return plugin_dir_path(__FILE__);
+		return plugin_dir_path( __FILE__ );
 	}
+
 }
 endif;
 

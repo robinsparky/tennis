@@ -70,22 +70,20 @@ class TE_Install {
 								   ,"club_event"			=> $wpdb->prefix . "tennis_club_event"
 								);
 		
-        add_filter('query_vars', array($this,'add_query_vars_filter'));
+        add_filter( 'query_vars', array( $this,'add_query_vars_filter' ) );
 
-        add_action('wp_enqueue_scripts', array( $this,'enqueue_script'));
+        add_action( 'wp_enqueue_scripts', array( $this,'enqueue_script' ) );
 
-        add_action('wp_enqueue_scripts', array( $this,'enqueue_style'));
+        add_action( 'wp_enqueue_scripts', array( $this,'enqueue_style' ) );
 
-        //add_action('wp_head', array( $this,'add_event_product_selection'));
-
-        // Action hook to create the  shortcode
+        // Action hook to create the shortcode
         //add_shortcode('tennis_shorts', array( $this,'do_shortcode'));
 
 	}
 
 
 	protected function includes() {
-		include_once('gw-support.php');
+		include_once( 'gw-support.php' );
 	}
 	
 	/**
@@ -94,20 +92,24 @@ class TE_Install {
 	public function on_activate() {
 		// Ensure needed classes are loaded
 		//add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
-		error_log(__class__ . ": on_activate");
+		error_log( __class__ . ": on_activate" );
+		
+		// $this->addRoles();
+		// $this->addCap();
 		$this->create_options();
 		$this->createSchema();
 		//$this->seedData();
-		add_filter('wp_nav_menu_items',array($this,'add_todaysdate_in_menu'), 10, 2);
+		add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
 	}
 	
 	
 	public function on_deactivate() {
-		error_log(__class__ . ": on_deactivate");
+		error_log( __class__ . ": on_deactivate" );
+		//$this->removeCap();
 	}
 
 	public function uninstall() {
-		error_log(__class__ . ": uninstall");
+		error_log( __class__ . ": uninstall" );
 		$this->delete_options();
 		$this->dropSchema();
 	}
@@ -120,7 +122,40 @@ class TE_Install {
 		delete_option(self::OPTION_NAME_VERSION );
 	}
 
-	public function createSchema(bool $withReports=false) {
+	private function addRoles() {
+		$result = add_role( 'tennis_player', 'Tennis Player'
+						  , array( 'read' => true
+						         , 'level_10' => true ) );
+
+		if( null !== $result ) {
+			error_log( "Role 'Tennis Player' added." );
+		}
+		else {
+			error_log( "Could not add role 'Tennis Player'." );
+		}
+	}
+	
+    // Add the new capability to all roles having a certain built-in capability
+    private function addCap() {
+        $roles = get_editable_roles();
+        foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
+            if (isset($roles[$key]) && $role->has_cap('BUILT_IN_CAP')) {
+                $role->add_cap('THE_NEW_CAP');
+            }
+        }
+	}
+
+	// Remove the plugin-specific custom capability
+	private function removeCap() {
+		$roles = get_editable_roles();
+		foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
+			if (isset($roles[$key]) && $role->has_cap('THE_NEW_CAP')) {
+				$role->remove_cap('THE_NEW_CAP');
+			}
+		}
+	}
+
+	public function createSchema( bool $withReports=false ) {
 		global $wpdb;
 		if($withReports) $wpdb->show_errors(); 
 		

@@ -37,7 +37,7 @@ class TournamentCommands extends WP_CLI_Command {
         $target = null;
         if( count( $evts ) > 0 ) {
             foreach( $evts as $evt ) {
-                $target =  CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                $target =  $evt->getDescendant( $eventId );
                 if( isset( $target ) ) {
                     $found = true;
                     break;
@@ -48,7 +48,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $brackets = $target->getBrackets();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $td = new TournamentDirector( $target );
                 foreach( $brackets as $bracket ) {
                     WP_CLI::line( sprintf( "Matches for '%s' at '%s'", $evtName, $name ) );
                     WP_CLI::line( sprintf( "%s Bracket: %d Rounds", $bracket->getName(), $td->totalRounds() ) );
@@ -63,7 +63,7 @@ class TournamentCommands extends WP_CLI_Command {
                         $winner  = $umpire->matchWinner( $match );
                         $winner  = is_null( $winner ) ? 'tba': $winner->getName();
                         $home    = $match->getHomeEntrant();
-                        $hname   = !is_null( $home ) ? sprintf( "%d %s", $home->getPosition(), $home->getName() ) : '';
+                        $hname   = !is_null( $home ) ? sprintf( "%d %s", $home->getPosition(), $home->getName() ) : 'tba';
                         $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
 
                         $visitor = $match->getVisitorEntrant();
