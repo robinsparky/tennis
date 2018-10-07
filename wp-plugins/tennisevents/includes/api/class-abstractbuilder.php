@@ -28,7 +28,6 @@ abstract class AbstractBuilder
     /**
      * Parent Ctor 
      * @param $n The number of players or teams in the tournament
-     * @param $m The method for template generation
      * @param $s The number of byes or challengers
      */
     public function __construct( int $n, int $s ) {

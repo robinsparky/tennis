@@ -581,56 +581,72 @@ class TE_Install {
 		}
 	}
 	
-	//shortcode: rts_prod_cat orderby="name" order="asc"
+	//shortcode: tennis_brackets clubId=number eventId=number
 	public function do_shortcode( $atts, $content = null )
     {
-		$myshorts = shortcode_atts(array("hierarchy" => 0, "orderby" => "name", "order"=>"ASC", "parent"=>0), $atts,'rts_prod_cat');
+		$loc = __CLASS__  . "::" . __FUNCTION__;
+
+		$myshorts = shortcode_atts(array("clubId" => 1, "eventId" => 2 ), $atts, 'rts_prod_cat' );
 		extract($myshorts);
-		$out = '';
+		
+		$club = Club::get( $clubId );
+		$event = Event::get( $eventId );
+		$clubName = $club->getName();
+		$evtName = $event->getName();
+		$out = '<table>' . PHP_EOL;
+		if( !is_null( $club ) && !is_null( $event ) ) {
+		
+			$td = new TournamentDirector( $target );
+			$entrants = $td->getSignup();
+			$bracketSignupSize = count( $entrants );
+			$matches = $td->getMatches();
+			$umpire  = $td->getChairUmpire();
+			$brackets = $target->getBrackets();
 
-		//Want woocommerce product categories
-		$categories = get_terms(array('taxonomy' => 'product_cat',
-				'orderby' => $orderby,
-    			'order'   => $order,
-				'parent'  => $parent
+			foreach( $brackets as $bracket ) {
+				
+				error_log( sprintf( "%s:  Matches for '%s' at '%s'", $loc, $evtName, $clubName ) );
+				error_log( sprintf( "%s:  %s Bracket: %d Rounds", $loc, $bracket->getName(), $td->totalRounds() ) );
 
-		));
+				//NOTE: Does not support preliminary rounds!!!
+				$numRounds = 0;
+				foreach( $matches as $match ) {
+					$round   = $match->getRoundNumber();
+					$mn      = $match->getMatchNumber();
+					if( 0 === $round ) {
+						throw new TennisConfigurationException( __( "Cannot display brackets with preliminary rounds", TennisEvents::TEXT_DOMAIN ) );
+					}
+					
 
-		if ( empty( $categories ) || is_wp_error( $categories ) ){
-		    return $out;
+					$status  = $umpire->matchStatus( $match );
+					$score   = $umpire->strGetScores( $match );
+					$winner  = $umpire->matchWinner( $match );
+					$winner  = is_null( $winner ) ? 'tba': $winner->getName();
+					$home    = $match->getHomeEntrant();
+					$hname   = !is_null( $home ) ? sprintf( "%d %s", $home->getPosition(), $home->getName() ) : 'tba';
+					$hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
+
+					$visitor = $match->getVisitorEntrant();
+					$vname   = 'tba';
+					$vseed   = '';
+					if( isset( $visitor ) ) {
+						$vname   = sprintf( "%d %s", $visitor->getPosition(), $visitor->getName()  );
+						$vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+					}
+
+					$cmts    = $match->getComments();
+					$cmts    = isset( $cmts ) ? $cmts : '';
+					
+					$rowspan = pow( 2, $round - 1 );
+					$out += sprintf( "<td id=\"%d\" rowspan=\"%d\">", $mn, $rowspan );
+				}
+			}
 		}
-        $out = '<ul class="sbc-container gallery product-category">';
 
-		foreach( $categories as $category ) {
-			// get the thumbnail id using the queried category term_id
-			$thumbnail_id = get_woocommerce_term_meta( $category->term_id, 'thumbnail_id', true );
+		$out .= '</table>';
+		
+        return $out; //always return something
 
-			// get the image URL
-			$cat_image_url = wp_get_attachment_url( $thumbnail_id );
-
-			$cat_image_url = (isset($cat_image_url) && $cat_image_url != '') ? $cat_image_url : plugin_dir_path(__FILE__) . '/../img/placeholder.png';
-
-			$image_link = sprintf('<a href="%1$s" alt="%2$s">%3$s</a>'
-										,esc_url(get_category_link( $category->term_id ) )
-										,esc_attr(sprintf(__('View all products in %s', 'xlc' ), $category->name))
-										,sprintf('<img src="%s" />', $cat_image_url));
-
-			$name_link = sprintf('<a href="%1$s" alt="%2$s">%3$s</a>'
-										,esc_url( get_category_link( $category->term_id))
-										,esc_attr(sprintf(__('View all products in %s', 'xlc' ), $category->name))
-										,sprintf('<h3>%s</h3>', $category->name));
-
-			$inner  = '<li class="product sbc-item">';
-			$inner .= $image_link;
-			$inner .= $name_link;
-			$inner .= '</li>';
-            $out .= $inner;
-		}
-
-		$out .= '</ul>';
-        //$out .= '</div>';
-
-        return $out;
 	}
 
 	public function enqueue_style() {
@@ -643,6 +659,7 @@ class TE_Install {
 		// guess current plugin directory URL
 		$plugin_url = plugin_dir_url(__FILE__);
 		wp_register_script( 'tennis_js', $plugin_url . 'js/te-support.js', array('jquery'),false,true );
+		wp_register_script( 'tennis_js', $plugin_url . 'js/create-drawtable.js', array('jquery'),false,true );
 	}
 
 	//Need one extra query parameter
