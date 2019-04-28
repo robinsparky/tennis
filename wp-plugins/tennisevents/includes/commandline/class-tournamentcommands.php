@@ -561,9 +561,17 @@ class TournamentCommands extends WP_CLI_Command {
      * <n>
      * : Number of players
      * 
+     * [--method=<type>]
+     * : 
+     * ---
+     * default: byes
+     * options:
+     *   - byes
+     *   - challenger
+     * ---
      * ## EXAMPLES
      *
-     *     wp tennis tourney review 15
+     *     wp tennis tourney review 15 --method=byes
      *
      * @when before_wp_load
      */
@@ -571,6 +579,7 @@ class TournamentCommands extends WP_CLI_Command {
     function review( $args, $assoc_args ) {
 
         list( $n ) = $args;
+        $method = array_key_exists( 'method', $assoc_args )  ? $assoc_args["method"] : 'byes';
 
         // $byePoss = $this->byePossibilities( $n );
         // $titles = array_keys( $byePoss[0] );
@@ -586,7 +595,7 @@ class TournamentCommands extends WP_CLI_Command {
         $defchallengers = $this->challengerCount( $n );
         WP_CLI::line(sprintf("Default # of byes=%d, Default # of challengers=%d", $defbyes, $defchallengers ) );
 
-        if( $defchallengers < $defbyes ) {
+        if( $method === "challengers" ) {
             $tb = new ChallengerTemplateBuilder( $n, $defchallengers );
             $tb->build();
             //print_r( $tb->getTemplate() );
@@ -770,8 +779,11 @@ abstract class OverloadedConstructors {
       $constructors = array_filter($self->getMethods(ReflectionMethod::IS_PUBLIC), function(ReflectionMethod $m) {
          return substr($m->name, 0, 11) === '__construct';
       });
-      if(sizeof($constructors) === 0)
+      
+      if(sizeof($constructors) === 0) {
          trigger_error('The class ' . get_called_class() . ' does not provide a valid constructor.', E_USER_ERROR);
+      }
+
       $number = func_num_args();
       $arguments = func_get_args();
       $ref_arguments = array();

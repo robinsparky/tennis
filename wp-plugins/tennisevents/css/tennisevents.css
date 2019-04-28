@@ -73,6 +73,80 @@ datalist#emaildata {
     color: purple;
 }
 
+/*------------------------------------------------------------------------------------
+ * Display Draw
+ *-----------------------------------------------------------------------------------*/
+ :root {
+    --fieldsize: 4;
+    --rounds: 2;
+    --drawHeight: 300px;
+    --entryHeight: 25px;
+    --roundWidth: calc(100% / (var(--rounds)+1));
+ }
+ 
+table.draw {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    border: 3px solid purple;
+}
+
+/*
+.item-player {
+    background-color: inherit;
+    height: 50px;
+    vertical-align: middle;
+}
+
+.item-player > p:first-child {
+    float:left;
+    width: 60%;
+}
+.item-player > p:last-child {
+    float: right;
+    width: 40%;
+}
+.item-player > p:nth-child(n) {
+    line-height: 1.6;
+    margin-top: 10%;
+}
+
+
+.draw {
+    box-sizing: border-box;
+    background-color: pink;
+    border: 2px dashed green;
+    height: calc(var(--entryHeight) * var(--fieldsize));
+}
+
+.roundof2 {
+    width: var(--roundWidth);
+    float: left;
+}
+.roundof2:first-child() {
+    border-left: 2px solid black;
+    margin-top: calc(var(--entryHeight) * 0.5 );
+}
+.roundof2:not(:first-child) {
+    border-left: 2px solid black;
+    margin-top: calc(var(--entryHeight) * 2 );
+}
+
+.roundof4:nth-child(n) {
+    border-right: 2px solid black;
+}
+
+.roundof4 {
+    width: var(--roundWidth);
+    float: left;
+}
+
+
+.item-score {
+    text-align: center;
+}
+*/
+
 
 /*------------------------------------------------------------------------------------
                           iPhone 2 3 4 4s

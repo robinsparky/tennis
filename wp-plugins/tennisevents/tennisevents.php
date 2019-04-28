@@ -90,6 +90,8 @@ class TennisEvents {
 		include_once( 'includes/gw-support.php' );
 		include_once( 'includes/class-controller-manager.php' );
 		include_once( 'includes/class-tennis-install.php' );
+		include_once( 'includes/functions-admin-menu.php' );
+
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			include_once( 'includes/commandline/class-clubcommands.php' );
 			include_once( 'includes/commandline/class-eventcommands.php' );
@@ -99,6 +101,9 @@ class TennisEvents {
 			include_once( 'includes/commandline/class-tournamentcommands.php' );
 			include_once( 'includes/commandline/class-signupcommands.php' );
 		}
+		
+		//Shortcode for rendering Tournament Brackets
+		RenderDraw::register();		
 	}
 
 	/**

@@ -204,7 +204,8 @@ class Bracket extends AbstractData
             return $size;
         }
         elseif( self::LOSERS === $this->getName() ) {
-            return $size / 2;
+            //TODO: Not true ... needs investigation
+            return $size / 2; 
         }
         elseif( self::CONSOLATION === $this->getName() ) {
             return $size / 2;
@@ -353,7 +354,37 @@ class Bracket extends AbstractData
      */
     public function numMatchesByRound( int $round ):int {		
 		return array_reduce( function ( $sum, $m ) use( $round ) { if( $m->getRound() === $round ) ++$sum; }, $this->getMatches(), 0);
-	}
+    }
+    
+    /**
+     * Get the number of byes in this bracket.
+     * Note that the preliminary rounds must have already been scheduled.
+     * @return number of byes
+     */
+    public function getNumberOfByes() {
+		global $wpdb;
+        $loc = __CLASS__ . '::' .  __FUNCTION__;
+
+        $byes = 0;
+        $bracketTable = $wpdb->prefix . self::$tablename;
+        $eventTable = $wpdb->prefix . "tennis_event";
+        $matchTable = $wpdb->prefix . "tennis_match";
+        $eventId = $this->getEventId();
+        $bracketNum = $this->getBracketNumber();
+      
+        $sql = "SELECT count(*)
+            from $eventTable as e
+            inner join $bracketTable as b on b.event_ID = e.ID
+            inner join $matchTable as m on m.event_ID = b.event_ID and m.bracket_num = b.bracket_num 
+            where m.is_bye = 1 
+            and e.ID = %d 
+            and b.bracket_num = %d;";
+        $safe = $wpdb->prepare( $sql, $this->getEventId(), $this->getBracketNumber() );
+        $byes = $wpdb->get_var( $safe );
+
+        error_log( sprintf("%s(E(%d)B(%d)) -> has %d byes.", $loc, $this->getEventId(), $this->getBracketNumber(), $byes ) );
+        return $byes;
+    }
 
     /**
      * Get the highest match number used in the given round

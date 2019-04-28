@@ -807,10 +807,10 @@ class Event extends AbstractData
 	public function getWinnersBracket( ) {
 		$bracket = $this->getBracket( Bracket::WINNERS );
 		if( is_null( $bracket ) ) {
-			if( !$this->createBracket( Bracket::WINNERS ) ) {
+			$bracket = $this->createBracket( Bracket::WINNERS );
+			if( is_null( $bracket ) ) {
 				throw new InvalidEventException(__("Could not create Winners bracket.",TennisEvents::TEXT_DOMAIN) );
 			}
-			$bracket = $this->getBracket( Bracket::WINNERS );
 			$bracket->save();
 		}
 		return $bracket;
@@ -822,10 +822,10 @@ class Event extends AbstractData
 	public function getLosersBracket( ) {
 		$bracket = $this->getBracket( Bracket::LOSERS );
 		if( is_null( $bracket ) ) {
-			if( !$this->createBracket( Bracket::LOSERS ) ) {
+			$bracket = $this->createBracket( Bracket::LOSERS );
+			if( is_null( $bracket ) ) {
 				throw new InvalidEventException(__("Could not create Losers bracket.",TennisEvents::TEXT_DOMAIN) );
 			}
-			$bracket = $this->getBracket( Bracket::LOSERS );
 			$bracket->save();
 		}
 		return $bracket;
@@ -837,10 +837,10 @@ class Event extends AbstractData
 	public function getConsolationBracket( ) {
 		$bracket = $this->getBracket( Bracket::CONSOLATION );
 		if( is_null( $bracket ) ) {
-			if( !$this->createBracket( Bracket::CONSOLATION ) ) {
+			$bracket = $this->createBracket( Bracket::CONSOLATION );
+			if( is_null( $bracket ) ) {
 				throw new InvalidEventException(__("Could not create Consolation bracket.",TennisEvents::TEXT_DOMAIN) );
 			}
-			$bracket = $this->getBracket( Bracket::CONSOLATION );
 			$bracket->save();
 		}
 		return $bracket;

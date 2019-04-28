@@ -20,10 +20,13 @@ abstract class AbstractData
     abstract static public function find(...$fk_criteria);
     abstract static public function get(int ...$pks);
     abstract public function isValid();
+
+    protected $log;
     
    //Default constructor
    public function __construct() {
         $this->isnew = true;
+        $this->log = new BaseLogger( true );
     }
     
     /**

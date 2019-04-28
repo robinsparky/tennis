@@ -43,7 +43,7 @@ class TournamentDirector
 
     //The ChairUmpire for this tournament
     private $chairUmpire;
-
+    private $log;
     
     /**************************************************  Public functions ********************************************************** */
 
@@ -66,6 +66,7 @@ class TournamentDirector
     }
 
     public function __construct( Event $evt ) {
+        $this->log = new BaseLogger( true );
         $this->event = $evt;
         
         $this->matchType = $this->event->getMatchType();
@@ -251,6 +252,12 @@ class TournamentDirector
     }
 
     /**
+     * 
+     */
+    public function getName() {
+        return $this->event->getName();
+    }
+    /**
      * Get the array containing all of the linked lists
      */
     public function getAdjacencyMatrix() {
@@ -384,6 +391,10 @@ class TournamentDirector
      */
     public function getBrackets( $force = false ) {
         return $this->event->getBrackets( $force );
+    }
+
+    public function getBracket( $bracketName ) {
+        return $this->event->getBracket( $bracketName );
     }
 
     /**
@@ -529,6 +540,101 @@ class TournamentDirector
 
     }
 
+    /**
+     * The purpose of this function is to load the matches 
+     * and rounds from database into the appropirate template
+     * NOTE: The bracket should have been approved and preliminary rounds already scheduled.
+     * @return Template populated with matches from the database
+     */
+    public function loadMatches( string $bracketName ) {
+
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        error_log(' ');
+        error_log(">>>>>>>>>>>>>>>>>>>>>$loc>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        error_log( sprintf( "%s called with bracket=%s", $loc, $bracketName ) ); 
+
+        $bracket = $this->event->getBracket( $bracketName );
+
+        //Bracket must exist
+        if( is_null( $bracket ) ) {
+            throw new InvalidBracketException( __("Bracket does not exist for this event.", TennisEvents::TEXT_DOMAIN ) );
+        }
+
+        //Bracket must be approved
+        if( !$bracket->isApproved() ) {
+            throw new InvalidBracketException( __("Bracket must be approved before scheduling matches.", TennisEvents::TEXT_DOMAIN ) );
+        }
+
+        $matchesCreated = 0;
+        $winnerbracket = null;
+        $loserbracket = null;
+        foreach( $this->event->getBrackets() as $b ) {
+            if( $b->getName() === Bracket::WINNERS ) {
+                $winnerbracket = $b;
+            }
+            elseif( $b->getName() === Bracket::LOSERS || $b->getName() === Bracket::CONSOLATION ) {
+                $loserbracket = $b;
+            }
+        }
+        
+        if( !isset( $winnerbracket ) ) {
+            $winnerbracket = $this->event->getWinnersBracket();
+        }
+
+        if( isset( $loserbracket ) && $this->event->getFormat() === Format::SINGLE_ELIM ) {
+            throw new InvalidTournamentException( __("Loser bracket defined for single elimination tournament.", TennisEvents::TEXT_DOMAIN ) );
+        }
+
+        if( !isset( $loserbracket ) && $this->event->getFormat() === Format::DOUBLE_ELIM) {
+            $loserbracket = $this->event->createBracket( Bracket::LOSERS );
+        }
+        elseif( !isset( $loserbracket ) && $this->event->getFormat() === Format::CONSOLATION) {
+            $loserbracket = $this->event->createBracket( Bracket::CONSOLATION );
+        }
+        
+        $bracketSignupSize = $bracket->signupSize();
+        if( 0 ===  $bracketSignupSize ) {
+            throw new InvalidBracketException( __('Cannot load matches for bracket because there is no signup.', TennisEvents::TEXT_DOMAIN ) );
+        }
+        error_log( sprintf("%s: signup size=%d", $loc, $bracketSignupSize ) );
+
+        $this->calculateEventSize( $bracket );
+
+        // $entrants = $bracket->getSignup();
+        // $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
+        
+        // if( $randomizeDraw ) shuffle( $unseeded );
+        // else usort( $unseeded, array( 'TournamentDirector', 'sortByPositionAsc' ) );
+
+        //$seeded = array_filter( array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ) );
+        //usort( $seeded, array( 'TournamentDirector', 'sortBySeedAsc') );
+
+        //TODO: below values must be the same
+        $numByes     = $bracket->getNumberOfByes();
+        $byes        = $this->byeCount( $bracketSignupSize );
+        $challengers = $this->challengerCount( $bracketSignupSize );
+        $this->log->error_log("$loc: -------numByes=$numByes; byes=$byes; challengers=$challengers------");
+
+        //TOOD: Confirm that we will always use the "byes" method
+        $this->log->error_log("$loc: using Bye template builder");
+        $tb = new ByeTemplateBuilder( $bracketSignupSize, $byes );
+        $tb->build();
+        // if( $challengers < $byes ) {
+        //     $this->log->error_log("$loc: using Challenger template builder");
+        //     $tb = new ChallengerTemplateBuilder( $bracketSignupSize, $challengers );
+        //     $tb->build();                  
+        // }
+        // else {
+        //     $this->log->error_log("$loc: using Bye template builder");
+        //     $tb = new ByeTemplateBuilder( $bracketSignupSize, $byes );
+        //     $tb->build();
+        // }
+        $template = $tb->getTemplate();
+        $this->matchToTemplate( $bracket, $template );
+
+        return $template;
+    }
+
     /**************************************************  Private functions ********************************************************** */
 
     /**
@@ -597,7 +703,7 @@ class TournamentDirector
 
         error_log( sprintf("%s tournament has started?...", $loc ) );
         if( 0 < $this->hasStarted( $bracket->getName() ) ) {
-            throw new InvalidBracketException( __('Cannot generate preliminary matches for bracket because play as already started.') );
+            throw new BracketHasStartedException( __('Cannot generate preliminary matches for bracket because play as already started.') );
         }
 
         //Remove any existing matches ... we know they have not started yet
@@ -805,6 +911,7 @@ class TournamentDirector
         $lowMatchnum = 1;
         $usedMatchNums = array();
         $lastSlot = 0;
+        $highestMatchnumUsed = 3 * $highMatchnum;
         
         $initialRound = 1;
         $seedByes = 0;
@@ -826,7 +933,7 @@ class TournamentDirector
                 array_push( $usedMatchNums, $lastSlot );
             }
             else if( 1 === $i ) {
-                $lastSlot = 3 * $highMatchnum;
+                $lastSlot = $highestMatchnumUsed;
                 array_push( $usedMatchNums, $lastSlot );
             }
             else {
@@ -897,6 +1004,21 @@ class TournamentDirector
                 error_log( sprintf( "%s -> added match for unseeded players '%s' vs '%s' in round %d using match number %d", $loc, $home->getName(), $visitor->getName(), $initialRound, $mn ) );
             }
             ++$ctr;
+        }
+
+        //Now fix the last match (usually the second seed) so that 
+        // its match number is sequential
+        $prevMatchNum = 0;
+        $this->log->error_log("$loc: Fixing match number $highestMatchnumUsed");
+        foreach( $bracket->getMatchesByRound($initialRound) as $match ) {
+            $m = $match->getMatchNumber();
+            $this->log->error_log("$loc: checking M(1,$m)");
+            if($m == $highestMatchnumUsed) {
+                $newMatchNum = $prevMatchNum + 1;
+                $match->setMatchNumber($newMatchNum);
+                $this->log->error_log("$loc: changing M(1,$m) to M(1,$newMatchNum)");
+            }
+            $prevMatchNum = $m;
         }
         error_log('<<<<<');
     }
@@ -1010,6 +1132,58 @@ class TournamentDirector
                     
             }
         }
+    }
+
+    private function matchToTemplate( Bracket $bracket, &$template ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($loc);
+        
+        $eventSize = $this->signupSize();
+        $numRounds = self::calculateExponent( $eventSize );
+        $numToEliminate = $eventSize - pow( 2, $numRounds );
+        $matchesInvolved   = 2 * $numToEliminate;
+        $umpire  = $this->getChairUmpire();
+        
+        for( $r = 1; $r <= $numRounds; $r++ ) {
+            $dlist = $template[$r - 1];
+            //$this->log->error_log( $dlist, "$loc: Round $r");
+            $matches = $bracket->getMatchesByRound( $r );
+            foreach( $matches as $match ) {
+                $m = $match->getMatchNumber();
+                $this->log->error_log("$loc: Found match M($r,$m");
+                $dlist->setIteratorMode( SplDoublyLinkedList::IT_MODE_FIFO );
+                for( $dlist->rewind(); $dlist->valid(); $dlist->next() ) {
+                    if( ( $dlist->current()->round === $r ) &&  ( $dlist->current()->match_num === $m ) ) {
+                        $status  = $umpire->matchStatus( $match );
+                        $score   = $umpire->strGetScores( $match );
+                        $winner  = $umpire->matchWinner( $match );
+                        $winner  = is_null( $winner ) ? 'tba': $winner->getName();
+                        $home    = $match->getHomeEntrant();
+                        $hname   = !is_null( $home ) ? $home->getName() : 'tba';
+                        $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
+
+                        $visitor = $match->getVisitorEntrant();
+                        $vname   = 'tba';
+                        $vseed   = '';
+                        if( isset( $visitor ) ) {
+                            $vname   = $visitor->getName();
+                            $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                        }
+
+                        $cmts    = $match->getComments();
+                        $cmts    = isset( $cmts ) ? $cmts : '';
+                        $this->log->error_log("$loc: M($r,$m) Home: $hname; Visitor: $vname");
+                        $dlist->current()->home = empty($hseed) ? $hname : $hname . "($hseed)";
+                        $dlist->current()->visitor = empty($vseed) ? $vname : $vname . "($vseed)";
+                        $dlist->current()->score = $score;
+                        $dlist->current()->status = $status;
+                        break;
+                    } //if
+                } //dlist
+                $dlist->rewind();
+            } //matches
+            //$this->log->error_log( $dlist, "$loc: Modified Round $r");
+        } //rounds
     }
 
     /**

@@ -24,6 +24,7 @@ abstract class AbstractBuilder
     protected $special = 0;
     protected $numPlayers = 0;
     protected $rounds = array();
+    protected $log;
 
     /**
      * Parent Ctor 
@@ -32,17 +33,28 @@ abstract class AbstractBuilder
      */
     public function __construct( int $n, int $s ) {
         if( $n <= $s ) {
-            throw new InvalidTournamentException( __( "Byes/challengers cannot be greater than number of players", TennisEvents::TEXT_DOMAIN ) );
+            throw new InvalidTournamentException( __( "Byes/challengers must be less than the number of players", TennisEvents::TEXT_DOMAIN ) );
         }
+
+        $this->log = new BaseLogger( true );
 
         $this->numPlayers = $n;
         $this->special = $s < 0 ? 0 : $s;
     }
 
+    /**
+     * Get the template which is an array of SplDoublyLinkedLists
+     * And each linked list is a list of matches in a specific round.
+     * The index to the list is the round number.
+     */
     public function getTemplate() {
         return $this->rounds;
     }
 
+    /**
+     * Get a an array of Match identifiers M(round number,match number)
+     * showing next matches on one line for each initial match
+     */
     public function arrGetTemplate() {
         $result = array();
         foreach( $this->rounds as $round ) {
