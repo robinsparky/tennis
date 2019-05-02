@@ -54,6 +54,7 @@ abstract class AbstractBuilder
     /**
      * Get a an array of Match identifiers M(round number,match number)
      * showing next matches on one line for each initial match
+     * @return Array of match identifiers
      */
     public function arrGetTemplate() {
         $result = array();

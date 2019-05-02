@@ -122,19 +122,26 @@ class RenderDraw
             return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
         }
 
-        // $matches = $td->getMatches();
-        // $umpire  = $td->getChairUmpire();
-        $numPreliminaryMatches = count( $bracket->getMatchesByRound(1) );
-        $numRounds = $td->totalRounds( $bracketName, true );
-        $signupSize = $td->signupSize();
-        $umpire  = $td->getChairUmpire();
-
         $loadedTemplate = $td->loadMatches( $bracketName );
         if( count( $loadedTemplate ) < 1 ) {
             //TODO: This will never happen!
             return __("'$tournamentName ($bracketName bracket)' has not been scheduled yet", TennisEvents::TEXT_DOMAIN );
         }
         //$this->log->error_log($loadedTemplate, "$loc: Loaded Template");
+
+        // $matches = $td->getMatches();
+        // $umpire  = $td->getChairUmpire();
+        $preliminaryRound = $bracket->extractPreliminaryRound();
+        $numPreliminaryMatches = $preliminaryRound->count();
+        $numRounds = $td->totalRounds( $bracketName );
+        $actualNumRounds = $bracket->getNumberOfScheduledRounds();
+        if( $numRounds != $actualNumRounds ) {
+            return __("'$tournamentName ($bracketName bracket)' expected rounds=$numRounds but actual rounds=$actualNumRounds", TennisEvents::TEXT_DOMAIN );
+        }
+
+        $signupSize = $bracket->signupSize();
+        $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
+
 
         $begin = <<<EOT
 <table id="%s" class="bracketdraw">
@@ -159,10 +166,7 @@ EOT;
 EOT;
 
         $rowEnder = "</tr>" . PHP_EOL;
-        $this->log->error_log("$loc: numPreliminaryMatches=$numPreliminaryMatches");
-        $preliminaryRound = array_shift( $loadedTemplate );
-        // $this->log->error_log( $preliminaryRound,"$loc: Preliminary Round" );
-        // $this->log->error_log( $loadedTemplate, "$loc: Rest of The Rounds" );
+        $this->log->error_log( $preliminaryRound,"$loc: Preliminary Round" );
 
         //rows
         $row = 0;
@@ -175,15 +179,16 @@ EOT;
             try {
                 $rowObj = $preliminaryRound->shift(); //throws RuntimeException
                 $id = sprintf("M(%d,%d)",$rowObj->round, $rowObj->match_num);
-                $visitor = $rowObj->is_bye ? 'BYE' : $rowObj->visitor;  
-                $out .= sprintf($templ, $r, $id, $rowObj->home, $rowObj->score, $visitor, 'yyy');
+                $visitor = $rowObj->is_bye ? 'Bye' : $rowObj->visitor;  
+                $out .= sprintf( $templ, $r, $id, $rowObj->home, $rowObj->score, $visitor, 'yyy' );
                 //following columns
                 //$this->log->error_log($rowObj,"$loc: rowObj");
-                $remaining = $loadedTemplate;
-                $nextMatches = $this->getNextMatches( $rowObj, $remaining );
-                //$this->log->error_log($nextMatches,"$loc: nextMatches");
+                //$remaining = $loadedTemplate;
+                $this->log->error_log($rowObj,"$loc: rowObj");
+                $nextMatches = $bracket->getBracketTemplate()->getFollowingMatches( $rowObj->round, $rowObj->match_num );
+                $this->log->error_log( $nextMatches, "$loc: nextMatches" );
                 foreach( $nextMatches as $colObj ) {
-                    $rowspan = pow(2,$r++);
+                    $rowspan = pow( 2, $r++ );
                     $id = sprintf("M(%d,%d)",$colObj->round, $colObj->match_num);  
                     $home = isset($colObj->home) ? $colObj->home : 'unknown home'; 
                     $score = isset($colObj->score) ? $colObj->score : 'xxx';

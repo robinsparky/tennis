@@ -3,7 +3,8 @@
 WP_CLI::add_command( 'tennis tourney', 'TournamentCommands' );
 
 /**
- * Implements all commands for manipulating a tournament's tennis matches
+ * Implements all commands for manipulating a tennis tournament and its brackets' matches
+ * Tennis tournaments are identified by a tennis club and an event at that club
  */
 class TournamentCommands extends WP_CLI_Command {
 
@@ -12,6 +13,11 @@ class TournamentCommands extends WP_CLI_Command {
      *
      * ## OPTIONS
      * 
+     * [--clubId=<value>]
+     * : If present identifies the club
+     * 
+     * [--eventId=<value>]
+     * : If present identifies the event
      *
      * ## EXAMPLES
      *
@@ -101,25 +107,15 @@ class TournamentCommands extends WP_CLI_Command {
 
     /**
      * Create the given bracket's preliminary rounds.
-     * The winner's bracket uses the current signup
-     * while the loser's bracket uses the list of losers from 
-     * the winner's preliminary rounds
+     * The Winner's bracket uses the current signup
+     * while the Loser's or Consolation bracket uses the list of losers from 
+     * the Winner's preliminary rounds
      * The target club and event must first be set using 'tennis env set'
      *
-     * ## OPTIONS
      * 
+     * ## OPTIONS
      * <bracketName>
      * : The name of the bracket to initialize
-     * 
-     * [<method>]
-     * : Choose algorithm for generating initial round(s)
-     * ---
-     * default: auto
-     * options:
-     *   - auto
-     *   - challengers
-     *   - byes
-     * ---
      * 
      * [--shuffle=<values>]
      * : If present causes draw to be randomized
@@ -132,10 +128,8 @@ class TournamentCommands extends WP_CLI_Command {
      * 
      * ## EXAMPLES
      *
-     *  wp tennis tourney initialize 
-     *  wp tennis tourney initialize auto
-     *  wp tennis tourney initialize challengers shuffle
-     *  wp tennis tourney initialize shuffle
+     *  wp tennis tourney initialize Losers
+     *  wp tennis tourney initialize Winners --shuffle=yes
      *
      * @when after_wp_load
      */
@@ -143,7 +137,7 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
-        list($bracketName, $method ) = $args;
+        list($bracketName) = $args;
 
         $shuffle = $assoc_args["shuffle"];
         if( strcasecmp("yes", $shuffle) === 0 ) $shuffle = true;
@@ -169,7 +163,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target );
                 try {
-                    $numMatches = $td->schedulePreliminaryRounds( $bracketName, $method, $shuffle );
+                    $numMatches = $td->schedulePreliminaryRounds( $bracketName, $shuffle );
                     if( $numMatches > 0 ) {
                         WP_CLI::success( "tennis tourney initialize ... generated $numMatches preliminary matches" );
                     }
@@ -195,21 +189,16 @@ class TournamentCommands extends WP_CLI_Command {
      * The target club and event must first be set using 'tennis env'
      * 
      * ## OPTIONS
-     * 
+     
      * ## EXAMPLES
      *
      *     wp tennis tourney reset
-     *     wp tennis tourney reset --force=true
      *
      * @when after_wp_load
      */
     function reset( $args, $assoc_args ) {
 
         CmdlineSupport::preCondtion();
-
-        $force  = array_key_exists( 'force', $assoc_args )  ? $assoc_args["force"] : '';
-        if( strcasecmp( $force,'true') === 0 ) $force = true;
-        else $force = false;
 
         $env = CmdlineSupport::instance()->getEnvError();
         list( $clubId, $eventId ) = $env;
@@ -232,7 +221,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $bracket = $target->getWinnersBracket();
                 $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 try {
-                    if( $td->removeBrackets( $force ) ) {
+                    if( $td->removeBrackets( ) ) {
                         WP_CLI::success("tennis tourney reset ... accomplished.");
                     }
                     else {

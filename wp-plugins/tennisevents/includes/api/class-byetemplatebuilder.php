@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         $players = $size - $byes;
         $insertPoints = $byes > 0 ? ceil( $players / $byes ) : 999999;
         
-        error_log( sprintf( "%s ---- number of players=%d; number of rounds=%d; number of byes=%d, insert=%d"
+        $this->log->error_log( sprintf( "%s ---- number of players=%d; number of rounds=%d; number of byes=%d, insert=%d"
                           , $loc, $size, $numRounds, $byes, $insertPoints ) );
 
         //Need to have even number of players for first round
@@ -71,7 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             $template = new SplDoublyLinkedList();
             $m = 1;
             $played = 0;
-            error_log( sprintf( "%s --- Start round %d. size=%d, players=%d, byes=%d, played=%d"
+            $this->log->error_log( sprintf( "%s --- Start round %d. size=%d, players=%d, byes=%d, played=%d"
                               , $loc, $r, $size, $players, $byes, $played ) );
 
             if( $players & 1 && $r < $numRounds ) {
@@ -83,7 +83,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     $firstBye->match_num = $m++;
                     $mess = sprintf( "%s --- first bye: r=%d, m=%d, bye=%d, players=%d"
                                    , $loc, $firstBye->round, $firstBye->match_num, $firstBye->is_bye, $firstBye->players );
-                    error_log( $mess );
+                    $this->log->error_log( $mess );
                     $size -= $firstBye->players;
                     $template->push( $firstBye );
                     $firstBye = null;
@@ -92,7 +92,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     $lastBye->match_num = $m++;
                     $mess = sprintf( "%s --- last bye: r=%d, m=%d, bye=%d, players=%d"
                                    , $loc, $lastBye->round, $lastBye->match_num, $lastBye->is_bye, $lastBye->players );
-                    error_log( $mess );
+                    $this->log->error_log( $mess );
                     $size -= $lastBye->players;
                     $template->push( $lastBye );
                     $lastBye = null;
@@ -105,7 +105,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     $bye->players = 1;
                     $mess = sprintf( "%s --- inserted bye: r=%d, m=%d, bye=%d, players=%d"
                                    , $loc, $bye->round, $bye->match_num, $bye->is_bye, $bye->players );
-                    error_log( $mess );
+                    $this->log->error_log( $mess );
                     $template->push( $bye );
                     --$byes;
                     $size -= $bye->players;
@@ -121,24 +121,25 @@ if ( ! defined( 'ABSPATH' ) ) {
                     $played  += $holder->players;
                     $mess = sprintf( "%s --- placeholder match: r=%d, m=%d, bye=%d, players=%d"
                                 , $loc, $holder->round, $holder->match_num, $holder->is_bye, $holder->players );
-                    error_log( $mess );
+                    $this->log->error_log( $mess );
                     $template->push( $holder );
                 }
             } //end while
             //At this point: size = 0; players=0; byes=0; played = players that played
-            error_log( sprintf( "%s --- End round %d. size=%d, players=%d, byes=%d, played=%d"
+            $this->log->error_log( sprintf( "%s --- End round %d. size=%d, players=%d, byes=%d, played=%d"
                               , $loc, $r, $size, $players, $byes, $played ) );
             $size = $players = $r === 1 ? ceil( $played / 2 ) + $this->special : floor( $played / 2 );
             $this->rounds[] = $template;
         } //next round
 
         $this->addNextPointers();
+        return $this->rounds;
     }
 
     protected function addNextPointers( ) {
         
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        error_log("$loc -----------starting");
+        $this->log->error_log("$loc -----------starting");
 
         foreach( $this->rounds as $round ) {
             $round->rewind();
@@ -148,14 +149,14 @@ if ( ! defined( 'ABSPATH' ) ) {
             while( $round->valid() ) {
                 $match = $round->current();
                 if( $ctr & 1 ) {
-                    $match->next_match_num = $nm;
                     $match->next_round_num = $match->round + 1;
+                    $match->next_match_num = $nm;
                 }
                 else {
-                    $match->next_match_num = $nm++;
                     $match->next_round_num = $match->round + 1;
+                    $match->next_match_num = $nm++;
                 }
-                error_log( sprintf("%s ------- match=%d, next match number=%d", $loc, $match->match_num, $match->next_match_num ) );
+                $this->log->error_log( sprintf("%s ------- match=%d, next match number=%d", $loc, $match->match_num, $match->next_match_num ) );
                 ++$ctr;
                 $round->next();
             }

@@ -28,6 +28,10 @@ class BaseLogger {
                 $label = empty( $label ) ? "" : $label . ":";
                 error_log( "$label $something" );
             }
+            else {
+                $label =  empty( $label ) ? "" : $label . ":";
+                error_log("$label <<<<<uknown>>>>");
+            }
         }
     }
     
