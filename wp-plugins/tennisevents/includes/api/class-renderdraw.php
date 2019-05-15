@@ -129,8 +129,6 @@ class RenderDraw
         }
         //$this->log->error_log($loadedTemplate, "$loc: Loaded Template");
 
-        // $matches = $td->getMatches();
-        // $umpire  = $td->getChairUmpire();
         $preliminaryRound = $bracket->extractPreliminaryRound();
         $numPreliminaryMatches = $preliminaryRound->count();
         $numRounds = $td->totalRounds( $bracketName );
@@ -160,13 +158,13 @@ EOT;
 
         $templ = <<<EOT
 <td class="item-player" rowspan="%d">
-<div>%s</div><div>%s</div><div>%s</div>
-<div>%s</div><div>%s</div>
+<div class="matchtitle">%s</div><div class="homeentrant">%s</div><div class="matchscore">%s</div>
+<div class="visitorentrant">%s</div><div class="matchstatus">%s</div><div class="matchcomments">%s</div>
 </td>
 EOT;
 
         $rowEnder = "</tr>" . PHP_EOL;
-        $this->log->error_log( $preliminaryRound,"$loc: Preliminary Round" );
+        // $this->log->error_log( $preliminaryRound,"$loc: Preliminary Round" );
 
         //rows
         $row = 0;
@@ -178,23 +176,25 @@ EOT;
             $nextRow = '';
             try {
                 $rowObj = $preliminaryRound->shift(); //throws RuntimeException
-                $id = sprintf("M(%d,%d)",$rowObj->round, $rowObj->match_num);
-                $visitor = $rowObj->is_bye ? 'Bye' : $rowObj->visitor;  
-                $out .= sprintf( $templ, $r, $id, $rowObj->home, $rowObj->score, $visitor, 'yyy' );
-                //following columns
                 //$this->log->error_log($rowObj,"$loc: rowObj");
-                //$remaining = $loadedTemplate;
-                $this->log->error_log($rowObj,"$loc: rowObj");
+                $id = sprintf("M(%d,%d)",$rowObj->round, $rowObj->match_num);
+                $visitor = $rowObj->is_bye ? '' : $rowObj->visitor;  
+                $cmts = isset($rowObj->comments) ? $rowObj->comments : '';
+                $out .= sprintf( $templ, $r, $id, $rowObj->home, $rowObj->score, $visitor, $rowObj->status, $cmts );
+                //following columns
                 $nextMatches = $bracket->getBracketTemplate()->getFollowingMatches( $rowObj->round, $rowObj->match_num );
                 $this->log->error_log( $nextMatches, "$loc: nextMatches" );
                 foreach( $nextMatches as $colObj ) {
                     $rowspan = pow( 2, $r++ );
                     $id = sprintf("M(%d,%d)",$colObj->round, $colObj->match_num);  
-                    $home = isset($colObj->home) ? $colObj->home : 'unknown home'; 
-                    $score = isset($colObj->score) ? $colObj->score : 'xxx';
-                    $visitor = isset($colObj->visitor) ? $colObj->visitor : 'unknown visitor';
-                    $out .= sprintf($templ, $rowspan, $id, $home, $score, $visitor, 'yyy');
-                }           
+                    $home = isset($colObj->home) ? $colObj->home : 'home tba'; 
+                    $score = isset($colObj->score) ? $colObj->score : '';
+                    $visitor = isset($colObj->visitor) ? $colObj->visitor : 'visitor tba';
+                    $visitor = isset($colObj->is_bye) && $colObj->is_bye ? 'Bye' : $visitor;  
+                    $status = isset($colObj->status) ? $colObj->status : '';  
+                    $cmts = isset($colObj->comments) ? $colObj->comments : '';
+                    $out .= sprintf( $templ, $rowspan, $id, $home, $score, $visitor, $status, $cmts );
+                }     
             }
             catch( RuntimeException $ex ) {
                 $rowEnder = '';
@@ -207,7 +207,6 @@ EOT;
 
         $out .= "</tbody><tfooter></tfooter>";
         $out .= "</table>";
-        $this->log->error_log( $out, "$loc: Table Markup" );
         return $out;
 
     }

@@ -189,59 +189,63 @@ class TournamentDirector
 
     /**
      * Advance completed matches to their respective next rounds.
-     * @param $bracketNum
+     * @param $bracketName name of the bracket
      * @return Number of entrants advanced
      * 
      */
-    public function advance( int $bracketNum ) {
+    public function advance( $bracketName ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc($bracketName)");
 
-        $bracket;
-        foreach( $this->event->getBrackets() as $b ) {
-            if( $bracketNum == $bracket->getBracketNumber() ) {
-                $bracket = $b;
-                break;
-            }
-        }
+        $bracket = $this->getBracket( $bracketName );
 
         if( !isset( $bracket ) ) {
-            throw new InvalidTournamentException( __( "Invalid bracket number $bracketNum.", TennisEvents::TEXT_DOMAIN) );
+            throw new InvalidTournamentException( __( "Invalid bracket name $bracketNname.", TennisEvents::TEXT_DOMAIN) );
         }
 
         if( !$bracket->isApproved() ) {
             throw new InvalidTournamentException( __( "Bracket has not been approved.", TennisEvents::TEXT_DOMAIN) );        
         }
 
-        $matches = $bracket->getMatches( true ); //force reloading all matches from db
+        //$matches = $bracket->getMatches( true ); //force reloading all matches from db
         $umpire = $this->getChairUmpire();
+        $template = $bracket->buildBracketTemplate( $umpire );
+        $matches = $bracket->getMatches();
 
-        $lastMatch = 0;
         $numAdvanced = 0;
         foreach( $matches as $match ) {            
             if( $umpire->isLocked( $match ) || $match->isBye() ) {
 
+                $title = $match->title();
                 $winner = $umpire->matchWinner( $match );
                 if( is_null( $winner ) ) {
-                    $mess = sprintf( "Match %s is locked but cannot determine winner.", $match->title() );
+                    $mess = "Match $title is locked but cannot determine winner.";
+                    $this->log->error_log( $mess );
                     throw new InvalidTournamentException( $mess );
                 }
 
-                $nextMatch = $this->event->getMatch( $match->getNextRoundNumber(), $match->getNextMatchNumber() );
-                if( !is_null( $nextMatch ) ) {
-                    if( $match->getMatchNumber() & 1 ) {
-                        $nextMatch->setHomeEntrant( $winner );
-                    }
-                    else {
-                        $nextMatch->setVisitorEntrant( $winner );
-                    }
-                    ++$numAdvanced;
-                    error_log( sprintf( "%s --> %d. Advanced winner %s of match %s to match %s", $loc, $numAdvanced, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
+                $this->log->error_log("$loc: attempting to advance match: $title");
+
+                $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextMatchNumber() );
+                if( is_null( $nextMatch ) ) {
+                    $mess = "Match $title has invalid next match pointers.";
+                    $this->log->error_log( $mess );
+                    throw new InvalidTournamentException( $mess );
+                } 
+
+                $title = $nextMatch->title();
+                $this->log->error_log( "$loc: next match: $title" );
+                if( $match->getMatchNumber() & 1 ) {
+                    $nextMatch->setHomeEntrant( $winner );
                 }
                 else {
-                    if( ++$lastMatch > 1 ) {
-                        throw new InvalidBracketException( __( "Too many last matches!", TennisEvents::TEXT_DOMAIN ) );
-                    }
+                    $nextMatch->setVisitorEntrant( $winner );
                 }
+
+                ++$numAdvanced;
+                
+                $this->log->error_log( sprintf( "%s --> %d. Advanced winner %s of match %s to match %s"
+                                     , $loc, $numAdvanced, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
             }
         }
         $this->save();
@@ -263,7 +267,8 @@ class TournamentDirector
      */
     public function save() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("$loc -> called ...");
+        $this->log->error_log("$loc -> called ...");
+
         return $this->event->save();
     }
 
@@ -528,7 +533,7 @@ class TournamentDirector
      */
     public function loadMatches( string $bracketName ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        $this->log->error_log( "$loc called with bracket=$bracketName" ); 
+        $this->log->error_log( "$loc($bracketName)" ); 
 
         $bracket = $this->event->getBracket( $bracketName );
 
@@ -581,6 +586,38 @@ class TournamentDirector
         $template = $bracket->buildBracketTemplate( $umpire );
 
         return $template;
+    }
+
+    /**
+     * Set or remove comments on a match
+     * @param $bracketName The name of the bracket
+     * @param $round The round numberj
+     * @param $match_num The match number
+     * @param $comments The comments for the match
+     * @return true if comments set; false otherwise
+     */
+    public function comment( $bracketName, $round, $match_num, $comment = '' ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log( "$loc($bracketName,$round,$match_num,'$comment')" ); 
+
+        $result = false;
+        $bracket = $this->event->getBracket( $bracketName );
+
+        //Bracket must exist
+        if( is_null( $bracket ) ) {
+            throw new InvalidBracketException( __("Bracket does not exist for this event.", TennisEvents::TEXT_DOMAIN ) );
+        }
+
+        //Match must exist
+        $match = $bracket->getMatch( $round, $match_num );
+        if(is_null( $match ) ) {
+            $this->log->error_log( sprintf( "%s --> Match %s does not exist in bracket %s", $loc, $match->title(), $bracket->getName() ) );
+            return $result;
+        }
+
+        $result = $match->setComments( $comment );
+        if( $result === true ) $this->save();
+        return $result;
     }
 
 
@@ -943,6 +980,7 @@ class TournamentDirector
 
     /**
      * Convert a bracket's approved template to matches
+     * TODO: remove this function
      */
     private function templateToMatch( array &$seeded, array &$unseeded ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;

@@ -42,6 +42,7 @@ class ProSetUmpire extends ChairUmpire
 		if ( isset( self::$_instance ) ) {
 			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ),get_class( $this ) ) );
 		}
+		parent::__construct();
 
 	}
     

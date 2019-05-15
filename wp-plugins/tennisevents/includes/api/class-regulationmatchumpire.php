@@ -35,6 +35,7 @@ class RegulationMatchUmpire extends ChairUmpire
 		if ( isset( self::$_instance ) ) {
 			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ), get_class( $this ) ) );
 		}
+        parent::__construct();
 
 	}
     
@@ -63,16 +64,18 @@ class RegulationMatchUmpire extends ChairUmpire
      * @param ...$scores if 2 args then game scores; if 4 then games and tiebreaker scores
      */
 	public function recordScores( Match &$match, int $setnum, int ...$scores ) {
-
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
+        $title = $match->title();
+        $this->log->error_log( $scores, "$loc: called with match=$title, set num=$setnum and these scores: ");
+
         if( $match->isBye() || $match->isWaiting() ) {
-            error_log( sprintf( "%s -> Cannot record  scores because '%s' has bye or is watiing.", $loc,$match->title() ) );
+            $this->log->error_log( sprintf( "%s -> Cannot record  scores because '%s' has bye or is watiing.", $loc,$match->title() ) );
             throw new ChairUmpireException( sprintf("Cannot record scores because '%s' has bye or is wating.",$match->title() ) );
         }
 
-        if( $this->isLocked() ) {
-            error_log( sprintf("%s -> Cannot record scores because match '%s' is locked", $loc) );
+        if( $this->isLocked( $match ) ) {
+            $this->log->error_log( sprintf("%s -> Cannot record scores because match '%s' is locked", $loc, $match->title() ) );
             throw new ChairUmpireException( sprintf("Cannot record scores because '%s' is locked.",$match->title() ) );
         }
 
@@ -81,7 +84,7 @@ class RegulationMatchUmpire extends ChairUmpire
                 $homewins    = min( $scores[0], $this->GamesPerSet );
                 $visitorwins = min( $scores[1], $this->GamesPerSet );
                 $match->setScore( $setnum, $homewins, $visitorwins );
-                error_log( sprintf( "%s -> Set home games=%d and visitor games=%d for %s."
+                $this->log->error_log( sprintf( "%s -> Set home games=%d and visitor games=%d for %s."
                                   , $loc, $homewins, $visitorwins, $match->title()  ) );
                 break;
             case 4:
@@ -90,11 +93,11 @@ class RegulationMatchUmpire extends ChairUmpire
                 $visitorwins = min( $scores[2], $this->GamesPerSet );
                 $visitor_tb_pts = $scores[3];
                 $match->setScore( $setnum, $homewins, $visitorwins, $home_tb_pts, $visitor_tb_pts );
-                error_log( sprintf( "%s -> Set home games=%d(%d) and visitor games=%d(%d) for %s."
+                $this->log->error_log( sprintf( "%s -> Set home games=%d(%d) and visitor games=%d(%d) for %s."
                                   , $loc, $homewins, $home_tb_pts, $visitorwins, $visitor_tb_pts, $match->title()  ) );
                 break;
             default: 
-                error_log( sprintf( "%s -> Did not find 2 or 4 scores in args for %s.", $loc, $match->title() ) );
+                $this->log->error_log( sprintf( "%s -> Did not find 2 or 4 scores in args for %s.", $loc, $match->title() ) );
                 break;
         }
 
@@ -164,7 +167,7 @@ class RegulationMatchUmpire extends ChairUmpire
             if( $status === self::INPROGRESS && !is_null( $this->matchWinner( $match) ) ) $status = ChairUmpire::COMPLETED;
         }
 
-        error_log( sprintf( "%s(%s) is returning status=%s", $loc, $match->toString(), $status ) );
+        $this->log->error_log( sprintf( "%s(%s) is returning status=%s", $loc, $match->toString(), $status ) );
 
         return $status;
     }
@@ -254,7 +257,7 @@ class RegulationMatchUmpire extends ChairUmpire
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
-        error_log( $mess );
+        $this->log->error_log( $mess );
 
         $sets = $match->getSets();
         $scores = array();
@@ -264,7 +267,7 @@ class RegulationMatchUmpire extends ChairUmpire
             // $mess = sprintf("%s(%s) -> Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
             //                , $loc, $set->toString()
             //                , $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
-            // error_log( $mess );
+            // $this->log->error_log( $mess );
             $scores[$setnum] = array( $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
         }
         return $scores;
@@ -279,7 +282,7 @@ class RegulationMatchUmpire extends ChairUmpire
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $mess = sprintf( "%s(%s) called", $loc,$match->toString() );
-        error_log( $mess );
+        $this->log->error_log( $mess );
 
         $arrScores = $this->getScores( $match );
         if( count( $arrScores) === 0 ) return '...';
@@ -295,14 +298,96 @@ class RegulationMatchUmpire extends ChairUmpire
                 //                 , $loc, $match->toString(), $setNum
                 //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
                 if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
-                    $strScores .= sprintf("{%d(%d) %d(%d)}%s ", $scores[0], $scores[2], $scores[1], $scores[3], $sep);
+                    $strScores .= sprintf("%d(%d)-%d(%d)%s ", $scores[0], $scores[2], $scores[1], $scores[3], $sep);
                 } 
                 else {
-                    $strScores .= sprintf("{%d %d}%s ", $scores[0], $scores[1], $sep);
+                    $strScores .= sprintf("%d-%d%s ", $scores[0], $scores[1], $sep);
                 }
             }
         }
         return $strScores;
+    }
+
+    public function tableGetScores( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) called", $loc, $match->toString() );
+        $this->log->error_log( $mess );
+
+        $scoreClass = "tennistablescores";
+        $arrScores = $this->getScores( $match );
+        if( count( $arrScores) === 0 ) return '<table class="' . $scoreClass . '"></table>';
+
+        $tableScores = '<table class="' . $scoreClass . '"><tbody>';
+        $homeScores  = "<tr>";
+        $visitorScores = "<tr>";
+        $setNums = range( 1, $this->getMaxSets() );
+        foreach( $setNums as $setNum ) {
+            if( $setNum === $this->MaxSets ) $sep = '';
+            if( array_key_exists( $setNum, $arrScores ) ) {
+                $scores = $arrScores[ $setNum ];
+                // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                //                 , $loc, $match->toString(), $setNum
+                //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
+                if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                    $homeScores .= sprintf("<td>%d<sub>%d</sup></td>", $scores[0]);
+                    $visitorScores .= sprintf("<td>%d<sub>%d</sup></td>", $scores[1], $scores[3]);
+                } 
+                else {
+                    $homeScores .= sprintf("<td>%d</td>", $scores[0]);
+                    $visitorScores .= sprintf("<td>%d</td>", $scores[1]);
+                }
+            }
+        }
+        $homeScores .= "</tr>";
+        $visitorScores .= "</tr>";
+        $tableScores .= $homeScores;
+        $tableScores .= $visitorScores;
+        $tableScores .= "</tbody></table>";
+
+        return $tableScores;
+
+    }
+    
+    public function listGetScores( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) called", $loc, $match->toString() );
+        $this->log->error_log( $mess );
+
+        $scoreClass = "tennislistscores";
+        $arrScores = $this->getScores( $match );
+        if( count( $arrScores) === 0 ) return '<ul class="' . $scoreClass . '"></ul>';
+
+        $listScores = '<ul class="' . $scoreClass . '">';
+        $homeScores  = "<li>";
+        $visitorScores = "<li>";
+        $setNums = range( 1, $this->getMaxSets() );
+        foreach( $setNums as $setNum ) {
+            if( $setNum === $this->MaxSets ) $sep = '';
+            if( array_key_exists( $setNum, $arrScores ) ) {
+                $scores = $arrScores[ $setNum ];
+                // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                //                 , $loc, $match->toString(), $setNum
+                //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
+                if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                    $homeScores .= sprintf("<span>%d<sub>%d</sup></span>", $scores[0]);
+                    $visitorScores .= sprintf("<span>%d<sub>%d</sup></span>", $scores[1], $scores[3]);
+                } 
+                else {
+                    $homeScores .= sprintf("<span>%d</span>", $scores[0]);
+                    $visitorScores .= sprintf("<span>%d</span>", $scores[1]);
+                }
+            }
+        }
+        $homeScores .= "</li>";
+        $visitorScores .= "</li>";
+        $listScores .= $homeScores;
+        $listScores .= $visitorScores;
+        $listScores .= "</ul>";
+
+        return $listScores;
+
     }
 
     /**

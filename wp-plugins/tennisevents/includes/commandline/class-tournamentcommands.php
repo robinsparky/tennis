@@ -14,10 +14,10 @@ class TournamentCommands extends WP_CLI_Command {
      * ## OPTIONS
      * 
      * [--clubId=<value>]
-     * : If present identifies the club
+     * If present identifies the club
      * 
      * [--eventId=<value>]
-     * : If present identifies the event
+     * If present identifies the event
      *
      * ## EXAMPLES
      *
@@ -115,10 +115,10 @@ class TournamentCommands extends WP_CLI_Command {
      * 
      * ## OPTIONS
      * <bracketName>
-     * : The name of the bracket to initialize
+     * The name of the bracket to initialize
      * 
      * [--shuffle=<values>]
-     * : If present causes draw to be randomized
+     * If present causes draw to be randomized
      * ---
      * default: no
      * options:
@@ -129,6 +129,7 @@ class TournamentCommands extends WP_CLI_Command {
      * ## EXAMPLES
      *
      *  wp tennis tourney initialize Losers
+     * 
      *  wp tennis tourney initialize Winners --shuffle=yes
      *
      * @when after_wp_load
@@ -192,7 +193,7 @@ class TournamentCommands extends WP_CLI_Command {
      
      * ## EXAMPLES
      *
-     *     wp tennis tourney reset
+     *  wp tennis tourney reset
      *
      * @when after_wp_load
      */
@@ -242,27 +243,157 @@ class TournamentCommands extends WP_CLI_Command {
     }
 
     /**
+     * Advance a bracket's matches to the next round if appropriate
+     * The target club and event must first be set using 'tennis env set'
+     *
+     * ## OPTIONS
+     * 
+     * <bracketName>
+     * The name of the bracket containing the match
+     * 
+     * ## EXAMPLES
+     * 
+     * wp tennis tourney advance winners
+     * 
+     */
+    function advance( $args, $assoc_args ) {
+  
+        $support = CmdlineSupport::preCondtion();
+
+        list( $bracketName ) = $args;
+
+        list( $clubId, $eventId ) = $support->getEnvError();
+        
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = $support->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $td = new TournamentDirector( $target );
+                $numAdvanced = $td->advance( $bracketName );
+                if( $numAdvanced > 0 ) {
+                    WP_CLI::success("$numAdvanced matches advanced.");
+                }
+                else {
+                    WP_CLI::warning("$numAdvanced matches advanced.");
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis tourney advance ... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis tourney advancd ... could not find any events for club with Id '$clubId'" );
+        }
+
+    }
+    
+    /**
+     * Add or remove a commment to a match in the given draw.
+     * The target club and event must first be set using 'tennis env set'
+     *
+     * ## OPTIONS
+     * 
+     * <bracketName>
+     * The name of the bracket containing the match
+     * 
+     * <round>
+     * The round containing the match
+     * 
+     * <match>
+     * The match number
+     * 
+     * --comment=<a comment>
+     * 
+     * ## EXAMPLES
+     * 
+     * To add/replace a comment (use double quotes)
+     * wp tennis tourney comment losers 1 10 comments="This is a comment"
+     * 
+     * To remove a comment
+     * wp tennis tourney comment losers 1 10
+     *
+     * @when after_wp_load
+     */
+    function comment( $args, $assoc_args ) {
+
+        $support = CmdlineSupport::preCondtion();
+
+        list( $bracketName, $round, $matchnum ) = $args;
+        $comments = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "";
+
+        list( $clubId, $eventId ) = $support->getEnvError();
+        
+        $matchId = "M($round,$matchnum)";
+        
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = $support->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $td = new TournamentDirector( $target );
+                if( $td->comment( $bracketName, $round, $matchnum, $comments ) ) {
+                    WP_CLI::success("Match commented.");
+                }
+                else {
+                    WP_CLI::warning("Match not commented");
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis tourney comment ... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis tourney comment ... could not find any events for club with Id '$clubId'" );
+        }
+
+    }
+
+    /**
      * Move a match to a given point in the draw.
      * The target club and event must first be set using 'tennis env set'
      *
      * ## OPTIONS
      * 
      * <bracketName>
-     * : The name of the bracket containing the match
+     * The name of the bracket containing the match
      * 
      * <round>
-     * : The round containing the match
+     * The round containing the match
      * 
      * <source>
-     * : The match number of the source match
+     * The match number of the source match
      * 
      * <destination>
-     * : The destination match number
+     * The destination match number
+     * 
+     * --comment=<a comment>
      * 
      * ## EXAMPLES
      *
-     *     wp tennis tourney move winners 1 10 16
-     *     wp tennis tourney move losers 1 10 16 comments='This is a comment'
+     *  wp tennis tourney move winners 1 10 16
+     * 
+     *  wp tennis tourney move losers 1 10 16 comments='This is a comment'
      *
      * @when after_wp_load
      */
@@ -295,7 +426,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $bracket->getMatchType() );
+                $td = new TournamentDirector( $target );
                 if( $td->matchMove($bracketName, $round, $source, $dest, $cmts ) ) {
                     WP_CLI::success("Match moved.");
                 }
@@ -314,7 +445,7 @@ class TournamentCommands extends WP_CLI_Command {
     }
 
     /**
-     * Move a match forward by given steps.
+     * Move a match forward by given steps in the draw.
      * The target club and event must first be set using 'tennis env set'
      * 
      * ## OPTIONS
@@ -323,18 +454,21 @@ class TournamentCommands extends WP_CLI_Command {
      * : The name of the bracket containing the match
      * 
      * <round>
-     * : The number of the round containing the match
+     * The number of the round containing the match
      * 
      * <source>
-     * : The match number of the source match
+     * The match number of the source match
      * 
      * <steps>
-     * : The number of places to advance match number
+     * The number of places to advance match number
      *
+     * --comments=<a comment>
+     * 
      * ## EXAMPLES
      *
-     *     wp tennis tourney moveby winners 0 1 2
-     *     wp tennis tourney moveby losers 1 10 -3 --comments='This is a comment'
+     *  wp tennis tourney moveby winners 0 1 2
+     * 
+     *  wp tennis tourney moveby losers 1 10 -3 --comments='This is a comment'
      *
      * @when after_wp_load
      */
@@ -373,7 +507,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $td = new TournamentDirector( $target );
                 if( $td->matchMove($bracketName, $round, $source, $dest, $cmts ) ) {
                     WP_CLI::success("Match moved.");
                 }
@@ -397,11 +531,11 @@ class TournamentCommands extends WP_CLI_Command {
      * ## OPTIONS
      * 
      * <bracketName>
-     * : The name of the bracket to be approved
+     * The name of the bracket to be approved
      * 
      * ## EXAMPLES
      *
-     *     wp tennis tourney approve winners
+     *  wp tennis tourney approve winners
      *
      * @when after_wp_load
      */
@@ -428,7 +562,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $bracket = $target->getBracket( $bracketName );
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $td = new TournamentDirector( $target );
                 try {
                     $template = $td->approve( $bracket );
                     WP_CLI::line(sprintf("Total Rounds=%d", $td->totalRounds()));
@@ -450,7 +584,6 @@ class TournamentCommands extends WP_CLI_Command {
         }
     }
 
-    
     /**
      * Record the score for a match
      * The target club and event must first be set using 'tennis env set'
@@ -458,33 +591,34 @@ class TournamentCommands extends WP_CLI_Command {
      * ## OPTIONS
      * 
      * <bracketName>
-     * : The name of the bracket
+     * The name of the bracket
      * 
      * <roundnum>
-     * : The round number
+     * The round number
      * 
      * <matchnum>
-     * : The match number
+     * The match number
      * 
      * <setnum>
-     * : The set number
+     * The set number
      * 
-     * [--type=<type>]
-     * : 
-     * ---
-     * default: home
-     * options:
-     *   - home
-     *   - visitor
-     * ---
+     * --home=<value>
+     * The home player's games won
      * 
-     * [--<field>=<value>]
-     * :The home player's tie breaker score
+     * --vistor=<value>
+     * The vistor player's games won
+     * 
+     * [--hometb=<value>]
+     * The home player's tie breaker points won
+     * 
+     * [--vistortb=<value>]
+     * The vistor player's tie breaker points won
      * 
      * ## EXAMPLES
      *
-     *  wp tennis tourney score winners 1 3 2 --home=6 --visitor=6
-     *  wp tennis tourney score losers 1 3 2 --hometb=7 --visitortb=3
+     * wp tennis tourney score winners 1 3 2 --home=6 --visitor=6
+     * 
+     * wp tennis tourney score losers 1 3 2 --home=6 --hometb=7 --visitor=6 --visitortb=3
      *
      * @when after_wp_load
      */
@@ -520,7 +654,7 @@ class TournamentCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $bracket = $target->getBracket( $bracketName );
-                $td = new TournamentDirector( $target, $target->getMatchType() );
+                $td = new TournamentDirector( $target );
                 try {
                     $match = $bracket->getMatch( $roundnum, $matchnum );
                     if( !isset( $match ) ) {
@@ -546,21 +680,14 @@ class TournamentCommands extends WP_CLI_Command {
 
     /**
      * Review initial conditions (i.e. number of players) impact on the consequent bracket
+     * 
      * ## OPTIONS
      * <n>
-     * : Number of players
+     * Number of players
      * 
-     * [--method=<type>]
-     * : 
-     * ---
-     * default: byes
-     * options:
-     *   - byes
-     *   - challenger
-     * ---
      * ## EXAMPLES
      *
-     *     wp tennis tourney review 15 --method=byes
+     * wp tennis tourney review 15 
      *
      * @when before_wp_load
      */
@@ -568,41 +695,20 @@ class TournamentCommands extends WP_CLI_Command {
     function review( $args, $assoc_args ) {
 
         list( $n ) = $args;
-        $method = array_key_exists( 'method', $assoc_args )  ? $assoc_args["method"] : 'byes';
 
-        // $byePoss = $this->byePossibilities( $n );
-        // $titles = array_keys( $byePoss[0] );
-        // WP_CLI::line("Using Byes");
-        // WP_CLI\Utils\format_items( 'table', $byePoss, $titles );
-        
-        // $challengerPoss = $this->challengerPossibilities( $n );
-        // $titles = array_keys( $challengerPoss[0] );
-        // WP_CLI::line("Using Challenger Round");
-        // WP_CLI\Utils\format_items( 'table', $challengerPoss, $titles );
-
-        $defbyes        = $this->byeCount( $n );
-        $defchallengers = $this->challengerCount( $n );
-        WP_CLI::line(sprintf("Default # of byes=%d, Default # of challengers=%d", $defbyes, $defchallengers ) );
-
-        if( $method === "challengers" ) {
-            $tb = new ChallengerTemplateBuilder( $n, $defchallengers );
-            $tb->build();
-            //print_r( $tb->getTemplate() );
-            $template = $tb->arrGetTemplate();
-            foreach( $template as $line ) {
-                WP_CLI::line( $line );
-            }
-            WP_CLI::success("Used $defchallengers challengers.");
-        }
-        else {
-            $byeTB = new ByeTemplateBuilder( $n, $defbyes );
-            $byeTB->build();
-            // print_r( $byeTB->getTemplate() );
-            $template = $byeTB->arrGetTemplate();
+        $defbyes = $this->byeCount( $n );
+        if( $defbyes != -1 ) {
+            $bt = new BracketTemplate();
+            $bt->build( $n, $defbyes );
+            // print_r( $bt->getTemplate() );
+            $template = $bt->arrGetTemplate();
             foreach( $template as $line ) {
                 WP_CLI::line( $line );
             }
             WP_CLI::success("Used $defbyes byes");
+        }
+        else {
+            WP_CLI::warning("Could not calculate number of byes correctly!");
         }
     }
 
@@ -611,18 +717,18 @@ class TournamentCommands extends WP_CLI_Command {
      * to cause the number of players in round 2 be a power of 2
      * The number of players and the number of byes must be 
      * of the same parity (i.e.both even or both odd)
+     * @param $n The number of entrants
      */
     private function byeCount( int $n ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $result = -1;
 
-        if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
+        if( $n < TournamentDirector::MINIMUM_ENTRANTS 
+        || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
 
-        $lowexp  =  TournamentDirector::calculateExponent( $n );
-        $highexp = $lowexp + 1;
-        $target  = pow( 2, $lowexp ); //or 2 * $lowexp
-        $result  = 2 * $target - $n; // target = (n + b) / 2
-        // echo "$loc: n=$n; lowexp=$lowexp; highexp=$highexp; target=$target; byes=$result; " . PHP_EOL;
+        $exp  =  TournamentDirector::calculateExponent( $n );
+        $target  = pow( 2, $exp );
+        $result  = $target - $n;
         if( !($n & 1) && ($result & 1) ) $result = -1;
         elseif( ($n & 1) && !($result & 1) ) $result = -1;
         elseif( $this->isPowerOf2( $n ) ) $result = 0;
@@ -630,29 +736,6 @@ class TournamentCommands extends WP_CLI_Command {
         return $result;
     }
 
-    /**
-     * Calculate the number of challengers (if using early round 0)
-     * to bring round 1 to a power of 2
-     * The number of players and the number of challengers must be of opposite parity
-     * (i.e. if one is odd the other must be even and visa versa )
-     */
-    private function challengerCount( int $n ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $result = -1;
-
-        if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
-
-        $lowexp   =  TournamentDirector::calculateExponent( $n );
-        $highexp  = $lowexp + 1;
-        $target   = pow(2, $lowexp );
-        $result   = $n - $target;
-        $round1   = $n - $result; // players in r1 = target = (n - 2p + p)
-        // echo "$loc: n=$n; lowexp=$lowexp; highexp=$highexp; round1=$round1; target=$target; challengers=$result; " . PHP_EOL;
-        if( ($round1 & 1) ) $result = -1;
-        elseif( $this->isPowerOf2( $n ) ) $result = 0;
-
-        return $result;
-    }
 
     private function byePossibilities( int $n ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;

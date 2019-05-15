@@ -37,6 +37,7 @@ class Bracket extends AbstractData
     //Matches in this bracket
     private $matches;
     private $matchesToBeDeleted = array();
+    private $matchHierarchy;
 
     //Bracket template
     private $bracketTemplate;
@@ -157,9 +158,11 @@ class Bracket extends AbstractData
     
     /**
      * Approve this bracket
+     * This causes the match hierarchy to be constructed
      */
     public function approve() {
         $this->is_approved = true;
+        $this->buildMatchHierarchy();
         $this->setDirty();
     }
 
@@ -334,7 +337,7 @@ class Bracket extends AbstractData
     }
     
     /**
-     * Get a specific match in this Event
+     * Get a specific match in this Bracket
 	 * @param $rndnum The round number
 	 * @param $matchnum The match number
 	 * @return Match if successful, null otherwise
@@ -457,13 +460,15 @@ class Bracket extends AbstractData
     }
 
     /**
-     * Extract a copy of the scheduled preliminary round for this bracket
-     * Rounds are counted starting at 1 which is the preliminary round
+     * Extract a copy of the scheduled preliminary round for this bracket.
+     * The copy can be modified as desired without affecting the underlying template.
+     * Rounds are counted starting at 1 which is the preliminary round.
      */
     public function extractPreliminaryRound() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $template = $this->getBracketTemplate()->getTemplate();
+        //NOTE: use of clone below!
         $result = clone array_slice( $template, 0, 1 )[0];
         return $result;
     }
@@ -491,7 +496,6 @@ class Bracket extends AbstractData
         return $result;
     }
 
-
     /**
      * Kicks off the building of the match template for this bracket
      * @param $umpire The Chair Umpire for these matches
@@ -512,7 +516,48 @@ class Bracket extends AbstractData
         return $template;
     }
 
-    /* -----------------------------------------Private Functions --------------------------------*/
+    public function buildMatchHierarchy() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $bracketSignupSize = $this->signupSize();
+        $numByes = $this->getNumberOfByes();
+        $this->log->error_log("$loc: Bracket signup size=$bracketSignupSize; number of byes=$numByes ");
+
+        $bt = $this->getBracketTemplate();
+        $bt->build( $bracketSignupSize, $numByes );
+        $template = $bt->getTemplate();
+        $this->matchHierarchy = $this->templateToMatch( $template );
+        $this->setDirty();
+
+        return $this->matchHierarchy;
+    }
+
+    public function getMatchHierarchy() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+
+        return $this->matchHierarchy;
+    }
+
+    /**
+     * Get the round of number.
+     * If it is round 0 (the preliminary round) then round of = number who signed up
+     * Otherwise it is the number expected to be playing in the given round.
+     * @param $r The round number
+     */
+    public function roundOf( int $r ) : int {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $bracketSignupSize = $this->signupSize();
+        $result = $bracketSignupSize;
+        if( $r <= 0 ) return $result;
+
+        $powerOf2 = TournamentDirector::calculateExponent( $bracketSize );
+        $result = $pow( 2, $powerOf2 ) / pow( 2, $r - 1 );
+        return $result;        
+    }
+
+    /*----------------------------------------- Private Functions --------------------------------*/
 
     /**
      * This function loads entrant and match information to the template
@@ -539,7 +584,7 @@ class Bracket extends AbstractData
                 for( $dlist->rewind(); $dlist->valid(); $dlist->next() ) {
                     if( ( $dlist->current()->round === $r ) &&  ( $dlist->current()->match_num === $m ) ) {
                         $status  = $umpire->matchStatus( $match );
-                        $score   = $umpire->strGetScores( $match );
+                        $score   = $umpire->tableGetScores( $match );
                         $winner  = $umpire->matchWinner( $match );
                         $winner  = is_null( $winner ) ? 'tba': $winner->getName();
                         $home    = $match->getHomeEntrant();
@@ -561,6 +606,7 @@ class Bracket extends AbstractData
                         $dlist->current()->visitor = empty($vseed) ? $vname : $vname . "($vseed)";
                         $dlist->current()->score = $score;
                         $dlist->current()->status = $status;
+                        $dlist->current()->comments = $cmts;
                         break;
                     } //if
                 } //dlist
@@ -568,6 +614,64 @@ class Bracket extends AbstractData
             } //matches
             //$this->log->error_log( $dlist, "$loc: Modified Round $r");
         } //rounds
+    }
+
+    /**
+     * This function loads existing Matches then uses the template
+     * to add next match id's to them and create new matches where they don't yet exist.
+     * NOTE: The preliminary round must have already been scheduled and approved.
+     *       i.e. the matches for the preliminary must exist in the database.
+     * @param $template The template to use for completing the network of matches
+     */
+    private function templateToMatch( &$template ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($loc);
+
+        $loadedMatches = array();
+        
+        $eventSize = $this->signupSize();
+        $numRounds = TournamentDirector::calculateExponent( $eventSize );
+
+        //force loading existing matches from db
+        $this->getMatches( true );
+        
+        for( $r = 1; $r <= $numRounds; $r++ ) {
+            $dlist = $template[ $r - 1 ];
+            $dlist->setIteratorMode( SplDoublyLinkedList::IT_MODE_FIFO );
+            for( $dlist->rewind(); $dlist->valid(); $dlist->next() ) {
+                $m = $dlist->current->match_num;
+                $match = $this->getMatch( $r, $m );
+                if( is_null( $match ) ) {
+                    $match = new Match( $this->getEventId(), $this->getID(), $r, $m );
+                }
+                $nextRoundNum = $dlist->current()->next_round_num;
+                $nextMatchNum = $dlist->current()->next_match_num;
+                if( !isset($nextMatchNum) || $nextMatchNum < 1 ) {
+                    $nextRound = $r + 1;
+                    $nextMatchNum = $this->getNextMatchPointer( $m );
+
+                 }
+                 $match->setNextRoundNumber( $nextRoundNum  );
+                 $match->setNextMatchNumber( $nextMatchNum );
+                 $loadedMatches[ $r ][ $m ] = $match;
+            }
+        }
+        return $loadedMatches;
+    }
+
+    private function getNextMatchPointer( int $m ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc($m)");
+
+        if( $m & 1 ) {
+            $prevMatchNumber = $m - 1;
+        }
+        else {
+            $prevMatchNumber = $m - 2;
+        }
+        $prevMatchCount = $prevMatchNumber / 2;
+        $nm = $prevMatchCount + 1;
+        return $nm;
     }
 
     /**
@@ -620,7 +724,7 @@ class Bracket extends AbstractData
         $wpdb->delete( $table, $where, $formats_where );
         $result = $wpdb->rows_affected;
 
-		error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
+		$this->log->error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
 		return $result;
     }
     
@@ -637,7 +741,6 @@ class Bracket extends AbstractData
 	 */
 	private function fetchEvent() {
 		$this->event = Event::get( $this->event_ID );
-		
     }
     
     /**
@@ -703,7 +806,7 @@ class Bracket extends AbstractData
 		$this->isnew = false;
 		$this->isdirty = false;
 		
-        error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result) );
+        $this->log->error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result) );
 
 		return $result;
 	}
@@ -729,7 +832,7 @@ class Bracket extends AbstractData
 
 		$result += $this->manageRelatedData();
 
-        error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result) );
+        $this->log->error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result) );
 		return $result;
     }
     

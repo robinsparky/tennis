@@ -84,11 +84,50 @@ datalist#emaildata {
     --roundWidth: calc(100% / (var(--rounds)+1));
  }
  
-table.draw {
+table.bracketdraw {
     table-layout: fixed;
     width: 100%;
     border-collapse: collapse;
     border: 3px solid purple;
+    font-size: .75rem;
+}
+table.bracketdraw th {
+    border: 3px solid purple;
+}
+table.bracketdraw td {
+    border: 3px solid purple;
+    background-color: rgb(176,224,230);
+}
+
+.tennistablescores {
+    border-collapse: collapse;
+    border: none !important;
+}
+.tennistablescores td {
+    padding: 0 !important;
+    border: none !important;
+}
+
+.matchtitle {
+    text-decoration: underline;
+}
+
+.matchstatus {
+    font-size: 80%;
+    color: blue;
+}
+
+.matchcomments {
+    color: white;
+    background-color: red;
+    font-size: 80%;
+}
+
+.homeentrant {
+    color: rgb(0,0,139);
+}
+.visitorentrant {
+    color: green;
 }
 
 /*

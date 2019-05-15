@@ -31,7 +31,9 @@ abstract class ChairUmpire
 	protected $numChallenges = 3;
     protected $MaxSets = 3;
     protected $GamesPerSet = 6;
-    protected $TieBreakerMinimum = 7;
+	protected $TieBreakerMinimum = 7;
+	
+	protected $log;
 
 	abstract public function recordScores(Match &$match, int $set, int ...$scores );
 	abstract public function getScores( Match &$match );
@@ -40,6 +42,10 @@ abstract class ChairUmpire
 	abstract public function defaultHome( Match &$match, string $cmts );
 	abstract public function defaultVisitor( Match &$match, string $cmts );
 	abstract public function setMaxSets( int $max = 3 );
+	
+	public function __construct() {
+		$this->log = new BaseLogger( true );
+	}
 	
 	public function challengesRemaining() {
 		return $this->numChallenges;

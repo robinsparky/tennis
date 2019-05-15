@@ -88,6 +88,27 @@ if ( ! defined( 'ABSPATH' ) ) {
     }
 
     /**
+     * Return the underlying collection of rounds and matches
+     * @return Array of collections of matches. Each collection is a round.
+     */
+    public function getTemplate() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        return $this->template;
+
+    }
+
+    /**
+     * Make a copy of the template
+     * Necessary if somebody wants to make destructive use of this template
+     * @return copy of the underlying template
+     */
+    public function copyTemplate() {
+        $result = clone $this->template;
+        return $result;
+    }
+
+    /**
      * Build the rounds and matches template
      * Destroys any existing template
      * @param $signupSize is the number of entrants for this bracket
@@ -105,16 +126,6 @@ if ( ! defined( 'ABSPATH' ) ) {
         }
     }
 
-    /**
-     * Return the underlying collection of rounds and matches
-     * @return Array of collections of matches. Each collection is a round.
-     */
-    public function getTemplate() {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-
-        return $this->template;
-
-    }
 
     /**
      * Get a an array of Match identifiers M(round number,match number)
