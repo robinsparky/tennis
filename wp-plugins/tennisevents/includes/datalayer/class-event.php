@@ -775,6 +775,9 @@ class Event extends AbstractData
 		return $result;
 	}
 	
+	/**
+	 * Get all the brackets for this Event
+	 */
 	public function getBrackets( $force = false ) {
 		if( $this->isLeaf() ) {
 			if( !isset( $this->brackets ) || $force ) $this->fetchBrackets();
@@ -788,6 +791,8 @@ class Event extends AbstractData
 	/**
 	 * Get a bracket by its name
 	 * Ignores case
+	 * @param $bracketName The name of the bracket
+	 * @return Bracket object or null if not found
 	 */
 	public function getBracket( string $bracketName = Bracket::WINNERS ) {
 		$result = null;

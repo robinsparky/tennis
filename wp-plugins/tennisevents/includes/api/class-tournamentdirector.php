@@ -148,40 +148,16 @@ class TournamentDirector
      * Once approved, the brackets cannot be modified, only deleted.
      * @param $bracket Bracket within the event
      */
-    public function approve( Bracket $bracket ) {
-
+    public function approve( $bracketName ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc($bracketName");
 
-        $found = false;
-        foreach( $this->event->getBrackets() as $b ) {
-            if( $bracket->getID() === $b->getID() ) {
-                $found = true;
-                break;
-            }
-        }
-        if( !$found ) {
-            throw new InvalidBracketException( __("No such bracket.", TennisEvents::TEXT_DOMAIN) );
+        $bracket = $this->getBracket( $bracketName );
+        if( is_null( $bracket ) ) {
+            throw new InvalidBracketException( __("No such bracket: $bracketName.", TennisEvents::TEXT_DOMAIN) );
         }
 
-        $n = $bracket->signupSize();
-        if( 0 === $n ) {
-            throw new InvalidBracketException( __("Bracket has no signup.", TennisEvents::TEXT_DOMAIN) );
-        }
-
-        $umpire = $this->getChairUmpire();
-        $bracket->buildBracketTemplate( $umpire );
-        $bt = $bracket->getBracketTemplate();
-        $template = $bt->getTemplate();
-
-        if( count( $template ) < 1 ) {
-            throw new InvalidBracketException( __("Bracket template not built yet.", TennisEvents::TEXT_DOMAIN) );
-        }
-
-        if( count( $template[0] < $n/2 ) ) {
-            throw new InvalidBracketException( __("Bracket template not built yet.", TennisEvents::TEXT_DOMAIN) );
-        }
-
-        $bracket->approve();
+        $bt = $bracket->approve( $this );
         $this->save();
 
         return $bt->arrGetTemplate();
@@ -199,7 +175,7 @@ class TournamentDirector
 
         $bracket = $this->getBracket( $bracketName );
 
-        if( !isset( $bracket ) ) {
+        if( is_null( $bracket ) ) {
             throw new InvalidTournamentException( __( "Invalid bracket name $bracketNname.", TennisEvents::TEXT_DOMAIN) );
         }
 
@@ -207,10 +183,7 @@ class TournamentDirector
             throw new InvalidTournamentException( __( "Bracket has not been approved.", TennisEvents::TEXT_DOMAIN) );        
         }
 
-        //$matches = $bracket->getMatches( true ); //force reloading all matches from db
-        $umpire = $this->getChairUmpire();
-        $template = $bracket->buildBracketTemplate( $umpire );
-        $matches = $bracket->getMatches();
+        $matches = $bracket->getMatches( true );
 
         $numAdvanced = 0;
         foreach( $matches as $match ) {            
@@ -372,32 +345,32 @@ class TournamentDirector
     }
 
     /**
-     * Get the Brackets
+     * Get all the Brackets for the underlying Event
      */
     public function getBrackets( $force = false ) {
         return $this->event->getBrackets( $force );
     }
 
+    /**
+     * Get a bracket by name
+     * @param $bracketName The name of the bracket
+     * @return Bracket if exists, null otherwise
+     */
     public function getBracket( $bracketName ) {
         return $this->event->getBracket( $bracketName );
     }
 
     /**
      * Remove all brackets and matches for a tennis event
+     * Use with caution as it deletes all of an event's brackets and matches from the database.
      */
     public function removeBrackets( ) {
         $result = 0;
-        $bracket = $this->event->getWinnersBracket();
-        if( !$force && $this->hasStarted( $bracket->getName() ) ) {
-            throw new InvalidTournamentException( "Cannot remove brackets because tournament has started." );
-        }
-
         $this->event->removeBrackets();
         $result = $this->save();
         
         return $result;
     }
-
 
     /**
      * Return all matches for an event or just for a given round
@@ -425,8 +398,11 @@ class TournamentDirector
         return $matches;
     }
 
-    public function removeMatches( string $bracketName = Bracket::WINNERS, $force = false ) {
-        $matches = array();
+    /**
+     * Remove all matches for a bracket
+     * @param $bracketName The name of the bracket
+     */
+    public function removeMatches( string $bracketName = Bracket::WINNERS ) {
         $bracket = $this->event->getBracket( $bracketName );
         if( !is_null( $bracket ) ) {
             $bracket->removeAllMatches();
@@ -434,13 +410,12 @@ class TournamentDirector
         else {
             throw new InvalidTournamentException( __( "Bracket name $bracketName does not exist when trying to remove its matches." ) );
         }
-        
-        return $matches;
     }
     
     /**
      * Return the count of all matches or just for a given round
      * @param $round The round whose matches are to be counted
+     * @return Number of matches in bracket or in a round in a bracket
      */
     public function getMatchCount( string $bracketName = Bracket::WINNERS, $round = null ) {
         $matches = array();

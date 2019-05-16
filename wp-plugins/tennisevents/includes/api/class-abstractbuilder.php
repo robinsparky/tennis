@@ -36,7 +36,7 @@ abstract class AbstractBuilder
             throw new InvalidTournamentException( __( "Byes/challengers must be less than the number of players", TennisEvents::TEXT_DOMAIN ) );
         }
 
-        $this->log = new BaseLogger( true );
+        $this->log = new BaseLogger( false );
 
         $this->numPlayers = $n;
         $this->special = $s < 0 ? 0 : $s;

@@ -117,7 +117,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     public function build( int $signupSize, int $numByes ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        if( $signupSize > 1 && $numByes < $signupSize ) {
+        if( $signupSize >= TournamentDirector::MINIMUM_ENTRANTS && $numByes < $signupSize ) {
             $this->signupSize = $signupSize;
             $this->numByes = $numByes;
             $this->log->error_log("$loc: using Bye template builder($signupSize,$numByes)");
