@@ -184,6 +184,7 @@ class TournamentDirector
         }
 
         $matches = $bracket->getMatches( true );
+        $umpire = $this->getChairUmpire();
 
         $numAdvanced = 0;
         foreach( $matches as $match ) {            
@@ -208,17 +209,18 @@ class TournamentDirector
 
                 $title = $nextMatch->title();
                 $this->log->error_log( "$loc: next match: $title" );
+                
                 if( $match->getMatchNumber() & 1 ) {
                     $nextMatch->setHomeEntrant( $winner );
                 }
                 else {
                     $nextMatch->setVisitorEntrant( $winner );
                 }
-
-                ++$numAdvanced;
-                
+                $nextMatch->setIsBye( false );
+                ++$numAdvanced;                    
                 $this->log->error_log( sprintf( "%s --> %d. Advanced winner %s of match %s to match %s"
-                                     , $loc, $numAdvanced, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
+                                        , $loc, $numAdvanced, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
+                
             }
         }
         $this->save();

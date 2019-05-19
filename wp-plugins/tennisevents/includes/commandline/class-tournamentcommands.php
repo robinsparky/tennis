@@ -261,6 +261,9 @@ class TournamentCommands extends WP_CLI_Command {
         $support = CmdlineSupport::preCondtion();
 
         list( $bracketName ) = $args;
+        if(!is_null( error_get_last() ) ) {
+            WP_CLI::error("Invalid args ... need bracket name.");
+        }
 
         list( $clubId, $eventId ) = $support->getEnvError();
         
@@ -329,7 +332,13 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
+        error_clear_last();
         list( $bracketName, $round, $matchnum ) = $args;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong args for ... bracket round match ");
+            exit;
+        }
         $comments = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "";
 
         list( $clubId, $eventId ) = $support->getEnvError();
@@ -400,9 +409,15 @@ class TournamentCommands extends WP_CLI_Command {
     function move( $args, $assoc_args ) {
 
         $support = CmdlineSupport::preCondtion();
-
-        list( $bracketName, $round, $source, $dest ) = $args;
         list( $clubId, $eventId ) = $support->getEnvError();
+
+        error_clear_last();
+        list( $bracketName, $round, $source, $dest ) = $args;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong args for ... bracket round sourceMatch destMatch ");
+            exit;
+        }
         
         $fromId = "M($round,$source)";
         $toId   = "M($round,$dest)";
@@ -476,8 +491,15 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
-        list($bracketName, $round, $source, $steps ) = $args;
         list( $clubId, $eventId ) = $support->getEnvError();
+
+        error_clear_last();
+        list($bracketName, $round, $source, $steps ) = $args;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong args for ... bracket round sourceMatch steps ");
+            exit;
+        }
         
         $result = 0;
         $dest   = $source + $steps;
@@ -722,8 +744,14 @@ class TournamentCommands extends WP_CLI_Command {
         $env = $support->getEnvError();
         list( $clubId, $eventId ) = $env;
 
+        error_clear_last();
         //Get the bracket, round, match and set numbers from the args
         list( $bracketName, $roundnum, $matchnum, $setnum ) = $args;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong args for ... bracket round match set ");
+            exit;
+        }
         
         
         $home      = array_key_exists( 'home', $assoc_args )  ? $assoc_args["home"] : 0;
@@ -755,7 +783,12 @@ class TournamentCommands extends WP_CLI_Command {
                     }
 
                     $umpire = $td->getChairUmpire();
-                    $umpire->recordScores($match, $setnum, $home, $hometb, $visitor, $visitortb );
+                    if( $hometb < 1 && $visitortb < 1 ) {
+                        $umpire->recordScores($match, $setnum, $home, $visitor );
+                    }
+                    else {
+                        $umpire->recordScores($match, $setnum, $home, $hometb, $visitor, $visitortb );
+                    }
                     WP_CLI::success( sprintf("tennis tourney score ... Recorded score %d(%d) : %d(%d) in match '%s'", $home, $hometb, $visitor, $visitortb, $match->title() ) );
                 }
                 catch( Exception $ex ) {

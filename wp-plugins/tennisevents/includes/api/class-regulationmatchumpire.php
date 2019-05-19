@@ -81,8 +81,17 @@ class RegulationMatchUmpire extends ChairUmpire
 
         switch( count( $scores ) ) {
             case 2:
-                $homewins    = min( $scores[0], $this->GamesPerSet );
-                $visitorwins = min( $scores[1], $this->GamesPerSet );
+                $homewins    = $scores[0];
+                $visitorwins = $scores[1];
+                $maxGames = $this->GamesPerSet + 1;
+                if($homewins >= $maxGames ) {
+                    $homewins = $maxGames;
+                    $visitorwins = $this->GamesPerSet - 1;
+                }
+                elseif( $visitorwins >= $maxGames ) {
+                    $visitorwins = $maxGames;
+                    $homewins = $this->GamesPerSet - 1;
+                }
                 $match->setScore( $setnum, $homewins, $visitorwins );
                 $this->log->error_log( sprintf( "%s -> Set home games=%d and visitor games=%d for %s."
                                   , $loc, $homewins, $visitorwins, $match->title()  ) );
@@ -164,7 +173,9 @@ class RegulationMatchUmpire extends ChairUmpire
                     break;
                 }                
             }
-            if( $status === self::INPROGRESS && !is_null( $this->matchWinner( $match) ) ) $status = ChairUmpire::COMPLETED;
+            if( $status === self::INPROGRESS && !is_null( $this->matchWinner( $match) ) ) {
+                $status = ChairUmpire::COMPLETED;
+            }
         }
 
         $this->log->error_log( sprintf( "%s(%s) is returning status=%s", $loc, $match->toString(), $status ) );
@@ -211,22 +222,24 @@ class RegulationMatchUmpire extends ChairUmpire
                     $visitorW = $set->getVisitorWins();
                     $visitorTB = $set->getVisitorTieBreaker();
 
-                    error_log( sprintf( "%s ->In %s: home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
-                                      , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
+                    $this->log->error_log( sprintf( "%s ->In %s: home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
+                                         , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
                     
-                    if( ( $homeW + $visitorW ) < $this->GamesPerSet ) break;
-
-                    if( $homeW > $visitorW ) {
+                    if( !in_array($homeW, array($this->GamesPerSet, $this->GamesPerSet + 1))
+                    &&  !in_array($visitorW, array($this->GamesPerSet, $this->GamesPerSet + 1) )) {
+                        break; //not done yet
+                    }
+                    if( ($homeW - $visitorW >= 2) ) {
                         ++$homeSetsWon;
                     }
-                    elseif( $visitorW > $homeW ) {
+                    elseif( ($visitorW - $homeW >= 2) ) {
                         ++$visitorSetsWon;
                     }
                     else { //Tie breaker
-                        if( $homeTB > $visitorTB ) {
+                        if( ($homeTB - $visitorTB >= 2) && $homeTB >= $this->TieBreakerMinimum ) {
                             ++$homeSetsWon;
                         }
-                        elseif( $homeTB < $visitorTB ) {
+                        elseif( ($visitorTB - $homeTB >= 2)  && $visitorTB >= $this->TieBreakerMinimum ) {
                             ++$visitorSetsWon;
                         }
                         else { //match not finished yet
@@ -234,14 +247,14 @@ class RegulationMatchUmpire extends ChairUmpire
                         }
                     }
                 }
-            }
+            } //foreach
         }
 
         //Best 3 of 5 or 2 of 3
-        if( $homeSetsWon >= ceil( $this->MaxSets/2 ) ) {
+        if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
                 $andTheWinnerIs = $home;
         }
-        elseif( $visitorSetsWon >= ceil( $this->MaxSets/2 ) ) {
+        elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
             $andTheWinnerIs = $visitor;
         }
         
