@@ -285,10 +285,10 @@ class TournamentCommands extends WP_CLI_Command {
                 $td = new TournamentDirector( $target );
                 $numAdvanced = $td->advance( $bracketName );
                 if( $numAdvanced > 0 ) {
-                    WP_CLI::success("$numAdvanced matches advanced.");
+                    WP_CLI::success("$numAdvanced entrants advanced.");
                 }
                 else {
-                    WP_CLI::warning("$numAdvanced matches advanced.");
+                    WP_CLI::warning("$numAdvanced entrants advanced.");
                 }
             }
             else {

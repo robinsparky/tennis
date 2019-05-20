@@ -185,12 +185,29 @@ class TournamentDirector
 
         $matches = $bracket->getMatches( true );
         $umpire = $this->getChairUmpire();
+        $lastRound = self::calculateExponent( $this->signupSize() );
 
         $numAdvanced = 0;
-        foreach( $matches as $match ) {            
+        foreach( $matches as $match ) {  
+            $title = $match->title();
+            $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextMatchNumber() );
+            
+            //We don't advance the last match of the bracket
+            if( $lastRound === $match->getRoundNumber() ) {
+                break;
+            }
+
+            if( is_null( $nextMatch ) ) {
+                //When the bracket is approved all matches from preliminary to the end of the 
+                // tournament are generated. So we should not have the case where a next match
+                // is null until the very last match
+                $mess = "Match $title has invalid next match pointers.";
+                $this->log->error_log( $mess );
+                throw new InvalidTournamentException( $mess );
+            }
+
             if( $umpire->isLocked( $match ) || $match->isBye() ) {
 
-                $title = $match->title();
                 $winner = $umpire->matchWinner( $match );
                 if( is_null( $winner ) ) {
                     $mess = "Match $title is locked but cannot determine winner.";
@@ -200,29 +217,29 @@ class TournamentDirector
 
                 $this->log->error_log("$loc: attempting to advance match: $title");
 
-                $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextMatchNumber() );
-                if( is_null( $nextMatch ) ) {
-                    $mess = "Match $title has invalid next match pointers.";
-                    $this->log->error_log( $mess );
-                    throw new InvalidTournamentException( $mess );
-                } 
-
-                $title = $nextMatch->title();
-                $this->log->error_log( "$loc: next match: $title" );
+                $nextTitle = $nextMatch->title();
+                $this->log->error_log( "$loc: next match: $nextTitle" );
                 
-                if( $match->getMatchNumber() & 1 ) {
-                    $nextMatch->setHomeEntrant( $winner );
+                if( $nextMatch->isWaiting() ) {
+                    if( $match->getMatchNumber() & 1 ) {
+                        $nextMatch->setHomeEntrant( $winner );
+                    }
+                    else {
+                        $nextMatch->setVisitorEntrant( $winner );
+                    }
+                    $nextMatch->setIsBye( false );
+                    ++$numAdvanced;                    
+                    $this->log->error_log( sprintf( "%s --> %d. Advanced winner %s of match %s to next match %s"
+                                                  , $loc, $numAdvanced, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
                 }
                 else {
-                    $nextMatch->setVisitorEntrant( $winner );
-                }
-                $nextMatch->setIsBye( false );
-                ++$numAdvanced;                    
-                $this->log->error_log( sprintf( "%s --> %d. Advanced winner %s of match %s to match %s"
-                                        , $loc, $numAdvanced, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
-                
+                    $this->log->error_log( sprintf( "%s. Did NOT advance winner %s of match %s to next match %s because it is NOT waiting."
+                                                  , $loc, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
+
+                }                
             }
-        }
+        } //foreach
+
         $this->save();
         return $numAdvanced;
     }

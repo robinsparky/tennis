@@ -173,7 +173,7 @@ class RegulationMatchUmpire extends ChairUmpire
                     break;
                 }                
             }
-            if( $status === self::INPROGRESS && !is_null( $this->matchWinner( $match) ) ) {
+            if( $status === self::INPROGRESS && !is_null( $this->matchWinner( $match ) ) ) {
                 $status = ChairUmpire::COMPLETED;
             }
         }
