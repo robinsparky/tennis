@@ -102,8 +102,6 @@ class TennisEvents {
 			include_once( 'includes/commandline/class-signupcommands.php' );
 		}
 		
-		//Shortcode for rendering Tournament Brackets
-		RenderDraw::register();		
 	}
 
 	/**
@@ -122,6 +120,9 @@ class TennisEvents {
         // Add actions
 		add_action('init', array( $this, 'init') );
 		add_action( 'rest_api_init', array( self::$ControllerManager, 'register_tennis_rest_routes' ) );
+		
+		//Shortcode for rendering Tournament Brackets
+		RenderDraw::register();		
 	}   
 	
 	/**

@@ -1,6 +1,8 @@
 <?php
 
 WP_CLI::add_command( 'tennis tourney', 'TournamentCommands' );
+use api\events\EventManager;
+use api\events\OverloadedConstructors;
 
 /**
  * Implements all commands for manipulating a tennis tournament and its brackets' matches
@@ -852,6 +854,63 @@ class TournamentCommands extends WP_CLI_Command {
         }
     }
 
+
+    /**
+     * Test PHP code
+     * 
+     * ## OPTIONS
+     * <n>
+     * : Number of players
+     * 
+     * ## EXAMPLES
+     *
+     *     wp tennis tourney test 15
+     *
+     * @when before_wp_load
+     */
+    function test( $args, $assoc_args ) {        
+        /*
+         * 1. Reference test
+         */
+        // $array = array(00, 11, 22, 33, 44, 55, 66, 77, 88, 99);
+        // $this->ref($array, 2, $ref);
+        // $ref[0] = 'xxxxxxxxx';
+        // var_dump($ref);
+        // var_dump($array);
+
+        /*
+         * 2. Overloaded constructors test
+         * Proved that this cannot handle references in the overloaded functions' args
+         */
+        // $obj1 = new stdClass;
+        // $obj1->name = 'Robin';
+        // try {
+        // $test = new Test( $obj1 );
+        // }
+        // catch( Exception $ex ) {
+        //     WP_CLI::error( $ex->getMessage() );
+        // }
+        /*
+         * 3. Events Manager
+         */
+        
+        $events = EventManager::getInstance();
+
+        $events->listen('do', function($e) {
+            echo $e->getName() . "\n";
+            print_r($e->getParams());
+        });
+        $events->trigger('do', array('a', 'b', 'c'));
+        
+    }
+
+
+    private function ref( &$array, int $idx = 1, &$ref = array() )
+    {
+            //$ref = array();
+            $ref[] = &$array[$idx];
+    }
+    
     /**
      * Calculates the number of byes in round 1
      * to cause the number of players in round 2 be a power of 2
@@ -939,91 +998,6 @@ class TournamentCommands extends WP_CLI_Command {
     }
 
 
-    /**
-     * Test PHP code
-     * 
-     * ## OPTIONS
-     * <n>
-     * : Number of players
-     * 
-     * ## EXAMPLES
-     *
-     *     wp tennis tourney test 15
-     *
-     * @when before_wp_load
-     */
-    function test( $args, $assoc_args ) {        
-        /*
-         * 1. Reference test
-         */
-        $array = array(00, 11, 22, 33, 44, 55, 66, 77, 88, 99);
-        $this->ref($array, 2, $ref);
-        $ref[0] = 'xxxxxxxxx';
-        var_dump($ref);
-        var_dump($array);
-
-        /*
-         * 2. Overloaded constructors test
-         * Proved that this cannot handle references in the overloaded functions' args
-         */
-        // $obj1 = new stdClass;
-        // $obj1->name = 'Robin';
-        // try {
-        // $test = new Test( $obj1 );
-        // }
-        // catch( Exception $ex ) {
-        //     WP_CLI::error( $ex->getMessage() );
-        // }
-    }
-
-
-    private function ref( &$array, int $idx = 1, &$ref = array() )
-    {
-            //$ref = array();
-            $ref[] = &$array[$idx];
-    }
-
-}
-
-abstract class OverloadedConstructors {
-   public final function __construct() {
-      $self = new ReflectionClass($this);
-      $constructors = array_filter($self->getMethods(ReflectionMethod::IS_PUBLIC), function(ReflectionMethod $m) {
-         return substr($m->name, 0, 11) === '__construct';
-      });
-      
-      if(sizeof($constructors) === 0) {
-         trigger_error('The class ' . get_called_class() . ' does not provide a valid constructor.', E_USER_ERROR);
-      }
-
-      $number = func_num_args();
-      $arguments = func_get_args();
-      $ref_arguments = array();
-      foreach($constructors as $constructor) {
-         if(($number >= $constructor->getNumberOfRequiredParameters()) &&
-            ($number <= $constructor->getNumberOfParameters())) {
-            $parameters = $constructor->getParameters();
-            reset($parameters);
-            foreach($arguments as $arg) {
-               $parameter = current($parameters);
-               if($parameter->isArray()) {
-                  if(!is_array($arg)) {
-                     continue 2;
-                  }
-               } 
-               elseif(($expectedClass = $parameter->getClass()) !== null) {
-                  if(!(is_object($arg) && $expectedClass->isInstance($arg))) {
-                     continue 2;
-                  }
-               }
-               next($parameters);
-            }
-            $constructor->invokeArgs($this, $arguments);
-            return;
-         }
-      }
-      trigger_error('The required constructor for the class ' . get_called_class() . ' did not exist.', E_USER_ERROR);
-   }
 }
 
 class Test extends OverloadedConstructors {
