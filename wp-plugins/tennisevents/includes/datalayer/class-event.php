@@ -125,7 +125,7 @@ class Event extends AbstractData
 		//error_log( "Event::find $wpdb->num_rows rows returned." );
 
 		foreach( $rows as $row ) {
-            $obj = new Event;
+            $obj = new Event();
             self::mapData( $obj, $row );
 			$col[] = $obj;
 		}
@@ -164,8 +164,9 @@ class Event extends AbstractData
 		return $result;
 	}
 
-	/*************** Instance Methods ****************/
+	/******************************* Instance Methods **************************************/
 	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT) {
+		parent::__construct( true );
 		$this->isnew = true;
 		$this->name = $name;
 		$this->format = Format::SINGLE_ELIM;
@@ -810,6 +811,9 @@ class Event extends AbstractData
 	 * Get the winners bracket for this event.
 	 */
 	public function getWinnersBracket( ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$bracket = $this->getBracket( Bracket::WINNERS );
 		if( is_null( $bracket ) ) {
 			$bracket = $this->createBracket( Bracket::WINNERS );
@@ -893,7 +897,7 @@ class Event extends AbstractData
 			}
 		}
 		if( !$found ) {
-			$result = new Bracket( $this );
+			$result = new Bracket( );
 			$result->setName( $name );
 			$this->brackets[] = $result;
 			$result->setEvent( $this );
@@ -921,17 +925,17 @@ class Event extends AbstractData
 	}
 	
 	/**
-	 * Remove the collection of Brackets
+	 * Remove this Event's collection of Brackets
 	 */
 	public function removeBrackets() {
 		if( isset( $this->brackets ) ) {
-			$i=0;
 			foreach( $this->brackets as $bracket ) {
-				$bracket->removeAllMatches();
+				$bracket->removeAllMatches(); //Unnecssary because of cascading deletes??
 				$this->bracketsToBeDeleted[] = $bracket;
-				unset( $this->brackets[$i++] );
+				$bracket = null;
 			}
 		}
+		$this->brackets = array();
 		return $this->setDirty();
 	}
 
@@ -1147,11 +1151,11 @@ class Event extends AbstractData
 
 		//Delete Brackets removed from this Event
 		foreach( $this->bracketsToBeDeleted as &$bracket ) {
-			$bracketnums = array_map( function($e){return $e->getBracketNumber();}, $this->getBrackets() );
-			if( !in_array( $bracket->getBracketNumber(), $bracketnums ) ) {
+			//$bracketnums = array_map( function($e){return $e->getBracketNumber();}, $this->getBrackets() );
+			//if( !in_array( $bracket->getBracketNumber(), $bracketnums ) ) {
 				$result += $bracket->delete();
 				unset( $bracket );		
-			}	
+			//}	
 		}
 		$this->bracketsToBeDeleted = array();
 

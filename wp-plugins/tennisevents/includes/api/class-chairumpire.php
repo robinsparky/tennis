@@ -44,7 +44,7 @@ abstract class ChairUmpire
 	abstract public function setMaxSets( int $max = 3 );
 	
 	public function __construct() {
-		$this->log = new BaseLogger( true );
+		$this->log = new BaseLogger( false );
 	}
 	
 	public function challengesRemaining() {

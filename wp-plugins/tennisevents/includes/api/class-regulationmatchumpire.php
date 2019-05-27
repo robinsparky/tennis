@@ -248,7 +248,7 @@ class RegulationMatchUmpire extends ChairUmpire
                     }
                 }
             } //foreach
-        }
+        } //Not is waiting
 
         //Best 3 of 5 or 2 of 3
         if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
@@ -343,7 +343,7 @@ class RegulationMatchUmpire extends ChairUmpire
                 //                 , $loc, $match->toString(), $setNum
                 //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
                 if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
-                    $homeScores .= sprintf("<td>%d<sub>%d</sup></td>", $scores[0]);
+                    $homeScores .= sprintf("<td>%d<sub>%d</sup></td>", $scores[0], $scores[2]);
                     $visitorScores .= sprintf("<td>%d<sub>%d</sup></td>", $scores[1], $scores[3]);
                 } 
                 else {

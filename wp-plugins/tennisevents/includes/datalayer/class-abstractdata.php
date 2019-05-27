@@ -24,9 +24,9 @@ abstract class AbstractData
     protected $log;
     
    //Default constructor
-   public function __construct() {
+   public function __construct( $logger=false ) {
         $this->isnew = true;
-        $this->log = new BaseLogger( true );
+        $this->log = new BaseLogger( $logger );
     }
     
     /**

@@ -111,7 +111,13 @@ class RenderDraw
         }
 
     }
-
+    
+    /**
+     * Renders rounds and matches for the given brackete
+     * @param $td The tournament director for this bracket
+     * @param $bracket The bracket
+     * @return HTML for table-based page showing the draw
+     */
     private function renderBracket( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
@@ -122,20 +128,12 @@ class RenderDraw
             return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
         }
 
-        $loadedTemplate = $td->loadMatches( $bracketName );
-        if( count( $loadedTemplate ) < 1 ) {
-            //TODO: This will never happen!
-            return __("'$tournamentName ($bracketName bracket)' has not been scheduled yet", TennisEvents::TEXT_DOMAIN );
-        }
-        //$this->log->error_log($loadedTemplate, "$loc: Loaded Template");
+        $umpire = $td->getChairUmpire();
 
-        $preliminaryRound = $bracket->extractPreliminaryRound();
-        $numPreliminaryMatches = $preliminaryRound->count();
+        $loadedMatches = $bracket->getMatchHierarchy();
+        $preliminaryRound = $loadedMatches[1];                
+        $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );
-        $actualNumRounds = $bracket->getNumberOfScheduledRounds();
-        if( $numRounds != $actualNumRounds ) {
-            return __("'$tournamentName ($bracketName bracket)' expected rounds=$numRounds but actual rounds=$actualNumRounds", TennisEvents::TEXT_DOMAIN );
-        }
 
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
@@ -148,8 +146,9 @@ class RenderDraw
 EOT;
         $out = sprintf( $begin, $bracketName, $tournamentName, $bracketName );
 
-        for( $i=0; $i < $numRounds; $i++ ) {
-            $out .= sprintf( "<th>Round %d</th>", $i );
+        for( $i=1; $i <= $numRounds; $i++ ) {
+            $rOf = $bracket->roundOf( $i );
+            $out .= sprintf( "<th>Round Of %d</th>", $rOf );
         }
         $out .= "<th>Champion</th>";
         $out .= "</tr></thead>" . PHP_EOL;
@@ -168,32 +167,61 @@ EOT;
 
         //rows
         $row = 0;
-        $preliminaryRound->setIteratorMode( SplDoublyLinkedList::IT_MODE_FIFO );
-        for( $preliminaryRound->rewind(); $preliminaryRound->valid(); $preliminaryRound->next() ) {
+        foreach( $preliminaryRound as $match ) {
             ++$row;
             $out .= "<tr>";
             $r = 1; //means preliminary round (i.e. first column)
             $nextRow = '';
             try {
-                $rowObj = $preliminaryRound->shift(); //throws RuntimeException
-                //$this->log->error_log($rowObj,"$loc: rowObj");
-                $id = sprintf("M(%d,%d)",$rowObj->round, $rowObj->match_num);
-                $visitor = $rowObj->is_bye ? '' : $rowObj->visitor;  
-                $cmts = isset($rowObj->comments) ? $rowObj->comments : '';
-                $out .= sprintf( $templ, $r, $id, $rowObj->home, $rowObj->score, $visitor, $rowObj->status, $cmts );
-                //following columns
-                $nextMatches = $bracket->getBracketTemplate()->getFollowingMatches( $rowObj->round, $rowObj->match_num );
-                $this->log->error_log( $nextMatches, "$loc: nextMatches" );
-                foreach( $nextMatches as $colObj ) {
+                $title = $match->title();
+                $this->log->error_log("$loc: preliminary match: $title");
+
+                $winner  = $umpire->matchWinner( $match );
+                $winner  = is_null( $winner ) ? 'tba': $winner->getName();
+                $home    = $match->getHomeEntrant();
+                $hname   = !is_null( $home ) ? $home->getName() : 'tba';
+                $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
+                $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
+
+                $visitor = $match->getVisitorEntrant();
+                $vname   = 'tba';
+                $vseed   = '';
+                if( isset( $visitor ) ) {
+                    $vname   = $visitor->getName();
+                    $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                }
+                $vname = empty($vseed) ? $vname : $vname . "($vseed)";
+                $cmts = $match->getComments();
+                $cmts = isset( $cmts ) ? $cmts : '';
+                $score   = $umpire->tableGetScores( $match );                        
+                $status  = $umpire->matchStatus( $match );
+
+                $out .= sprintf( $templ, $r, $match->toString(), $hname, $score, $vname, $status, $cmts );
+
+                $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
+                foreach( $futureMatches as $futureMatch ) {
                     $rowspan = pow( 2, $r++ );
-                    $id = sprintf("M(%d,%d)",$colObj->round, $colObj->match_num);  
-                    $home = isset($colObj->home) ? $colObj->home : 'home tba'; 
-                    $score = isset($colObj->score) ? $colObj->score : '';
-                    $visitor = isset($colObj->visitor) ? $colObj->visitor : 'visitor tba';
-                    $visitor = isset($colObj->is_bye) && $colObj->is_bye ? 'Bye' : $visitor;  
-                    $status = isset($colObj->status) ? $colObj->status : '';  
-                    $cmts = isset($colObj->comments) ? $colObj->comments : '';
-                    $out .= sprintf( $templ, $rowspan, $id, $home, $score, $visitor, $status, $cmts );
+                    $winner  = $umpire->matchWinner( $futureMatch );
+                    $winner  = is_null( $winner ) ? 'tba': $winner->getName();
+                    $home    = $futureMatch->getHomeEntrant();
+                    $hname   = !is_null( $home ) ? $home->getName() : 'tba';
+                    $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
+                    $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
+    
+                    $visitor = $futureMatch->getVisitorEntrant();
+                    $vname   = 'tba';
+                    $vseed   = '';
+                    if( isset( $visitor ) ) {
+                        $vname   = $visitor->getName();
+                        $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                    }
+                    $vname = empty($vseed) ? $vname : $vname . "($vseed)";
+                    $cmts = $futureMatch->getComments();
+                    $cmts = isset( $cmts ) ? $cmts : '';
+
+                    $score   = $umpire->tableGetScores( $futureMatch );                        
+                    $status  = $umpire->matchStatus( $futureMatch );
+                    $out .= sprintf( $templ, $rowspan, $futureMatch->toString(), $hname, $score, $vname, $status, $cmts );
                 }     
             }
             catch( RuntimeException $ex ) {
@@ -209,12 +237,13 @@ EOT;
         $out .= "</table>";
         return $out;
 
+
     }
 
     /**
      * Recursive function to extract all following matches from the given match
-     * @param $startObj The starting match in stdClass form
-     * @param $rounds Reference to an array of splDoublyLinkedList reprsenting all matches beyond the priliminary one
+     * @param $startObj The starting match
+     * @param $rounds Reference to an array of arrays reprsenting all matches beyond the priliminary one
      * @return array of match objects
      */
     private function getNextMatches( $startObj, array &$rounds ) : array {
@@ -222,19 +251,22 @@ EOT;
         $this->log->error_log( $loc );
 
         $found = array();
-        $nr = isset($startObj->next_round_num) ? $startObj->next_round_num : -1;
-        $nm = isset($startObj->next_match_num) ? $startObj->next_match_num : -1;
+        $nr = $startObj->getNextRoundNumber();
+        $nm = $startObj->getNextMatchNumber();
+        $nr = isset($nr) ? $nr : -1;
+        $nm = isset($nm) ? $nm : -1;
 
         foreach( $rounds as $round ) {
-            //$dlist->setIteratorMode( SplDoublyLinkedList::IT_MODE_FIFO );
-            for( $i = 0; $i < $round->count(); $i++ ) {
-                if( !$round->offsetExists( $i ) ) continue;
-                $obj = $round->offsetGet( $i );   
-                $r = isset( $obj->round ) ? $obj->round : -1;
-                $m = isset( $obj->match_num ) ? $obj->match_num : -1;
+            for( $i = 0; $i < count($round); $i++ ) {
+                if( !isset($round[$i]) ) continue;
+                $obj = $round[$i];  
+                $r = $obj->getRoundNumber();
+                $m = $obj->getMatchNumber();
+                $r = isset( $r) ? $r : -1;
+                $m = isset( $m ) ? $m : -1;
                 if( $r == $nr && $m == $nm ) {
                     $found[] = $obj;
-                    $round->offsetUnset( $i );
+                    unset($round[$i]);
                     $more = $this->getNextMatches( $obj, $rounds );
                     foreach($more as $next) {
                         $found[] = $next;
@@ -244,6 +276,44 @@ EOT;
             }
         }
         return $found;
+    }
+
+    private function getFutureMatches( $nr, $nm, &$matchHierarchy ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( "$loc(nextRound=$nr, nextMatch=$nm)" );
+
+        $futureMatches = array();
+        $rndNum = $nr;
+        foreach( $matchHierarchy as $key => &$round ) {
+            $count = count( $round );
+            $this->log->error_log("$loc: future round #$key has $count matches." );
+
+            $futureMatch = null;
+            foreach( $round as $key=>$m ) {
+                if( $m->getRoundNumber() === $nr && $m->getMatchNumber() === $nm ) {
+                    $futureMatch = $m;
+                    unset( $round[$key] );
+                    break;
+                }
+            }
+            if( !is_null( $futureMatch ) ) {
+                $title = $futureMatch->title();
+                $this->log->error_log("$loc: found $count future match[$nr][$nm]: $title");
+                $futureMatches[] = $futureMatch;
+                unset( $matchHierarchy[$nr][$nm] );
+                $nr = $futureMatch->getNextRoundNumber();
+                $nm = $futureMatch->getNextMatchNumber();
+            }
+            else {
+                $this->log->error_log("$loc: no future matches found.**************");
+            }
+            ++$rndNum;
+        }
+
+        $count=count($futureMatches);
+        $this->log->error_log("$loc: returning $count matches");
+
+        return $futureMatches;
     }
 
     /**

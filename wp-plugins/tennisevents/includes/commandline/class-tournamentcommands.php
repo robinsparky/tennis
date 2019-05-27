@@ -55,11 +55,16 @@ class TournamentCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 $brackets = $target->getBrackets();
                 $td = new TournamentDirector( $target );
+                $umpire  = $td->getChairUmpire();
                 foreach( $brackets as $bracket ) {
+                    WP_CLI::line( '-');
                     WP_CLI::line( sprintf( "Matches for '%s' at '%s'", $evtName, $name ) );
-                    WP_CLI::line( sprintf( "%s Bracket: %d Rounds", $bracket->getName(), $td->totalRounds() ) );
-                    $matches = $td->getMatches();
-                    $umpire  = $td->getChairUmpire();
+                    $numRounds = $td->totalRounds();
+                    if( $bracket->getName() == Bracket::CONSOLATION ) {
+                        $numRounds = $bracket->signupSize( $umpire );
+                    }
+                    WP_CLI::line( sprintf( "%s Bracket: %d Rounds", $bracket->getName(), $numRounds ) );
+                    $matches = $bracket->getMatches();
                     $items   = array();
                     foreach( $matches as $match ) {
                         $round   = $match->getRoundNumber();
@@ -95,6 +100,7 @@ class TournamentCommands extends WP_CLI_Command {
                     }
                     WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments', 'Winner' ) );
                 }
+                WP_CLI::success("Done!");
             }
             else {
                 WP_CLI::warning( "tennis display tourney show ... could not event with Id '$eventId' for club with Id '$clubId'" );
@@ -138,9 +144,9 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
-        list($bracketName) = $args;
+        list( $bracketName ) = $args;
 
-        $shuffle = $assoc_args["shuffle"];
+        $shuffle = array_key_exists("shuffle",$assoc_args) ? $assoc_args["shuffle"] : '';
         if( strcasecmp("yes", $shuffle) === 0 ) $shuffle = true;
         else $shuffle = false;
 
@@ -586,13 +592,17 @@ class TournamentCommands extends WP_CLI_Command {
                     $club = Club::get( $clubId );
                     $name = $club->getName();
                     $evtName = $target->getName();
-                    $bracket = $target->getBracket( $bracketName );
+                    //$bracket = $target->getBracket( $bracketName );
                     $td = new TournamentDirector( $target );
                     try {
-                        $template = $td->approve( $bracket );
+                        $matchHierarchy = $td->approve( $bracketName );
                         WP_CLI::line(sprintf("Total Rounds=%d", $td->totalRounds()));
-                        foreach( $template as $line ) {
-                            WP_CLI::line( $line );
+                        $ctr = 0;
+                        foreach( $matchHierarchy as $round ) {
+                            foreach( $round as $match ) {
+                                $matchCtr = sprintf("%02d", ++$ctr);
+                                WP_CLI::line(  $matchCtr . ' ' . str_repeat(".",$match->getRoundNumber()) . $match->title() );
+                            }
                         }
                         WP_CLI::success("tennis tourney approve ... bracket $bracketName approved.");
                     }
@@ -656,6 +666,9 @@ class TournamentCommands extends WP_CLI_Command {
                     $bracket = $target->getBracket( $bracketName );
                     $td = new TournamentDirector( $target );
                     try {
+                        if( is_null( $bracket ) ) {
+                            throw new InvalidBracketException("No such bracket.");
+                        }
                         $eventName = $td->getName();
                         $clubName  = $club->getName();
                         $signupSize = $bracket->signupSize();

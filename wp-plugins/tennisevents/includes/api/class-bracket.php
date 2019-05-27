@@ -15,7 +15,7 @@ require_once( 'api-exceptions.php' );
  * @version 1.0.0
  * @since   0.1.0
 */
-class Bracket 
+class Bracket2 
 {
     public $name;
 

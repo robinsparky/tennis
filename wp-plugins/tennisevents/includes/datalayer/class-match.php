@@ -54,7 +54,7 @@ class Match extends AbstractData
     //Sets in this Match
     private $sets;
     private $setsToBeDeleted = array();
-    
+
     /**
      * Search not used
      */
@@ -327,6 +327,7 @@ class Match extends AbstractData
 
 	/*************** Instance Methods ****************/
 	public function __construct( int $eventId, int $bracket = 1, int $round = 0, int $match = 0 ) {
+        parent::__construct( false );
         $this->isnew = true;
         $this->event_ID = $eventId;
         $this->bracket_num = $bracket;
@@ -336,7 +337,7 @@ class Match extends AbstractData
 
     public function __destruct() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("$loc ... ");
+        $this->log->error_log("$loc ... ");
 
         unset( $this->event );
 
@@ -349,7 +350,7 @@ class Match extends AbstractData
 
     public function setDirty() {
         if( isset( $this->bracket) ) $this->bracket->setDirty();
-        //error_log( sprintf("%s(%d) set dirty", __CLASS__, $this->getID() ) );
+        //$this->log->error_log( sprintf("%s(%d) set dirty", __CLASS__, $this->getID() ) );
         return parent::setDirty();
     }
 
@@ -591,7 +592,7 @@ class Match extends AbstractData
         $this->getHomeEntrant();
         $this->getVisitorEntrant();
         if( !isset( $this->home ) || !isset( $this->visitor )  && !$this->isBye() ) $result = true;
-        // error_log(sprintf( "%s -> isset home=%d; isset visitor=%d; is bye=%d"
+        // $this->log->error_log(sprintf( "%s -> isset home=%d; isset visitor=%d; is bye=%d"
         //                  ,$loc, isset( $this->home ), isset( $this->visitor ), $this->isBye() ) );
         return $result;
     }
@@ -664,7 +665,7 @@ class Match extends AbstractData
         $found = false;
 
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        error_log( sprintf( "%s(%s) -> starting", $loc, $this->toString() ) );
+        $this->log->error_log( sprintf( "%s(%s) -> starting", $loc, $this->toString() ) );
 
         $this->isValid();
 
@@ -676,7 +677,7 @@ class Match extends AbstractData
                 $set->isValid();
                 $result = $this->setDirty();
 
-                error_log( sprintf( "%s(%s) -> modified scores for %s", $loc, $this->toString(), $set->toString() ) );
+                $this->log->error_log( sprintf( "%s(%s) -> modified scores for %s", $loc, $this->toString(), $set->toString() ) );
             }
         }
     
@@ -690,11 +691,11 @@ class Match extends AbstractData
                 $this->sets[] = $set;
                 $result = $this->setDirty();
 
-                error_log( sprintf( "%s(%s) -> set added %s with scores", $loc, $this->toString(), $set->toString() ) );
+                $this->log->error_log( sprintf( "%s(%s) -> set added %s with scores", $loc, $this->toString(), $set->toString() ) );
             }
         }
         
-        error_log( sprintf( "%s(%s) -> returning with result=%d", $loc, $this->toString(), $result ) );
+        $this->log->error_log( sprintf( "%s(%s) -> returning with result=%d", $loc, $this->toString(), $result ) );
 
         return $result;
     }
@@ -817,43 +818,43 @@ class Match extends AbstractData
         if( !isset( $this->event_ID ) ) {
             $mess = __( "$id must have an event id." );
             $code = 500;
-            error_log( $mess );
+            $this->log->error_log( $mess );
         } 
         elseif ( !$this->isNew() &&  !isset( $this->bracket_num ) || $this->bracket_num === 0 ) {
             $mess = __( "$id must have a bracket number." );
             $code = 510;
-            error_log( $mess );
+            $this->log->error_log( $mess );
         }
         elseif( !isset( $this->round_num ) ) {
             $mess = __( "$id must have a round number." );
             $code = 515;
-            error_log( $mess );
+            $this->log->error_log( $mess );
         }
         elseif( !$this->isNew() && ( !isset( $this->match_num )  || $this->match_num === 0 ) ) {
              $mess = __( "Existing match $id must have a match number." );
              $code = 520;
-             error_log( $mess );
+             $this->log->error_log( $mess );
         }
         elseif( !isset( $this->match_type ) ) {
             $mess = __( "$id must have a match type." );
             $code = 525;
-            error_log( $mess );
+            $this->log->error_log( $mess );
         }
         elseif( $this->round_num < 0 || $this->round_num > self::MAX_ROUNDS ) {
             $max = self::MAX_ROUNDS;
             $mess = __( "$id round number not between 1 and $max (inclusive)." );
             $code = 530;
-            error_log( $mess );
+            $this->log->error_log( $mess );
         }
         elseif( $this->round_num === 0 && ( !isset( $this->home ) || !isset( $this->visitor ) ) ) {
             $mess = __( "$id is a round 0 match and must have both home and visitor entrants." );
             $code = 535;
-            error_log( $mess );
+            $this->log->error_log( $mess );
         }
         elseif( $this->round_num === 1 && !isset( $this->home ) ) {
             $mess = __( "$id is a round 1 match and must have at least a home entrant." );
             $code = 540;
-            error_log( $mess );
+            $this->log->error_log( $mess );
         }
         
         switch( $this->match_type ) {
@@ -866,7 +867,7 @@ class Match extends AbstractData
             default:
             $mess = __( "$id - Match Type is invalid: $this->match_type" );
             $code = 560;
-            error_log( $mess );
+            $this->log->error_log( $mess );
         }
 
         if( strlen( $mess ) > 0 ) throw new InvalidMatchException( $mess, $code );
@@ -891,7 +892,7 @@ class Match extends AbstractData
 
         $wpdb->delete( $table, $where, $formats_where );
         $result = $wpdb->rows_affected;
-        error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
+        $this->log->error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
 
         return $result;
     }
@@ -990,7 +991,7 @@ class Match extends AbstractData
                 throw new InvalidMatchException( sprintf( "Match %s has %d entrants.", $this->toString(), count( $contestants ) ) );
             break;
         }
-        error_log( sprintf( "%s(%s) has %d entrants.", $loc, $this->toString(), count( $contestants ) ) );
+        $this->log->error_log( sprintf( "%s(%s) has %d entrants.", $loc, $this->toString(), count( $contestants ) ) );
     }
 
 	/**
@@ -1028,7 +1029,7 @@ class Match extends AbstractData
             $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d;";
             $safe = $wpdb->prepare( $sql, $this->event_ID, $this->bracket_num, $this->round_num );
             $this->match_num = $wpdb->get_var( $safe ) + 1;
-            error_log( sprintf( "Match::create -> creating '%s' with match type = '%s'", $this->toString(), $this->match_type ) );
+            $this->log->error_log( sprintf( "Match::create -> creating '%s' with match type = '%s'", $this->toString(), $this->match_type ) );
         }
 
         $values = array( 'event_ID'    => $this->event_ID
@@ -1050,10 +1051,10 @@ class Match extends AbstractData
 		$this->isdirty = false;
 
         if($wpdb->last_error) {
-            error_log( sprintf("%s(%s) -> sql error: %s", $loc, $this->toString(), $wpdb->last_error )  );
+            $this->log->error_log( sprintf("%s(%s) -> sql error: %s", $loc, $this->toString(), $wpdb->last_error )  );
         }
 
-        error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result ) );
+        $this->log->error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result ) );
 
         if( isset( $this->sets ) ) {
             foreach($this->sets as &$set) {
@@ -1097,7 +1098,7 @@ class Match extends AbstractData
         $this->isdirty = FALSE;
         $result = $wpdb->rows_affected;
 
-        error_log( sprintf( "%s(%s) -> %d rows affected.", $loc, $this->toString(), $result ) );
+        $this->log->error_log( sprintf( "%s(%s) -> %d rows affected.", $loc, $this->toString(), $result ) );
         
         if( isset( $this->sets ) ) {
             foreach( $this->sets as &$set ) {

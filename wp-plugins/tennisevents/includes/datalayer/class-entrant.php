@@ -158,12 +158,12 @@ class Entrant extends AbstractData
 		$safe = $wpdb->prepare($sql,$where);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		if( count( $where) > 1 ) {
-			error_log( sprintf($format, $loc, $where[0], $where[1], $where[2], $where[3], $wpdb->num_rows ) );
-		}
-		else {
-			error_log( sprintf($format, $loc, $where[0], $wpdb->num_rows ) );
-		}
+		// if( count( $where) > 1 ) {
+		// 	error_log( sprintf($format, $loc, $where[0], $where[1], $where[2], $where[3], $wpdb->num_rows ) );
+		// }
+		// else {
+		// 	error_log( sprintf($format, $loc, $where[0], $wpdb->num_rows ) );
+		// }
 		
 		foreach($rows as $row) {
             $obj = new Entrant;
@@ -214,11 +214,13 @@ class Entrant extends AbstractData
 
 	/*************** Instance Methods ****************/
 	public function __construct(int $eventID=null, string $pname=null,int $seed=null) {
+		parent::__construct ( false );
 		$this->isnew = TRUE;
 		$this->event_ID = $eventID;
 		$this->name = $pname;
 		$this->seed = $seed;
 		$this->init();
+		$this->log = new BaseLogger( false );
 	}
 
 	public function __destruct() {
@@ -323,7 +325,7 @@ class Entrant extends AbstractData
 			$wpdb->delete( $table,array( 'event_ID'=>$eventId,'position'=>$pos ),array( '%d', '%d' ) );
 			$result = $wpdb->rows_affected;
 
-			error_log( sprintf("%s(%s): deleted %d rows", $loc, $this->toString(), $result ) );
+			$this->log->error_log( sprintf("%s(%s): deleted %d rows", $loc, $this->toString(), $result ) );
 		}
 		$this->setDirty();
 		return $result;
@@ -396,7 +398,7 @@ class Entrant extends AbstractData
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
 
-		error_log("Entrant::create $result rows affected.");
+		$this->log->error_log("Entrant::create $result rows affected.");
 
 		return $result;
 	}
@@ -421,7 +423,7 @@ class Entrant extends AbstractData
 		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 
-		error_log("Entrant::update $result rows affected.");
+		$this->log->error_log("Entrant::update $result rows affected.");
 
 		return $result;
 	}
