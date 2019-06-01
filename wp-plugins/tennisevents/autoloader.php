@@ -15,7 +15,7 @@ class Autoloader
                 require $file;
                 return true;
             }
-            error_log("Register Data class failed: $class_filename. Calling api class search!");
+            //error_log("Register Data class failed: $class_filename. Calling api class search!");
             if( self::apiClassRegister( $class ) ) {
                 return true;
             }

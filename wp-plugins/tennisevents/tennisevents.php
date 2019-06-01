@@ -122,7 +122,8 @@ class TennisEvents {
 		add_action( 'rest_api_init', array( self::$ControllerManager, 'register_tennis_rest_routes' ) );
 		
 		//Shortcode for rendering Tournament Brackets
-		RenderDraw::register();		
+		RenderDraw::register();
+		RenderTest::register();
 	}   
 	
 	/**
