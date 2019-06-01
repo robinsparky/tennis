@@ -540,7 +540,7 @@ class Bracket extends AbstractData
         if( $r <= 1 ) return $result;
 
         $exp = TournamentDirector::calculateExponent( $bracketSignupSize );
-        $result = pow( 2, $exp ) / pow( 2, $r );
+        $result = pow( 2, $exp ) / pow( 2, $r - 1 );
         return $result;        
     }
 

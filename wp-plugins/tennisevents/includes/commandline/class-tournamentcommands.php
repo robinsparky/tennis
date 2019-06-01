@@ -3,6 +3,7 @@
 WP_CLI::add_command( 'tennis tourney', 'TournamentCommands' );
 use api\events\EventManager;
 use api\events\OverloadedConstructors;
+use templates\DrawTemplateGenerator;
 
 /**
  * Implements all commands for manipulating a tennis tournament and its brackets' matches
@@ -868,7 +869,10 @@ class TournamentCommands extends WP_CLI_Command {
      *
      * @when before_wp_load
      */
-    function test( $args, $assoc_args ) {        
+    function test( $args, $assoc_args ) {
+
+        if( count($args)  != 1) $n = 0;
+        else list( $n ) = $args;
         /*
          * 1. Reference test
          */
@@ -892,8 +896,7 @@ class TournamentCommands extends WP_CLI_Command {
         // }
         /*
          * 3. Events Manager
-         */
-        
+         
         $events = EventManager::getInstance();
 
         $events->listen('do', function($e) {
@@ -901,7 +904,13 @@ class TournamentCommands extends WP_CLI_Command {
             print_r($e->getParams());
         });
         $events->trigger('do', array('a', 'b', 'c'));
-        
+        */
+        /**
+         * 4. Template generator
+         */
+        $tempGen = new DrawTemplateGenerator( "Test Generation", $n );
+        $template = $tempGen->generateTable( );
+        WP_CLI::line($template);
     }
 
 

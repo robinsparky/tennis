@@ -1,4 +1,5 @@
 <?php
+use templates\DrawTemplateGenerator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -58,6 +59,7 @@ class RenderDraw
         $my_atts = shortcode_atts( array(
             'clubname' => '',
             'eventid' => 0,
+            'by' => 'table',
             'bracketname' => Bracket::WINNERS
         ), $atts, 'render_draw' );
 
@@ -77,8 +79,12 @@ class RenderDraw
         if( is_null( $club ) ) return __('Please set home club id or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
 
         $eventId = $my_atts['eventid'];
-        $this->log->error_log($eventId, "$loc: EventId");
+        $this->log->error_log("$loc: EventId=$eventId");
         if( $eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
+
+        $by = $my_atts['by'];
+        $this->log->error_log("$loc: by=$by");
+        if( !in_array( $by, ['table','list']) )  return __('Please specify how to render the draw in shortcode', TennisEvents::TEXT_DOMAIN );
 
         $evts = Event::find( array( "club" => $club->getID() ) );
         
@@ -102,15 +108,20 @@ class RenderDraw
 
         $bracket = !empty( $bracketName ) ? $td->getBracket( $bracketName ) : null;
         if( !is_null( $bracket ) ) {
-            return $this->renderBracket( $td, $bracket );
+            switch($by) {
+                case 'table':
+                    return $this->renderBracketByTable( $td, $bracket );
+                case 'list':
+                    return $this->renderBracketByList( $td, $bracket );
+                default:
+                    return  __("Whoops!", TennisEvents::TEXT_DOMAIN );
+            }
         }
-
-        $brackets = $td->getBrackets();
-        foreach( $brackets as $bracket ) {
-            $this->renderBracket( $td, $bracket );
+        else {
+            return  __("No such Bracket $bracketName", TennisEvents::TEXT_DOMAIN );
         }
-
     }
+
     
     /**
      * Renders rounds and matches for the given brackete
@@ -118,9 +129,10 @@ class RenderDraw
      * @param $bracket The bracket
      * @return HTML for table-based page showing the draw
      */
-    private function renderBracket( TournamentDirector $td, Bracket $bracket ) {
+    private function renderBracketByTable( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
+		$startTime = microtime( true );
 
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
@@ -234,10 +246,9 @@ EOT;
         } //preliminaryRound 
 
         $out .= "</tbody><tfooter></tfooter>";
-        $out .= "</table>";
+        $out .= "</table>";	
+		$this->log->error_log( sprintf("%0.6f",micro_time_elapsed( $startTime ) ), $loc . ": Elapsed Micro Elapsed Time");
         return $out;
-
-
     }
 
     /**
@@ -340,6 +351,121 @@ EOT;
         else {
             return null;
         }
+    }
+    /**TODO: Remove this function
+     * Renders draw showing entrants for the given bracket
+     * @param $td The tournament director for this bracket
+     * @param $bracket The bracket
+     * @return HTML for table-based page showing the draw
+     */
+    private function renderBracketByEntrant( TournamentDirector $td, Bracket $bracket ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+
+
+        $tournamentName = $td->getName();
+        $bracketName    = $bracket->getName();
+        if( !$bracket->isApproved() ) {
+            return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
+        }
+
+        $loadedMatches = $bracket->getMatchHierarchy();
+        $preliminaryRound = $loadedMatches[1];                
+        $numPreliminaryMatches = count( $preliminaryRound );
+        $numRounds = $td->totalRounds( $bracketName );
+
+        $signupSize = $bracket->signupSize();
+        $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
+
+        $umpire = $td->getChairUmpire();
+
+        $begin = <<<EOT
+<table id="%s" class="bracketdraw">
+<caption>%s: %s Bracket</caption>
+<thead><tr>
+EOT;
+        $out = sprintf( $begin, $bracketName, $tournamentName, $bracketName );
+
+        for( $i=1; $i <= $numRounds; $i++ ) {
+            $rOf = $bracket->roundOf( $i );
+            $out .= sprintf( "<th>Round Of %d</th>", $rOf );
+        }
+        $out .= "<th>Champion</th>";
+        $out .= "</tr></thead>" . PHP_EOL;
+
+        $out .= "<tbody>" . PHP_EOL;
+
+
+
+        $gen = new DrawTemplateGenerator("$tournamentName - $bracketName", $signupSize );
+        $template = $gen->generateTable();
+        $includeMatrix = $gen->getIncludeMatrix();
+        $players = $this->expandMatchesToPlayers( $umpire, $loadedMatches );
+        
+        for( $row = 1; $row <= $gen->getRows(); $row++ ) {
+            $out .= "<tr id='row$row'>";
+            for( $col = 1; $col <= $gen->getColumns(); $col++ ) {
+                $rowspan = pow( 2, $col - 1 );
+                if(array_key_exists($row, $players) && array_key_exists($col, $players[$row])) {
+                    $entrantName = $players[$row][$col];
+                }
+                else {
+                    $entrantName = "unknown";
+                }
+                //if( !is_null(error_get_last()) ) continue;
+
+                if(  $includeMatrix[$row][$col] == 1 ) {
+                    $out .= "<td rowspan='$rowspan'>($row,$col)$entrantName</td>";
+                }
+            }
+            $out .= "</tr>" . PHP_EOL;
+        }
+
+        $out .= "</tbody><tfooter></tfooter>";
+        $out .= "</table>";
+        return $out;
+
+    }
+
+    private function expandMatchesToPlayers( &$umpire, &$matches ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+
+        $players = array();
+        $col = 1;
+        foreach( $matches as $round ) {
+            $row = 1;
+            foreach( $round as $match ) {
+                $title = $match->title();
+                $this->log->error_log("$loc: match: $title");
+                $cmts = $match->getComments();
+                $cmts = isset( $cmts ) ? $cmts : '';
+                $score   = $umpire->tableGetScores( $match );                        
+                $status  = $umpire->matchStatus( $match );
+                $winner  = $umpire->matchWinner( $match );
+                $winner  = is_null( $winner ) ? 'tba': $winner->getName();
+
+                $home    = $match->getHomeEntrant();
+                $hname   = !is_null( $home ) ? $home->getName() : 'tba';
+                $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
+                $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
+                $this->log->error_log("$loc: adding home:$hname in $title to [$row][$col] ");
+                $players[$row++][$col] = $hname;
+                
+                $visitor = $match->getVisitorEntrant();
+                $vname   = 'tba';
+                $vseed   = '';
+                if( isset( $visitor ) ) {
+                    $vname   = $visitor->getName();
+                    $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
+                }
+                $vname = empty($vseed) ? $vname : $vname . "($vseed)";
+                $this->log->error_log("$loc: adding visitor:$vname in $title to [$row][$col] ");
+                $players[$row++][$col] = $vname;
+            }
+            ++$col;
+        }
+        return $players;
     }
     
 }
