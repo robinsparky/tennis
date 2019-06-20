@@ -118,12 +118,9 @@ class TennisEvents {
 		register_uninstall_hook ( __FILE__, array( __class__ , 'on_uninstall' ) );
 
         // Add actions
-		add_action('init', array( $this, 'init') );
+		add_action( 'init', array( $this, 'init') );
 		add_action( 'rest_api_init', array( self::$ControllerManager, 'register_tennis_rest_routes' ) );
 		
-		//Shortcode for rendering Tournament Brackets
-		RenderDraw::register();
-		RenderTest::register();
 	}   
 	
 	/**
@@ -133,9 +130,11 @@ class TennisEvents {
 	 */
 	public function init() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log( sprintf( ">>>>>>>>>>>%s>>>>>>>>>", $loc ) );
-		// self::$TE_Installer = TE_Install::get_instance();
-		// self::$ControllerManager = TennisControllerManager::get_instance();
+		error_log( ">>>>>>>>>>>$loc>>>>>>>>>" );
+		//Register various 
+		RenderDraw::register();
+		RenderTest::register();
+		ManageSignup::register();
 	}
 
 	public static function on_uninstall() {

@@ -163,6 +163,33 @@ class Event extends AbstractData
 		error_log( sprintf("%s(%d) -> deleted %d row(s)",$loc, $eventId, $result ) );
 		return $result;
 	}
+	
+	/**
+	 * Get a child event from its ancestor
+	 * @param $evt The ancestor Event
+	 * @param $descendantId The id of the descendant event
+	 * @return Event which is the child or null if not found
+	 */
+	public static function getEventRecursively( Event $evt, int $descendantId ) {
+		static $attempts = 0;
+		if( $descendantId === $evt->getID() ) return $evt;
+
+		if( count( $evt->getChildEvents() ) > 0 ) {
+			if( ++$attempts > 10 ) return null;
+			foreach( $evt->getChildEvents() as $child ) {
+				if( $descendantId === $child->getID() ) {
+					return $child;
+				}
+				else { 
+					return self::getEventRecursively( $child, $descendantId );
+				}
+			}
+		}
+		else {
+			return null;
+		}
+	}
+    
 
 	/******************************* Instance Methods **************************************/
 	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT) {

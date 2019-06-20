@@ -74,7 +74,7 @@ datalist#emaildata {
 }
 
 /*------------------------------------------------------------------------------------
- * Display Draw
+ * Draw Styling
  *-----------------------------------------------------------------------------------*/
  :root {
     --fieldsize: 4;
@@ -129,6 +129,114 @@ table.bracketdraw td {
 .visitorentrant {
     color: green;
 }
+
+/*-----------------------------------------------------------------
+ * Signup styling
+ *----------------------------------------------------------------*/
+ .eventSignup {
+    width: 75%;
+    list-style: none;
+}
+
+.entrantSignup {
+    width: 100%;
+}
+
+.entrantPosition {
+    background-color: white;
+    color: blue;
+    width: 5%;
+    display: inline-block;
+}
+
+div.entrantName {
+    background-color: white;
+    color: black;
+    display: inline-block;
+    width: 50% !important;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 2px solid blue;
+    border-radius: 8px;
+}
+
+div.entrantSeed {
+    background-color: white;
+    color: black;
+    display: inline-block;
+    width: 15% !important;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 2px solid blue;
+    border-radius: 8px;
+}
+
+input[type=text].entrantName {
+    background-color: white;
+    color: black;
+    display: inline-block;
+    width: 50% !important;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 2px solid blue;
+    border-radius: 8px;
+}
+
+input[type=number].entrantSeed {
+    background-color: white;
+    color: black;
+    display: inline-block;
+    width: 15% !important;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 2px solid blue;
+    border-radius: 8px;
+}
+
+a.entrantDelete:link, a.entrantDelete:visited {
+    background-color: blue;
+    color: white;
+    padding: 14px 25px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    box-sizing: border-box;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+  
+  a.entrantDelete:hover, a.entrantDelete:active {
+    background-color: red;
+  }
+
+/*Buttons*/
+.signupContainer .button {
+    background-color: blue;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    margin: 4px 2px;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-transform: none;
+  }
+
+  .signupContainer .button:hover, .signupContainer .button:active {
+    background-color: red;
+  }
+
+  .entrantHighlight {
+      background-color: yellow;
+  }
+
 
 /*
 .item-player {

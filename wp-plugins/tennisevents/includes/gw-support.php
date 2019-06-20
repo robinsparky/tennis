@@ -174,6 +174,33 @@ function display_marker($label) {
 	echo "<div><span><strong>$label</strong> $datetime $usec</span></div>";
 }
 
+function time_elapsed( $start ) {
+
+	$string = '';
+    $t = array( //suffixes
+        'd' => 86400,
+        'h' => 3600,
+        'm' => 60,
+	);
+	$end = time();
+    $s = abs($end - $start);
+    foreach($t as $key => &$val) {
+        $$key = floor($s/$val);
+        $s -= ($$key*$val);
+        $string .= ($$key==0) ? '' : $$key . "$key ";
+    }
+    return $string . $s. 's';
+}
+
+function micro_time_elapsed( $start ) {
+	$ret = 0.0;
+	if( isset($start) ) {
+		$now = microtime(true);
+		$ret = $now - $start ;
+	}
+	return $ret;
+}
+
 class GW_Debug {
 
 	private function __construct() {

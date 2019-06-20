@@ -2,31 +2,33 @@
 (function($) {
 
     $(document).ready(function() {       
-        let sig = '#tennis-reportmessage';
+        let sig = '#tennis-event-message';
         console.log("Manage Signup");
-        console.log(care_pass_mgmt);
+        console.log(tennis_signupdata_obj);
 
         var longtimeout = 60000;
         var shorttimeout = 15000;
-        var selectionText;
-        var selectionId;
-        var startDate;
-        var endDate;
+
+        var iMouseDown  = false;
+        var lMouseState = false;
+        var dragObject  = null;
+        
+        var DragDrops   = [];
+        var curTarget   = null;
+        var lastTarget  = null;
+        var rootParent  = null;
+        var rootSibling = null;
 
         let ajaxFun = function( ) {
-            console.log('Management Reports: ajaxFun');
-            let reqData =  { 'action': care_pass_mgmt.action      
-                            , 'security': care_pass_mgmt.security
-                            , 'user_id' : care_pass_mgmt.user_id
-                            , 'id': selectionId
-                            , 'report_start': startDate
-                            , 'report_end': endDate };
+            console.log('Signup Management: ajaxFun');
+            let reqData =  { 'action': tennis_signupdata_obj.action      
+                           , 'security': tennis_signupdata_obj.security };
             //console.log( reqData );
             console.log("************************Parameters:");
             console.log( reqData );
 
                 // Send Ajax request with data 
-            let jqxhr = $.ajax( { url: care_pass_mgmt.ajaxurl    
+            let jqxhr = $.ajax( { url: tennis_signupdata_obj.ajaxurl    
                                 , method: "POST"
                                 , async: true
                                 , data: reqData
@@ -53,7 +55,7 @@
                             for(var i=0; i < res.data.exception.errors.length; i++) {
                                 entiremess += res.data.exception.errors[i][0] + '<br/>';
                             }
-                            $(sig).addClass('care-error');
+                            $(sig).addClass('tennis-error');
                             $(sig).html(entiremess);
                         }
                     })
@@ -77,65 +79,6 @@
             
             return false;
         }
-
-        function generateTable(rowsData, titles, caption, _class) {
-            var $table = $("<table>").addClass(_class);
-            var $capt   = $("<caption>").appendTo($table);
-            $capt.html(caption);
-            var $tbody = $("<tbody>").appendTo($table);
-            type=1;
-            
-            if (type == 2) {//vertical table
-                if (rowsData.length !== titles.length) {
-                    console.error('rows and data rows count do not match');
-                    return false;
-                }
-                titles.forEach(function (title, index) {
-                    var $tr = $("<tr>");
-                    $("<th>").html(title).appendTo($tr);
-                    var rows = rowsData[index];
-                    rows.forEach(function (html) {
-                        $("<td>").html(html).appendTo($tr);
-                    });
-                    $tr.appendTo($tbody);
-                });
-                
-            } else if (type == 1) {//horizontal table 
-                var valid = true;
-                rowsData.forEach(function (row) {
-                    if (!row) {
-                        valid = false;
-                        return;
-                    }
-        
-                    if (row.length !== titles.length) {
-                        valid = false;
-                        return;
-                    }
-                });
-        
-                if (!valid) {
-                    console.error('rows and data rows count doe not match');
-                    return false;
-                }
-        
-                var $tr = $("<tr>");
-                titles.forEach(function (title, index) {
-                    $("<th>").html(title).appendTo($tr);
-                });
-                $tr.appendTo($tbody);
-        
-                rowsData.forEach(function (row, index) {
-                    var $tr = $("<tr>");
-                    row.forEach(function (html) {
-                        $("<td>").html(html).appendTo($tr);
-                    });
-                    $tr.appendTo($tbody);
-                });
-            }
-        
-            return $table;
-        }
         
         function formatDate( date ) {
             var d = new Date(date),
@@ -148,6 +91,89 @@
         
             return [year, month, day].join('-');
         }
+        
+        function handleDragStart( event, ui ) {
+
+        }
+
+        function handleDragStop( event, ui ) {
+            var offsetXPos = parseInt( ui.offset.left );
+            var offsetYPos = parseInt( ui.offset.top );
+            console.log( "Drag stopped! Offset: (" + offsetXPos + ", " + offsetYPos + ")");
+            console.log(ui);
+        }
+
+        function handleDrag( event ) {
+            console.log( "......dragging..........");
+        }
+        
+        function handleDropEvent( event, ui ) {
+            var draggable = ui.draggable;
+            var target = $( event.target );
+            console.log( this );
+            console.log( ui );
+            console.log( event );
+            console.log( event.target );
+            console.log( 'The entrant with ID "' + draggable.attr('id') + '" was dropped onto me!' );
+            console.log( 'I am: ');
+            console.log( event.target );
+            $( this )
+                .addClass( "entrantHighlight" )
+        }
+
+        $(".entrantSignup").draggable({
+            containment: 'parent',
+            cursor: 'move',
+            cursorAt: { top: -5, left: -5 },
+            snap: '.eventSignup',
+            scroll: true,
+            scrollSpeed:10,
+            scrollSensitivity: 100,
+            stack: ".entrantSignup",
+            start: handleDragStart,
+            stop: handleDragStop,
+            drag: handleDrag,
+            opacity: 0.7,      
+            connectToSortable: ".eventSignup",
+            helper: "original",
+            revert: "invalid",
+            handle: ".entrantPosition"
+        });
+          
+        $('.eventSignup').droppable( {
+            drop: handleDropEvent
+        } );
+
+        $( ".eventSignup" ).sortable({
+            revert: true
+        });
+
+        $( "ul, li" ).disableSelection();
+
+        /*
+        $(".entrantSignup").mouseenter(function() {
+            console.log("You entered entrant!");
+        });
+
+        $(".entrantSignup").mouseleave(function( event ) {
+            var target = $( event.target );
+            if ( target.is( "li" ) ) {
+              console.log("You are now leaving entrant - " + event.target.nodeName );
+            }
+        });
+        */
+
+        $(".entrantDelete").on('click', function(e) {
+            console.log("#delete entrant fired!");
+        });
+
+        $("#addEntrant").on('click', function(e) {
+            console.log("#add entrant fired!");
+        });
+
+        $("#saveChanges").on('click', function(e) {
+            console.log("#save changes fired!");
+        });
 
        $('#care-report-select').change(function(e) {
             console.log("#care-report-select fired!");
@@ -157,7 +183,7 @@
        });
 
        $('#care_clear_report').on('click', function(e) {
-            $('#' + care_pass_mgmt.reporttarget).html('');
+            $('#' + tennis_signupdata_obj.reporttarget).html('');
        });
 
        $('#care_get_report').on('click', function(e) {

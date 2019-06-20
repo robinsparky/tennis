@@ -24,7 +24,7 @@ class RenderDraw
 
     public static function register() {
         $handle = new self();
-        add_action('wp_enqueue_scripts', array( $handle, 'registerScripts' ) );
+        add_action( 'wp_enqueue_scripts', array( $handle, 'registerScripts' ) );
         $handle->registerHandlers();
     }
 
@@ -92,7 +92,7 @@ class RenderDraw
         $target = null;
         if( count( $evts ) > 0 ) {
             foreach( $evts as $evt ) {
-                $target = $this->getEventRecursively( $evt, $eventId );
+                $target = Event::getEventRecursively( $evt, $eventId );
                 if( isset( $target ) ) {
                     $found = true;
                     break;
@@ -352,6 +352,7 @@ EOT;
             return null;
         }
     }
+    
     /**TODO: Remove this function
      * Renders draw showing entrants for the given bracket
      * @param $td The tournament director for this bracket
