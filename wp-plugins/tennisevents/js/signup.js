@@ -9,21 +9,13 @@
         var longtimeout = 60000;
         var shorttimeout = 15000;
 
-        var iMouseDown  = false;
-        var lMouseState = false;
-        var dragObject  = null;
-        
-        var DragDrops   = [];
-        var curTarget   = null;
-        var lastTarget  = null;
-        var rootParent  = null;
-        var rootSibling = null;
+        var signupDataMask = {task: "", entrantName: "", currentPos: 0, newPos: 0, seed: 0, clubId: 0, eventId: 0 }
 
-        let ajaxFun = function( ) {
+        let ajaxFun = function( signupData ) {
             console.log('Signup Management: ajaxFun');
             let reqData =  { 'action': tennis_signupdata_obj.action      
-                           , 'security': tennis_signupdata_obj.security };
-            //console.log( reqData );
+                           , 'security': tennis_signupdata_obj.security 
+                           , 'data': signupData };
             console.log("************************Parameters:");
             console.log( reqData );
 
@@ -45,8 +37,6 @@
                             console.log(res.data);
                             //Do stuff with data...
                             $(sig).html( res.data.message );
-                            report = generateTable(res.data.returnData,care_pass_mgmt.titles,selectionText,'management-report')
-                            $('#' + care_pass_mgmt.reporttarget).append(report);
                         }
                         else {
                             console.log('Done but failed (res.data):');
@@ -74,6 +64,7 @@
                         setTimeout(function(){
                                     $(sig).html('');
                                     $(sig).removeClass('care-error');
+                                    $( ".eventSignup" ).children("li").removeClass('entrantHighlight');
                                 }, shorttimeout);
                     });
             
@@ -91,77 +82,50 @@
         
             return [year, month, day].join('-');
         }
-        
-        function handleDragStart( event, ui ) {
 
-        }
-
-        function handleDragStop( event, ui ) {
-            var offsetXPos = parseInt( ui.offset.left );
-            var offsetYPos = parseInt( ui.offset.top );
-            console.log( "Drag stopped! Offset: (" + offsetXPos + ", " + offsetYPos + ")");
-            console.log(ui);
-        }
-
-        function handleDrag( event ) {
-            console.log( "......dragging..........");
-        }
-        
-        function handleDropEvent( event, ui ) {
-            var draggable = ui.draggable;
-            var target = $( event.target );
-            console.log( this );
-            console.log( ui );
-            console.log( event );
-            console.log( event.target );
-            console.log( 'The entrant with ID "' + draggable.attr('id') + '" was dropped onto me!' );
-            console.log( 'I am: ');
-            console.log( event.target );
-            $( this )
+        function handleSortStop( event, ui ) {
+            let item = ui.item;
+            let target = $( event.target );
+            //NOTE: this == event.target == ul (droppable)
+            $( item )
                 .addClass( "entrantHighlight" )
+            // console.log("item:")
+            // console.log( item.context );
+            // console.log("previous sibling:");
+            // console.log( item.context.previousSibling);
+            // console.log("next sibling:");
+            // console.log( item.context.nextSibling);
+            let currentPos = parseFloat(item.context.dataset.currentpos);
+            let prevPos = parseFloat(item.context.previousSibling.dataset.currentpos);
+            let nextPos = parseFloat(item.context.nextSibling.dataset.currentpos);
+            let newPos = (prevPos + nextPos ) / 2.0;
+            console.log("prevPos=" + prevPos + "; nextPos=" + nextPos + "; moveTo=" + newPos);
+
+            signupData = signupDataMask;
+            signupData.task="move";
+            signupData.currentPos = currentPos;
+            signupData.newPos = newPos;
+
+            signupData.clubId = $('.signupContainer').attr("data-clubid");
+            signupData.eventId = $('.signupContainer').attr("data-eventid");
+
+            ajaxFun( signupData );
         }
 
-        $(".entrantSignup").draggable({
-            containment: 'parent',
-            cursor: 'move',
-            cursorAt: { top: -5, left: -5 },
-            snap: '.eventSignup',
-            scroll: true,
-            scrollSpeed:10,
-            scrollSensitivity: 100,
-            stack: ".entrantSignup",
-            start: handleDragStart,
-            stop: handleDragStop,
-            drag: handleDrag,
-            opacity: 0.7,      
-            connectToSortable: ".eventSignup",
-            helper: "original",
-            revert: "invalid",
-            handle: ".entrantPosition"
-        });
-          
-        $('.eventSignup').droppable( {
-            drop: handleDropEvent
-        } );
 
         $( ".eventSignup" ).sortable({
-            revert: true
+            revert: true,
+            cancel: "a,button,input",
+            items: "> li",
+            containment: 'parent',
+            cursor: 'move',
+            opacity: 0.7,
+            scrollSpeed:10,
+            helper: "original",
+            stop: handleSortStop
         });
 
         $( "ul, li" ).disableSelection();
-
-        /*
-        $(".entrantSignup").mouseenter(function() {
-            console.log("You entered entrant!");
-        });
-
-        $(".entrantSignup").mouseleave(function( event ) {
-            var target = $( event.target );
-            if ( target.is( "li" ) ) {
-              console.log("You are now leaving entrant - " + event.target.nodeName );
-            }
-        });
-        */
 
         $(".entrantDelete").on('click', function(e) {
             console.log("#delete entrant fired!");

@@ -32,6 +32,9 @@ class ManageSignup
     private $errobj = null;
     private $errcode = 0;
 
+    private $clubId;
+    private $eventId;
+
     private $signup = array();
     private $log;
     
@@ -62,7 +65,10 @@ class ManageSignup
         $jsurl =  plugins_url() . '/tennisevents/js/signup.js';
         wp_register_script( 'manage_signup', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable') );
         wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
-        wp_enqueue_script( 'manage_signup' );
+        wp_enqueue_script( 'manage_signup' );        
+        wp_localize_script( 'signup_data', 'tennis_signupdata', $this->signup );
+        wp_enqueue_script( 'signup_data', null, null, null, true );
+
     }
     
     public function registerHandlers() {
@@ -131,6 +137,7 @@ class ManageSignup
         }
 
         if( is_null( $club ) ) return __('Please set home club id in options or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
+        $this->clubId = $club->getID();
 
         $eventId = $my_shorts['eventid'];
         $this->log->error_log("$loc: EventId=$eventId");
@@ -152,6 +159,7 @@ class ManageSignup
         } 
         
         if( !$found ) return __('No such event for this club', TennisEvents::TEXT_DOMAIN );
+        $this->eventId = $target->getID();
 
         $td = new TournamentDirector( $target,  $target->getMatchType() );
         $eventName = $td->getName();
@@ -163,12 +171,20 @@ class ManageSignup
 
         //Signup
         $out = '';
-        $out .= '<div class="signupContainer">' . PHP_EOL;
+        $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
+        $out .= 'data-clubid="' . $this->clubId . '">' . PHP_EOL;
         $out .= "<h3>$clubName</h3>" . PHP_EOL;        
         $out .= "<h4>$eventName</h4>" . PHP_EOL;
         $out .= '<ul class="eventSignup">' . PHP_EOL;
+        
+        $templr = <<<EOT
+<li id="%s" class="entrantSignup">
+<div class="entrantPosition">%d.</div>
+<div class="entrantName">%s(%d)</div>
+</li>
+EOT;
         $templw = <<<EOT
-<li id="%s" class="entrantSignup drag-container">
+<li id="%s" class="entrantSignup drag-container" data-currentpos="%d">
 <div class="entrantPosition">%d.</div>
 <input name="%s" type="text" maxlength="35" size="15" class="entrantName" value="%s">
 <input type="number" maxlength="2" size="2" class="entrantSeed" step="any" value="%d">
@@ -176,12 +192,6 @@ class ManageSignup
 </li>
 EOT;
 
-        $templr = <<<EOT
-<li id="%s" class="entrantSignup">
-<div class="entrantPosition">%d.</div>
-<div class="entrantName">%s(%d)</div>
-</li>
-EOT;
         $ctr = 1;
         foreach($this->signup as $entrant ) {
             $pos = $entrant->getPosition();
@@ -193,7 +203,7 @@ EOT;
                 $tbl = sprintf( $templr, $nameId, $pos, $name, $seed );
             }
             else {
-                $tbl = sprintf( $templw, $nameId, $pos, $nameId, $name, $seed, $nameId );
+                $tbl = sprintf( $templw, $nameId, $pos, $pos, $nameId, $name, $seed, $nameId );
             }
             $out .= $tbl;
         }
@@ -216,6 +226,7 @@ EOT;
     public function performTask() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
+        $this->log->error_log( $_POST, "$loc: _POST:"  );
 
         // Handle the ajax request
         check_ajax_referer( self::NONCE, 'security' );
@@ -225,36 +236,72 @@ EOT;
         }
         
         if( !is_user_logged_in() ){
-            $this->errobj->add( $this->errcode++, __( 'Worker is not logged in!.',  TennisEvents::TEXT_DOMAIN ));
-        }
-
-        $currentuser = wp_get_current_user();
-        $ok = false;
-        foreach( $this->roles as $role ) {
-            if( in_array( $role, $currentuser->roles ) ) {
-                $ok = true;
-                break;
-            }
+            $this->errobj->add( $this->errcode++, __( 'User is not logged in!.',  TennisEvents::TEXT_DOMAIN ));
         }
         
+        $ok = false;
         if( current_user_can( 'manage_options' ) ) $ok = true;
         
         if ( !$ok ) {         
-            $this->errobj->add( $this->errcode++, __( 'Only Care or site members can record watching a webinar.', CARE_TEXTDOMAIN ));
+            $this->errobj->add( $this->errcode++, __( 'Only administrators can modify signup.', TennisEvents::TEXT_DOMAIN ));
         }
         
 
         if(count($this->errobj->errors) > 0) {
             $this->handleErrors("Errors were encountered");
         }
-        
 
+        $this->log->error_log($this->signup,"$loc: signup:");
+        $mess = 'I did nothing:';
         $response = array();
+        $data = $_POST["data"];
+        $task = $data["task"];
+        switch( $task ) {
+            case "move":
+                $mess = $this->moveEntrant( $data );
+                break;
+            case "update":
+                $mess = $this->updateEntrant( $data );
+                break;
+            case "delete":
+                $mess = $this->deleteEntrant( $data );
+                break;
+            case "add":
+                $mess = $this->addEntrant( $data );
+                break;
+            default:
+                $this->errobj->add( $this->errcode++, __( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
+                $this->handleErrors("Errors were encountered");
+        }
         $response["message"] = $mess;
         $response["returnData"] = array(); //TODO: What goes here
         wp_send_json_success( $response );
     
         wp_die(); // All ajax handlers die when finished
+    }
+
+    private function moveEntrant( array $data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+        return 'Pseudo Moved';
+    }
+
+    private function updateEntrant( array $data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+        return 'Pseudo Updated';
+    }
+
+    private function deleteEntrant( int $data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+        return 'Pseudo Deleted';
+    }
+
+    private function addEntrant( array $data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+        return 'Pseudo Added';
     }
 
     /**
@@ -270,7 +317,6 @@ EOT;
             ,'action' => self::ACTION
             ,'security' => wp_create_nonce( self::NONCE )
             ,'message' => $mess
-            ,'signupData' => $this->signup
         );
     }
 
