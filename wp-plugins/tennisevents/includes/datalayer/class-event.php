@@ -803,6 +803,241 @@ class Event extends AbstractData
 		return $result;
 	}
 	
+    /**
+     * Move an entrant from its current position to a new position.
+     * @param $fromPos The entrant's current position (i.e. place in the lineup)
+     * @param $toPos The intended position in the signup
+     * @return The rows affected by this update
+     */
+	public function moveEntrant( int $fromPos, int $toPos ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$eventId = $this->getID();
+		error_log("$loc:Event=$eventId; $fromPos to $toPos");
+		
+		global $wpdb;
+        $table = $wpdb->prefix . Entrant::$tablename;
+        $fromId = "Entrant($eventId,$fromPos)";
+        $toId = "Entrant($eventId,$toPos)";
+        $tempPos = 99999;
+ 
+		$result = 0;
+
+        //Check match numbers for appropriate ranges
+        if( $fromPos < 1 || $toPos < 1 || $toPos >= $tempPos || ( $fromPos === $toPos ) ) {
+			$mess = __("Entrant::move $fromId to $toId: match number(s) out of range.", TennisEvents::TEXT_DOMAIN);
+			throw new InvalidEventException( $mess );
+        }
+
+        error_log( "Entrant::move: attempting to move from $fromId to $toId" );
+        $sql = "SELECT count(*) 
+                FROM $table WHERE event_ID = %d AND position = %d;";
+                
+        $safe = $wpdb->prepare( $sql, array( $eventId, $fromPos ) );
+        $sourceExists = (int) $wpdb->get_var( $safe );
+        $this->log->error_log("Move $fromId to $toId: sourceExists=$sourceExists");
+
+        if( $sourceExists === 1 ) {
+            //Source entrant exists
+            //Check if target (i.e. the toPos) exists             
+            $safe = $wpdb->prepare( $sql, array( $eventId, $toPos ) );
+            $targetExists = (int) $wpdb->get_var( $safe );
+            if( $targetExists === 0 ) {
+                //Target match number does not exist, so just update the match number to the target number
+                $values = array( 'position' => $toPos);
+				$formats_values = array( '%d' );
+				
+				$where          = array( 'event_ID'  => $eventId
+                                        ,'position'  => $fromPos );
+                $formats_where  = array( '%d', '%d' );
+        
+                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
+                $result = $wpdb->rows_affected;
+
+                if( $wpdb->last_error ) {
+                    $mess = "Moving $fromId to $toId: update open position encountered error: '$wpdb->last_error'";
+                    error_log("Entrant.move: $mess");
+                    throw new InvalidEntrantException( $mess ); 
+                }
+                error_log( "Entrant::move to open postion $toPos: $result rows affected." );
+            }
+            else {   
+                //Source and target position numbers exist ...
+                //First we have to move the source entrant to a safe place 
+                // ... give it a temporary position number
+                $values = array( 'position' => $tempPos);
+				$formats_values = array( '%d' );
+				
+                $where          = array( 'event_ID'  => $eventId
+                                        ,'position' => $fromPos );
+                $formats_where  = array( '%d', '%d' );
+
+                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
+
+                if( $wpdb->last_error ) {
+                    $mess = "Moving $fromId to temporary position $tempPos: encountered error: '$wpdb->last_error'";
+                    error_log("Entrant.move: $mess");
+                    throw new InvalidEntrantException( $mess ); 
+                }
+                error_log( "Entrant::move $fromId to temporary position $tempPos: $check rows affected." );
+
+                //Target exists so update match_num by 1 starting from highest to lowest 
+                // i.e. from the highest match_num (but less than temp number) down to the target match_num
+                //Need to start a transaction (default isolation level)
+                $wpdb->query( "start transaction;" );
+
+                $sql = "SELECT `event_ID`,`position`,`name`,`seed` 
+                        FROM $table WHERE event_ID = %d AND position >= %d and position < %d 
+                        ORDER BY position DESC FOR UPDATE;";
+                $safe = $wpdb->prepare( $sql, array( $eventId, $toPos, $tempPos ) );
+                $trows = $wpdb->get_results( $safe );
+
+                if( $wpdb->last_error ) {
+                    $mess = "Moving $fromId to $toId: select for update encountered error: '$wpdb->last_error'";
+                    error_log( "Entrant.move: $mess" );
+                    $wpdb->query( "rollback;" ); 
+                    throw new InvalidEntrantException( $mess ); 
+                }
+                
+                foreach( $trows as $trow ) {
+                    $oldNum = $trow->position;
+                    $newNum = $trow->position + 1;
+
+                    $values = array( 'position' => $newNum );
+                    $formats_values = array( '%d' );
+                    $where          = array( 'event_ID'  => $eventId
+                                            ,'position'  => $oldNum );
+                    $formats_where  = array( '%d', '%d' );
+                    $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
+
+                    if( $wpdb->last_error ) {
+                        $mess = "Moving $fromId to $toId: updating $oldNum to $newNum encountered error: '$wpdb->last_error'";
+                        error_log("Entrant.move: $mess");
+                        $wpdb->query( "rollback;" ); 
+                        throw new InvalidEntrantException( $mess ); 
+                    }
+
+                    $result += $wpdb->rows_affected;
+                    error_log( "Entrant::move making room -> moved position $oldNum to $newNum:  $result cumulative rows affected." );
+                }
+
+                //Now update the source's temporary position to the target position
+                $values = array( 'position' => $toPos );
+                $formats_values = array( '%d' );
+                $where          = array( 'event_ID'  => $eventId
+                                        ,'position'  => $tempPos );
+                $formats_where  = array( '%d', '%d' );
+                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
+
+                if( $wpdb->last_error ) {
+                    $mess = "Moving $fromId to $toId: updating $tempPos to $toPos encountered error: '$wpdb->last_error'";
+                    error_log("Entrant.move: $mess");
+                    $wpdb->query( "rollback;" ) ; 
+                    throw new InvalidEntrantException( $mess ); 
+                }
+                $result += $wpdb->rows_affected;
+                
+                $wpdb->query( "commit;" );  
+                error_log( "Entrant::move from $tempPos to $toPos: $result cumulative rows affected." );
+            }
+        }
+        elseif( $sourceExists > 1 ) {
+            //Error condition
+            $mess = __( "$fromId: multiple positions found." );
+            error_log( $mess );
+            throw new InvalidEntrantException( $mess, 500 );
+        }
+        elseif( $sourceExists === 0 ) {
+            $mess = __( "$fromId: position does not exist." );
+            error_log("Entrant::move $mess" );
+        }
+
+        return $result;
+    }
+	
+    /**
+     * Resequence the signup for the given event
+     */
+    public function resequenceSignup() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log($loc);
+
+		$result = 0;
+		if( $this->isParent() ) {
+			$mess = __("Parent events do not have signups", TennisEvents::TEXT_DOMAIN );
+			throw new InvalidEventException( $mess );
+		}
+
+		global $wpdb;
+        $table = $wpdb->prefix . Entrant::$tablename;
+
+		$wpdb->query( "start transaction;" );
+		
+		$sql = "DROP TEMPORARY TABLE IF EXISTS temp_entrant;";
+		$affected = (int) $wpdb->get_var( $sql );
+		if( $wpdb->last_error ) {
+			$mess = "drop temp table encountered error: '$wpdb->last_error'";
+			error_log( "$loc: $mess" );
+			$wpdb->query( "rollback;" ); 
+			throw new InvalidSignupException( $mess ); 
+		}
+
+		$sql = "CREATE TEMPORARY TABLE temp_entrant as 
+					SELECT * 
+					FROM $table 
+					WHERE event_ID = %d
+					ORDER BY position ASC;";
+		$safe = $wpdb->prepare( $sql, array( $this->getID() ) );
+		$affected = (int) $wpdb->get_var( $safe );
+		if( $wpdb->last_error ) {
+			$mess = "create temp table encountered error: '$wpdb->last_error'";
+			error_log( "$loc: $mess" );
+			$wpdb->query( "rollback;" ); 
+			throw new InvalidSignupException( $mess ); 
+		}
+		
+		$where = array( "event_ID" => $this->getID() );
+		$affected = $wpdb->delete( $table, $where );
+		if( false === $affected ) {
+			$mess = "delete from table '$table' encountered error: '$wpdb->last_error'";
+			error_log( "$loc: $mess" );
+			$wpdb->query( "rollback;" ); 
+			throw new InvalidSignupException( $mess ); 
+		}
+		$this->log->error_log("$loc: deleted $affected rows from $table" );
+		
+		$sql = "SELECT `event_ID`,`position`,`name`,`seed` 
+				FROM temp_entrant 
+				ORDER BY event_ID, position ASC;";
+		$trows = $wpdb->get_results( $sql );
+		$pos = 1;
+		foreach( $trows as $trow ) {
+			$values = array( 'event_ID' => $trow->event_ID
+						   , 'position' => $pos++ 
+						   , 'name' => $trow->name
+						   , 'seed' => $trow->seed );
+
+			$this->log->error_log( $values, "$loc: inserting..." );
+
+			$formats_values = array( '%d', '%d', '%s', '%d' );
+			$check = $wpdb->insert( $table, $values, $formats_values );
+
+			if( $wpdb->last_error ) {
+				$mess = "$loc: inserting $trow->name at postion $pos encountered error: '$wpdb->last_error'";
+				error_log("$loc: $mess");
+				$wpdb->query( "rollback;" ); 
+				throw new InvalidSignupException( $mess ); 
+			}
+
+			$this->log->error_log("$loc: inserted $check row(s) into $table" );
+			$result += $wpdb->rows_affected;
+			error_log( "$loc: inserted last position $pos:  $result cumulative rows affected." );
+		}
+		
+		$wpdb->query( "commit;" );  
+		error_log( "$loc: $result rows affected." );
+        return $result;
+	}
+	
 	/**
 	 * Get all the brackets for this Event
 	 */

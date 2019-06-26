@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class Entrant extends AbstractData
 { 
-    private static $tablename = 'tennis_entrant';
+    public static $tablename = 'tennis_entrant';
 	
 	//Foreign keys
     private $event_ID;
@@ -212,6 +212,7 @@ class Entrant extends AbstractData
 		return $result;
 	}
 
+
 	/*************** Instance Methods ****************/
 	public function __construct(int $eventID=null, string $pname=null,int $seed=null) {
 		parent::__construct ( false );
@@ -220,7 +221,6 @@ class Entrant extends AbstractData
 		$this->name = $pname;
 		$this->seed = $seed;
 		$this->init();
-		$this->log = new BaseLogger( false );
 	}
 
 	public function __destruct() {
@@ -233,11 +233,14 @@ class Entrant extends AbstractData
 	}
 
     /**
-     * Set a new value for a name of this Draw
+     * Set a new value for a name of this Entrant
      */
-	public function setName(string $name) {
+	public function setName( string $name ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc: setName('$name')" );
+
 		$this->name = $name;
-		$this->dirty = TRUE;
+		$this->setDirty();
     }
     
     /**
@@ -256,12 +259,12 @@ class Entrant extends AbstractData
     /**
      * Assign this Entrant to an Event
      */
-    public function setEventId(int $eventId) {
+    public function setEventId( int $eventId ) {
 		$result = false;
 		if(isset($eventID)) {
 			if($eventId < 1) return false;
 			$this->event_ID = $eventId;
-			$result = $this->isdirty = TRUE;
+			$result = $this->setDirty();
 		}
 		return $result;
     }
@@ -363,6 +366,13 @@ class Entrant extends AbstractData
 
 	public function toString() {
 		return sprintf("P(%d,%d,%s)",$this->event_ID, $this->position, $this->name );
+	}
+	
+	/**
+	 * Return this object as an associative array
+	 */
+	public function toArray() {
+		return ["eventId"=>$this->getEventId(), "position"=>$this->getPosition(), "name"=>$this->getName(), "seed"=>$this->getSeed()];
 	}
 
 	/**

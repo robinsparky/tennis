@@ -6,7 +6,8 @@
         {
             "label": "Deploy Plugin",
             "type": "shell",
-            "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents C:\\webserver\\htdocs\\tennisadmin\\wp-content\\plugins\\tennisevents /MIR"
+            "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents C:\\webserver\\htdocs\\tennisadmin\\wp-content\\plugins\\tennisevents /MIR",
+            "problemMatcher": []
         },
         {
             "label": "Deploy Tests",
@@ -27,8 +28,7 @@
             "label": "Deploy Signup Data",
             "type": "shell",
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\ C:\\webserver\\htdocs\\tennisadmin *.xml"
-        }
-        ,
+        },
         {
             "type": "npm",
             "script": "build",

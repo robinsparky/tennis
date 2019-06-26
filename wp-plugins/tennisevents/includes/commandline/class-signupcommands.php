@@ -242,6 +242,134 @@ class SignupCommands extends WP_CLI_Command {
     }
 
     /**
+     * Move a postion to another position in the signup.
+     * The target club and event must first be set using 'tennis env set'
+     *
+     * ## OPTIONS
+     * 
+     * <source>
+     * The source position number
+     * 
+     * <destination>
+     * The destination position number
+     * 
+     * ## EXAMPLES
+     *
+     *  wp tennis signup move 10 16
+     *
+     * @when after_wp_load
+     */
+    function move( $args, $assoc_args ) {
+
+        $support = CmdlineSupport::preCondtion();
+        list( $clubId, $eventId ) = $support->getEnvError();
+
+        error_clear_last();
+        list( $source, $dest ) = $args;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong args for ... source destination ");
+            exit;
+        }
+        
+        $fromId = "M($eventId,$source)";
+        $toId   = "M($eventId,$dest)";
+        
+        date_default_timezone_set("America/Toronto");
+        $stamp = date("Y-m-d h:i:sa");
+
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = $support->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                $td = new TournamentDirector( $target );
+                if( $td->moveEntrant( $source, $dest ) ) {
+                    WP_CLI::success("Position moved.");
+                }
+                else {
+                    WP_CLI::warning("Position was not moved");
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis signup move ... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis signup move ... could not find any events for club with Id '$clubId'" );
+        }
+
+    }
+
+    /**
+     * Resequence the signup.
+     * The target club and event must first be set using 'tennis env set'
+     *
+     * ## OPTIONS
+     * 
+     * ## EXAMPLES
+     *
+     *  wp tennis signup resequence
+     *
+     * @when after_wp_load
+     */
+    function resequence( $args, $assoc_args ) {
+
+        $support = CmdlineSupport::preCondtion();
+        list( $clubId, $eventId ) = $support->getEnvError();
+
+        // error_clear_last();
+        // list( $source, $dest ) = $args;
+        // $last_error = error_get_last();
+        // if( !is_null( $last_error  ) ) {
+        //     WP_CLI::error("Wrong args for ... source destination ");
+        //     exit;
+        // }
+
+        $evts = Event::find( array( "club" => $clubId ) );
+        $found = false;
+        $target = null;
+        if( count( $evts ) > 0 ) {
+            foreach( $evts as $evt ) {
+                $target = $support->getEventRecursively( $evt, $eventId );
+                if( isset( $target ) ) {
+                    $found = true;
+                    break;
+                }
+            }
+            if( $found ) {
+                $club = Club::get( $clubId );
+                $name = $club->getName();
+                $evtName = $target->getName();
+                try {
+                    $affected = $target->resequenceSignup();
+                    WP_CLI::success("Signup resequenced $affected rows.");
+                }
+                catch( Exception $ex ) {
+                    WP_CLI::error( $ex->getMessage() );
+                }
+            }
+            else {
+                WP_CLI::warning( "tennis signup resequence ... could not find event with Id '$eventId' for club with Id '$clubId'" );
+            }
+        }
+        else {
+            WP_CLI::warning( "tennis signup resequence ... could not find any events for club with Id '$clubId'" );
+        }
+
+    }
+
+    /**
      * Load the signup for this tennis event from an XML file
      * The target club and event must first be set using 'tennis env'
      * 

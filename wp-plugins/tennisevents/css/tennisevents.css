@@ -134,6 +134,26 @@ table.bracketdraw td {
     color: red;
 }
 
+#tennis-event-message {
+    border: 1px blue solid;
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translateX(-50%);
+    -moz-transform: translateX(-50%);
+    -ms-transform: translateX(-50%);
+    -o-transform: translateX(-50%);
+    transform: translateX(-50%); 
+    margin-right: auto;
+    margin-left: auto;
+    width: 300px;
+    height: 150px;
+    text-align:center;
+    border-radius: 8px;
+}
+
 /*-----------------------------------------------------------------
  * Signup styling
  *----------------------------------------------------------------*/
@@ -157,7 +177,7 @@ div.entrantName {
     background-color: white;
     color: black;
     display: inline-block;
-    width: 50% !important;
+    width: 40% !important;
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;
@@ -169,7 +189,7 @@ div.entrantSeed {
     background-color: white;
     color: black;
     display: inline-block;
-    width: 15% !important;
+    width: 10% !important;
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;
@@ -181,7 +201,7 @@ input[type=text].entrantName {
     background-color: white;
     color: black;
     display: inline-block;
-    width: 50% !important;
+    width: 40% !important;
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;
@@ -193,7 +213,7 @@ input[type=number].entrantSeed {
     background-color: white;
     color: black;
     display: inline-block;
-    width: 15% !important;
+    width: 12% !important;
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;

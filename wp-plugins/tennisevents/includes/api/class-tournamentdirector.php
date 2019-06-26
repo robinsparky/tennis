@@ -352,7 +352,7 @@ class TournamentDirector
     /**
      * Remove the signup and all brackets (and matches) for a tennis event
      */
-    public function removeSignup( ) {
+    public function removeSignup() {
         $result = 0;
         $bracket = $this->event->getWinnersBracket();
         if( $this->hasStarted( $bracket->getName() ) ) {
@@ -361,6 +361,13 @@ class TournamentDirector
         $this->event->removeSignup();
         $result = $this->event->save();
         return $result;
+    }
+
+    /**
+     * Resequence the positions in the signup
+     */
+    public function resequenceSignup() {
+        return $this->event->resequenceSignup();
     }
 
     /**
@@ -489,6 +496,18 @@ class TournamentDirector
     
     /**
      * Move a match from its current spot to the target match number.
+     * @param $fromPos The entrant's current position (i.e. place in the lineup)
+     * @param $toPos The target position for the entrant
+     * @return true if succeeded; false otherwise
+     */
+    public function moveEntrant( int $fromPos, int $toPos ) {
+        $result = 0;
+        $result = $this->event->moveEntrant( $fromPos, $toPos );
+        return $result;
+    }
+    
+    /**
+     * Move a match from its current spot to the target match number.
      * @param $bracketName The name of the bracket
      * @param $round The round number of this match
      * @param $fromMatchNum The match's current number (i.e. place in the lineup)
@@ -498,9 +517,14 @@ class TournamentDirector
     public function moveMatch( Bracket $bracket, int $fromRoundNum, int $fromMatchNum, int $toMatchNum , string $cmts = null ) {
         $result = 0;
         if( isset( $bracket ) ) {
-            $result = Match::move( $this->event->getID(), $bracket->getBracketNumber(), $fromRoundNum, $fromMatchNum, $toMatchNum, $cmts );
+            try {
+                $result = Match::move( $this->event->getID(), $bracket->getBracketNumber(), $fromRoundNum, $fromMatchNum, $toMatchNum, $cmts );
+            }
+            catch( InvalidMatchException $ex ) {
+                $result = 0;
+            }
         }
-        return 1 === $result;
+        return $result >= 1;
     }
 
     /**

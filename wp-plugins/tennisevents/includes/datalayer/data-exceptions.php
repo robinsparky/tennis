@@ -7,5 +7,6 @@ class InvalidRoundException extends Exception {}
 class InvalidMatchException extends Exception {}
 class InvalidSetException extends Exception {}
 class InvalidBracketException extends Exception {}
+class InvalidSignupException extends Exception {}
 
 
