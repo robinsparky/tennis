@@ -17,7 +17,7 @@
             let reqData =  { 'action': tennis_signupdata_obj.action      
                            , 'security': tennis_signupdata_obj.security 
                            , 'data': signupData };
-            console.log("************************Parameters:");
+            console.log("Parameters:");
             console.log( reqData );
 
                 // Send Ajax request with data 

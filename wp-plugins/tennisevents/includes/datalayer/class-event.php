@@ -289,7 +289,7 @@ class Event extends AbstractData
     }
     
     /**
-     * Get the name of this object
+     * Get the name of this Event
      */
     public function getName():string {
         return $this->name;

@@ -517,7 +517,7 @@ class Bracket extends AbstractData
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         //if approved and hierarchy not loaded yet then load from db
-        if( count( $this->matchHierarchy ) < 1  && $this->isApproved() ) {
+        if( count( $this->matchHierarchy ) < 1 ) {
             $matches = $this->getMatches( $force );
             foreach($matches as $match ) {
                 $this->matchHierarchy[$match->getRoundNumber()][$match->getMatchNumber()] = $match;

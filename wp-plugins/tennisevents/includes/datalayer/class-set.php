@@ -222,6 +222,30 @@ class Set extends AbstractData
     public function getVisitorTieBreaker():int {
         return $this->visitor_tb_pts;
     }
+
+    public function toArray() {
+
+        $arr = ["eventId" => $this->event_ID
+               ,"bracketNumber" => $this->bracket_num
+               ,"roundNumber" => $this->round_num
+               ,"matchNumber" => $this->match_num
+               ,"setNumber" => $this->set_num
+        
+               //Score Results
+               ,"homeWins" => $this->home_wins
+               ,"visitorWins" => $this->visitor_wins
+               ,"homeTieBreakPoints" => $this->home_tb_pts
+               ,"visitorTieBreakPoints" => $this->visitor_tb_pts
+               ,"homeTies" => $this->home_ties
+               ,"visitorTies" => $visitor_ties
+        
+               //Misc
+               ,"earlyEnd" => $this->early_end
+               ,"comments" => $this->comments
+            ];
+
+        return $arr;
+    }
     
     public function isValid() {
         $mess = '';

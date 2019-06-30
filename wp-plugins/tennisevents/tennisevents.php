@@ -132,13 +132,13 @@ class TennisEvents {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log( ">>>>>>>>>>>$loc>>>>>>>>>" );
 		//Register various 
-		RenderDraw::register();
-		RenderTest::register();
 		ManageSignup::register();
+		RenderDraw::register();
 	}
 
 	public static function on_uninstall() {
-		error_log(__class__ . ": on_uninstall");
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log($loc);
 		self::$TE_Installer->uninstall();
 	}
 	

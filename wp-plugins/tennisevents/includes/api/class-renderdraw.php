@@ -1,5 +1,6 @@
 <?php
 use templates\DrawTemplateGenerator;
+use api\BaseLoggerEx;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -16,10 +17,10 @@ class RenderDraw
 { 
     public const HOME_CLUBID_OPTION_NAME = 'gw_tennis_home_club';
 
-    private $ajax_nonce = null;
+    const ACTION   = 'manageTennisDraw';
+    const NONCE    = 'manageTennisDraw';
     private $errobj = null;
     private $errcode = 0;
-
     private $log;
 
     public static function register() {
@@ -31,21 +32,38 @@ class RenderDraw
 	/*************** Instance Methods ****************/
 	public function __construct( ) {
 	    $this->errobj = new WP_Error();	
-        $this->log = new BaseLogger( true );
+        $this->log = new BaseLoggerEx( true );
     }
 
 
     public function registerScripts() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
+        
+        $jsurl =  plugins_url() . '/tennisevents/js/draw.js';
+        wp_register_script( 'manage_draw', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable') );
+        wp_localize_script( 'manage_draw', 'tennis_draw_obj', $this->get_ajax_data() );
+        wp_enqueue_script( 'manage_draw' );        
     }
     
-    public function registerHandlers( ) {
+    public function registerHandlers() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
 
         add_shortcode( 'render_draw', array( $this, 'renderDrawShortcode' ) );
+        add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
+        add_action( 'wp_ajax_no_priv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
     }
+    
+    public function noPrivilegesHandler() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log($loc);
+        // Handle the ajax request
+        check_ajax_referer(  self::NONCE, 'security'  );
+        $this->errobj->add( $this->errcode++, __( 'You have been reported to the authorities!', TennisEvents::TextDomain ));
+        $this->handleErrors("You've been a bad boy.");
+    }
+     
 
 	public function renderDrawShortcode( $atts = [], $content = null ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -59,7 +77,7 @@ class RenderDraw
         $my_atts = shortcode_atts( array(
             'clubname' => '',
             'eventid' => 0,
-            'by' => 'table',
+            'by' => 'match',
             'bracketname' => Bracket::WINNERS
         ), $atts, 'render_draw' );
 
@@ -84,7 +102,7 @@ class RenderDraw
 
         $by = $my_atts['by'];
         $this->log->error_log("$loc: by=$by");
-        if( !in_array( $by, ['table','list']) )  return __('Please specify how to render the draw in shortcode', TennisEvents::TEXT_DOMAIN );
+        if( !in_array( $by, ['match','entrant']) )  return __('Please specify how to render the draw in shortcode', TennisEvents::TEXT_DOMAIN );
 
         $evts = Event::find( array( "club" => $club->getID() ) );
         
@@ -109,10 +127,10 @@ class RenderDraw
         $bracket = !empty( $bracketName ) ? $td->getBracket( $bracketName ) : null;
         if( !is_null( $bracket ) ) {
             switch($by) {
-                case 'table':
-                    return $this->renderBracketByTable( $td, $bracket );
-                case 'list':
-                    return $this->renderBracketByList( $td, $bracket );
+                case 'match':
+                    return $this->renderBracketByMatch( $td, $bracket );
+                case 'entrant':
+                    return $this->renderBracketByEntrant( $td, $bracket );
                 default:
                     return  __("Whoops!", TennisEvents::TEXT_DOMAIN );
             }
@@ -121,24 +139,83 @@ class RenderDraw
             return  __("No such Bracket $bracketName", TennisEvents::TEXT_DOMAIN );
         }
     }
-
     
+    /**
+     * Perform the tasks as indicated by the Ajax request
+     */
+    public function performTask() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+        $this->log->error_log( $_POST, "$loc: _POST:"  );
+
+        // Handle the ajax request
+        check_ajax_referer( self::NONCE, 'security' );
+
+        if( defined( 'DOING_AJAX' ) && ! DOING_AJAX ) {
+            $this->handleErrors('Not Ajax');
+        }
+        
+        // $ok = false;
+        // if( current_user_can( 'manage_options' ) ) $ok = true;
+        
+        // if ( !$ok ) {         
+        //     $this->errobj->add( $this->errcode++, __( 'Only administrators can modify draw.', TennisEvents::TEXT_DOMAIN ));
+        // }
+        
+
+        // if(count($this->errobj->errors) > 0) {
+        //     $this->handleErrors(__("Errors were encountered", TennisEvents::TEXT_DOMAIN  ) );
+        // }
+
+        $response = array();
+
+        $data = $_POST["data"];
+        $task = $data["task"];
+        $eventId = $data["eventId"];
+        $event = Event::get( $eventId );
+        $bracketName = $data["bracketName"];
+        $bracket = $event->getBracket( $bracketName );
+        $arrData = array();
+        $mess = '';
+        switch( $task ) {
+            case "getdata":
+                $arrData = $this->getMatchesAsArray( $bracket );
+                $mess = "Data for $bracketName bracket";
+                break;
+            default:
+            $mess = __( 'Illegal task.', TennisEvents::TEXT_DOMAIN );
+            $this->errobj->add( $this->errcode++, $mess );
+        }
+
+        if(count($this->errobj->errors) > 0) {
+            $this->handleErrors( $mess );
+        }
+
+        $response["message"] = $mess;
+        $response["returnData"] = $arrData;
+
+        //Send the response
+        wp_send_json_success( $response );
+    
+        wp_die(); // All ajax handlers die when finished
+    }
+
     /**
      * Renders rounds and matches for the given brackete
      * @param $td The tournament director for this bracket
      * @param $bracket The bracket
      * @return HTML for table-based page showing the draw
      */
-    private function renderBracketByTable( TournamentDirector $td, Bracket $bracket ) {
+    private function renderBracketByMatch( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 		$startTime = microtime( true );
 
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
-        if( !$bracket->isApproved() ) {
-            return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
-        }
+        // if( !$bracket->isApproved() ) {
+        //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
+        // }
 
         $umpire = $td->getChairUmpire();
 
@@ -247,6 +324,8 @@ EOT;
 
         $out .= "</tbody><tfooter></tfooter>";
         $out .= "</table>";	
+        
+        $out .= '<div id="tennis-event-message"></div>';
 		$this->log->error_log( sprintf("%0.6f",micro_time_elapsed( $startTime ) ), $loc . ": Elapsed Micro Elapsed Time");
         return $out;
     }
@@ -352,14 +431,90 @@ EOT;
             return null;
         }
     }
-    
-    /**TODO: Remove this function
+       
+    /**
      * Renders draw showing entrants for the given bracket
      * @param $td The tournament director for this bracket
      * @param $bracket The bracket
      * @return HTML for table-based page showing the draw
      */
     private function renderBracketByEntrant( TournamentDirector $td, Bracket $bracket ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+
+
+        //$this->sendMatchesJson( $bracket );
+
+        $tournamentName = $td->getName();
+        $bracketName    = $bracket->getName();
+        $eventId = $td->getEvent()->getID();
+        // if( !$bracket->isApproved() ) {
+        //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
+        // }
+
+        $loadedMatches = $bracket->getMatchHierarchy();
+        $preliminaryRound = $loadedMatches[1];                
+        $numPreliminaryMatches = count( $preliminaryRound );
+        $numRounds = $td->totalRounds( $bracketName );
+
+        $signupSize = $bracket->signupSize();
+        $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
+
+        $umpire = $td->getChairUmpire();
+        $gen = new DrawTemplateGenerator("$tournamentName - $bracketName", $signupSize, $eventId, $bracketName  );
+        
+        $template = $gen->generateTable();
+        
+        $template .= PHP_EOL . '<div id="tennis-event-message"></div>' . PHP_EOL;
+
+        return $template;
+    }
+
+    private function getMatchesAsArray( Bracket $bracket ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+
+        $matches = $bracket->getMatches();
+
+        $arrMatches = [];
+        foreach( $matches as $match ) {
+            $arrMatches[] = $match->toArray();
+        }
+        return $arrMatches;
+    }
+    
+    private function getMatchesJson( Bracket $bracket ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+
+        $arrMatches = $this->getMatchesAsArray( $bracket );
+
+        $json = json_encode($arrMatches);
+        $this->log->error_log( $json, "$loc: json:");
+
+        return $json;
+
+    }
+
+    private function sendMatchesJson( Bracket $bracket ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+
+        $json = $this->getMatchesJson( $bracket );
+        $this->log->error_log( $json, "$loc: json:");
+
+        $script = "window.bracketmatches = $json; ";
+
+        gw_enqueue_js($script);
+    }
+
+    /**TODO: Remove this function
+     * Renders draw showing entrants for the given bracket
+     * @param $td The tournament director for this bracket
+     * @param $bracket The bracket
+     * @return HTML for table-based page showing the draw
+     */
+    private function renderBracketByEntrant1( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 
@@ -468,5 +623,32 @@ EOT;
         }
         return $players;
     }
+
+    /**
+     * Get the AJAX data that WordPress needs to output.
+     *
+     * @return array
+     */
+    private function get_ajax_data()
+    {        
+        $mess = '';
+        return array ( 
+             'ajaxurl' => admin_url( 'admin-ajax.php' )
+            ,'action' => self::ACTION
+            ,'security' => wp_create_nonce( self::NONCE )
+            ,'message' => $mess
+        );
+    }
+
+    private function handleErrors( string $mess ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+        $response = array();
+        $response["message"] = $mess;
+        $response["exception"] = $this->errobj;
+        wp_send_json_error( $response );
+        wp_die();
+    }
+
     
 }

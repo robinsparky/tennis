@@ -1,4 +1,5 @@
 <?php
+use datalayer\utilities\CleanJsonSerializer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -944,6 +945,33 @@ class Match extends AbstractData
         $hname = isset( $home ) ? $home->getName() : 'tba';
         $vname = isset( $visitor ) ? $visitor->getName() : 'tba';
         return sprintf( "%s:'%s' vs '%s'", $this->toString(), $hname, $vname );
+    }
+
+    public function toArray() {
+ 
+        //$jsonSer = new CleanJsonSerializer();
+        $home = $this->getHomeEntrant();
+        $homeName = 'tba';
+        if( isset( $home ) ) {
+            $homeName = $home->getName();
+        }
+
+        $visitor = $this->getVisitorEntrant();
+        $visitorName = 'bye';
+        if( isset( $visitor ) ) {
+            $visitorName = $visitor->getName();
+        }
+
+        $arr = ["eventId"=>$this->event_ID
+               ,"bracketNumber"=>$this->bracket_num
+               ,"roundNumber"=>$this->getRoundNumber()
+               ,"matchNumber"=>$this->getMatchNumber()
+               ,"matchType" => $this->match_type
+               ,"homeEntrant"=>$homeName
+               ,"visitorEntrant"=>$visitorName
+               ];
+
+        return $arr;
     }
 
     /**

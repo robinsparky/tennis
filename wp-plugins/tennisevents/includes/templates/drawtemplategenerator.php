@@ -19,6 +19,8 @@ class DrawTemplateGenerator
 
     private $name;
     private $size = 0;
+    private $eventId = 0;
+    private $bracketName = 0;
     private $includeMatrix = array();
     private $rows = 0;
     private $cols = 0;
@@ -43,10 +45,12 @@ class DrawTemplateGenerator
         return $exponent;
     }
 
-    public function __construct( $name = null, $size = 0 ) {
+    public function __construct( string $name = 'Generator', int $size = 4, int $eventId = 0, string $bracketName = '' ) {
         $this->log = new BaseLoggerEx( false );
-        $this->name = is_null( $name ) ? 'Generator' : $name;
+        $this->name = $name;
         $this->size = $size;
+        $this->eventId = $eventId;
+        $this->bracketName = $bracketName;
     }
 
     public function getName() {
@@ -56,6 +60,23 @@ class DrawTemplateGenerator
     public function getSize() {
         return $this->size;
     }
+
+    public function setEventId( int $id ) {
+        $this->eventId = $id;
+    }
+
+    public function getEventId() {
+        return $this->eventId;
+    }
+
+    public function setBracketName( string $name ) {
+        $this->bracketName = $name;
+    }
+
+    public function getBracketName() {
+        return $this->bracketName;
+    }
+
 
     public function setSize( int $size ) {
         $this->size = $size;
@@ -77,15 +98,19 @@ class DrawTemplateGenerator
      * Generate an html table for a draw of the given size.
      * @param $size The size of the draw. Any number greater than 4.
      */
-    public function generateTable( ) {
+    public function generateTable() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         if( $this->size <  4 ) return '';
 
         $numRounds = self::calculateExponent( $this->size );
-        $template = "<table><caption>$this->name</caption><thead><tr>" . PHP_EOL;
         $numCols = $numRounds + 1;
         $numRows = pow( 2, $numRounds );
+
+        $template = "<table class='bracketdraw' data-eventid='$this->eventId' data-bracketname='$this->bracketName'>" . PHP_EOL;
+        $template .= "<caption>$this->name</caption>" . PHP_EOL;
+        $template .= "<thead><tr>" . PHP_EOL;
+
 
         $rowspan = 1;
         $upperRowSpan = pow(2, $numRounds );
@@ -94,7 +119,7 @@ class DrawTemplateGenerator
         
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $this->roundOf( $i );
-            $template .= sprintf( "<th>Round Of %d</th>", $rOf );
+            $template .= sprintf( "<th class='drawRound'>Round Of %d</th>", $rOf );
         }
         $template .= "<th>Champion</th>";
         $template .= "</tr></thead>" . PHP_EOL;
@@ -106,25 +131,19 @@ class DrawTemplateGenerator
         //print_r($include);
         //$this->printTable($this->includeMatrix);
 
-        $m = 1;
+        $m = 0;
         $prev_m = 1;
-        $nextMatches =  $this->getNextMatches( $numRows, $numCols );
 
         for( $row = 1; $row <= $numRows; $row++ ) {
-            $template .= "<tr id='row$row'>";
-            $prev_m = $row - 1;
-            if( $prev_m < 1 ) $prev_m = 1;
+            $template .= "<tr id='row$row' class='drawRow'>";
 
             for( $col = 1; $col <= $numCols; $col++ ) {
                 $rowspan = pow( 2, $col - 1 );
-                if($col == 1 && !$row & 1 )  {
+                if( $col === 1 && ($row & 1) )  {
                     ++$m;
                 }
-                else {
-                    $m = $nextMatches[$col][$prev_m];
-                }
                 if(  $this->includeMatrix[$row][$col] == 1 ) {
-                    $template .= "<td rowspan='$rowspan'>($col,$row) M($col,$m) </td>";
+                    $template .= "<td rowspan='$rowspan' class='drawPlayer' data-round='$col' data-entrantNum='$row'>($row,$col) M($col,$m) </td>";
                 }
             }
 
@@ -138,41 +157,12 @@ class DrawTemplateGenerator
         return $template;
     }
 
-    private function getNextMatches( int $rows, int $cols ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-        $this->log->error_log("$loc($rows,$cols)");
-
-        $result = array();
-        for( $m = 1; $m <= $rows; $m++ ) {
-            for($r = 1; $r <= $cols; $r++ ) {
-                $result[$r][$m] = $this->getNextMatch( $m );
-            }
-        }
-        return $result;
-    }
-
-    private function getNextMatch( int $m ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-        $this->log->error_log("$loc($m)");
-
-        if( $m & 1 ) {
-            $prevMatchNumber = $m - 1;
-        }
-        else {
-            $prevMatchNumber = $m - 2;
-        }
-        $prevMatchCount = $prevMatchNumber / 2;
-        $nm = $prevMatchCount + 1;
-
-        return $nm;
-    }
-
     /**
      * Iterate over the size of the draw
      * and calculate which cells out of the entire 
      * table should be included when rendering the draw
      * @param $size The size of the draw
-     * @return Array of rows and columns containing either a 0 or a 1
+     * @return Array of rows and columns containing either 0 or 1
      */
     private function generateIncludeMatrix( ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -198,9 +188,9 @@ class DrawTemplateGenerator
             $rowspan = pow( 2, $col - 1 );
             $len = $numRows / $rowspan;
             $step = $rowspan;    
-            $this->log->error_log("$loc: rowspan=$rowspan; len=$len; step=$step");   
+            //$this->log->error_log("$loc: col: $col; rowspan=$rowspan; len=$len; step=$step");   
             for( $row = 1; $row <= $numRows; $row += $step ) {    
-                $this->log->error_log("$loc:row=$row; col=$col");   
+                $this->log->error_log("$loc:row=$row; col=$col set to 1");   
                 $includeMatrix[$row][$col] = 1;
             }
         }
@@ -228,7 +218,7 @@ class DrawTemplateGenerator
     /**
      * For debugging only
      */
-    private function printTable($table) {
+    private function printTable( $table ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         foreach($table as $row ) {
