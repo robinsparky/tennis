@@ -82,13 +82,42 @@
 
         function applyResults( data ) {
             data = data || [];
-            ctr = 1;
-            for( var i=0; i < data.length; i++ ) {
-                let entrant = data[i];
-                console.log(entrant);
+            console.log(data);
+            let numRounds = $('.bracketdraw').attr('data-numrounds');
+            for( let rn = 1; rn <= numRounds + 1; rn++) {
+                matches = data.filter( match => {
+                                        return rn == match.roundNumber;
+                                    });
+                if( matches.length < 1 ) break; //quit if nor more data
+
+                matches = matches.sort( function(m1,m2) {
+                    //descending sort because 'places' seems to be in reverse order???
+                    if( m1.matchNumber < m2.matchNumber) {return 1}
+                    if( m1.matchNumber > m2.matchNumber) {return -1}
+                    return 0;
+                });
+
+                //Get all td's for this round number
+                filter = 'td[data-round=' + rn + ']';
+                places = $('.bracketdraw ' + filter);
+
+                entrant = null;
+                places.each( function(index) {
+                    let pos = index + 1;
+                    if ( pos % 2 == 0) {
+                        //Even Number
+                        name = entrant.visitorEntrant;
+                    } else {
+                        //Odd Number
+                        entrant = matches.pop();
+                        name = entrant.homeEntrant;
+                    }
+                    $(this).html(name);
+                });
             }
         }
 
+        //Load up the entrants into the draw
         let eventId = $('.bracketdraw').attr('data-eventid');
         let bracketName = $('.bracketdraw').attr('data-bracketname');
 

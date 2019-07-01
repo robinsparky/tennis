@@ -107,7 +107,7 @@ class DrawTemplateGenerator
         $numCols = $numRounds + 1;
         $numRows = pow( 2, $numRounds );
 
-        $template = "<table class='bracketdraw' data-eventid='$this->eventId' data-bracketname='$this->bracketName'>" . PHP_EOL;
+        $template = "<table class='bracketdraw' data-numrounds='$numRounds' data-eventid='$this->eventId' data-bracketname='$this->bracketName'>" . PHP_EOL;
         $template .= "<caption>$this->name</caption>" . PHP_EOL;
         $template .= "<thead><tr>" . PHP_EOL;
 
@@ -153,7 +153,7 @@ class DrawTemplateGenerator
         $this->rows = $numRows;
         $this->cols = $numCols;
 
-        $template .= "</tbody></table>";
+        $template .= "</tbody></table>" . PHP_EOL;
         return $template;
     }
 
@@ -161,7 +161,6 @@ class DrawTemplateGenerator
      * Iterate over the size of the draw
      * and calculate which cells out of the entire 
      * table should be included when rendering the draw
-     * @param $size The size of the draw
      * @return Array of rows and columns containing either 0 or 1
      */
     private function generateIncludeMatrix( ) {

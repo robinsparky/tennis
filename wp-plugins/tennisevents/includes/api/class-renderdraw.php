@@ -52,12 +52,13 @@ class RenderDraw
 
         add_shortcode( 'render_draw', array( $this, 'renderDrawShortcode' ) );
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
-        add_action( 'wp_ajax_no_priv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
+        add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
     }
     
     public function noPrivilegesHandler() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
+
         // Handle the ajax request
         check_ajax_referer(  self::NONCE, 'security'  );
         $this->errobj->add( $this->errcode++, __( 'You have been reported to the authorities!', TennisEvents::TextDomain ));
@@ -647,7 +648,7 @@ EOT;
         $response["message"] = $mess;
         $response["exception"] = $this->errobj;
         wp_send_json_error( $response );
-        wp_die();
+        wp_die($mess);
     }
 
     

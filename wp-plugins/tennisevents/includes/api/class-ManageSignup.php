@@ -78,7 +78,7 @@ class ManageSignup
 
         add_shortcode( 'manage_signup', array( $this, 'signupManagementShortcode' ) );
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
-        add_action( 'wp_ajax_no_priv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
+        add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
     }
 
     public function noPrivilegesHandler() {
