@@ -8,12 +8,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** 
  * Rendering a draw is implemented using shortcodes
- * @class  RenderDraw
+ * with actions to manage the draw such as approve
+ * @class  ManageDraw
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
 */
-class RenderDraw
+class ManageDraw
 { 
     public const HOME_CLUBID_OPTION_NAME = 'gw_tennis_home_club';
 
@@ -42,8 +43,7 @@ class RenderDraw
         
         $jsurl =  TE()->getPluginUrl() . 'js/draw.js';
         wp_register_script( 'manage_draw', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
-        wp_localize_script( 'manage_draw', 'tennis_draw_obj', $this->get_ajax_data() );
-        //wp_enqueue_script( 'manage_draw' );        
+        //wp_localize_script( 'manage_draw', 'tennis_draw_obj', $this->get_ajax_data() );
     }
     
     public function registerHandlers() {
@@ -131,8 +131,7 @@ class RenderDraw
                 case 'match':
                     wp_dequeue_script( 'manage_draw' );
                     return $this->renderBracketByMatch( $td, $bracket );
-                case 'entrant':
-                    wp_enqueue_script( 'manage_draw' );        
+                case 'entrant':     
                     return $this->renderBracketByEntrant( $td, $bracket );
                 default:
                     return  __("Whoops!", TennisEvents::TEXT_DOMAIN );
@@ -185,9 +184,12 @@ class RenderDraw
                 $arrData = $this->getMatchesAsArray( $bracket );
                 $mess = "Data for $bracketName bracket";
                 break;
+            case "approve":
+                $mess = $this->approve( $data );
+                $arrData = $this->getMatchesAsArray( $bracket );
+                break;
             default:
-            $mess = __( 'Illegal task.', TennisEvents::TEXT_DOMAIN );
-            $this->errobj->add( $this->errcode++, $mess );
+                wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
         }
 
         if(count($this->errobj->errors) > 0) {
@@ -201,6 +203,27 @@ class RenderDraw
         wp_send_json_success( $response );
     
         wp_die(); // All ajax handlers die when finished
+    }
+
+    private function approve( $data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $mess          = __('Approve succeeded.', TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event   = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+            $td->approve( $bracketName );
+            $td->advance( $bracketName );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+
+        return $mess;
     }
 
     /**
@@ -222,13 +245,14 @@ class RenderDraw
 
         $umpire = $td->getChairUmpire();
 
-        $loadedMatches = $bracket->getMatchHierarchy();
-        $preliminaryRound = $loadedMatches[1];                
+        $loadedMatches = $bracket->getMatchHierarchy( true );
+        $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
         $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );
+        $numMatches = $bracket->numMatches();
 
         $signupSize = $bracket->signupSize();
-        $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
+        $this->log->error_log("$loc: num matches:$numMatches; number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
 
 
         $begin = <<<EOT
@@ -445,29 +469,39 @@ EOT;
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 
-
-        //$this->sendMatchesJson( $bracket );
-
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
         $eventId = $td->getEvent()->getID();
-        // if( !$bracket->isApproved() ) {
-        //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
-        // }
 
-        $loadedMatches = $bracket->getMatchHierarchy();
-        $preliminaryRound = $loadedMatches[1];                
+        $loadedMatches = $bracket->getMatches( true );
+        $preliminaryRound = $bracket->getMatchesByRound( 1 );                
         $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );
 
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
 
+        if( count( $loadedMatches ) === 0 ) {
+            return '<div>' . __("No matches scheduled yet!", TennisEvents::TEXT_DOMAIN ) . '</div>';
+        }
+
+        $jsData = $this->get_ajax_data();
+        $arrData = $this->getMatchesAsArray( $bracket );
+        $jsData["matches"] = $arrData;
+
+        wp_enqueue_script( 'manage_draw' );         
+        wp_localize_script( 'manage_draw', 'tennis_draw_obj', $jsData );
+  
+
         $umpire = $td->getChairUmpire();
         $gen = new DrawTemplateGenerator("$tournamentName - $bracketName", $signupSize, $eventId, $bracketName  );
         
         $template = $gen->generateTable();
         
+        if( !$bracket->isApproved() ) {
+        $template = $gen->generateTable();
+            $template .= '<button class="button" type="button" id="approveDraw">Approve Draw</button>' . PHP_EOL;
+        }
         $template .= PHP_EOL . '<div id="tennis-event-message"></div>' . PHP_EOL;
 
         return $template;

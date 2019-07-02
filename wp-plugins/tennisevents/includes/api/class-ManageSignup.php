@@ -66,12 +66,8 @@ class ManageSignup
         $jsurl =  TE()->getPluginUrl() . 'js/signup.js';
         $this->log->error_log("$loc: $jsurl");
         wp_register_script( 'manage_signup', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
-        //wp_enqueue_script( 'manage_signup' ); 
 
-        wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
-
-        wp_localize_script( 'signup_data', 'tennis_signupdata', $this->signup );
-        wp_enqueue_script( 'signup_data');
+        //wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
     }
     
     public function registerHandlers() {
@@ -169,9 +165,11 @@ class ManageSignup
         $clubName = $club->getName();
         $bracket = $td->getEvent()->getWinnersBracket();
         $isApproved = $bracket->isApproved();
+        $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
         $this->signup = $td->getSignup();
 
-        wp_enqueue_script( 'manage_signup' );
+        wp_enqueue_script( 'manage_signup' );       
+        wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
 
         //Signup
         $out = '';
@@ -216,7 +214,9 @@ EOT;
 
         if( !$isApproved ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="approveSignup">Approve Signup</button>' . PHP_EOL;
+            if( $numPrelimMatches === 0 ) {
+                $out .= '<button class="button" type="button" id="approveSignup">Approve Signup</button>' . PHP_EOL;
+            }
         }
         $out .= '</div>'; //container
         //Preliminary view
@@ -443,12 +443,11 @@ EOT;
         $this->log->error_log("$loc");
 
         $this->eventId = $data["eventId"];
-        $mess    =  __('Approve succeeded.', TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
-            $td->approve( Bracket::WINNERS );
-            $td->advance( Bracket::WINNERS );
+            $numMatches = $td->schedulePreliminaryRounds( Bracket::WINNERS );
+            $mess =  __("Approved $numMatches preliminary matches.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

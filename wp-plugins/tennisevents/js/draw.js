@@ -116,11 +116,26 @@
                 });
             }
         }
+        
+        //Approve draw
+        $('#approveDraw').on('click', function( event ) {
+            console.log("Approve draw fired!");
+
+            $(this).prop('disabled', true);
+            let eventId = $('.bracketdraw').attr('data-eventid');
+            let bracketName = $('.bracketdraw').attr('data-bracketname');
+            
+            ajaxFun( {"task": "approve", "eventId": eventId, "bracketName": bracketName } );
+        });
 
         //Load up the entrants into the draw
         let eventId = $('.bracketdraw').attr('data-eventid');
         let bracketName = $('.bracketdraw').attr('data-bracketname');
-
-        ajaxFun( {"task": "getdata", "eventId": eventId, "bracketName": bracketName } );
+        if( tennis_draw_obj.matches ) {
+            applyResults( tennis_draw_obj.matches);
+        }
+        else {
+            ajaxFun( {"task": "getdata", "eventId": eventId, "bracketName": bracketName } );
+        }
     });
 })(jQuery);

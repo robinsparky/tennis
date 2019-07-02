@@ -340,6 +340,7 @@ class Bracket extends AbstractData
      */
     public function getMatches( $force = false ):array {
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($loc);
 
         if( !isset( $this->matches ) || $force ) $this->fetchMatches();
         foreach( $this->matches as $match ) {
@@ -515,8 +516,9 @@ class Bracket extends AbstractData
      */
     public function getMatchHierarchy( $force = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($loc);
 
-        //if approved and hierarchy not loaded yet then load from db
+        //if hierarchy not loaded yet then load from db
         if( count( $this->matchHierarchy ) < 1 ) {
             $matches = $this->getMatches( $force );
             foreach($matches as $match ) {
@@ -714,6 +716,11 @@ class Bracket extends AbstractData
      * Fetch Matches all Matches for this bracket from the database
      */
     private function fetchMatches() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $eventId = $this->getEvent()->getID();
+        $bracket_num = $this->bracket_num;
+        $this->log->error_log("$loc: eventId=$eventId; bracket_num=$bracket_num ");
+
 		$this->matches = Match::find( $this->getEvent()->getID(), $this->bracket_num );
 	}
     
@@ -759,7 +766,7 @@ class Bracket extends AbstractData
             $sql = "SELECT IFNULL(MAX(bracket_num),0) FROM $table WHERE event_ID=%d;";
             $safe = $wpdb->prepare( $sql, $this->event_ID );
             $this->bracket_num = $wpdb->get_var( $safe ) + 1;
-            error_log( sprintf("%s(%s) bracket number assigned.", $loc, $this->toString() ) );
+            $this->log->error_log( sprintf("%s(%s) bracket number assigned.", $loc, $this->toString() ) );
         }
 
         $values  = array('event_ID' => $this->event_ID

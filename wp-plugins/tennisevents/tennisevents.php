@@ -133,7 +133,7 @@ class TennisEvents {
 		error_log( ">>>>>>>>>>>$loc>>>>>>>>>" );
 		//Register various 
 		ManageSignup::register();
-		RenderDraw::register();
+		ManageDraw::register();
 	}
 
 	public static function on_uninstall() {
