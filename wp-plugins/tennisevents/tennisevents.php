@@ -40,7 +40,7 @@ class TennisEvents {
 	 * @since    1.0.0
 	 * @var      string
 	 */
-	public const PLUGIN_SLUG = 'tennis';
+	public const PLUGIN_SLUG = 'tennisevents';
 	public const TEXT_DOMAIN = 'tennis_text';
 	
 	
@@ -142,8 +142,12 @@ class TennisEvents {
 		self::$TE_Installer->uninstall();
 	}
 	
-	public function get_plugin_path() {
+	public function getPluginPath() {
 		return plugin_dir_path( __FILE__ );
+	}
+
+	public function getPluginUrl() {
+		return trailingslashit(plugins_url()) . trailingslashit(self::PLUGIN_SLUG);
 	}
 
 }

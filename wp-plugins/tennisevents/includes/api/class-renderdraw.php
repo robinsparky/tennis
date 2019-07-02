@@ -40,10 +40,10 @@ class RenderDraw
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
         
-        $jsurl =  plugins_url() . '/tennisevents/js/draw.js';
-        wp_register_script( 'manage_draw', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable') );
+        $jsurl =  TE()->getPluginUrl() . 'js/draw.js';
+        wp_register_script( 'manage_draw', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
         wp_localize_script( 'manage_draw', 'tennis_draw_obj', $this->get_ajax_data() );
-        wp_enqueue_script( 'manage_draw' );        
+        //wp_enqueue_script( 'manage_draw' );        
     }
     
     public function registerHandlers() {
@@ -129,8 +129,10 @@ class RenderDraw
         if( !is_null( $bracket ) ) {
             switch($by) {
                 case 'match':
+                    wp_dequeue_script( 'manage_draw' );
                     return $this->renderBracketByMatch( $td, $bracket );
                 case 'entrant':
+                    wp_enqueue_script( 'manage_draw' );        
                     return $this->renderBracketByEntrant( $td, $bracket );
                 default:
                     return  __("Whoops!", TennisEvents::TEXT_DOMAIN );

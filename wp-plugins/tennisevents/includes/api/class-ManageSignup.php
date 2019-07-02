@@ -63,13 +63,15 @@ class ManageSignup
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 
-        $jsurl =  plugins_url() . '/tennisevents/js/signup.js';
-        wp_register_script( 'manage_signup', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable') );
-        wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
-        wp_enqueue_script( 'manage_signup' );        
-        wp_localize_script( 'signup_data', 'tennis_signupdata', $this->signup );
-        wp_enqueue_script( 'signup_data', null, null, null, true );
+        $jsurl =  TE()->getPluginUrl() . 'js/signup.js';
+        $this->log->error_log("$loc: $jsurl");
+        wp_register_script( 'manage_signup', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
+        //wp_enqueue_script( 'manage_signup' ); 
 
+        wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
+
+        wp_localize_script( 'signup_data', 'tennis_signupdata', $this->signup );
+        wp_enqueue_script( 'signup_data');
     }
     
     public function registerHandlers() {
@@ -169,6 +171,8 @@ class ManageSignup
         $isApproved = $bracket->isApproved();
         $isApproved = false;
         $this->signup = $td->getSignup();
+
+        wp_enqueue_script( 'manage_signup' );
 
         //Signup
         $out = '';
