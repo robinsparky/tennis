@@ -290,6 +290,19 @@
             
         });
 
+        //Approve signup
+        $('#approveSignup').on('click', function( event ) {
+            console.log("Approve signup fired!");
+            signupData = signupDataMask;
+            signupData.task = "approve";
+            signupData.clubId = $('.signupContainer').attr("data-clubid");
+            signupData.eventId = $('.signupContainer').attr("data-eventid");
+
+            $(this).prop('disabled', true);
+            
+            ajaxFun( signupData );
+        });
+
     });
  })(jQuery);
         

@@ -958,6 +958,7 @@ class Match extends AbstractData
 
         $visitor = $this->getVisitorEntrant();
         $visitorName = 'bye';
+        if($this->getRoundNumber() > 1 ) $visitorName = 'tba';
         if( isset( $visitor ) ) {
             $visitorName = $visitor->getName();
         }

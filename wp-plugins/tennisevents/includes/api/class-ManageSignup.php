@@ -169,7 +169,6 @@ class ManageSignup
         $clubName = $club->getName();
         $bracket = $td->getEvent()->getWinnersBracket();
         $isApproved = $bracket->isApproved();
-        $isApproved = false;
         $this->signup = $td->getSignup();
 
         wp_enqueue_script( 'manage_signup' );
@@ -185,7 +184,7 @@ class ManageSignup
         $templr = <<<EOT
 <li id="%s" class="entrantSignup">
 <div class="entrantPosition">%d.</div>
-<div class="entrantName">%s(%d)</div>
+<div class="entrantName">%s</div>
 </li>
 EOT;
         $templw = <<<EOT
@@ -203,9 +202,10 @@ EOT;
             $name = $entrant->getName();
             $nameId = str_replace( ' ', '_', $name );
             $seed = $entrant->getSeed();
+            $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
             $templ = $isApproved ? $templr : $templw;
             if($isApproved) {
-                $tbl = sprintf( $templr, $nameId, $pos, $name, $seed );
+                $tbl = sprintf( $templr, $nameId, $pos, $rname );
             }
             else {
                 $tbl = sprintf( $templw, $nameId, $pos, $ctr++, $name, $seed, $nameId );
@@ -216,8 +216,8 @@ EOT;
 
         if( !$isApproved ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="approveSignup">Approve Signup</button>' . PHP_EOL;
         }
-        $out .= '<button class="button" type="button" id="viewPreliminary">View Prelimary Draw</button>' . PHP_EOL;
         $out .= '</div>'; //container
         //Preliminary view
         $out .= '<div class="prelimcontainer">' . PHP_EOL;
@@ -277,9 +277,11 @@ EOT;
             case "add":
                 $mess = $this->addEntrant( $data );
                 break;
+            case "approve":
+                $mess = $this->approve( $data );
+                break;
             default:
-            $mess = __( 'Illegal task.', TennisEvents::TEXT_DOMAIN );
-            $this->errobj->add( $this->errcode++, $mess );
+                wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
         }
 
         if(count($this->errobj->errors) > 0) {
@@ -427,6 +429,26 @@ EOT;
             $event->addToSignup( $name, $seed );
             $event->save();
             $this->signup = $event->getSignup( true );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+
+        return $mess;
+    }
+
+    private function approve( $data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+
+        $this->eventId = $data["eventId"];
+        $mess    =  __('Approve succeeded.', TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event   = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+            $td->approve( Bracket::WINNERS );
+            $td->advance( Bracket::WINNERS );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
