@@ -252,8 +252,8 @@ a.entrantDelete:link, a.entrantDelete:visited {
     border-radius: 8px;
     text-transform: none;
   }
-  
-#approveDraw {
+
+.bracketDrawButtons .button {
     background-color: blue;
     border: none;
     color: white;
@@ -266,16 +266,19 @@ a.entrantDelete:link, a.entrantDelete:visited {
     box-sizing: border-box;
     border-radius: 8px;
     text-transform: none;
-  }
-  
+}
 
-  .signupContainer .button:hover, .signupContainer .button:active {
-    background-color: red;
+.signupContainer .button:hover, .signupContainer .button:active {
+    background-color: green;
   }
 
-  .entrantHighlight {
-      background-color: yellow;
+.bracketDrawButtons .button:hover, .bracketDrawButtons .button:active {
+    background-color: green;
   }
+
+.entrantHighlight {
+    background-color: yellow;
+}
 
 
 /*

@@ -1190,6 +1190,8 @@ class Event extends AbstractData
 	 * Remove this Event's collection of Brackets
 	 */
 	public function removeBrackets() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->fetchBrackets();
 		if( isset( $this->brackets ) ) {
 			foreach( $this->brackets as $bracket ) {
 				$bracket->removeAllMatches(); //Unnecssary because of cascading deletes??

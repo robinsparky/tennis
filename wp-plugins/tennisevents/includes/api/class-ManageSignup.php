@@ -5,12 +5,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /** 
- * Data and functions to manage an Event signup using Ajax
+ * Data and functions to manage an Event signup using Ajax.
+ * NOTE: Always deals with the Winners bracket
  * Supports:
  * 1. Re-ordering the list of entrants
  * 2. Adding new entrants
  * 3. Deleting entrants
- * 4. Approving the lineup
+ * 4. Updating entrant's name and/or seed
+ * 5. Approving the lineup by scheduling preliminary rounds
+ * 6. Reset by removing preliminary rounds
  * @class  ManageSignup
  * @package TennisAdmin
  * @version 1.0.0
@@ -167,9 +170,15 @@ class ManageSignup
         $isApproved = $bracket->isApproved();
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
         $this->signup = $td->getSignup();
+        $numSignedUp = count( $this->signup );
 
+        $jsData = $this->get_ajax_data();
+        $jsData["numSignedUp"] = $numSignedUp;
+        $jsData["numPreliminary"] = $numPrelimMatches;
+        $jsData["isBracketApproved"] = $isApproved;
         wp_enqueue_script( 'manage_signup' );       
-        wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
+        wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $jsData );
+        
 
         //Signup
         $out = '';
@@ -180,7 +189,7 @@ class ManageSignup
         $out .= '<ul class="eventSignup">' . PHP_EOL;
         
         $templr = <<<EOT
-<li id="%s" class="entrantSignup">
+<li id="%s" class="entrantSignupReadOnly">
 <div class="entrantPosition">%d.</div>
 <div class="entrantName">%s</div>
 </li>
@@ -212,11 +221,8 @@ EOT;
         }
         $out .= '</ul>' . PHP_EOL;
 
-        if( !$isApproved ) {
+        if( !$isApproved && $numPrelimMatches < 1 ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
-            if( $numPrelimMatches === 0 ) {
-                $out .= '<button class="button" type="button" id="approveSignup">Approve Signup</button>' . PHP_EOL;
-            }
         }
         $out .= '</div>'; //container
         //Preliminary view
@@ -259,7 +265,6 @@ EOT;
             $this->handleErrors(__("Errors were encountered", TennisEvents::TEXT_DOMAIN  ) );
         }
 
-        $this->log->error_log($this->signup,"$loc: signup:");
         $mess = '';
         $response = array();
         $data = $_POST["data"];
@@ -276,9 +281,6 @@ EOT;
                 break;
             case "add":
                 $mess = $this->addEntrant( $data );
-                break;
-            case "approve":
-                $mess = $this->approve( $data );
                 break;
             default:
                 wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
@@ -429,25 +431,6 @@ EOT;
             $event->addToSignup( $name, $seed );
             $event->save();
             $this->signup = $event->getSignup( true );
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-        }
-
-        return $mess;
-    }
-
-    private function approve( $data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc");
-
-        $this->eventId = $data["eventId"];
-        try {            
-            $event   = Event::get( $this->eventId );
-            $td = new TournamentDirector( $event );
-            $numMatches = $td->schedulePreliminaryRounds( Bracket::WINNERS );
-            $mess =  __("Approved $numMatches preliminary matches.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

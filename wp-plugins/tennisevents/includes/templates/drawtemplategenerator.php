@@ -143,7 +143,7 @@ class DrawTemplateGenerator
                     ++$m;
                 }
                 if(  $this->includeMatrix[$row][$col] == 1 ) {
-                    $template .= "<td rowspan='$rowspan' class='drawPlayer' data-round='$col' data-entrantNum='$row'>($row,$col) M($col,$m) </td>";
+                    $template .= "<td rowspan='$rowspan' class='drawPlayer' data-round='$col' data-entrantNum='$row'>M($col,$m) </td>";
                 }
             }
 

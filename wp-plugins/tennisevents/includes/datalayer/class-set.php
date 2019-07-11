@@ -237,7 +237,7 @@ class Set extends AbstractData
                ,"homeTieBreakPoints" => $this->home_tb_pts
                ,"visitorTieBreakPoints" => $this->visitor_tb_pts
                ,"homeTies" => $this->home_ties
-               ,"visitorTies" => $visitor_ties
+               ,"visitorTies" => $this->visitor_ties
         
                //Misc
                ,"earlyEnd" => $this->early_end

@@ -955,14 +955,14 @@ class Match extends AbstractData
  
         //$jsonSer = new CleanJsonSerializer();
         $home = $this->getHomeEntrant();
-        $homeName = 'tba';
+        $homeName = ' home tba';
         if( isset( $home ) ) {
             $homeName = $home->getName();
         }
 
         $visitor = $this->getVisitorEntrant();
         $visitorName = 'bye';
-        if($this->getRoundNumber() > 1 ) $visitorName = 'tba';
+        if($this->getRoundNumber() > 1 ) $visitorName = 'visitor tba';
         if( isset( $visitor ) ) {
             $visitorName = $visitor->getName();
         }
@@ -975,6 +975,14 @@ class Match extends AbstractData
                ,"homeEntrant"=>$homeName
                ,"visitorEntrant"=>$visitorName
                ];
+
+        $arrSets = array();
+        foreach( $this->getSets() as $set ) {
+            $arrSet = $set->toArray();
+            $arrSets[] = $arrSet;
+        }
+
+        $arr["sets"] = $arrSets;
 
         return $arr;
     }

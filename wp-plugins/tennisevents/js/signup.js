@@ -37,9 +37,9 @@
                         if( res.success ) {
                             console.log('Success (res.data):');
                             console.log(res.data);
+                            $(sig).html( res.data.message );
                             //Do stuff with data...
                             applyResults(res.data.returnData);
-                            $(sig).html( res.data.message );
                         }
                         else {
                             console.log('Done but failed (res.data):');
@@ -92,6 +92,15 @@
             ctr = 1;
             for( var i=0; i < data.length; i++ ) {
                 let entrant = data[i];
+                //Check if prelim rounds were created or removed
+                if( entrant.task == "approve") {
+                    toggleButtons( 1 );
+                    return;
+                }
+                else if( entrant.task = "reset" ) {
+                    toggleButtons( 0 );
+                    return;
+                }
                 let key     = "#" + entrant.name.replace(/ /g,'_');
                 //console.log(entrant);
                 if( $(key).length > 0) {
@@ -163,6 +172,20 @@
             signupData.eventId = $('.signupContainer').attr("data-eventid");
 
             ajaxFun( signupData );
+        }
+
+        //Toggle the create/remove preliminary matches buttons
+        function toggleButtons( numPreliminary ) {
+            numPreliminary = numPreliminary || 0;
+            if( numPreliminary < 1 ) {
+                $('#resetDraw').prop('disabled', true);
+                $('#approveSignup').prop('disabled', false);
+            }
+            else {
+                $('#resetDraw').prop('disabled', false);
+                $('#approveSignup').prop('disabled', true);
+
+            }
         }
         
         //Make ths list of entrants sortable
@@ -290,7 +313,8 @@
             
         });
 
-        //Approve signup
+        toggleButtons( tennis_signupdata_obj.numPreliminary );
+        //Approve signup ... schedule preliminary rounds
         $('#approveSignup').on('click', function( event ) {
             console.log("Approve signup fired!");
             signupData = signupDataMask;
@@ -302,6 +326,23 @@
             
             ajaxFun( signupData );
         });
+
+        //Reset Draw ... remove preliminary rounds
+        $('#resetDraw').on('click', function( event ) {
+            console.log("Reset draw fired!");
+            let ans = confirm("Are you sure?");
+            if( ans != true ) return;
+
+            signupData = signupDataMask;
+            signupData.task = "reset";
+            signupData.clubId = $('.signupContainer').attr("data-clubid");
+            signupData.eventId = $('.signupContainer').attr("data-eventid");
+
+            $(this).prop('disabled', true);
+            
+            ajaxFun( signupData );
+        });
+        
 
     });
  })(jQuery);

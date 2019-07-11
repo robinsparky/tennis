@@ -2,17 +2,17 @@
 
     $(document).ready(function() {       
         let sig = '#tennis-event-message';
-        console.log("Manage Draw");
+        console.log("Manage Matches");
         console.log(tennis_draw_obj);
 
         var longtimeout = 60000;
         var shorttimeout = 5000;
 
-        let ajaxFun = function( drawData ) {
+        let ajaxFun = function( matchData ) {
             console.log('Draw Management: ajaxFun');
             let reqData =  { 'action': tennis_draw_obj.action      
                            , 'security': tennis_draw_obj.security 
-                           , 'data': drawData };    
+                           , 'data': matchData };    
             console.log("Parameters:");
             console.log( reqData );
 
@@ -82,79 +82,75 @@
 
         function applyResults( data ) {
             data = data || [];
-            console.log(data);
-            let numRounds = $('.bracketdraw').attr('data-numrounds');
-            for( let rn = 1; rn <= numRounds + 1; rn++) {
-                matches = data.filter( match => {
-                                        return rn == match.roundNumber;
-                                    });
-                if( matches.length < 1 ) break; //quit if nor more data
-
-                matches = matches.sort( function(m1,m2) {
-                    //descending sort because 'places' seems to be in reverse order???
-                    if( m1.matchNumber < m2.matchNumber) {return 1}
-                    if( m1.matchNumber > m2.matchNumber) {return -1}
-                    return 0;
-                });
-
-                //Get all td's for this round number
-                places = $('.bracketdraw td[data-round= '+ rn + ']');
-
-                match = null;
-                places.each( function(index) {
-                    let pos = index + 1;
-                    if ( pos % 2 == 0) {
-                        //Even Number
-                        name = match.visitorEntrant;
-                        contents = name;
-                        if( name === match.winner ) {
-                            contents += formatScores( match.scores );
-                        }
-                    } else {
-                        //Odd Number
-                        match = matches.pop();
-                        name = match.homeEntrant;
-                        contents = name;
-                        if( name === match.winner ) {
-                            contents += formatScores( match.scores );
-                        }
-                    }
-                    $(this).html(contents);
-                });
+            console.log("Apply results:");
+            console.log( data );
+            if( $.isArray(data) ) {
+                console.log("Data is an array");
+            }
+            else if( typeof data == "string") {
+                console.log("Data is a string");
+                switch(data) {
+                    case 'createPrelim':
+                        $('#approveDraw').prop('diabled', false );
+                        $('#createPrelim').prop('disabled', true );
+                        $('#removePrelim').prop('disabled', false );
+                        window.location.reload(); 
+                        break;
+                    case 'reset':
+                        $('#approveDraw').prop('diabled', true );
+                        $('#createPrelim').prop('disabled', false );
+                        $('#removePrelim').prop('disabled', true );
+                        window.location.reload(); 
+                        break;
+                    case 'approve': 
+                        $('#approveDraw').prop('diabled', true );
+                        $('#createPrelim').prop('disabled', true );
+                        $('#removePrelim').prop('disabled', true );
+                        window.location.reload();
+                        break;
+                }
+            }
+            else {
+                console.log("Data is ????");
             }
         }
 
-        function formatScores( scores ) {
-            ret = '';
-            if( typeof scores === 'string' ) {
-                ret = ' (' + scores + ')';
-            }
-            return ret;
-        }
+        //Approve draw
+        $('#approveDraw').on('click', function( event ) {
+            console.log("Approve draw fired!");
 
-        function formatScore( sets ) {
-            ulNode = $('ul', {class: 'drawScoreContainer'});
-            winnerNode = $('li' ,{class: 'drawScore'});
-            loserNode  = $('li', {class: 'drawScore'});
-            sets.each( function( set ) {
-                set.homeWins;
-                
-                liNode = $('<li>',{ id: name.replace(/ /g, '_')
-                ,class:"entrantSignup sortable-container ui-state-default"
-                });
-            });
+            $(this).prop('disabled', true);
+            let eventId = $('.bracketdraw').attr('data-eventid');
+            let bracketName = $('.bracketdraw').attr('data-bracketname');
 
-            return html;
-        }
+            $(this).prop('disabled', true);
+            ajaxFun( {"task": "approve", "eventId": eventId, "bracketName": bracketName } );
+        });
 
-        //Load up the entrants into the draw
-        let eventId = $('.bracketdraw').attr('data-eventid');
-        let bracketName = $('.bracketdraw').attr('data-bracketname');
-        if( tennis_draw_obj.matches ) {
-            applyResults( tennis_draw_obj.matches);
-        }
-        else {
-            ajaxFun( {"task": "getdata", "eventId": eventId, "bracketName": bracketName } );
-        }
+        //Schedule preliminary rounds
+        $('#createPrelim').on('click', function( event ) {
+            console.log("Crete preliminary round fired!");
+            let eventId = $('.bracketdraw').attr("data-eventid");            
+            let bracketName = $('.bracketdraw').attr('data-bracketname');
+
+            $(this).prop('disabled', true);
+            $('#removePrelim').prop('disabled', false );
+            ajaxFun( {"task": "createPrelim", "eventId": eventId, "bracketName": bracketName} );
+        });
+
+        //Remove preliminary rounds
+        $('#removePrelim').on('click', function( event ) {
+            console.log("Remove preliminary round fired!");
+            let ans = confirm("Are you sure?");
+            if( ans != true ) return;
+
+            let eventId = $('.bracketdraw').attr("data-eventid");            
+            let bracketName = $('.bracketdraw').attr('data-bracketname');
+
+            $(this).prop('disabled', true);
+            $('#createPrelim').prop('disabled', false);
+            ajaxFun( {"task": "reset", "eventId": eventId, "bracketName": bracketName} );
+        });
+            
     });
 })(jQuery);
