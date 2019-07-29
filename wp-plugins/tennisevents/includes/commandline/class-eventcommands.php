@@ -1,4 +1,5 @@
 <?php
+use api\events\EventManager;
 
 WP_CLI::add_command( 'tennis events', 'EventCommands' );
 
@@ -78,7 +79,7 @@ class EventCommands extends WP_CLI_Command {
             }
             else {
                 $event = new Event( $evtName );
-                $event->setEventType(); //uses default type
+                $event->setEventType( EventType::TOURNAMENT );
                 $event->save();
                 WP_CLI::success(sprintf("Created event (%d) '%s'", $event->getID(), $event->getName() ) );
             }

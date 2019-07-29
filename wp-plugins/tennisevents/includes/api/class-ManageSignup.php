@@ -30,6 +30,7 @@ class ManageSignup
      */
     const ACTION   = 'manageSignup';
     const NONCE    = 'manageSignup';
+    const SHORTCODE = 'manage_signup';
 
     private $ajax_nonce = null;
     private $errobj = null;
@@ -77,7 +78,7 @@ class ManageSignup
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 
-        add_shortcode( 'manage_signup', array( $this, 'signupManagementShortcode' ) );
+        add_shortcode( self::SHORTCODE, array( $this, 'signupManagementShortcode' ) );
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
         add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
     }
@@ -123,7 +124,8 @@ class ManageSignup
         //The following was setting user_id to 0
         $my_shorts = shortcode_atts( array(
             'clubname' => '',
-            'eventid' => 0
+            'eventid' => 0,
+            'bracketname' => Bracket::WINNERS
         ), $atts, 'manage_signup' );
 
         $club = null;
@@ -141,9 +143,9 @@ class ManageSignup
         if( is_null( $club ) ) return __('Please set home club id in options or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
         $this->clubId = $club->getID();
 
-        $eventId = $my_shorts['eventid'];
-        $this->log->error_log("$loc: EventId=$eventId");
-        if( $eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
+        $this->eventId = $my_shorts['eventid'];
+        $this->log->error_log("$loc: EventId=$this->eventId");
+        if( $this->eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
 
         $this->log->error_log($my_shorts, "$loc: My Shorts" );   
 
@@ -152,7 +154,7 @@ class ManageSignup
         $target = null;
         if( count( $evts ) > 0 ) {
             foreach( $evts as $evt ) {
-                $target = Event::getEventRecursively( $evt, $eventId );//gw_support
+                $target = Event::getEventRecursively( $evt, $this->eventId );//gw_support
                 if( isset( $target ) ) {
                     $found = true;
                     break;
@@ -161,21 +163,29 @@ class ManageSignup
         } 
         
         if( !$found ) return __('No such event for this club', TennisEvents::TEXT_DOMAIN );
-        $this->eventId = $target->getID();
-
-        $td = new TournamentDirector( $target,  $target->getMatchType() );
+        
+        //Get the bracket from attributes
+        $bracketName = $my_shorts["bracketname"];
+        $bracket = $target->getBracket( $bracketName );
+        if( is_null( $bracket ) ) {
+            $bracket = $target->getWinnersBracket();        
+        }
+        
+        $td = new TournamentDirector( $target );
         $eventName = $td->getName();
         $clubName = $club->getName();
-        $bracket = $td->getEvent()->getWinnersBracket();
         $isApproved = $bracket->isApproved();
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
         $this->signup = $td->getSignup();
         $numSignedUp = count( $this->signup );
 
         $jsData = $this->get_ajax_data();
+        $jsData["clubId"] = $club->getID();
+        $jsData["eventId"] = $this->eventId;
+        $jsData["bracketName"] = $bracketName;
         $jsData["numSignedUp"] = $numSignedUp;
         $jsData["numPreliminary"] = $numPrelimMatches;
-        $jsData["isBracketApproved"] = $isApproved;
+        $jsData["isBracketApproved"] = $isApproved ? 1:0;
         wp_enqueue_script( 'manage_signup' );       
         wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $jsData );
         
@@ -183,9 +193,9 @@ class ManageSignup
         //Signup
         $out = '';
         $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
-        $out .= 'data-clubid="' . $this->clubId . '">' . PHP_EOL;
+        $out .= 'data-clubid="' . $this->clubId . '" data-bracketname="' . $bracketName . '">' . PHP_EOL;
         $out .= "<h3>$clubName</h3>" . PHP_EOL;        
-        $out .= "<h4>$eventName</h4>" . PHP_EOL;
+        $out .= "<h4>$eventName - $bracketName Bracket</h4>" . PHP_EOL;
         $out .= '<ul class="eventSignup">' . PHP_EOL;
         
         $templr = <<<EOT
@@ -211,7 +221,7 @@ EOT;
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
             $templ = $isApproved ? $templr : $templw;
-            if($isApproved) {
+            if( $numPrelimMatches > 0 ) {
                 $tbl = sprintf( $templr, $nameId, $pos, $rname );
             }
             else {
@@ -221,14 +231,11 @@ EOT;
         }
         $out .= '</ul>' . PHP_EOL;
 
-        if( !$isApproved && $numPrelimMatches < 1 ) {
+        if( $numPrelimMatches < 1 ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;
         }
         $out .= '</div>'; //container
-        //Preliminary view
-        $out .= '<div class="prelimcontainer">' . PHP_EOL;
-        $out .= '</div>' . PHP_EOL;
-
         $out .= '<div id="tennis-event-message"></div>';
 
         return $out;
@@ -281,6 +288,9 @@ EOT;
                 break;
             case "add":
                 $mess = $this->addEntrant( $data );
+                break;
+                case "createPrelim":
+                $mess = $this->createPreliminary( $data );
                 break;
             default:
                 wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
@@ -431,6 +441,30 @@ EOT;
             $event->addToSignup( $name, $seed );
             $event->save();
             $this->signup = $event->getSignup( true );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+
+        return $mess;
+    }
+
+    
+    /**
+     * Create preliminary rounds for this event/bracket
+     */
+    private function createPreliminary( $data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+
+        $this->eventId = $data["eventId"];
+        try {            
+            $event   = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+            $bracketName = $data["bracketName"];
+            $numMatches = $td->schedulePreliminaryRounds( $bracketName );
+            $mess =  __("Created $numMatches preliminary matches for '$bracketName' bracket.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

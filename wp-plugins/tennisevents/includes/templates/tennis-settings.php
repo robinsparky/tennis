@@ -10,4 +10,5 @@
         // ,'' // wrap
         // ,'' // other attributes
     ); ?>
+    <div id="tennis-event-message"></div>
 </form>

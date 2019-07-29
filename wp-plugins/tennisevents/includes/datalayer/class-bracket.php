@@ -4,10 +4,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// require_once('class-abstractdata.php');
-// require_once('class-event.php');
-// require_once('class-court.php');
-
 /** 
  * Data and functions for Tennis Brackets
  * @class  Bracket

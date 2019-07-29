@@ -59,6 +59,11 @@ function gw_tennis_custom_settings() {
                     , 'gw_tennis_home_club' //Option name used in get_option
                     , 'gw_sanitize_clubId' //sanitize call back
                     );
+                    
+    register_setting( 'gw-tennis-settings-group' //Options group
+                    , 'gw_tennis_main_event' //Option name used in get_option
+                    , 'gw_sanitize_eventId' //sanitize call back
+                    );
 
     add_settings_section( 'gw-tennis-options' //id
                         , 'Tennis Options' //title
@@ -73,6 +78,14 @@ function gw_tennis_custom_settings() {
                       , 'gw-tennis-options' // section
                       //,  array of args
                 );
+                
+    add_settings_field( 'gw_tennis_main_event' // id
+                    , 'Main Event' // title
+                    , 'gw_tennisMainEvent' // callback
+                    , 'gwtennissettings' // page
+                    , 'gw-tennis-options' // section
+                    //,  array of args
+                );
 }
 
 function gw_tennis_options() {
@@ -80,9 +93,17 @@ function gw_tennis_options() {
 }
 
 function gw_tennisHomeClub() {
-    $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
-    echo '<input type="number" placeholder="Min: 1, max: 100"
-    min="1" max="100" step="1" name="gw_tennis_home_club" value="' . $homeClubId . '" /><p>Max 100 and at least 1</p>';
+    // $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
+    // echo '<input type="number" placeholder="Min: 1, max: 100"
+    // min="1" max="100" step="1" name="gw_tennis_home_club" value="' . $homeClubId . '" /><p>Max 100 and at least 1</p>';
+    echo '<select name="gw_tennis_home_club">' . gw_get_clubs() . '</select>';
+}
+
+function gw_tennisMainEvent() {
+    // $mainEventId = esc_attr( get_option('gw_tennis_main_event', 0) );
+    // echo '<input type="number" placeholder="Min: 1, max: 100"
+    // min="1" max="100" step="1" name="gw_tennis_main_event" value="' . $mainEventId . '" /><p>Max 100 and at least 1</p>';
+    echo '<select name="gw_tennis_main_event">' . gw_get_events() . '</select>';
 }
 
 function gw_sanitize_clubId( $input ) {
@@ -100,5 +121,54 @@ function gw_sanitize_clubId( $input ) {
     }
     return $output;
 }
+
+function gw_sanitize_eventId( $input ) {
+    $output = 0;
+    if( is_numeric( $input ) ) {
+        try {
+            $event = Event::get( $input );
+            if( !is_null( $event ) ) {
+                $output = $event->getID();
+            }
+        }
+        catch( Exception $ex ) {
+            $output = 0;
+        }
+    }
+    return $output;
+}
+
+function gw_get_clubs() { 
+    $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
+    $out = '';
+    $allClubs = Club::search('');
+    foreach( $allClubs as $club ) {
+        if($club->getID() == $homeClubId ) {
+            $out .= "<option selected value='{$club->getID()}'>{$club->getName()}</option>" . PHP_EOL;
+        }
+        else {
+            $out .= "<option value='{$club->getID()}'>{$club->getName()}</option>" . PHP_EOL;
+        }
+    }
+    return $out;
+}
+
+function gw_get_events() {
+    $mainEventId = esc_attr( get_option('gw_tennis_main_event', 0) );
+    $out = '';
+    $allEvents = Event::search('');
+    foreach( $allEvents as $event ) {
+        if( $event->isLeaf()) continue;
+        
+        if( $mainEventId == $event->getID() ) {
+            $out .= "<option selected value='{$event->getID()}'>{$event->getName()}</option>" . PHP_EOL;
+        }
+        else {
+            $out .= "<option value='{$event->getID()}'>{$event->getName()}</option>" . PHP_EOL;
+        }
+    }
+    return $out;
+}
+
 
 

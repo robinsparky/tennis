@@ -20,6 +20,7 @@ class ManageDraw
 
     const ACTION   = 'manageTennisDraw';
     const NONCE    = 'manageTennisDraw';
+    const SHORTCODE = 'manage_draw';
 
     private $eventId = 0;
     private $errobj = null;
@@ -56,7 +57,7 @@ class ManageDraw
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
 
-        add_shortcode( 'render_draw', array( $this, 'renderDrawShortcode' ) );
+        add_shortcode( self::SHORTCODE, array( $this, 'renderDrawShortcode' ) );
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
         add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
     }
@@ -141,7 +142,7 @@ class ManageDraw
 
         //Go
         $td = new TournamentDirector( $target );
-        $bracket = !empty( $bracketName ) ? $td->getBracket( $bracketName ) : null;
+        $bracket = $td->getBracket( $bracketName );
         if( is_null( $bracket ) ) {
             $bracket = $target->getWinnersBracket();
         }
@@ -206,14 +207,11 @@ class ManageDraw
                 $arrData = $this->getMatchesAsArray( $td, $bracket );
                 $mess = "Data for $bracketName bracket";
                 break;
-            case "createPrelim":
-                $mess = $this->createPrelim( $data );
-                break;
             case "reset":
-                $mess = $this->reset( $data );
+                $mess = $this->removePreliminary( $data );
                 break;
             case "approve":
-                $mess = $this->approve( $data );
+                $mess = $this->approvePreliminary( $data );
                 break;
             default:
                 wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
@@ -231,8 +229,11 @@ class ManageDraw
     
         wp_die(); // All ajax handlers die when finished
     }
-
-    private function approve( $data ) {
+    
+    /**
+     * Approve the preliminary round
+     */
+    private function approvePreliminary( $data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -252,30 +253,11 @@ class ManageDraw
 
         return $mess;
     }
-
-    /**
-     * Create preliminary rounds for this event/bracket
-     */
-    private function createPrelim( $data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc");
-
-        $this->eventId = $data["eventId"];
-        try {            
-            $event   = Event::get( $this->eventId );
-            $td = new TournamentDirector( $event );
-            $numMatches = $td->schedulePreliminaryRounds( Bracket::WINNERS );
-            $mess =  __("Created $numMatches preliminary matches.", TennisEvents::TEXT_DOMAIN );
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-        }
-
-        return $mess;
-    }
     
-    private function reset( $data ) {
+    /**
+     * Delete the preliminary round
+     */
+    private function removePreliminary( $data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -293,7 +275,6 @@ class ManageDraw
 
         return $mess;
     }
-
 
     /**
      * Renders rounds and matches for the given brackete
@@ -325,6 +306,11 @@ class ManageDraw
 
         $this->eventId = $td->getEvent()->getID();
         $jsData = $this->get_ajax_data();
+        $jsData["eventId"] = $this->eventId;
+        $jsData["bracketName"] = $bracketName;
+        $jsData["numSignedUp"] = $signupSize;
+        $jsData["numPreliminary"] = $numPreliminaryMatches;
+        $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
         wp_enqueue_script( 'manage_matches' );         
@@ -428,10 +414,7 @@ EOT;
         $out .= "</tbody><tfooter></tfooter>";
         $out .= "</table>";	 
         $out .= "<div class='bracketDrawButtons'>";
-        if( $numPreliminaryMatches < 1 ) {
-            $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;
-        }
-        else if( !$bracket->isApproved() ) {
+        if( !$bracket->isApproved() ) {
             $out .= '<button class="button" type="button" id="removePrelim">Remove Preliminary Round</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="approveDraw">Approve Preliminary Round</button>' . PHP_EOL;
         }
@@ -636,81 +619,6 @@ EOT;
         $script = "window.bracketmatches = $json; ";
 
         gw_enqueue_js($script);
-    }
-
-    /**TODO: Remove this function
-     * Renders draw showing entrants for the given bracket
-     * @param $td The tournament director for this bracket
-     * @param $bracket The bracket
-     * @return HTML for table-based page showing the draw
-     */
-    private function renderBracketByEntrant1( TournamentDirector $td, Bracket $bracket ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-
-
-        $tournamentName = $td->getName();
-        $bracketName    = $bracket->getName();
-        if( !$bracket->isApproved() ) {
-            return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
-        }
-
-        $loadedMatches = $bracket->getMatchHierarchy();
-        $preliminaryRound = $loadedMatches[1];                
-        $numPreliminaryMatches = count( $preliminaryRound );
-        $numRounds = $td->totalRounds( $bracketName );
-
-        $signupSize = $bracket->signupSize();
-        $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
-
-        $umpire = $td->getChairUmpire();
-
-        $begin = <<<EOT
-<table id="%s" class="bracketdraw">
-<caption>%s: %s Bracket</caption>
-<thead><tr>
-EOT;
-        $out = sprintf( $begin, $bracketName, $tournamentName, $bracketName );
-
-        for( $i=1; $i <= $numRounds; $i++ ) {
-            $rOf = $bracket->roundOf( $i );
-            $out .= sprintf( "<th>Round Of %d</th>", $rOf );
-        }
-        $out .= "<th>Champion</th>";
-        $out .= "</tr></thead>" . PHP_EOL;
-
-        $out .= "<tbody>" . PHP_EOL;
-
-
-
-        $gen = new DrawTemplateGenerator("$tournamentName - $bracketName", $signupSize );
-        $template = $gen->generateTable();
-        $includeMatrix = $gen->getIncludeMatrix();
-        $players = $this->expandMatchesToPlayers( $umpire, $loadedMatches );
-        
-        for( $row = 1; $row <= $gen->getRows(); $row++ ) {
-            $out .= "<tr id='row$row'>";
-            for( $col = 1; $col <= $gen->getColumns(); $col++ ) {
-                $rowspan = pow( 2, $col - 1 );
-                if(array_key_exists($row, $players) && array_key_exists($col, $players[$row])) {
-                    $entrantName = $players[$row][$col];
-                }
-                else {
-                    $entrantName = "unknown";
-                }
-                //if( !is_null(error_get_last()) ) continue;
-
-                if(  $includeMatrix[$row][$col] == 1 ) {
-                    $out .= "<td rowspan='$rowspan'>($row,$col)$entrantName</td>";
-                }
-            }
-            $out .= "</tr>" . PHP_EOL;
-        }
-
-        $out .= "</tbody><tfooter></tfooter>";
-        $out .= "</table>";
-        return $out;
-
     }
 
     private function expandMatchesToPlayers( &$umpire, &$matches ) {

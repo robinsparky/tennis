@@ -178,13 +178,18 @@
         function toggleButtons( numPreliminary ) {
             numPreliminary = numPreliminary || 0;
             if( numPreliminary < 1 ) {
-                $('#resetDraw').prop('disabled', true);
-                $('#approveSignup').prop('disabled', false);
+                $('#createPrelim').prop('disabled', false);
+                $('button.entrantDelete').prop('disabled', false);
+                $('#addEntrant').props('disabled', false);
+                $('input.entrantName').props('disabled', false);
+                $('input.entrantSeed').props('disabled', false);
             }
             else {
-                $('#resetDraw').prop('disabled', false);
-                $('#approveSignup').prop('disabled', true);
-
+                $('#createPrelim').prop('disabled', true);
+                $('button.entrantDelete').prop('disabled', true);
+                $('#addEntrant').prop('disabled', true);
+                $('input.entrantName').prop('disabled', true);
+                $('input.entrantSeed').prop('disabled', true);
             }
         }
         
@@ -313,37 +318,20 @@
             
         });
 
+        //Approve signup by scheduling preliminary rounds
+        $('#createPrelim').on('click', function( event ) {
+            console.log("Create Preliminary Round fired!");
+            let clubId = $('.signupContainer').attr("data-clubid");
+            let eventId = $('.signupContainer').attr("data-eventid");
+            let bracketName = tennis_signupdata_obj.bracketName;
+
+            $(this).prop('disabled', true);
+            toggleButtons( 1 );
+            
+            ajaxFun( {"task": "createPrelim", "clubId": clubId, "eventId": eventId, "bracketName": bracketName } );
+        });        
+
         toggleButtons( tennis_signupdata_obj.numPreliminary );
-        //Approve signup ... schedule preliminary rounds
-        $('#approveSignup').on('click', function( event ) {
-            console.log("Approve signup fired!");
-            signupData = signupDataMask;
-            signupData.task = "approve";
-            signupData.clubId = $('.signupContainer').attr("data-clubid");
-            signupData.eventId = $('.signupContainer').attr("data-eventid");
-
-            $(this).prop('disabled', true);
-            
-            ajaxFun( signupData );
-        });
-
-        //Reset Draw ... remove preliminary rounds
-        $('#resetDraw').on('click', function( event ) {
-            console.log("Reset draw fired!");
-            let ans = confirm("Are you sure?");
-            if( ans != true ) return;
-
-            signupData = signupDataMask;
-            signupData.task = "reset";
-            signupData.clubId = $('.signupContainer').attr("data-clubid");
-            signupData.eventId = $('.signupContainer').attr("data-eventid");
-
-            $(this).prop('disabled', true);
-            
-            ajaxFun( signupData );
-        });
-        
-
     });
  })(jQuery);
         

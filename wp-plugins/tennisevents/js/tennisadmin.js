@@ -2,8 +2,8 @@
 
     $(document).ready(function() {       
         let sig = '#tennis-event-message';
-        console.log("Manage Matches");
-        console.log(tennis_draw_obj);
+        console.log("Tennis Admin Settings");
+        //console.log(tennis_draw_obj);
 
         var longtimeout = 60000;
         var shorttimeout = 5000;
@@ -114,31 +114,6 @@
                 console.log("Data is ????");
             }
         }
-
-        //Approve draw
-        $('#approveDraw').on('click', function( event ) {
-            console.log("Approve draw fired!");
-
-            $(this).prop('disabled', true);
-            let eventId = $('.bracketdraw').attr('data-eventid');
-            let bracketName = $('.bracketdraw').attr('data-bracketname');
-
-            $(this).prop('disabled', true);
-            ajaxFun( {"task": "approve", "eventId": eventId, "bracketName": bracketName } );
-        });
-
-        //Remove preliminary rounds
-        $('#removePrelim').on('click', function( event ) {
-            console.log("Remove preliminary round fired!");
-            let ans = confirm("Are you sure?");
-            if( ans != true ) return;
-
-            let eventId = tennis_draw_obj.eventId;            
-            let bracketName = tennis_draw_obj.bracketName;
-
-            $(this).prop('disabled', true);
-            ajaxFun( {"task": "reset", "eventId": eventId, "bracketName": bracketName} );
-        });
             
     });
 })(jQuery);
