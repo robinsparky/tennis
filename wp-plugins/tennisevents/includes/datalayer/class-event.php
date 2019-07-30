@@ -166,28 +166,25 @@ class Event extends AbstractData
 	
 	/**
 	 * Get a child event from its ancestor
-	 * @param $evt The ancestor Event
-	 * @param $descendantId The id of the descendant event
-	 * @return Event which is the child or null if not found
+	 * @param Event $evt The ancestor Event
+	 * @param int   $descendantId The id of the descendant event
+	 * @return Event which is the descendant or null if not found
 	 */
 	public static function getEventRecursively( Event $evt, int $descendantId ) {
-		static $attempts = 0;
+		$loc = __CLASS__ . ":" . __FUNCTION__;
+
+		error_log("$loc: comparing {$evt->getID()} to {$descendantId}");
+
 		if( $descendantId === $evt->getID() ) return $evt;
 
-		if( count( $evt->getChildEvents() ) > 0 ) {
-			if( ++$attempts > 10 ) return null;
-			foreach( $evt->getChildEvents() as $child ) {
-				if( $descendantId === $child->getID() ) {
-					return $child;
-				}
-				else { 
-					return self::getEventRecursively( $child, $descendantId );
-				}
+		foreach( $evt->getChildEvents() as $child ) {
+			$event =  self::getEventRecursively( $child, $descendantId );
+			if( !is_null( $event ) && $event->getID() === $descendantId ) {
+				error_log("$loc: found descendant with Id = $descendantId");
+				return $event;
 			}
 		}
-		else {
-			return null;
-		}
+		return null;		
 	}
     
 
@@ -641,23 +638,20 @@ class Event extends AbstractData
 	 * @param $descendantId The id of the descendant event
 	 */
     public function getDescendant( int $descendantId ) {
-        static $attempts = 0;
-        if( $descendantId === $this->getID() ) return $this;
+		$loc = __CLASS__ . ":" . __FUNCTION__;
 
-        if( count( $this->getChildEvents() ) > 0 ) {
-            if( ++$attempts > 10 ) return null;
-            foreach( $this->getChildEvents() as $child ) {
-                if( $descendantId === $child->getID() ) {
-                    return $child;
-                }
-                else { 
-                    return $this->getDescendant( $child, $descendantId );
-                }
-            }
-        }
-        else {
-            return null;
-        }
+        if( $descendantId === $this->getID() ) {
+			return $this;
+		}
+
+		foreach( $this->getChildEvents() as $child ) {
+			$event = $this->getDescendant( $child, $descendantId );
+			if( !is_null( $event )  && $descendantId === $event->getID() ) {
+				$this->log->error_log("$loc: found descendant  with Id = $descendantId");
+				return $event;
+			}
+		}
+        return null;
     }
 
 	/**
