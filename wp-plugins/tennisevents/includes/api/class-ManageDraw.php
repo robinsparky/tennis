@@ -123,7 +123,7 @@ class ManageDraw
         if( !in_array( $by, ['match','entrant']) )  return __('Please specify how to render the draw in shortcode', TennisEvents::TEXT_DOMAIN );
 
         $evts = Event::find( array( "club" => $club->getID() ) );
-        
+        $this->log->error_log( $evts, "$loc: All events for {$club->getName()}");
         $found = false;
         $target = null;
         if( count( $evts ) > 0 ) {
@@ -135,7 +135,11 @@ class ManageDraw
                 }
             }
         }
-        if( !$found ) return __('No such event for this club', TennisEvents::TEXT_DOMAIN );
+
+        if( !$found ) {
+            $mess = sprintf("No such event=%d for the club '%s'", $eventId, $club->getName() );
+            return __($mess, TennisEvents::TEXT_DOMAIN );
+        }
 
         //Get the bracket from attributes
         $bracketName = $my_atts["bracketname"];
@@ -501,31 +505,6 @@ EOT;
         return $futureMatches;
     }
 
-    /**
-     * Get a child event from its ancestor
-     * @param $evt The ancestor Event
-     * @param $descendantId The id of the descendant event
-     * @return Event which is the child or null if not found
-     */
-    private function getEventRecursively( Event $evt, int $descendantId ) {
-        static $attempts = 0;
-        if( $descendantId === $evt->getID() ) return $evt;
-
-        if( count( $evt->getChildEvents() ) > 0 ) {
-            if( ++$attempts > 10 ) return null;
-            foreach( $evt->getChildEvents() as $child ) {
-                if( $descendantId === $child->getID() ) {
-                    return $child;
-                }
-                else { 
-                    return $this->getEventRecursively( $child, $descendantId );
-                }
-            }
-        }
-        else {
-            return null;
-        }
-    }
        
     /**
      * Renders draw showing entrants for the given bracket
@@ -550,7 +529,9 @@ EOT;
         $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
 
         if( count( $loadedMatches ) === 0 ) {
-            return '<div>' . __("No matches scheduled yet!", TennisEvents::TEXT_DOMAIN ) . '</div>';
+            $out = '<h3>' . "{$tournamentName} - {$bracketName}" . '</h3>';
+            $out .= "<div>". __("No matches scheduled yet", TennisEvents::TEXT_DOMAIN ) . "</div>";
+            return $out;
         }
 
         $jsData = $this->get_ajax_data();
