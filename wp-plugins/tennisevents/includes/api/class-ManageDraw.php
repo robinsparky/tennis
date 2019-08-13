@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /** 
- * Renders a draw by matche or bey entrant using shortcodes
+ * Renders a draw by match or by entrant using shortcodes
  * with actions to manage the draw such as approve
  * @class  ManageDraw
  * @package Tennis Events
@@ -18,8 +18,8 @@ class ManageDraw
 { 
     public const HOME_CLUBID_OPTION_NAME = 'gw_tennis_home_club';
 
-    const ACTION   = 'manageTennisDraw';
-    const NONCE    = 'manageTennisDraw';
+    const ACTION    = 'manageTennisDraw';
+    const NONCE     = 'manageTennisDraw';
     const SHORTCODE = 'manage_draw';
 
     private $eventId = 0;
@@ -68,7 +68,7 @@ class ManageDraw
 
         // Handle the ajax request
         check_ajax_referer(  self::NONCE, 'security'  );
-        $this->errobj->add( $this->errcode++, __( 'You have been reported to the authorities!', TennisEvents::TextDomain ));
+        $this->errobj->add( $this->errcode++, __( 'You have been reported to the authorities!', TennisEvents::TEXT_DOMAIN ));
         $this->handleErrors("You've been a bad boy.");
     }
      
@@ -217,8 +217,26 @@ class ManageDraw
             case "approve":
                 $mess = $this->approvePreliminary( $data );
                 break;
+            case 'changehome':
+                $mess = $this->changeHomeEntrant( $data );
+                $returnData = $data;
+                break;
+            case 'changevisitor':
+                $mess = $this->changeVisitorEntrant( $data );
+                $returnData = $data;
+                break;
+            case 'recordscore':
+                $mess = $this->recordScore( $data );
+                $returnData = $data;
+                break;
+            case 'setcomments':
+                $mess = $this->setComments( $data );
+                $returnData = $data;
+                break;
             default:
-                wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
+                $mess =  __( 'Illegal task.', TennisEvents::TEXT_DOMAIN );
+                $this->errobj->add( $this->errcode++, $mess );
+                break;
         }
 
         if(count($this->errobj->errors) > 0) {
@@ -233,6 +251,215 @@ class ManageDraw
     
         wp_die(); // All ajax handlers die when finished
     }
+
+    /**
+     * Modify the Home Entrant in a match identified in the data
+     * @param array $data array of event/match identifiers and new home player name
+     */
+    private function changeHomeEntrant( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $bracketNum    = $data["bracketNum"];
+        $roundNum      = $data["roundNum"];
+        $matchNum      = $data["matchNum"];
+        $player        = strip_tags( htmlspecialchars( $data["player"] ) );
+        $mess          = __("Modified home entrant.", TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event = Event::get( $this->eventId );
+            $newHome = $event->getNamedEntrant( $player );
+            if( is_null( $newHome ) ) {
+                throw new InvalidEntrantException(__("No such player", TennisEvents::TEXT_DOMAIN) );
+            }
+            $td = new TournamentDirector( $event );
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match = $bracket->getMatch( $roundNum, $matchNum );
+            if( is_null( $match ) ) {
+                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match->setHomeEntrant( $newHome );
+            $match->save();
+            $returnName = $newHome->getSeededName();
+            $data['player'] = $returnName;
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $data['player'] = '';
+        }
+        return $mess;
+    }
+    
+    /**
+     * Modify the Visitor Entrant in a match identified in the data
+     * @param array $data A reference to an array of event/match identifiers and new visitor player name
+     * @return string A message describing success or failure
+     */
+    private function changeVisitorEntrant( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $bracketNum    = $data["bracketNum"];
+        $roundNum      = $data["roundNum"];
+        $matchNum      = $data["matchNum"];
+        $player        = strip_tags( htmlspecialchars( $data["player"] ) );
+        $mess          = __("Modified visitor entrant.", TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event = Event::get( $this->eventId );
+            $newVisitor = $event->getNamedEntrant( $player );
+            if( is_null( $newVisitor ) ) {
+                throw new InvalidEntrantException(__("No such player", TennisEvents::TEXT_DOMAIN) );
+            }
+            $td = new TournamentDirector( $event );
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match = $bracket->getMatch( $roundNum, $matchNum );
+            if( is_null( $match ) ) {
+                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match->setVisitorEntrant( $newVisitor );
+            $match->save();
+            $returnName = $newVisitor->getSeededName();
+            $data['player'] = $returnName;
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $data['player'] = '';
+        }
+        return $mess;
+    }
+
+    /**
+     * Record the score for a match identified in $data.
+     * @param array A reference to an array of identifying data and the in progress or final score for a match
+     * @return string A message describing success or failure
+     */
+    private function recordScore( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $bracketNum    = $data["bracketNum"];
+        $roundNum      = $data["roundNum"];
+        $matchNum      = $data["matchNum"];
+        $strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
+        $mess          = __("Recorded score.", TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match = $bracket->getMatch( $roundNum, $matchNum );
+            if( is_null( $match ) ) {
+                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
+            }
+            $chairUmpire = $td->getChairUmpire();
+            $scores = $this->parseScores( $strScore );
+            foreach( $scores as $score) {
+                $chairUmpire->recordScores( $match
+                                            , $score->setNum
+                                            , $score->homeScore
+                                            , $score->visitorScore
+                                            , $score->homeTBscore
+                                            , $score->visitorTBscore );
+            }
+            $newScore = $chairUmpire->tableGetScores( $match );
+            $data['score'] = $newScore;
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $$data['score'] = '';
+        }
+        return $mess;
+    }
+
+    private function parseScores( string $scores ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+        $result = [];
+        if( empty( $scores ) ) return $result;
+
+        $set = new \stdClass;
+        $set->setNum = 1;
+        $set->homeScore = 6;
+        $set->visitorScore = 4;
+        $set->homeTBscore = 0;
+        $set->visitorTBscore = 0;
+        $result[] = $set;
+
+        $set = new \stdClass;
+        $set->setNum = 2;
+        $set->homeScore = 3;
+        $set->visitorScore = 6;
+        $set->homeTBscore = 0;
+        $set->visitorTBscore = 0;
+        $result[] = $set;
+
+        $set = new \stdClass;
+        $set->setNum = 3;
+        $set->homeScore = 6;
+        $set->visitorScore = 6;
+        $set->homeTBscore = 7;
+        $set->visitorTBscore = 2;
+        $result[] = $set;
+
+        return $result;
+    }
+
+    /**
+     * Set the comments for a specific match identified in $data
+     * @param array $data A reference to an array of event/match identifiers and new visitor player name
+     * @return string A message describing success or failure
+     */
+    private function setComments( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $bracketNum    = $data["bracketNum"];
+        $roundNum      = $data["roundNum"];
+        $matchNum      = $data["matchNum"];
+        $comments      = $data["comments"];
+        $comments      = strip_tags( htmlspecialchars( $comments ) );
+        $mess          = __("Set Comments.", TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match = $bracket->getMatch( $roundNum, $matchNum );
+            if( is_null( $match ) ) {
+                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match->setComments( $comments );
+            $match->save();
+            $data['comments'] = $comments;
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $data['comments'] = '';
+        }
+        return $mess;
+    }
+
     
     /**
      * Approve the preliminary round
@@ -337,9 +564,27 @@ EOT;
         $out .= "<tbody>" . PHP_EOL;
 
         $templ = <<<EOT
-<td class="item-player" rowspan="%d">
-<div class="matchtitle">%s</div><div class="homeentrant">%s</div><div class="matchscore">%s</div>
-<div class="visitorentrant">%s</div><div class="matchstatus">%s</div><div class="matchcomments">%s</div>
+<td class="item-player" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d">
+
+<div class="menu-icon">
+<svg viewBox="0 0 100 10" xmlns="http://www.w3.org/2000/svg">
+  <line x1="0" y1="0" x2="12" y2="0" stroke="black" />
+  <line x1="0" y1="2" x2="12" y2="2" stroke="black" />
+  <line x1="0" y1="4" x2="12" y2="4" stroke="black" />
+</svg>
+ <ul class="matchaction unapproved">
+  <li><a class="changehome">Replace Home</a></li>
+  <li><a class="changevisitor">Replace Visitor</a><li></ul>
+ <ul class="matchaction approved">
+  <li><a class="recordscore">Score</a></li>
+  <li><a class="setcomments">Comments</a></li></ul>
+</div>
+<div class="matchtitle">%s</div>
+<div class="homeentrant">%s</div>
+<div class="matchscore">%s</div>
+<div class="visitorentrant">%s</div>
+<div class="matchstatus">%s</div>
+<div class="matchcomments">%s</div>
 </td>
 EOT;
 
@@ -356,6 +601,10 @@ EOT;
             try {
                 $title = $match->title();
                 $this->log->error_log("$loc: preliminary match: $title");
+                $eventId = $match->getBracket()->getEvent()->getID();
+                $bracketNum = $match->getBracket()->getBracketNumber();
+                $roundNum = $match->getRoundNumber();
+                $matchNum = $match->getMatchNumber();
 
                 $winner  = $umpire->matchWinner( $match );
                 $winner  = is_null( $winner ) ? 'tba': $winner->getName();
@@ -377,11 +626,16 @@ EOT;
                 $score   = $umpire->tableGetScores( $match );                        
                 $status  = $umpire->matchStatus( $match );
 
-                $out .= sprintf( $templ, $r, $match->toString(), $hname, $score, $vname, $status, $cmts );
+                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $match->toString(), $hname, $score, $vname, $status, $cmts );
 
                 $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
                 foreach( $futureMatches as $futureMatch ) {
                     $rowspan = pow( 2, $r++ );
+                    $eventId = $futureMatch->getBracket()->getEvent()->getID();
+                    $bracketNum = $futureMatch->getBracket()->getBracketNumber();
+                    $roundNum = $futureMatch->getRoundNumber();
+                    $matchNum = $futureMatch->getMatchNumber();
+                    
                     $winner  = $umpire->matchWinner( $futureMatch );
                     $winner  = is_null( $winner ) ? 'tba': $winner->getName();
                     $home    = $futureMatch->getHomeEntrant();
@@ -402,7 +656,7 @@ EOT;
 
                     $score   = $umpire->tableGetScores( $futureMatch );                        
                     $status  = $umpire->matchStatus( $futureMatch );
-                    $out .= sprintf( $templ, $rowspan, $futureMatch->toString(), $hname, $score, $vname, $status, $cmts );
+                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum, $futureMatch->toString(), $hname, $score, $vname, $status, $cmts );
                 }     
             }
             catch( RuntimeException $ex ) {

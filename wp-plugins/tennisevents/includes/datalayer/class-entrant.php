@@ -250,6 +250,13 @@ class Entrant extends AbstractData
         return $this->name;
 	}
 	
+    /**
+     * Get the name of this Draw
+     */
+    public function getSeededName() {
+        return $this->seed > 0 ? sprintf("%s(%d)",$this->name, $this->seed) : $this->name;
+	}
+	
 	public function isVisitor() {
 		$result = false;
 		if( isset( $this->is_visitor ) && 1 === $this->is_visitor ) $result = true;

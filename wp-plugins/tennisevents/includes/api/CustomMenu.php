@@ -103,7 +103,7 @@ class CustomMenu {
 		if ( isset( $this->menus[ $menu->slug ] ) ) {
 			$this->log->error_log($this->menus, "$loc: this menus found...");
 			$new_items = $this->get_menu_items( $menu->slug );
-			$this->log->error_log($new_items, "$loc: new items...");
+			//$this->log->error_log($new_items, "$loc: new items...");
 
 			if ( ! empty( $new_items ) ) {
 				foreach ( $new_items as $new_item ) {
