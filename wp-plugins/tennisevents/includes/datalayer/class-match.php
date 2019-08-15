@@ -332,7 +332,7 @@ class Match extends AbstractData
 
 	/*************** Instance Methods ****************/
 	public function __construct( int $eventId, int $bracket = 1, int $round = 0, int $match = 0 ) {
-        parent::__construct( false );
+        parent::__construct( true );
         $this->isnew = true;
         $this->event_ID = $eventId;
         $this->bracket_num = $bracket;
@@ -594,11 +594,11 @@ class Match extends AbstractData
     public function isWaiting() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $result = false;
-        $this->getHomeEntrant();
-        $this->getVisitorEntrant();
-        if( !isset( $this->home ) || !isset( $this->visitor )  && !$this->isBye() ) $result = true;
-        // $this->log->error_log(sprintf( "%s -> isset home=%d; isset visitor=%d; is bye=%d"
-        //                  ,$loc, isset( $this->home ), isset( $this->visitor ), $this->isBye() ) );
+        $home = $this->getHomeEntrant();
+        $visitor = $this->getVisitorEntrant();
+        $this->log->error_log(sprintf( "%s -> isset home=%d; isset visitor=%d; is bye=%d"
+                                     ,$loc, isset( $home ), isset( $visitor ), $this->isBye() ) );
+        if( (!isset( $home ) || !isset( $visitor ))  && !$this->isBye() ) $result = true;
         return $result;
     }
     
@@ -618,41 +618,6 @@ class Match extends AbstractData
         return isset( $this->comments ) ? $this->comments : '';
     }
 
-    /**
-     * Get the Sets for this Match
-	 * @param $force When set to true will force loading of Sets from db
-	 *               This will cause unsaved Sets to be lost.
-     */
-    public function getSets( $force = false ) {
-        //var_dump(debug_backtrace());
-        if( !isset( $this->sets ) || $force ) {
-            $this->fetchSets();
-            foreach( $this->sets as $set ) {
-                $set->setMatch( $this );
-            }
-        }
-        usort( $this->sets, array( __CLASS__, 'sortBySetNumberAsc' ) );
-        return $this->sets;
-    }
-
-    private function sortBySetNumberAsc( $a, $b ) {
-        if($a->getSetNumber() === $b->getSetNumber()) return 0; return ($a->getSetNumber() < $b->getSetNumber()) ? 1 : -1;
-    }
-
-    /**
-     * Get a specific numbered Set for this match
-     */
-    public function getSet( int $setnum ) {
-        $result = null;
-        $sets = $this->getSets();
-        foreach ($sets as $set ) {
-            if( $set->getSetNumber() === $setnum ) {
-                $result = $set;
-                break;
-            }
-        }
-        return $result;
-    }
     
     /**
      * Set a score for a given Set of tennis.
@@ -702,6 +667,47 @@ class Match extends AbstractData
         
         $this->log->error_log( sprintf( "%s(%s) -> returning with result=%d", $loc, $this->toString(), $result ) );
 
+        return $result;
+    }
+    
+    /**
+     * Get the Sets for this Match
+	 * @param $force When set to true will force loading of Sets from db
+	 *               This will cause unsaved Sets to be lost.
+     */
+    public function getSets( $force = false ) {
+        //var_dump(debug_backtrace());
+        if( !isset( $this->sets ) || $force ) {
+            $this->fetchSets();
+            foreach( $this->sets as $set ) {
+                $set->setMatch( $this );
+            }
+        }
+        usort( $this->sets, array( __CLASS__, 'sortBySetNumberAsc' ) );
+        return $this->sets;
+    }
+
+    /**
+     * Remove all sets from this match
+     */
+    public function removeSets() {
+        foreach( $this->getSets() as $set ) {
+            $this->removeSet( $set->getSetNumber() );
+        }
+    }
+
+    /**
+     * Get a specific numbered Set for this match
+     */
+    public function getSet( int $setnum ) {
+        $result = null;
+        $sets = $this->getSets();
+        foreach ($sets as $set ) {
+            if( $set->getSetNumber() === $setnum ) {
+                $result = $set;
+                break;
+            }
+        }
         return $result;
     }
 
@@ -985,6 +991,13 @@ class Match extends AbstractData
         $arr["sets"] = $arrSets;
 
         return $arr;
+    }
+    
+    /**
+     * Helper to sort sets by ascending set number
+     */
+    private function sortBySetNumberAsc( $a, $b ) {
+        if($a->getSetNumber() === $b->getSetNumber()) return 0; return ($a->getSetNumber() < $b->getSetNumber()) ? 1 : -1;
     }
 
     /**

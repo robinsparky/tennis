@@ -123,6 +123,13 @@ table.bracketdraw td {
     font-size: 80%;
 }
 
+.matchwinner {
+    font-style: italic;
+    text-decoration: underline; 
+    text-decoration-style: double;
+    text-decoration-color: red;
+}
+
 .homeentrant {
     color: rgb(0,0,139);
 }

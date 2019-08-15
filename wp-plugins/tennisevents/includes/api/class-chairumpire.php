@@ -43,8 +43,8 @@ abstract class ChairUmpire
 	abstract public function defaultVisitor( Match &$match, string $cmts );
 	abstract public function setMaxSets( int $max = 3 );
 	
-	public function __construct() {
-		$this->log = new BaseLogger( false );
+	public function __construct( $logger = false ) {
+		$this->log = new BaseLogger( $logger );
 	}
 	
 	public function challengesRemaining() {

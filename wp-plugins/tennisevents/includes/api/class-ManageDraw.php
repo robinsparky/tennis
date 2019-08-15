@@ -78,10 +78,6 @@ class ManageDraw
         $atts = array_change_key_case((array)$atts, CASE_LOWER);
         $this->log->error_log( $atts, $loc );
 
-        // if( !is_user_logged_in() ) {
-        //     return '';
-        // }
-
         if( $_POST ) {
             $this->log->error_log($_POST, "$loc: POST:");
         }
@@ -155,6 +151,13 @@ class ManageDraw
             switch($by) {
                 case 'match':
                     wp_dequeue_script( 'manage_draw' );
+                    if( !is_user_logged_in() ) {
+                        return '<h3>You must be logged in</h3>';
+                    }
+                    //$user = wp_get_current_user();
+                    if ( !current_user_can( 'manage_options' ) ) {
+                        return '<h3>Insufficent privileges</h3>';
+                    }
                     return $this->renderBracketByMatch( $td, $bracket );
                 case 'entrant':     
                     wp_dequeue_script( 'manage_matches' );
@@ -183,17 +186,16 @@ class ManageDraw
             $this->handleErrors('Not Ajax');
         }
         
-        // $ok = false;
-        // if( current_user_can( 'manage_options' ) ) $ok = true;
+        $ok = false;
+        if( current_user_can( 'manage_options' ) ) $ok = true;
         
-        // if ( !$ok ) {         
-        //     $this->errobj->add( $this->errcode++, __( 'Only administrators can modify draw.', TennisEvents::TEXT_DOMAIN ));
-        // }
+        if ( !$ok ) {         
+            $this->errobj->add( $this->errcode++, __( 'Only administrators can modify draw.', TennisEvents::TEXT_DOMAIN ));
+        }
         
-
-        // if(count($this->errobj->errors) > 0) {
-        //     $this->handleErrors(__("Errors were encountered", TennisEvents::TEXT_DOMAIN  ) );
-        // }
+        if(count($this->errobj->errors) > 0) {
+            $this->handleErrors(__("Errors were encountered", TennisEvents::TEXT_DOMAIN  ) );
+        }
 
         $response = array();
 
@@ -354,7 +356,6 @@ class ManageDraw
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
         $strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
-        $mess          = __("Recorded score.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
@@ -368,54 +369,90 @@ class ManageDraw
             }
             $chairUmpire = $td->getChairUmpire();
             $scores = $this->parseScores( $strScore );
-            foreach( $scores as $score) {
-                $chairUmpire->recordScores( $match
-                                            , $score->setNum
-                                            , $score->homeScore
-                                            , $score->visitorScore
-                                            , $score->homeTBscore
-                                            , $score->visitorTBscore );
+            if( is_string( $scores ) ) {
+                //This is a backdoor to reset an old score
+                // that needs changing but should not affect outcomes of matches
+                $match->removeSets();
+                $match->save();
+                $data['score'] = '';
+                $data['status'] = $chairUmpire->matchStatus( $match );
+                $mess          = __("Score reset.", TennisEvents::TEXT_DOMAIN );
             }
-            $newScore = $chairUmpire->tableGetScores( $match );
-            $data['score'] = $newScore;
+            else {
+                //Set the score for this match 
+                //Advance the bracket
+                foreach( $scores as $score) {
+                    $chairUmpire->recordScores( $match
+                                                , $score->setNum
+                                                , $score->homeScore
+                                                , $score->homeTBscore
+                                                , $score->visitorScore
+                                                , $score->visitorTBscore );
+                }
+                $td->advance( $bracketName );
+                $newScore = $chairUmpire->tableGetScores( $match );
+                $data['score'] = $newScore;
+                $data['status'] = $chairUmpire->matchStatus( $match );
+                $winner = $chairUmpire->matchWinner( $match );
+                $data['winner'] = '';
+                if( !is_null( $winner ) ) {
+                    if( $chairUmpire->winnerIsVisitor( $match ) ) {
+                        $data['winner'] = 'visitor';
+                    }
+                    else {
+                        $data['winner'] = 'home';
+                    }
+                }
+                $mess           = __("Score recorded.", TennisEvents::TEXT_DOMAIN );
+            }
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
-            $$data['score'] = '';
+            $data['score'] = '';
         }
         return $mess;
     }
 
     private function parseScores( string $scores ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc($scores)");
 
         $result = [];
-        if( empty( $scores ) ) return $result;
+        if( empty( $scores ) ) return $result; //early return
 
-        $set = new \stdClass;
-        $set->setNum = 1;
-        $set->homeScore = 6;
-        $set->visitorScore = 4;
-        $set->homeTBscore = 0;
-        $set->visitorTBscore = 0;
-        $result[] = $set;
+        if( 'reset' === $scores ) {
+            return $scores;
+        }
 
-        $set = new \stdClass;
-        $set->setNum = 2;
-        $set->homeScore = 3;
-        $set->visitorScore = 6;
-        $set->homeTBscore = 0;
-        $set->visitorTBscore = 0;
-        $result[] = $set;
+        $sets = explode( ',', $scores, 5 );
+        if( count( $sets ) < 1 ) return $result; //early return
 
-        $set = new \stdClass;
-        $set->setNum = 3;
-        $set->homeScore = 6;
-        $set->visitorScore = 6;
-        $set->homeTBscore = 7;
-        $set->visitorTBscore = 2;
-        $result[] = $set;
+        $setNum = 1;
+        foreach( $sets as $setscore ) {
+            $setObj = new \stdClass;
+            $setObj->setNum = $setNum++;
+            $mscore = explode( '-', $setscore, 2 );
+            if( count( $mscore ) !== 2 ) return $result; //early return
+
+            $setObj->homeScore = intval( $mscore[0] );
+            $setObj->visitorScore = intval( $mscore [1]);
+            $setObj->homeTBscore = 0;
+            $setObj->visitorTBscore = 0;
+
+            //Check for tie breaker scores
+            $needle = "(";
+            if( in_array( $set->setNum, [3,5]) ) {
+                if( strpos( $mscore[0], $needle ) > 0 ) {
+                    $setObj->homeTBscore = intval( strstr($mscore[0], $needle ) );
+                }
+                elseif( strpos( $mscore[1], $needle ) > 0 ) {
+                    $setObj->visitorTBscore = intval( strstr($mscore[0], $needle ) );
+                }
+            }
+            $this->log->error_log( $setObj, "$loc" );
+            $result[] = $setObj;
+        }
 
         return $result;
     }
@@ -518,6 +555,8 @@ class ManageDraw
         $this->log->error_log( $loc );
 		$startTime = microtime( true );
 
+        $winnerClass = "matchwinner";
+
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
         // if( !$bracket->isApproved() ) {
@@ -580,9 +619,9 @@ EOT;
   <li><a class="setcomments">Comments</a></li></ul>
 </div>
 <div class="matchtitle">%s</div>
-<div class="homeentrant">%s</div>
+<div class="homeentrant %s">%s</div>
 <div class="matchscore">%s</div>
-<div class="visitorentrant">%s</div>
+<div class="visitorentrant %s">%s</div>
 <div class="matchstatus">%s</div>
 <div class="matchcomments">%s</div>
 </td>
@@ -607,9 +646,13 @@ EOT;
                 $matchNum = $match->getMatchNumber();
 
                 $winner  = $umpire->matchWinner( $match );
-                $winner  = is_null( $winner ) ? 'tba': $winner->getName();
+                $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
+
+                $homeWinner = $visitorWinner = '';
                 $home    = $match->getHomeEntrant();
                 $hname   = !is_null( $home ) ? $home->getName() : 'tba';
+                if( $hname === $winner ) $homeWinner = $winnerClass;
+                
                 $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
                 $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
 
@@ -618,6 +661,7 @@ EOT;
                 $vseed   = '';
                 if( isset( $visitor ) ) {
                     $vname   = $visitor->getName();
+                    if( $vname === $winner ) $visitorWinner = $winnerClass;
                     $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
                 }
                 $vname = empty($vseed) ? $vname : $vname . "($vseed)";
@@ -626,7 +670,14 @@ EOT;
                 $score   = $umpire->tableGetScores( $match );                        
                 $status  = $umpire->matchStatus( $match );
 
-                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $match->toString(), $hname, $score, $vname, $status, $cmts );
+                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $match->toString()
+                               , $homeWinner
+                               , $hname
+                               , $score
+                               , $visitorWinner
+                               , $vname
+                               , $status
+                               , $cmts );
 
                 $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
                 foreach( $futureMatches as $futureMatch ) {
@@ -637,9 +688,12 @@ EOT;
                     $matchNum = $futureMatch->getMatchNumber();
                     
                     $winner  = $umpire->matchWinner( $futureMatch );
-                    $winner  = is_null( $winner ) ? 'tba': $winner->getName();
+                    $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
+                    
+                    $homeWinner = $visitorWinner = '';
                     $home    = $futureMatch->getHomeEntrant();
                     $hname   = !is_null( $home ) ? $home->getName() : 'tba';
+                    if( $hname === $winner ) $homeWinner = $winnerClass;
                     $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
                     $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
     
@@ -648,6 +702,7 @@ EOT;
                     $vseed   = '';
                     if( isset( $visitor ) ) {
                         $vname   = $visitor->getName();
+                        if( $vname === $winner ) $visitorWinner = $winnerClass;
                         $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
                     }
                     $vname = empty($vseed) ? $vname : $vname . "($vseed)";
@@ -656,7 +711,14 @@ EOT;
 
                     $score   = $umpire->tableGetScores( $futureMatch );                        
                     $status  = $umpire->matchStatus( $futureMatch );
-                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum, $futureMatch->toString(), $hname, $score, $vname, $status, $cmts );
+                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum, $futureMatch->toString()               
+                                   , $homeWinner
+                                   , $hname
+                                   , $score
+                                   , $visitorWinner
+                                   , $vname
+                                   , $status
+                                   , $cmts );
                 }     
             }
             catch( RuntimeException $ex ) {

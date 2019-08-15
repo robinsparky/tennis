@@ -35,7 +35,7 @@ class RegulationMatchUmpire extends ChairUmpire
 		if ( isset( self::$_instance ) ) {
 			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ), get_class( $this ) ) );
 		}
-        parent::__construct();
+        parent::__construct( true );
 
 	}
     
@@ -80,26 +80,73 @@ class RegulationMatchUmpire extends ChairUmpire
         }
 
         switch( count( $scores ) ) {
-            case 2:
+            case 2: //just 2 game scores ... no tiebreakers
                 $homewins    = $scores[0];
                 $visitorwins = $scores[1];
                 $maxGames = $this->GamesPerSet + 1;
                 if($homewins >= $maxGames ) {
-                    $homewins = $maxGames;
-                    $visitorwins = $this->GamesPerSet - 1;
+                    $diff = $homewins - $visitorwins;
+                    switch($diff) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            break;
+                        default: //assume 7 to 5
+                            $homewins = $maxGames;
+                            $visitorwins = $this->GamesPerSet - 1;
+                            break;
+                    }
                 }
                 elseif( $visitorwins >= $maxGames ) {
-                    $visitorwins = $maxGames;
-                    $homewins = $this->GamesPerSet - 1;
+                    $diff =  $visitorwins - $homewins;
+                    switch($diff) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            break;
+                        default: //assume 7 to 5
+                            $visitorwins = $maxGames;
+                            $homewins = $this->GamesPerSet - 1;
+                            break;
+                    }
                 }
                 $match->setScore( $setnum, $homewins, $visitorwins );
                 $this->log->error_log( sprintf( "%s -> Set home games=%d and visitor games=%d for %s."
                                   , $loc, $homewins, $visitorwins, $match->title()  ) );
                 break;
-            case 4:
-                $homewins    = min( $scores[0], $this->GamesPerSet );
+            case 4: //Both game scoresd and tiebreaker scores are available
+                $homewins    = $scores[0];
+                $visitorwins = $scores[2];
+                $maxGames = $this->GamesPerSet + 1;
+                if($homewins >= $maxGames ) {
+                    $diff = $homewins - $visitorwins;
+                    switch($diff) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            break;
+                        default: //assume 7 to 5
+                            $homewins = $maxGames;
+                            $visitorwins = $this->GamesPerSet - 1;
+                            break;
+                    }
+                }
+                elseif( $visitorwins >= $maxGames ) {
+                    $diff =  $visitorwins - $homewins;
+                    switch($diff) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            break;
+                        default: //assume 7 to 5
+                            $visitorwins = $maxGames;
+                            $homewins = $this->GamesPerSet - 1;
+                            break;
+                    }
+                }
+                //$homewins    = min( $scores[0], $this->GamesPerSet );
                 $home_tb_pts = $scores[1];
-                $visitorwins = min( $scores[2], $this->GamesPerSet );
+                //$visitorwins = min( $scores[2], $this->GamesPerSet );
                 $visitor_tb_pts = $scores[3];
                 $match->setScore( $setnum, $homewins, $visitorwins, $home_tb_pts, $visitor_tb_pts );
                 $this->log->error_log( sprintf( "%s -> Set home games=%d(%d) and visitor games=%d(%d) for %s."
@@ -185,7 +232,7 @@ class RegulationMatchUmpire extends ChairUmpire
 
     /**
      * Determine the winner of the given Match
-     * @param $match
+     * @param Match Reference to a $match object
      * @return Entrant who won or null if not completed yet
      */
     public function matchWinner( Match &$match ) {
@@ -222,7 +269,7 @@ class RegulationMatchUmpire extends ChairUmpire
                     $visitorW = $set->getVisitorWins();
                     $visitorTB = $set->getVisitorTieBreaker();
 
-                    $this->log->error_log( sprintf( "%s ->In %s: home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
+                    $this->log->error_log( sprintf( "%s(%s): home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
                                          , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
                     
                     if( !in_array($homeW, array($this->GamesPerSet, $this->GamesPerSet + 1))
@@ -277,13 +324,52 @@ class RegulationMatchUmpire extends ChairUmpire
 
         foreach($sets as $set ) {
             $setnum = (int)$set->getSetNumber();
-            // $mess = sprintf("%s(%s) -> Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
-            //                , $loc, $set->toString()
-            //                , $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
-            // $this->log->error_log( $mess );
-            $scores[$setnum] = array( $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
+            $mess = sprintf("%s(%s) -> Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                           , $loc, $set->toString()
+                           , $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
+            $this->log->error_log( $mess );
+            if( $this->winnerIsVisitor( $match ) ) {
+                $scores[$setnum] = array( $set->getVisitorWins(), $set->getHomeWins(), $set->getVisitorTieBreaker(), $set->getHomeTieBreaker() );
+            }
+            else {
+                $scores[$setnum] = array( $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
+            }
         }
         return $scores;
+    }
+
+    /**
+     * Determines if the visitor entrant was winner
+     * @return True if visitor won false otherwise
+     */
+    public function winnerIsVisitor(  Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $visitor = $match->getVisitorEntrant();
+        if( is_null( $visitor ) ) return false;
+
+        $vname = $visitor->getName();
+        $winner = $this->matchWinner( $match );
+        $wname = is_null( $winner ) ? 'no winner yet' : $winner->getName();
+        $this->log->error_log("$loc: visitor name=$vname; winner name=$wname");
+        return ($vname === $wname);
+    }
+
+    /**
+     * Determines if the home entrant was winner
+     * @return True if home won false otherwise
+     */
+    public function winnerIsHome(  Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $home = $match->getHomeEntrant();
+        if( is_null( $home ) ) return false;
+
+        $hname = $home->getName();
+        $winner = $this->matchWinner( $match );
+        $wname = is_null( $winner ) ? 'no winner yet' : $winner->getName();
+        $this->log->error_log("$loc: home name=$hname; winner name=$wname");
+        return ($hname === $wname);
     }
     
     /**

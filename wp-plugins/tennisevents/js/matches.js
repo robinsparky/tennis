@@ -7,6 +7,7 @@
 
         var longtimeout = 60000;
         var shorttimeout = 5000;
+        var winnerclass = 'matchwinner';
 
         let ajaxFun = function( matchData ) {
             console.log('Draw Management: ajaxFun');
@@ -169,9 +170,18 @@
             console.log('updateScore');
             console.log( data );
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
-            console.log( data.score );
+            console.log( "Score table: %s; status=%s", data.score, data.status );
             $matchEl.children('.matchscore').empty();
             $matchEl.children('.matchscore').append( data.score );
+            $matchEl.children('.matchstatus').text(data.status);
+            switch( data.winner ) {
+                case 'home':
+                    $matchEl.children('.homeentrant').addClass(winnerclass)
+                    break;
+                case 'visitor':
+                    $matchEl.children('.visitorentrant').addClass(winnerclass)
+                    break;
+            }
         }
 
         function updateComments( data ) {

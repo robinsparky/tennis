@@ -88,7 +88,7 @@
                 matches = data.filter( match => {
                                         return rn == match.roundNumber;
                                     });
-                if( matches.length < 1 ) break; //quit if nor more data
+                if( matches.length < 1 ) break; //quit if no more data
 
                 matches = matches.sort( function(m1,m2) {
                     //descending sort because 'places' seems to be in reverse order???
