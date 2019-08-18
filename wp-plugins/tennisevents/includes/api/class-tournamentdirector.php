@@ -187,6 +187,7 @@ class TournamentDirector
         $matches = $bracket->getMatches( true );
         $umpire = $this->getChairUmpire();
         $lastRound = self::calculateExponent( $this->signupSize() );
+        $champRound  = $lastRound + 1;
 
         $numAdvanced = 0;
         foreach( $matches as $match ) {  
@@ -195,6 +196,7 @@ class TournamentDirector
             
             //We don't advance the last match of the bracket
             if( $lastRound === $match->getRoundNumber() ) {
+                $this->log->error_log( "$loc: '$title' in last round=$lastRound");
                 break;
             }
 
@@ -209,7 +211,22 @@ class TournamentDirector
 
             if( $umpire->isLocked( $match ) || $match->isBye() ) {
 
+                
                 $winner = $umpire->matchWinner( $match );
+                //Match is may be locked because of early retirement/default
+                $status = $umpire->matchStatus( $match );
+                if( strpos( $status, 'Retired') !== false ) {
+                    if( strpos( $status, 'visitor' ) !== false ) {
+                        $winner = $match->getHomeEntrant();
+                    }
+                    elseif( strpos( $status, 'home') !== false ) {
+                        $winner = $match->getHomeEntrant();
+                    }
+                    else {
+                        $winner = null;
+                    }
+                }
+
                 if( is_null( $winner ) ) {
                     $mess = "Match $title is locked but cannot determine winner.";
                     $this->log->error_log( $mess );

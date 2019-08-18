@@ -17,6 +17,9 @@ include_once($dir . '/gw-support.php' );
 */
 class Match extends AbstractData
 { 
+    public const VISITOR = "visitor";
+    public const HOME    = "home";
+
     private const MAX_ROUNDS = 7;
 
     private static $tablename = 'tennis_match';

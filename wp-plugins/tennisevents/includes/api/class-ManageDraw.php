@@ -227,8 +227,12 @@ class ManageDraw
                 $mess = $this->changeVisitorEntrant( $data );
                 $returnData = $data;
                 break;
-            case 'recordscore':
+            case 'savescore':
                 $mess = $this->recordScore( $data );
+                $returnData = $data;
+                break;
+            case 'defaultentrant':
+                $mess = $this->defaultEntrant( $data );
                 $returnData = $data;
                 break;
             case 'setcomments':
@@ -368,7 +372,7 @@ class ManageDraw
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
             $chairUmpire = $td->getChairUmpire();
-            $scores = $this->parseScores( $strScore );
+            $scores = $data["score"]; //$this->parseScores( $strScore );
             if( is_string( $scores ) ) {
                 //This is a backdoor to reset an old score
                 // that needs changing but should not affect outcomes of matches
@@ -380,15 +384,15 @@ class ManageDraw
             }
             else {
                 //Set the score for this match 
-                //Advance the bracket
-                foreach( $scores as $score) {
+                foreach( $scores as $score ) {
                     $chairUmpire->recordScores( $match
-                                                , $score->setNum
-                                                , $score->homeScore
-                                                , $score->homeTBscore
-                                                , $score->visitorScore
-                                                , $score->visitorTBscore );
+                                                , $score["setNum"]
+                                                , $score["homeGames"]
+                                                , $score["homeTieBreaker"]
+                                                , $score["visitorGames"]
+                                                , $score["visitorTieBreaker"] );
                 }
+                //Advance the bracket
                 $td->advance( $bracketName );
                 $newScore = $chairUmpire->tableGetScores( $match );
                 $data['score'] = $newScore;
@@ -403,7 +407,7 @@ class ManageDraw
                         $data['winner'] = 'home';
                     }
                 }
-                $mess           = __("Score recorded.", TennisEvents::TEXT_DOMAIN );
+                $mess = __("Score recorded.", TennisEvents::TEXT_DOMAIN );
             }
         }
         catch( Exception $ex ) {
@@ -414,6 +418,12 @@ class ManageDraw
         return $mess;
     }
 
+    /**
+     * Parse the scores provided as a string 
+     * E.G. 6-3, 1-6, 6-6(3)
+     * @param string $scores
+     * @return array of score objects by set number
+     */
     private function parseScores( string $scores ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc($scores)");
@@ -456,6 +466,63 @@ class ManageDraw
 
         return $result;
     }
+    
+    /**
+     * Default an entrant and record the comments for a specific match identified in $data
+     * @param array $data A reference to an array of event/match identifiers and new visitor player name
+     * @return string A message describing success or failure
+     */
+    private function defaultEntrant( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $bracketNum    = $data["bracketNum"];
+        $roundNum      = $data["roundNum"];
+        $matchNum      = $data["matchNum"];
+        $player        = $data["player"];
+        $comments      = $data["comments"];
+        $comments      = strip_tags( htmlspecialchars( $comments ) );
+        $mess          = __("Defaulted '$player'", TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match = $bracket->getMatch( $roundNum, $matchNum );
+            if( is_null( $match ) ) {
+                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
+            }
+            $chairUmpire = $td->getChairUmpire();
+            switch( $player ) {
+                case "home":
+                    $chairUmpire->defaultHome( $match, $comments );
+                    $status = $chairUmpire->matchStatus( $match );
+                    $td->advance( $bracketName );
+                    break;
+                case "visitor":
+                    $chairUmpire->defaultVisitor( $match, $comments );
+                    $td->advance( $bracketName );
+                    $status = $chairUmpire->matchStatus( $match );
+                    break;
+                default:
+                    $mess  = __("Unable to default '$player'", TennisEvents::TEXT_DOMAIN );
+                    throw new InvalidArgumentException($mess);
+                    break;
+            }
+            $data['status'] = $status;
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $data['status'] = '';
+        }
+        return $mess;
+    }
+
 
     /**
      * Set the comments for a specific match identified in $data
@@ -487,6 +554,7 @@ class ManageDraw
             }
             $match->setComments( $comments );
             $match->save();
+            $td->advance( $bracketName );
             $data['comments'] = $comments;
         }
         catch( Exception $ex ) {
@@ -581,6 +649,7 @@ class ManageDraw
         $jsData["numSignedUp"] = $signupSize;
         $jsData["numPreliminary"] = $numPreliminaryMatches;
         $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
+        $jsData["numSets"] = $umpire->getMaxSets();
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
         wp_enqueue_script( 'manage_matches' );         
@@ -615,8 +684,10 @@ EOT;
   <li><a class="changehome">Replace Home</a></li>
   <li><a class="changevisitor">Replace Visitor</a><li></ul>
  <ul class="matchaction approved">
-  <li><a class="recordscore">Score</a></li>
-  <li><a class="setcomments">Comments</a></li></ul>
+  <li><a class="recordscore">Enter Score</a></li>
+  <li><a class="defaulthome">Default Home</a></li>
+  <li><a class="defaultvisitor">Default Visitor</a></li>
+  <li><a class="setcomments">Comment Match</a></li></ul>
 </div>
 <div class="matchtitle">%s</div>
 <div class="homeentrant %s">%s</div>

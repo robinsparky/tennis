@@ -145,6 +145,9 @@
                     case 'setcomments':
                         updateComments( data );
                         break;
+                    case 'defaultentrant':
+                        updateStatus( data );
+                        break;
                     default:
                         console.log("Unknown task from server: '%s'", task);
                         break;
@@ -154,25 +157,24 @@
 
         function updateHome( data ) {
             console.log('updateHome');
-            console.log( data );
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.homeentrant').text(data.player);
         }
 
         function updateVisitor( data ) {
             console.log('updateVisitor');
-            console.log( data );
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.visitorentrant').text(data.player);
         }
 
         function updateScore( data ) {
             console.log('updateScore');
-            console.log( data );
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             console.log( "Score table: %s; status=%s", data.score, data.status );
             $matchEl.children('.matchscore').empty();
             $matchEl.children('.matchscore').append( data.score );
+            $matchEl.children('.showmatchscores').fadeIn( 500 );
+            $matchEl.children('.changematchscores').hide( 500 );
             $matchEl.children('.matchstatus').text(data.status);
             switch( data.winner ) {
                 case 'home':
@@ -181,12 +183,21 @@
                 case 'visitor':
                     $matchEl.children('.visitorentrant').addClass(winnerclass)
                     break;
+                default:
+                    $matchEl.children('.homeentrant').removeClass(winnerclass)
+                    $matchEl.children('.visitorentrant').removeClass(winnerclass)
+                    break;
             }
+        }
+
+        function updateStatus( data ) {
+            console.log('updateStatus');
+            let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
+            $matchEl.children('.matchstatus').text(data.status);
         }
 
         function updateComments( data ) {
             console.log('updateComments');
-            console.log( data );
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.matchcomments').text(data.comments);
         }
@@ -198,8 +209,16 @@
             attFilter += '[data-roundnum="' + roundNum + '"]';
             attFilter += '[data-matchnum="' + matchNum + '"]';
             let $matchElem = $(attFilter);
-            //console.log($matchElem);
             return $matchElem;
+        }
+
+        function matchIsLocked( obj ) {
+            let $parent = $(obj).parents('.item-player');
+            if( $parent.children('.matchstatus').text().startsWith('Complete')
+             || $parent.children('.matchstatus').text().startsWith('Retire')) {
+                 return true;
+             }
+             return false;
         }
         
         //Get all match data from the element/obj
@@ -211,24 +230,221 @@
             let title = parent.children('.matchtitle').text();
             let home = parent.children('.homeentrant').text().replace("1. ","").replace(/\(.*\)/,'');
             let visitor = parent.children('.visitorentrant').text().replace("2. ","").replace(/\(.*\)/,'');
-            let score = parent.children('.matchscore').text();
             let status = parent.children('.matchstatus').text();
             let comments = parent.children('.matchcomments').text();
             let re = /\((\d+)\,(\d+)\,(\d+)\,(\d+)\)/
-            //console.log(title);
             let found = title.match(re);
-            //console.log(found);
             let eventId = found[1];
             let bracketNum = found[2];
             let roundNum = found[3];
             let matchNum = found[4];
 
-            let data = {"eventid": eventId, "bracketnum": bracketNum, "roundnum": roundNum, "matchnum": matchNum, "home": home, "visitor": visitor, "score": score, "status": status, "comments": comments}
-            console.log("EventId=%d; Bracket Number=%d; Round Number=%d; Match Number=%d; Home=%s; Visitor=%s; Score=%s, Status=%s, Comments=%s"
-                       ,data.eventid, data.bracketnum, data.roundnum, data.matchnum, data.home, data.visitor, data.score, data.status, data.comments);
+            let $homeGames = parent.find('input[name=homeGames]');
+            let $homeTB    = parent.find('input[name=homeTieBreak]');
+            let $visitorGames = parent.find('input[name=visitorGames]');
+            let $visitorTB    = parent.find('input[name=visitorTieBreak]');
+
+            let scores = [];
+            for( let i = 1; i <= tennis_draw_obj.numSets; i++ ) {
+                if( i == tennis_draw_obj.numSets) {
+                    scores.push({"setNum":i,"homeGames": $homeGames[i-1].value,"visitorGames": $visitorGames[i-1].value,"homeTieBreaker": $homeTB.val(), "visitorTieBreaker": $visitorTB.val()});
+                }
+                else {
+                    scores.push({"setNum":i, "homeGames": $homeGames[i-1].value, "visitorGames": $visitorGames[i-1].value, "homeTieBreaker": 0, "visitorTieBreaker": 0});
+                }
+            }
+
+            let data = {"eventid": eventId, "bracketnum": bracketNum, "roundnum": roundNum, "matchnum": matchNum, "home": home, "visitor": visitor, "status": status, "comments": comments, "score": scores }
+            console.log(data);
             return data;
         }
 
+        /* -------------------- Menu Visibility ------------------------------ */
+        //Click on the menu icon to open the menu
+        $('.menu-icon').on('click', function ( event ) {
+            console.log('show menu....');
+            console.log(event.target);
+            if( tennis_draw_obj.isBracketApproved + 0 > 0) {
+                if( $(event.target ).hasClass('.menu-icon') ) {
+                    $(event.target).children('.matchaction.approved').show();
+                }
+                else {
+                    $(event.target).parents('.menu-icon').find('.matchaction.approved').show();
+                }
+            } 
+            else {
+                if( $(event.target ).hasClass('.menu-icon') ) {
+                    $(event.target).children('.matchaction.unapproved').show();
+                }
+                else {
+                    $(event.target).parents('.menu-icon').find('.matchaction.unapproved').show();
+                }
+            }
+            event.preventDefault();
+        });
+        
+        //Support clicking away from the menu to close it
+        $('body').on('click', function( event ) {
+            if( !$(event.target).hasClass('menu-icon') 
+             && !$(event.target).parents().hasClass('menu-icon')
+             && !$(event.target).hasClass('tablematchscores')) {
+                $('.matchaction').hide();
+                $('table.tablematchscores').hide();
+            }
+        });
+        
+        /* ------------------------------Menu Actions ---------------------------------*/
+        //Change the home player/entrant
+        // Can only be done if bracket is not yet approved
+        $('.changehome').on('click', function (event) {
+            console.log("change home");
+            console.log(this);
+            let matchdata = getMatchData(this);
+            let home = prompt("Please enter name of home entrant", matchdata.home);
+            if( null == home ) {
+                return;
+            }
+            let eventId = tennis_draw_obj.eventId;            
+            let bracketName = tennis_draw_obj.bracketName;
+            ajaxFun( {"task": "changehome"
+                    , "eventId": eventId
+                    , "bracketNum": matchdata.bracketnum
+                    , "roundNum": matchdata.roundnum
+                    , "matchNum": matchdata.matchnum
+                    , "bracketName": bracketName
+                    , "player": home } );
+        });
+
+        //Default the home entrant/player
+        $('.defaulthome').on('click', function (event) {
+            console.log("default home");
+            
+            if( matchIsLocked(this)) {
+                alert('Match is completed!')
+                return;
+            }
+            let matchdata = getMatchData(this);
+            let comments = prompt("Please enter reason for defaulting home entrant", matchdata.comments);
+            if( null == comments ) {
+                return;
+            }
+            let eventId = tennis_draw_obj.eventId;            
+            let bracketName = tennis_draw_obj.bracketName;
+            ajaxFun( {"task": "defaultentrant"
+                    , "eventId": eventId
+                    , "bracketNum": matchdata.bracketnum
+                    , "roundNum": matchdata.roundnum
+                    , "matchNum": matchdata.matchnum
+                    , "bracketName": bracketName
+                    , "player": 'home'
+                    , "comments": comments } );
+
+        });
+
+        //Change the home player/entrant
+        // Can only be done if bracket is not yet approved
+        $('.changevisitor').on('click', function (event) {
+            console.log("change visitor");
+            console.log(this);
+            let matchdata = getMatchData(this);
+            let visitor = prompt("Please enter name visitor entrant", matchdata.visitor);
+            if( null == visitor ) {
+                return;
+            }
+
+            let eventId = tennis_draw_obj.eventId;            
+            let bracketName = tennis_draw_obj.bracketName;
+            ajaxFun( {"task": "changevisitor" 
+                    , "eventId": eventId
+                    , "bracketNum": matchdata.bracketnum
+                    , "roundNum": matchdata.roundnum
+                    , "matchNum": matchdata.matchnum
+                    , "bracketName": bracketName
+                    , "player": visitor } );
+        });
+        
+        //Default the visitor entrant/player
+        $('.defaultvisitor').on('click', function (event) {
+            console.log("default visitor");
+            
+            if( matchIsLocked(this)) {
+                alert('Match is completed!')
+                return;
+            }
+
+            let matchdata = getMatchData(this);
+            let comments = prompt("Please enter reason for defaulting visitor entrant", matchdata.comments);
+            if( null == comments ) {
+                return;
+            }
+            let eventId = tennis_draw_obj.eventId;            
+            let bracketName = tennis_draw_obj.bracketName;
+            ajaxFun( {"task": "defaultentrant"
+                    , "eventId": eventId
+                    , "bracketNum": matchdata.bracketnum
+                    , "roundNum": matchdata.roundnum
+                    , "matchNum": matchdata.matchnum
+                    , "bracketName": bracketName
+                    , "player": 'visitor'
+                    , "comments": comments } );
+
+        });
+
+        //Record the match scores
+        $('.recordscore').on('click', function(event) {
+            console.log("record score");
+            if( matchIsLocked(this)) {
+                alert('Match is completed!')
+                return;
+            }
+            let $parent = $(this).parents('.item-player');
+            $parent.find('.showmatchscores').hide();
+            $parent.find('.changematchscores').fadeIn( 500 );
+
+        })
+        //Record the match score
+        $('.savematchscores').on('click', function (event) {
+            console.log("save scores");
+            let matchdata = getMatchData(this);
+            let $parent = $(this).parents('.item-player');
+            $parent.find('.showmatchscores').hide();
+            $parent.find('.changematchscores').fadeOut( 500 );
+
+            let eventId = tennis_draw_obj.eventId;            
+            let bracketName = tennis_draw_obj.bracketName;
+            ajaxFun( {"task": "savescore" 
+                    , "eventId": eventId
+                    , "bracketNum": matchdata.bracketnum
+                    , "roundNum": matchdata.roundnum
+                    , "matchNum": matchdata.matchnum
+                    , "bracketName": bracketName
+                    , "score": matchdata.score } );
+
+        });
+
+        //Capture comments regarding the match
+        $('.setcomments').on('click', function (event) {
+            console.log("record score");
+            console.log(this);
+            let matchdata = getMatchData(this);
+            let comments = prompt("Please enter comments", matchdata.comments);
+            if( null == comments ) {
+                return;
+            }
+
+            let eventId = tennis_draw_obj.eventId;            
+            let bracketName = tennis_draw_obj.bracketName;
+            ajaxFun( {"task": "setcomments"
+                    , "eventId": eventId
+                    , "bracketNum": matchdata.bracketnum
+                    , "roundNum": matchdata.roundnum
+                    , "matchNum": matchdata.matchnum
+                    , "bracketName": bracketName
+                    , "comments": comments } );
+
+        });
+        
+        /* ------------------------Button Actions -------------------------------------- */
         //Approve draw
         $('#approveDraw').on('click', function( event ) {
             console.log("Approve draw fired!");
@@ -252,118 +468,9 @@
 
             $(this).prop('disabled', true);
             ajaxFun( {"task": "reset", "eventId": eventId, "bracketName": bracketName} );
-
         });
 
-        $('.menu-icon').on('click', function ( event ) {
-            console.log('show menu....');
-            console.log(event.target);
-            if( tennis_draw_obj.isBracketApproved + 0 > 0) {
-                if( $(event.target ).hasClass('.menu-icon') ) {
-                    $(event.target).children('.matchaction.approved').show();
-                }
-                else {
-                    $(event.target).parents('.menu-icon').find('.matchaction.approved').show();
-                }
-            } 
-            else {
-                if( $(event.target ).hasClass('.menu-icon') ) {
-                    $(event.target).children('.matchaction.unapproved').show();
-                }
-                else {
-                    $(event.target).parents('.menu-icon').find('.matchaction.unapproved').show();
-                }
-            event.preventDefault();
-        }
-        });
-        
-        $('body').on('click', function( event ) {
-            if( !$(event.target).hasClass('menu-icon') && !$(event.target).parents().hasClass('menu-icon')) {
-                $('.matchaction').hide();
-            }
-        });
-            
-        $('.changehome').on('click', function (event) {
-            console.log("change home");
-            console.log(this);
-            let matchdata = getMatchData(this);
-            let home = prompt("Please enter name of home entrant", matchdata.home);
-            if( null == home ) {
-                return;
-            }
-            let eventId = tennis_draw_obj.eventId;            
-            let bracketName = tennis_draw_obj.bracketName;
-            ajaxFun( {"task": "changehome"
-                    , "eventId": eventId
-                    , "bracketNum": matchdata.bracketnum
-                    , "roundNum": matchdata.roundnum
-                    , "matchNum": matchdata.matchnum
-                    , "bracketName": bracketName
-                    , "player": home } );
-
-        });
-
-        $('.changevisitor').on('click', function (event) {
-            console.log("change visitor");
-            console.log(this);
-            let matchdata = getMatchData(this);
-            let visitor = prompt("Please enter name visitor entrant", matchdata.visitor);
-            if( null == visitor ) {
-                return;
-            }
-
-            let eventId = tennis_draw_obj.eventId;            
-            let bracketName = tennis_draw_obj.bracketName;
-            ajaxFun( {"task": "changevisitor" 
-                    , "eventId": eventId
-                    , "bracketNum": matchdata.bracketnum
-                    , "roundNum": matchdata.roundnum
-                    , "matchNum": matchdata.matchnum
-                    , "bracketName": bracketName
-                    , "player": visitor } );
-        });
-
-        $('.recordscore').on('click', function (event) {
-            console.log("record score");
-            console.log(this);
-            let matchdata = getMatchData(this);
-            let score = prompt("Please enter match score (eg. 6-4, 3-6, 6-6(4)", matchdata.score);
-            if( null == score ) {
-                return;
-            }
-
-            let eventId = tennis_draw_obj.eventId;            
-            let bracketName = tennis_draw_obj.bracketName;
-            ajaxFun( {"task": "recordscore" 
-                    , "eventId": eventId
-                    , "bracketNum": matchdata.bracketnum
-                    , "roundNum": matchdata.roundnum
-                    , "matchNum": matchdata.matchnum
-                    , "bracketName": bracketName
-                    , "score": score } );
-
-        });
-
-        $('.setcomments').on('click', function (event) {
-            console.log("record score");
-            console.log(this);
-            let matchdata = getMatchData(this);
-            let comments = prompt("Please enter comments", matchdata.comments);
-            if( null == comments ) {
-                return;
-            }
-
-            let eventId = tennis_draw_obj.eventId;            
-            let bracketName = tennis_draw_obj.bracketName;
-            ajaxFun( {"task": "setcomments"
-                    , "eventId": eventId
-                    , "bracketNum": matchdata.bracketnum
-                    , "roundNum": matchdata.roundnum
-                    , "matchNum": matchdata.matchnum
-                    , "bracketName": bracketName
-                    , "comments": comments } );
-
-        });
-
+        $('.changematchscores').hide();
+        $('.showmatchscores').show();
     });
 })(jQuery);

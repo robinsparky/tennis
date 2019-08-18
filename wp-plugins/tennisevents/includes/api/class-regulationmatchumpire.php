@@ -167,15 +167,7 @@ class RegulationMatchUmpire extends ChairUmpire
      * @return true if successful, false otherwise
      */
 	public function defaultHome( Match &$match, string $cmts ) {
-        $sets = $match->getSets();
-        $size = count( $sets );
-        if( $size > 0 ) {
-            $sets[$size - 1]->setEarlyEnd( 1 );
-            $sets[$size - 1]->setComments( $cmts );
-            $match->setDirty();
-        }
-        $result = $match->save();
-        return $result > 0;
+        return $this->defaultEntrant( $match, Match::HOME, $cmts );
     }	
 
     /**
@@ -184,11 +176,29 @@ class RegulationMatchUmpire extends ChairUmpire
      * @param $cmts  Any comments explaining the default.
      */
     public function defaultVisitor( Match &$match, string $cmts ) {
+        return $this->defaultEntrant( $match, Match::VISITOR, $cmts );
+    }
+    
+    /**
+     * Default the entrant (player/team) for this Match
+     * @param $match The match being played
+     * @param string @entrantType either visitor or home
+     * @param $cmts  Any comments explaining the default.
+     */
+    public function defaultEntrant( Match &$match, string $entrantType, string $cmts ) {
         $sets = $match->getSets();
         $size = count( $sets );
+        $early = $entrantType === Match::HOME ? 1 : 2;
         if( $size > 0 ) {
-            $sets[$size - 1]->setEarlyEnd( 2 );
+            $sets[$size - 1]->setEarlyEnd( $early );
             $sets[$size - 1]->setComments( $cmts );
+            $match->setDirty();
+        }
+        else {
+            $set = new Set();
+            $set->setEarlyEnd( $early );
+            $match->addSet( $set );
+            $set->setComments( $cmts );
             $match->setDirty();
         }
         $result = $match->save();
@@ -215,7 +225,7 @@ class RegulationMatchUmpire extends ChairUmpire
                 $status = self::INPROGRESS;
                 if( $set->earlyEnd() > 0 ) {
                     $cmts = $set->getComments();
-                    $who = 1 === $set->earlyEnd() ? "home" : "visitor";
+                    $who = 1 === $set->earlyEnd() ? Match::HOME : Match::VISITOR;
                     $status = sprintf("%s %s:%s", self::EARLYEND, $who, $cmts );
                     break;
                 }                
@@ -423,30 +433,51 @@ class RegulationMatchUmpire extends ChairUmpire
         $setNums = range( 1, $this->getMaxSets() );
         foreach( $setNums as $setNum ) {
             if( $setNum === $this->MaxSets ) $sep = '';
-            if( array_key_exists( $setNum, $arrScores ) ) {
-                $scores = $arrScores[ $setNum ];
-                // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
-                //                 , $loc, $match->toString(), $setNum
-                //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
-                if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
-                    $homeScores .= sprintf("<td>%d<sub>%d</sup></td>", $scores[0], $scores[2]);
-                    $visitorScores .= sprintf("<td>%d<sub>%d</sup></td>", $scores[1], $scores[3]);
-                } 
-                else {
-                    $homeScores .= sprintf("<td>%d</td>", $scores[0]);
-                    $visitorScores .= sprintf("<td>%d</td>", $scores[1]);
-                }
+            if( !array_key_exists( $setNum, $arrScores ) ) {
+                $arrScores[$setNum] = [0,0,0,0];
             }
+            $scores = $arrScores[ $setNum ];
+            // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+            //                 , $loc, $match->toString(), $setNum
+            //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
+            $homeTBScores = $visitorTBScores = '';
+            if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
+                $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
+            } 
+            $homeScores .= sprintf("<td><span class='showmatchscores'>%d %s</span><input type='number' class='changematchscores' name='homeGames' value='%d' min='%d' max='%d'>"
+                                    , $scores[0]
+                                    , $homeTBScores
+                                    , $scores[0] 
+                                    , 1, $this->GamesPerSet + 1 );
+            if( $setNum === $this->getMaxSets() ) {
+                $homeScores .= sprintf("<br><input class='changematchscores' type='number' name='homeTieBreak' value='%d'>"
+                                      , $scores[2]);
+            }
+            $homeScores .= "</td>";
+            $visitorScores .= sprintf("<td><span class='showmatchscores'>%d %s</span><input type='number' class='changematchscores' name='visitorGames' value='%d' min='%d' max='%d'>"
+                                    , $scores[1]
+                                    , $visitorTBScores
+                                    , $scores[1] 
+                                    , 1, $this->GamesPerSet + 1 );
+                                    
+            if( $setNum === $this->getMaxSets() ) {
+                $visitorScores .= sprintf("<input class='changematchscores' type='number' name='visitorTieBreak' value='%d'>"
+                                      , $scores[3]);
+            }
+            $visitorScores .= "</td>";
         }
         $homeScores .= "</tr>";
         $visitorScores .= "</tr>";
         $tableScores .= $homeScores;
         $tableScores .= $visitorScores;
         $tableScores .= "</tbody></table>";
+        $tableScores .= "<div class='changematchscores'><button class='savematchscores'>Save</button></div>";
 
         return $tableScores;
 
     }
+    
     
     public function listGetScores( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -498,7 +529,7 @@ class RegulationMatchUmpire extends ChairUmpire
 
         $locked = false;
         $status = $this->matchStatus( $match );
-        if($status === ChairUmpire::COMPLETED || ( strpos( ChairUmpire::EARLYEND, $status ) !== false ) ) {
+        if($status === ChairUmpire::COMPLETED || ( strpos( $status, ChairUmpire::EARLYEND ) !== false ) ) {
             $locked = true;
         }
 

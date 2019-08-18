@@ -189,6 +189,7 @@ table.bracketdraw td {
     font-size: .6rem !important;
     padding-left: 2px;
 }
+
 .matchaction > a {
     color: black;  
     cursor: pointer;
@@ -199,6 +200,27 @@ table.bracketdraw td {
     position: absolute;
     top: 0px;
     left: 0px;
+}
+
+.tablematchscores {
+    display: table;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 300px;
+    border-collapse: collapse;
+    background-color: white; 
+}
+
+.changematchscores {
+    display: none;
+
+}
+
+input.changematchscores {
+    background: rgba(255,255,255,0.5);
+    width: 20%;
+    box-sizing: border-box; 
 }
 
 /*-----------------------------------------------------------------
