@@ -188,12 +188,20 @@
                     $matchEl.children('.visitorentrant').removeClass(winnerclass)
                     break;
             }
+            if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
+                alert("Reloading");
+                window.location.reload();
+            }
         }
 
         function updateStatus( data ) {
             console.log('updateStatus');
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.matchstatus').text(data.status);
+            if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
+                alert("Reloading");
+                window.location.reload();
+            }
         }
 
         function updateComments( data ) {
@@ -212,14 +220,28 @@
             return $matchElem;
         }
 
+        //Determin if match is locked by looling at the stats description
+        //TODO: Need to make this a numeric chack
         function matchIsLocked( obj ) {
             let $parent = $(obj).parents('.item-player');
             if( $parent.children('.matchstatus').text().startsWith('Complete')
              || $parent.children('.matchstatus').text().startsWith('Retire')
-             || $parent.children('.matchstatus').text().startsWith('Bye')) {
+             || $parent.children('.matchstatus').text().startsWith('Bye')
+             || $parent.children('.matchstatus').text().startsWith('Waiting')) {
                  return true;
              }
              return false;
+        }
+
+        //Determine if a match is ready for scoring by looking at status description
+        //TODO: Need to make this a numeric chack
+        function matchIsReady( obj ) {
+            let $parent = $(obj).parents('.item-player');
+            if( $parent.children('.matchstatus').text().startsWith('Not started')
+              || $parent.children('.matchstatus').text().startsWith('In progress')) {
+                  return true;
+            }
+            return false;
         }
         
         //Get all match data from the element/obj
@@ -265,9 +287,10 @@
         //Click on the menu icon to open the menu
         $('.menu-icon').on('click', function ( event ) {
             console.log('show menu....');
-            console.log(event.target);
+            console.log( this );
+            console.log( event.target );
             if( tennis_draw_obj.isBracketApproved + 0 > 0) {
-                if( $(event.target ).hasClass('.menu-icon') ) {
+                if( $(event.target).hasClass('.menu-icon') ) {
                     $(event.target).children('.matchaction.approved').show();
                 }
                 else {
@@ -321,8 +344,8 @@
         $('.defaulthome').on('click', function (event) {
             console.log("default home");
             
-            if( matchIsLocked(this)) {
-                alert('Match is completed or is bye!')
+            if( !matchIsReady(this)) {
+                alert('Match is not ready for scoring.')
                 return;
             }
             let matchdata = getMatchData(this);
@@ -369,8 +392,8 @@
         $('.defaultvisitor').on('click', function (event) {
             console.log("default visitor");
             
-            if( matchIsLocked(this)) {
-                alert('Match is completed or is bye!')
+            if( !matchIsReady(this)) {
+                alert('Match is not read for scoring.')
                 return;
             }
 
@@ -395,8 +418,8 @@
         //Record the match scores
         $('.recordscore').on('click', function(event) {
             console.log("record score");
-            if( matchIsLocked(this)) {
-                alert('Match is completed or is bye!')
+            if( !matchIsReady(this)) {
+                alert('Match is not ready for scoring.')
                 return;
             }
             let $parent = $(this).parents('.item-player');

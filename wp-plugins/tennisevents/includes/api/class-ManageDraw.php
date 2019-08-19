@@ -391,9 +391,10 @@ class ManageDraw
                                                 , $score["homeTieBreaker"]
                                                 , $score["visitorGames"]
                                                 , $score["visitorTieBreaker"] );
+                    if( $chairUmpire->isLocked( $match ) ) break;
                 }
                 //Advance the bracket
-                $td->advance( $bracketName );
+                $data['advanced'] = $td->advance( $bracketName );
                 $newScore = $chairUmpire->tableGetScores( $match );
                 $data['score'] = $newScore;
                 $data['status'] = $chairUmpire->matchStatus( $match );
@@ -501,12 +502,12 @@ class ManageDraw
                 case "home":
                     $chairUmpire->defaultHome( $match, $comments );
                     $status = $chairUmpire->matchStatus( $match );
-                    $td->advance( $bracketName );
+                    $data['advanced'] = $td->advance( $bracketName );
                     break;
                 case "visitor":
                     $chairUmpire->defaultVisitor( $match, $comments );
-                    $td->advance( $bracketName );
                     $status = $chairUmpire->matchStatus( $match );
+                    $data['advanced'] = $td->advance( $bracketName );
                     break;
                 default:
                     $mess  = __("Unable to default '$player'", TennisEvents::TEXT_DOMAIN );
@@ -554,7 +555,6 @@ class ManageDraw
             }
             $match->setComments( $comments );
             $match->save();
-            $td->advance( $bracketName );
             $data['comments'] = $comments;
         }
         catch( Exception $ex ) {
@@ -673,13 +673,10 @@ EOT;
 
         $templ = <<<EOT
 <td class="item-player" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d">
-
 <div class="menu-icon">
-<svg viewBox="0 0 100 10" xmlns="http://www.w3.org/2000/svg">
-  <line x1="0" y1="0" x2="12" y2="0" stroke="black" />
-  <line x1="0" y1="2" x2="12" y2="2" stroke="black" />
-  <line x1="0" y1="4" x2="12" y2="4" stroke="black" />
-</svg>
+<div class="bar1"></div>
+<div class="bar2"></div>
+<div class="bar3"></div>
  <ul class="matchaction unapproved">
   <li><a class="changehome">Replace Home</a></li>
   <li><a class="changevisitor">Replace Visitor</a><li></ul>

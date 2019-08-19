@@ -196,8 +196,9 @@ class RegulationMatchUmpire extends ChairUmpire
         }
         else {
             $set = new Set();
-            $set->setEarlyEnd( $early );
+            $set->setSetNumber( 1 );
             $match->addSet( $set );
+            $set->setEarlyEnd( $early );
             $set->setComments( $cmts );
             $match->setDirty();
         }
@@ -263,13 +264,13 @@ class RegulationMatchUmpire extends ChairUmpire
             foreach( $sets as $set ) {
                 if( 1 === $set->earlyEnd() ) {
                     //Home defaulted
-                    $andTheWinnerIs = $home->getName();
+                    $andTheWinnerIs = $home;
                     $finished = true;
                     break;
                 }
                 elseif( 2 === $set->earlyEnd() ) {
                     //Visitor defaulted
-                    $andTheWinnerIs = $visitor->getName();
+                    $andTheWinnerIs = $visitor;
                     $finished = true;
                     break;
                 }
@@ -425,45 +426,54 @@ class RegulationMatchUmpire extends ChairUmpire
 
         $scoreClass = "tennistablescores";
         $arrScores = $this->getScores( $match );
+        $setNums = range( 1, $this->getMaxSets() );
+
+        //Start the table and place the header row
         $tableScores = '<table class="' . $scoreClass . '"><tbody>';
+        $tableScores .= '<thead class="changematchscores"><tr>';
+        foreach( $setNums as $setNum ) {
+            $tableScores .= "<th>$setNum</th>";
+        }
+        $tableScores .= "<th>TB</th></tr></thead>";
+
+        //Now put the actual scores into the table
         $homeScores  = "<tr>";
         $visitorScores = "<tr>";
-        $setNums = range( 1, $this->getMaxSets() );
         foreach( $setNums as $setNum ) {
-            if( $setNum === $this->MaxSets ) $sep = '';
+            //If set does not exist yet then fake it
             if( !array_key_exists( $setNum, $arrScores ) ) {
                 $arrScores[$setNum] = [0,0,0,0];
             }
             $scores = $arrScores[ $setNum ];
-            // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
-            //                 , $loc, $match->toString(), $setNum
-            //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
+            $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                            , $loc, $match->toString(), $setNum
+                            , $scores[0], $scores[1], $scores[2], $scores[3] );
+            $this->log->error_log($mess);
+
             $homeTBScores = $visitorTBScores = '';
             if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
                 $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
                 $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
             } 
-            $homeScores .= sprintf("<td><span class='showmatchscores'>%d %s</span><input type='number' class='changematchscores' name='homeGames' value='%d' min='%d' max='%d'>"
+            $homeScores .= sprintf("<td><span class='showmatchscores'>%d %s</span><input type='number' class='changematchscores' name='homeGames' value='%d' min='%d' max='%d'></td>"
                                     , $scores[0]
                                     , $homeTBScores
                                     , $scores[0] 
                                     , 1, $this->GamesPerSet + 1 );
             if( $setNum === $this->getMaxSets() ) {
-                $homeScores .= sprintf("<br><input class='changematchscores' type='number' name='homeTieBreak' value='%d'>"
+                $homeScores .= sprintf("<td><input class='changematchscores' type='number' name='homeTieBreak' value='%d'></td>"
                                       , $scores[2]);
             }
-            $homeScores .= "</td>";
-            $visitorScores .= sprintf("<td><span class='showmatchscores'>%d %s</span><input type='number' class='changematchscores' name='visitorGames' value='%d' min='%d' max='%d'>"
+            $visitorScores .= sprintf("<td><span class='showmatchscores'>%d %s</span><input type='number' class='changematchscores' name='visitorGames' value='%d' min='%d' max='%d'></td>"
                                     , $scores[1]
                                     , $visitorTBScores
                                     , $scores[1] 
                                     , 1, $this->GamesPerSet + 1 );
                                     
             if( $setNum === $this->getMaxSets() ) {
-                $visitorScores .= sprintf("<input class='changematchscores' type='number' name='visitorTieBreak' value='%d'>"
+                $visitorScores .= sprintf("<td><input class='changematchscores' type='number' name='visitorTieBreak' value='%d'></td>"
                                       , $scores[3]);
             }
-            $visitorScores .= "</td>";
         }
         $homeScores .= "</tr>";
         $visitorScores .= "</tr>";
