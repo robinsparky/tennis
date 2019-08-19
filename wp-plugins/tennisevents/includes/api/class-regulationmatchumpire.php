@@ -425,8 +425,6 @@ class RegulationMatchUmpire extends ChairUmpire
 
         $scoreClass = "tennistablescores";
         $arrScores = $this->getScores( $match );
-        if( count( $arrScores) === 0 ) return '<table class="' . $scoreClass . '"></table>';
-
         $tableScores = '<table class="' . $scoreClass . '"><tbody>';
         $homeScores  = "<tr>";
         $visitorScores = "<tr>";
@@ -472,7 +470,7 @@ class RegulationMatchUmpire extends ChairUmpire
         $tableScores .= $homeScores;
         $tableScores .= $visitorScores;
         $tableScores .= "</tbody></table>";
-        $tableScores .= "<div class='changematchscores'><button class='savematchscores'>Save</button></div>";
+        $tableScores .= "<div class='changematchscores'><button class='savematchscores'>Save</button> <button class='cancelmatchscores'>Cancel</button></div>";
 
         return $tableScores;
 

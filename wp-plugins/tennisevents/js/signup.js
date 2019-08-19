@@ -180,9 +180,9 @@
             if( numPreliminary < 1 ) {
                 $('#createPrelim').prop('disabled', false);
                 $('button.entrantDelete').prop('disabled', false);
-                $('#addEntrant').props('disabled', false);
-                $('input.entrantName').props('disabled', false);
-                $('input.entrantSeed').props('disabled', false);
+                $('#addEntrant').prop('disabled', false);
+                $('input.entrantName').prop('disabled', false);
+                $('input.entrantSeed').prop('disabled', false);
             }
             else {
                 $('#createPrelim').prop('disabled', true);

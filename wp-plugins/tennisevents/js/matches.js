@@ -139,7 +139,7 @@
                     case 'changevisitor':
                         updateVisitor( data );
                         break;
-                    case 'recordscore':
+                    case 'savescore':
                         updateScore( data );
                         break;
                     case 'setcomments':
@@ -215,7 +215,8 @@
         function matchIsLocked( obj ) {
             let $parent = $(obj).parents('.item-player');
             if( $parent.children('.matchstatus').text().startsWith('Complete')
-             || $parent.children('.matchstatus').text().startsWith('Retire')) {
+             || $parent.children('.matchstatus').text().startsWith('Retire')
+             || $parent.children('.matchstatus').text().startsWith('Bye')) {
                  return true;
              }
              return false;
@@ -239,6 +240,7 @@
             let roundNum = found[3];
             let matchNum = found[4];
 
+            //NOTE: these jquery objects should always have non-empty arrays of equal length
             let $homeGames = parent.find('input[name=homeGames]');
             let $homeTB    = parent.find('input[name=homeTieBreak]');
             let $visitorGames = parent.find('input[name=visitorGames]');
@@ -320,7 +322,7 @@
             console.log("default home");
             
             if( matchIsLocked(this)) {
-                alert('Match is completed!')
+                alert('Match is completed or is bye!')
                 return;
             }
             let matchdata = getMatchData(this);
@@ -368,7 +370,7 @@
             console.log("default visitor");
             
             if( matchIsLocked(this)) {
-                alert('Match is completed!')
+                alert('Match is completed or is bye!')
                 return;
             }
 
@@ -394,15 +396,24 @@
         $('.recordscore').on('click', function(event) {
             console.log("record score");
             if( matchIsLocked(this)) {
-                alert('Match is completed!')
+                alert('Match is completed or is bye!')
                 return;
             }
             let $parent = $(this).parents('.item-player');
             $parent.find('.showmatchscores').hide();
             $parent.find('.changematchscores').fadeIn( 500 );
 
+        });
+
+        $('.cancelmatchscores').on('click', function( event ) {
+            console.log("cancel scores");
+            
+            let $parent = $(this).parents('.item-player');
+            $parent.find('.changematchscores').hide();
+            $parent.find('.showmatchscores').fadeIn( 500 );
         })
-        //Record the match score
+
+        //Save the recorded match score
         $('.savematchscores').on('click', function (event) {
             console.log("save scores");
             let matchdata = getMatchData(this);

@@ -223,6 +223,34 @@ input.changematchscores {
     box-sizing: border-box; 
 }
 
+button.savematchscores {
+    width: 40%;
+    background-color: blue;
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-size: x-small;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-transform: none;
+}
+
+button.cancelmatchscores {
+    width: 40%;
+    background-color: blue;
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-size: x-small;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-transform: none;
+}
+
 /*-----------------------------------------------------------------
  * Signup styling
  *----------------------------------------------------------------*/

@@ -359,7 +359,7 @@ class ManageDraw
         $bracketNum    = $data["bracketNum"];
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
-        $strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
+        //$strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );

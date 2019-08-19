@@ -265,9 +265,9 @@ class Set extends AbstractData
         elseif( $this->set_num < 1 || $this->set_num > self::MAXSETS ) {
             $mess = __( "Invalid set number." );
         }
-        elseif( 0 === $this->home_wins && 0 === $this->visitor_wins && !$this->earlyEnd() ) {
-            $mess =  __( "Both home and visitor scores cannot be zero." );
-        }
+        // elseif( 0 === $this->home_wins && 0 === $this->visitor_wins && !$this->earlyEnd() ) {
+        //     $mess =  __( "Both home and visitor scores cannot be zero." );
+        // }
 
         if( strlen( $mess ) > 0 ) throw new InvalidSetException( $mess );
 
