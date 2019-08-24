@@ -577,7 +577,7 @@ class Match extends AbstractData
     }
 
     public function getMatchTime_Str() {
-        if( !isset( $this->match_time ) ) return null;
+        if( !isset( $this->match_time ) ) return '';
         else return $this->match_time->format( self::$outtimeformat );
     }
 
@@ -599,9 +599,9 @@ class Match extends AbstractData
         $result = false;
         $home = $this->getHomeEntrant();
         $visitor = $this->getVisitorEntrant();
-        $this->log->error_log(sprintf( "%s -> isset home=%d; isset visitor=%d; is bye=%d"
-                                     ,$loc, isset( $home ), isset( $visitor ), $this->isBye() ) );
         if( (!isset( $home ) || !isset( $visitor ))  && !$this->isBye() ) $result = true;
+        $this->log->error_log(sprintf( "%s(%s) -> isset home=%d; isset visitor=%d; is bye=%d; is waiting=%d"
+                                     ,$loc, $this->title(), isset( $home ), isset( $visitor ), $this->isBye(), $result ) );
         return $result;
     }
     
@@ -686,8 +686,8 @@ class Match extends AbstractData
                 $set->setMatch( $this );
             }
         }
-        usort( $this->sets, array( __CLASS__, 'sortBySetNumberAsc' ) );
-        return $this->sets;
+        if(usort( $this->sets, array( __CLASS__, 'sortBySetNumberAsc' ) ) ) return $this->sets;
+        throw new InvalidMatchException("Could not sort matches sets!");
     }
 
     /**
@@ -1000,7 +1000,8 @@ class Match extends AbstractData
      * Helper to sort sets by ascending set number
      */
     private function sortBySetNumberAsc( $a, $b ) {
-        if($a->getSetNumber() === $b->getSetNumber()) return 0; return ($a->getSetNumber() < $b->getSetNumber()) ? 1 : -1;
+        if($a->getSetNumber() == $b->getSetNumber()) return 0; 
+        return ($a->getSetNumber() > $b->getSetNumber()) ? 1 : -1;
     }
 
     /**

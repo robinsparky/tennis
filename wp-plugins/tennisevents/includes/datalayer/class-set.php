@@ -65,12 +65,18 @@ class Set extends AbstractData
                  WHERE event_ID = %d 
                  AND   bracket_num = %d 
                  AND   round_num = %d 
-                 AND   match_num = %d;";
+                 AND   match_num = %d
+                 ORDER BY set_num asc;";
 
 		$safe = $wpdb->prepare( $sql, $fk_criteria );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 		
-		error_log( sprintf("Set::find(%d,%d,%d,%d) -> %d rows returned", $fk_criteria[0], $fk_criteria[1], $fk_criteria[2], $fk_criteria[3], $wpdb->num_rows ) );
+        error_log( sprintf("Set::find(%d,%d,%d,%d) -> %d rows returned"
+                          , $fk_criteria[0]
+                          , $fk_criteria[1]
+                          , $fk_criteria[2]
+                          , $fk_criteria[3]
+                          , $wpdb->num_rows ) );
 
 		foreach( $rows as $row ) {
             $obj = new Set( $fk_criteria );
