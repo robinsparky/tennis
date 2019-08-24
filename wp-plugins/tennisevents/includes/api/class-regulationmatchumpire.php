@@ -248,6 +248,8 @@ class RegulationMatchUmpire extends ChairUmpire
      */
     public function matchWinner( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        $title = $match->toString();
+        $this->log->error_log("$loc($title)");
 
         $andTheWinnerIs = null;
         $home = $match->getHomeEntrant();
@@ -260,17 +262,22 @@ class RegulationMatchUmpire extends ChairUmpire
             $andTheWinnerIs = $home;
         }
         elseif( !$match->isWaiting() ) {
+            //NOTE: It is imperative that sets be in ascending order of set number
             $sets = $match->getSets();
+            $numSets = count( $sets );
+            $this->log->error_log("$loc($title) has $numSets sets");
+
             foreach( $sets as $set ) {
+                $this->log->error_log("$loc($title): set number={$set->getSetNumber()}");
                 if( 1 === $set->earlyEnd() ) {
                     //Home defaulted
-                    $andTheWinnerIs = $home;
+                    $andTheWinnerIs = $visitor;
                     $finished = true;
                     break;
                 }
                 elseif( 2 === $set->earlyEnd() ) {
                     //Visitor defaulted
-                    $andTheWinnerIs = $visitor;
+                    $andTheWinnerIs = $home;
                     $finished = true;
                     break;
                 }
@@ -301,12 +308,16 @@ class RegulationMatchUmpire extends ChairUmpire
                             ++$visitorSetsWon;
                         }
                         else { //match not finished yet
+                            $this->log->error_log("$loc($title): set number={$set->getSetNumber()} not finished tie breaker yet");
                             break;
                         }
                     }
                 }
             } //foreach
         } //Not is waiting
+        else {
+            $this->log->error_log("$loc($title) is waiting.");
+        }
 
         //Best 3 of 5 or 2 of 3
         if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
@@ -395,7 +406,7 @@ class RegulationMatchUmpire extends ChairUmpire
         $this->log->error_log( $mess );
 
         $arrScores = $this->getScores( $match );
-        if( count( $arrScores) === 0 ) return '...';
+        if( count( $arrScores) === 0 ) return '';
 
         $strScores = '';
         $sep = ',';

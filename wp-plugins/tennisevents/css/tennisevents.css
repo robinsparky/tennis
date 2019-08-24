@@ -74,7 +74,7 @@ datalist#emaildata {
 }
 
 /*------------------------------------------------------------------------------------
- * Draw Styling
+ * Match Draw Styling
  *-----------------------------------------------------------------------------------*/
  :root {
     --fieldsize: 4;
@@ -85,23 +85,35 @@ datalist#emaildata {
  }
  
 table.bracketdraw {
-    table-layout: fixed;
     width: 100%;
     border-collapse: collapse;
-    border: 3px solid purple;
-    font-size: .75rem;
+    border: 1px solid purple !important;
+    font-size: 1rem;
 }
+
 table.bracketdraw th {
-    border: 3px solid purple;
+    border: 1px solid black;
+    border-right: 3px solid black;
+    text-align: center;
+    vertical-align: middle;
 }
+
 table.bracketdraw td {
-    border: 3px solid purple;
-    background-color: rgb(176,224,230);
+    border: 1px solid black;
+    border-bottom: 3px solid black;
+    border-right: 3px solid black;
+    text-align: center;
+    vertical-align: middle;
 }
+/* td:nth-child(odd) { vertical-align: top;}
+td:nth-child(even) { vertical-align: bottom;} */
+/* tr.drawRow:nth-child(odd)	{ background-color:rgb(176,224,230); }
+tr.drawRow:nth-child(even) { background-color:#fff; } */
 
 .tennistablescores {
     border-collapse: collapse;
     border: none !important;
+    margin: 5px 0px 0px 0px;
 }
 .tennistablescores td {
     padding: 0 !important;
@@ -113,14 +125,13 @@ table.bracketdraw td {
 }
 
 .matchstatus {
-    font-size: 80%;
     color: blue;
+    font-size: 85%;
 }
 
 .matchcomments {
     color: white;
     background-color: red;
-    font-size: 80%;
 }
 
 .matchwinner {

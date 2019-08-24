@@ -168,7 +168,10 @@ class ManageSignup
         $bracketName = $my_shorts["bracketname"];
         $bracket = $target->getBracket( $bracketName );
         if( is_null( $bracket ) ) {
-            $bracket = $target->getWinnersBracket();        
+            //$bracket = $target->getWinnersBracket();   
+            $mess =  __('No such bracket:', TennisEvents::TEXT_DOMAIN ); 
+            $mess .= $bracketName;
+            return $mess;    
         }
         
         $td = new TournamentDirector( $target );
@@ -176,7 +179,10 @@ class ManageSignup
         $clubName = $club->getName();
         $isApproved = $bracket->isApproved();
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
-        $this->signup = $td->getSignup();
+        //Get the signup for this bracket
+        //NOTE: Winners bracket gets the event's signup
+        //      Consolation bracket gets the losers from the first 2 rounds
+        $this->signup = $td->getSignup( $bracketName );
         $numSignedUp = count( $this->signup );
 
         $jsData = $this->get_ajax_data();
@@ -220,8 +226,7 @@ EOT;
             $nameId = str_replace( ' ', '_', $name );
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
-            $templ = $isApproved ? $templr : $templw;
-            if( $numPrelimMatches > 0 ) {
+            if( $numPrelimMatches > 0 || $bracketName !== Bracket::WINNERS ) {
                 $tbl = sprintf( $templr, $nameId, $pos, $rname );
             }
             else {
@@ -231,9 +236,12 @@ EOT;
         }
         $out .= '</ul>' . PHP_EOL;
 
-        if( $numPrelimMatches < 1 ) {
+        if( $numPrelimMatches < 1 && $bracketName === Bracket::WINNERS ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;
+        }
+        elseif( $numPrelimMatches < 1 && $bracketName === Bracket::CONSOLATION ) {
+            $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;   
         }
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';

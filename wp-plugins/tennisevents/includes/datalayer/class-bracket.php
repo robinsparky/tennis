@@ -45,7 +45,7 @@ class Bracket extends AbstractData
 		$col = array();
 
 		return $col;
-	}
+    }
 
 	/**
 	 * Find Brackets referenced in a given Event
@@ -74,7 +74,6 @@ class Bracket extends AbstractData
 			$col[] = $obj;
 		}
 		return $col;
-
 	}
 
 	/**
@@ -199,7 +198,8 @@ class Bracket extends AbstractData
             //TODO:needs investigation
         }
         elseif( self::CONSOLATION === $this->getName() ) {
-            $signup = $this->getSignup( $umpire );
+            //$signup = $this->getSignup( $umpire );
+            $signup = $this->entrantsByMatchCount( 2 );
             $size = count( $signup );
         }
         return $size;
@@ -207,7 +207,7 @@ class Bracket extends AbstractData
 
     /**
      * Get this bracket's signup
-     * TODO: Figure out how to get losers/consolation signup
+     * TODO: Figure out how to get losers signup
      */
     public function getSignup( $umpire = null ) {
         $result = array();
@@ -218,8 +218,44 @@ class Bracket extends AbstractData
         }
         elseif( self::CONSOLATION === $this->getName() ) {
             //s/b losers from first or second (if had bye in first and not seeded) round of Winners bracket
-            $result = $this->getEarlyLosers( $umpire );
+            //$result = $this->getEarlyLosers( $umpire );
+            $result = $this->entrantsByMatchCount( 2 );
         }
+        return $result;
+    }
+    
+    private function entrantsByMatchCount( int $numberMatches = 99 ) {
+		global $wpdb;
+        $loc = __CLASS__ . '::' .  __FUNCTION__;
+
+        $result = array();
+
+        $sql = "select ent.position as position, count(*) as numMatches
+        from wp_tennis_event e
+        inner join wp_tennis_bracket b on b.event_ID = e.ID
+        inner join wp_tennis_match m on m.event_ID = b.event_ID and m.bracket_num = b.bracket_num
+        left join wp_tennis_match_entrant me on me.match_event_ID = m.event_ID and me.match_bracket_num = m.bracket_num and me.match_round_num = m.round_num and me.match_num = m.match_num
+        left join wp_tennis_entrant ent on ent.position = me.entrant_position and ent.event_ID = me.match_event_ID
+        where m.is_bye = 0 and ent.name is not null
+        and b.name = '%s'
+        and e.ID = %d
+        and ent.seed < 1
+        group by  ent.position
+        having numMatches <= %d";
+
+        $safe = $wpdb->prepare( $sql, self::WINNERS, $this->getEventId(), $numberMatches );
+        $rows = $wpdb->get_results( $safe, ARRAY_A );
+
+        $this->log->error_log($rows, "$loc");
+
+        foreach( $rows as $row ) {
+            $position = (int) $row["position"];
+            $entrant = Entrant::get($this->getEventId(), $position );
+            if( is_null( $entrant ) ) continue;
+            $result[] = $entrant;
+        }
+
+        $this->log->error_log($result, "$loc");
         return $result;
     }
 
@@ -236,6 +272,7 @@ class Bracket extends AbstractData
         }
         return $earlyLosers;
     }
+
 
     /**
      * Get all the known losers in the main (i.e. winners ) bracket

@@ -127,7 +127,7 @@
         function formatScores( scores ) {
             ret = '';
             if( typeof scores === 'string' ) {
-                ret = ' (' + scores + ')';
+                ret = '<div class="drawscores">' + scores + '</div>';
             }
             return ret;
         }

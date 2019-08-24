@@ -456,9 +456,26 @@
 
         });
 
+        //Capture start date & time of the match
+        $('.matchstart').on('click', function (event) {
+            console.log("match start");
+            console.log(this);
+            let matchdata = getMatchData(this);
+
+            let eventId = tennis_draw_obj.eventId;            
+            let bracketName = tennis_draw_obj.bracketName;
+            ajaxFun( {"task": "setcomments"
+                    , "eventId": eventId
+                    , "bracketNum": matchdata.bracketnum
+                    , "roundNum": matchdata.roundnum
+                    , "matchNum": matchdata.matchnum
+                    , "bracketName": bracketName
+                    , "comments": comments } );
+        });
+
         //Capture comments regarding the match
         $('.setcomments').on('click', function (event) {
-            console.log("record score");
+            console.log("set comments");
             console.log(this);
             let matchdata = getMatchData(this);
             let comments = prompt("Please enter comments", matchdata.comments);
@@ -505,6 +522,6 @@
         });
 
         $('.changematchscores').hide();
-        $('.showmatchscores').show();
+        $('.showmatchscores').show();  
     });
 })(jQuery);

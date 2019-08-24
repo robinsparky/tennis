@@ -684,6 +684,7 @@ EOT;
   <li><a class="recordscore">Enter Score</a></li>
   <li><a class="defaulthome">Default Home</a></li>
   <li><a class="defaultvisitor">Default Visitor</a></li>
+  <li><a class="setstart">Start Date &amp; Time</a></li>
   <li><a class="setcomments">Comment Match</a></li></ul>
 </div>
 <div class="matchtitle">%s</div>
@@ -691,6 +692,7 @@ EOT;
 <div class="matchscore">%s</div>
 <div class="visitorentrant %s">%s</div>
 <div class="matchstatus">%s</div>
+<div class="matchstart">%s</div>
 <div class="matchcomments">%s</div>
 </td>
 EOT;
@@ -737,14 +739,16 @@ EOT;
                 $cmts = isset( $cmts ) ? $cmts : '';
                 $score   = $umpire->tableGetScores( $match );                        
                 $status  = $umpire->matchStatus( $match );
-
-                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $match->toString()
+                $start = $match->getMatchTime_Str();
+                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum
+                               , $match->toString()
                                , $homeWinner
                                , $hname
                                , $score
                                , $visitorWinner
                                , $vname
                                , $status
+                               , $start
                                , $cmts );
 
                 $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
@@ -776,16 +780,19 @@ EOT;
                     $vname = empty($vseed) ? $vname : $vname . "($vseed)";
                     $cmts = $futureMatch->getComments();
                     $cmts = isset( $cmts ) ? $cmts : '';
+                    $start = $match->getMatchTime_Str();
 
                     $score   = $umpire->tableGetScores( $futureMatch );                        
                     $status  = $umpire->matchStatus( $futureMatch );
-                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum, $futureMatch->toString()               
+                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum
+                                   , $futureMatch->toString()               
                                    , $homeWinner
                                    , $hname
                                    , $score
                                    , $visitorWinner
                                    , $vname
                                    , $status
+                                   , $start
                                    , $cmts );
                 }     
             }
@@ -889,7 +896,6 @@ EOT;
         return $futureMatches;
     }
 
-       
     /**
      * Renders draw showing entrants for the given bracket
      * @param $td The tournament director for this bracket
@@ -913,7 +919,7 @@ EOT;
         $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
 
         if( count( $loadedMatches ) === 0 ) {
-            $out = '<h3>' . "{$tournamentName} - {$bracketName}" . '</h3>';
+            $out = '<h3>' . "{$tournamentName} - {$bracketName} Bracket" . '</h3>';
             $out .= "<div>". __("No matches scheduled yet", TennisEvents::TEXT_DOMAIN ) . "</div>";
             return $out;
         }
@@ -927,7 +933,7 @@ EOT;
   
 
         $umpire = $td->getChairUmpire();
-        $gen = new DrawTemplateGenerator("$tournamentName - $bracketName", $signupSize, $eventId, $bracketName  );
+        $gen = new DrawTemplateGenerator("$tournamentName - $bracketName Bracket", $signupSize, $eventId, $bracketName  );
         
         $template = $gen->generateTable();
         

@@ -192,7 +192,7 @@ class Entrant extends AbstractData
 
 		error_log( sprintf("%s(%d,%d) -> %d rows returned.", $loc, $pks[0], $pks[1], $wpdb->num_rows ) );
 
-		if($rows.length === 1) {
+		if(count($rows) === 1) {
 			$obj = new Entrant( ...$pks );
 			self::mapData( $obj, $rows[0] );
 		}

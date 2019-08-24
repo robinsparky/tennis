@@ -353,8 +353,16 @@ class TournamentDirector
     /**
      * Get ths signup for this tournament sorted by position in the draw
      */
-    public function getSignup() {
-        $entrants = isset( $this->event ) ? $this->event->getSignup() : array();
+    public function getSignup( $bracketName = Bracket::WINNERS ) {
+        if( $bracketName === Bracket::WINNERS ) {
+            $entrants = isset( $this->event ) ? $this->event->getSignup() : array();
+        }
+        elseif( $bracketName === Bracket::CONSOLATION ) {
+            $bracket = $this->getBracket( $bracketName );
+            $umpire = $this->getChairUmpire();
+            $entrants = $bracket->getSignup( $umpire );
+        }
+
         usort( $entrants, array( 'TournamentDirector', 'sortByPositionAsc' ) );
 
         return $entrants;
