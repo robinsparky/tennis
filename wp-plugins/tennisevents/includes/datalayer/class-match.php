@@ -27,6 +27,7 @@ class Match extends AbstractData
     private static $indateformat = "!Y-m-d";
     private static $outdateformat = "Y-m-d";
     private static $intimeformat = "H:i";
+    private static $intimeformat2 = "H:i:u";
     private static $outtimeformat = "H:i";
     
     private $match_type; 
@@ -497,12 +498,15 @@ class Match extends AbstractData
      * @param $date is a string in Y-m-d format
      */
     public function setMatchDate_Str( string $date ) {
-		$result = false;
-		$test = DateTime::createFromFormat( self::$indateformat, $end );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $end );
-		if(false === $test) $test = DateTime::createFromFormat( '!j/n/Y', $end );
-		if(false === $test) $test = DateTime::createFromFormat( '!d/m/Y', $end );
-		if(false === $test) $test = DateTime::createFromFormat( '!d-m-Y', $end );
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $result = false;
+        if( is_null( $date ) || empty( $date ) ) return $result;
+
+		$test = DateTime::createFromFormat( self::$indateformat, $date );
+		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $date );
+		if(false === $test) $test = DateTime::createFromFormat( '!j/n/Y', $date );
+		if(false === $test) $test = DateTime::createFromFormat( '!d/m/Y', $date );
+		if(false === $test) $test = DateTime::createFromFormat( '!d-m-Y', $date );
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
@@ -521,16 +525,32 @@ class Match extends AbstractData
     }
 
     public function setMatchDate( int $year, int $month, int $day ) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log("$loc:{$this->toString()}($year,$month,$day)");
+
         if( !isset( $this->match_date ) ) $this->match_date = new DateTime();
         $this->match_date->setDate( $year, $month, $day );
         $this->match_date->setTime( 0, 0, 0 );
+    }
+
+    public function setMatchDate_TS( int $timestamp ) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log("$loc:{$this->toString()}($timestamp)");
+
+        if( !isset( $this->match_date ) ) $this->match_date = new DateTime();
+        $this->match_date->setTimeStamp( $timestamp );
     }
 
 	/**
 	 * Get the Match date in string format
 	 */
 	public function getMatchDate_Str() {
-		if( !isset( $this->match_date ) ) return null;
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->match_date, $loc);
+
+		if( !isset( $this->match_date ) || is_null( $this->match_date ) ) {
+            return '';
+        }
 		else return $this->match_date->format( self::$outdateformat );
 	}
 	
@@ -539,7 +559,7 @@ class Match extends AbstractData
 	 */
 	public function getMatchDate_ISO() {
 		if( !isset( $this->match_date ) ) return null;
-		else return $this->match_date->format (DateTime::ISO8601 );
+		else return $this->match_date->format(DateTime::ISO8601 );
 	}
 
     /**
@@ -547,9 +567,15 @@ class Match extends AbstractData
      * @param $time is a string in hh-mm-ss format
      */
     public function setMatchTime_Str( string $time ) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+
 		$result = false;
-		$test = DateTime::createFromFormat( self::$intimeformat, $end );
-		$last = DateTIme::getLastErrors();
+        if( is_null( $time ) || empty( $time ) ) return $result;
+
+        $test = DateTime::createFromFormat( self::$intimeformat, $time );		
+        if(false === $test) $test = DateTime::createFromFormat( self::$intimeformat2, $time );
+
+		$last = DateTime::getLastErrors();
 		if($last['error_count'] > 0) {
 			$arr = $last['errors'];
 			$mess = '';
@@ -567,6 +593,8 @@ class Match extends AbstractData
     }
 
     public function setMatchTime( int $hour, int $minutes ) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log("$loc($hour,$minutes)");
         if( !isset( $this->match_time ) ) {
             $this->match_time = new DateTime();
         }
@@ -577,8 +605,14 @@ class Match extends AbstractData
     }
 
     public function getMatchTime_Str() {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->match_time, $loc);
         if( !isset( $this->match_time ) ) return '';
-        else return $this->match_time->format( self::$outtimeformat );
+
+        $result =  $this->match_time->format( self::$outtimeformat );
+        if( $result == "00:00") $result='';
+
+        return $result;
     }
 
     public function getMatchTime() {
@@ -1186,8 +1220,27 @@ class Match extends AbstractData
         $obj->round_num    = (int) $row["round_num"];
         $obj->match_num    = (int) $row["match_num"];
         $obj->match_type   = (float) $row["match_type"];
-		$obj->match_date   = isset( $row["match_date"] ) ? new DateTime( $row["match_date"] ) : null;
-		$obj->match_time   = isset( $row["match_time"] ) ? new DateTime( $row["match_time"] ) : null;
+        //$obj->match_date   = isset( $row["match_date"] ) ? new DateTime( $row["match_date"] ) : null;
+        $timestamp = strtotime($row["match_date"]);
+        if( $timestamp > 0 ) {
+            // list( $year, $month, $day ) = explode('-', $row["match_date"]);
+            // $obj->setMatchDate( $year, $month, $day );
+            $obj->setMatchDate_TS( $timestamp );
+        }
+        else {
+            $obj->match_date = null;
+        }
+
+        //$obj->match_time   = isset( $row["match_time"] ) ? new DateTime( $row["match_time"] ) : null;
+        if( isset( $row["match_time"] ) ) {
+            list( $hours, $minutes ) = explode(':', $row["match_time"]);
+            if( $hours != 0 && $minutes != 0 ) $obj->setMatchTime( $hours, $minutes );
+            else  $obj->match_time = null;
+        }
+        else {
+            $obj->match_time = null;
+        }
+
         $obj->is_bye       = $row["is_bye"] == 1 ? true : false;
         $obj->comments     = $row["comments"];
         $obj->next_round_num = (int) $row["next_round_num"];

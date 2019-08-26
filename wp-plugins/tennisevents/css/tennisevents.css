@@ -120,18 +120,20 @@ tr.drawRow:nth-child(even) { background-color:#fff; } */
     border: none !important;
 }
 
+.matchinfo {
+    color: blue;
+    font-size: 80%;
+}
+
 .matchtitle {
     text-decoration: underline;
 }
 
-.matchstatus {
-    color: blue;
-    font-size: 85%;
-}
-
-.matchcomments {
-    color: white;
-    background-color: red;
+.matchstart::before{
+    content: "Start:";
+    background-color: yellow;
+    color: red;
+    font-weight: bold;
 }
 
 .matchwinner {
@@ -144,6 +146,7 @@ tr.drawRow:nth-child(even) { background-color:#fff; } */
 .homeentrant {
     color: rgb(0,0,139);
 }
+
 .visitorentrant {
     color: green;
 }
@@ -231,7 +234,6 @@ tr.drawRow:nth-child(even) { background-color:#fff; } */
 
 .changematchscores {
     display: none;
-
 }
 
 input.changematchscores {
@@ -255,6 +257,44 @@ button.savematchscores {
 }
 
 button.cancelmatchscores {
+    width: 40%;
+    background-color: blue;
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-size: x-small;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-transform: none;
+}
+
+.changematchstart {
+    display: none;
+}
+
+input.changematchstart {
+    background: rgba(255,255,255,0.5);
+    width: 100%;
+    box-sizing: border-box; 
+}
+
+button.savematchstart {
+    width: 40%;
+    background-color: blue;
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-size: x-small;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-transform: none;
+}
+
+button.cancelmatchstart {
     width: 40%;
     background-color: blue;
     border: none;

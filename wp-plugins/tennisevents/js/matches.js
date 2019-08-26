@@ -148,11 +148,23 @@
                     case 'defaultentrant':
                         updateStatus( data );
                         break;
+                    case 'setmatchstart':
+                        updateMatchStart( data );
+                        break;
                     default:
                         console.log("Unknown task from server: '%s'", task);
                         break;
                 }
             }
+        }
+
+        function updateMatchStart( data ) {
+            console.log('updateMatchStart');
+            
+            let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
+            $matchEl.children('.matchstart').text(data.matchstartdate + " " + data.matchstarttime);
+            $matchEl.children('.matchstart').fadeIn( 500 );
+            $matchEl.children('.changematchstart').hide( 500 );
         }
 
         function updateHome( data ) {
@@ -268,6 +280,12 @@
             let $visitorGames = parent.find('input[name=visitorGames]');
             let $visitorTB    = parent.find('input[name=visitorTieBreak]');
 
+            
+            let $matchStartDate = parent.find('input[name=matchStartDate]');
+            let matchStartDate  = $matchStartDate.val();
+            let $matchStartTime = parent.find('input[name=matchStartTime]');
+            let matchStartTime  = $matchStartTime.val();
+
             let scores = [];
             for( let i = 1; i <= tennis_draw_obj.numSets; i++ ) {
                 if( i == tennis_draw_obj.numSets) {
@@ -278,7 +296,14 @@
                 }
             }
 
-            let data = {"eventid": eventId, "bracketnum": bracketNum, "roundnum": roundNum, "matchnum": matchNum, "home": home, "visitor": visitor, "status": status, "comments": comments, "score": scores }
+            let data = {"eventid": eventId, "bracketnum": bracketNum, "roundnum": roundNum, "matchnum": matchNum
+                        , "home": home
+                        , "visitor": visitor
+                        , "status": status
+                        , "comments": comments
+                        , "matchstartdate": matchStartDate
+                        , "matchstarttime": matchStartTime
+                        , "score": scores };
             console.log(data);
             return data;
         }
@@ -428,13 +453,14 @@
 
         });
 
+        //Cancel the changing of match scores
         $('.cancelmatchscores').on('click', function( event ) {
             console.log("cancel scores");
             
             let $parent = $(this).parents('.item-player');
             $parent.find('.changematchscores').hide();
             $parent.find('.showmatchscores').fadeIn( 500 );
-        })
+        });
 
         //Save the recorded match score
         $('.savematchscores').on('click', function (event) {
@@ -457,20 +483,39 @@
         });
 
         //Capture start date & time of the match
-        $('.matchstart').on('click', function (event) {
+        $('.setmatchstart').on('click', function (event) {
+            console.log("match start");
+            console.log(this);
+            let $parent = $(this).parents('.item-player');
+            $parent.find('.matchstart').hide();
+            $parent.find('.changematchstart').fadeIn( 500 );
+        });
+        
+        //Cancel the setting of match start date/time
+        $('.cancelmatchstart').on('click', function( event ) {
+            console.log("cancel scores");
+            
+            let $parent = $(this).parents('.item-player');
+            $parent.find('.changematchstart').hide();
+            $parent.find('.matchstart').fadeIn( 500 );
+        });
+
+        //Save start date & time of the match
+        $('.savematchstart').on('click', function (event) {
             console.log("match start");
             console.log(this);
             let matchdata = getMatchData(this);
 
             let eventId = tennis_draw_obj.eventId;            
             let bracketName = tennis_draw_obj.bracketName;
-            ajaxFun( {"task": "setcomments"
+            ajaxFun( {"task": "setmatchstart"
                     , "eventId": eventId
                     , "bracketNum": matchdata.bracketnum
                     , "roundNum": matchdata.roundnum
                     , "matchNum": matchdata.matchnum
                     , "bracketName": bracketName
-                    , "comments": comments } );
+                    , "matchstartdate": matchdata.matchstartdate
+                    , "matchstarttime": matchdata.matchstarttime } );
         });
 
         //Capture comments regarding the match
