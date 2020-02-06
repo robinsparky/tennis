@@ -569,6 +569,11 @@ class ManageDraw
         return $mess;
     }
 
+    /**
+     * Set the match's start date and time
+     * @param array $data A reference to an array of event/match identifiers and new visitor player name
+     * @return string A message describing success or failure
+     */
     private function setMatchStart( &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $data, "$loc" );
