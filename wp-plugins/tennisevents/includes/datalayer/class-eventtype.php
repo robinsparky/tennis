@@ -14,6 +14,9 @@ class EventType {
 	const ROUND_ROBIN = 'robin';
 	
 	public static function AllTypes() {
-		return array( self::LADDER, self::LEAGUE, self::ROUND_ROBIN, self::TOURNAMENT );
+		return array( self::LADDER      => __('Ladder', TennisEvents::TEXT_DOMAIN )
+					, self::LEAGUE      => __('League', TennisEvents::TEXT_DOMAIN )
+					, self::ROUND_ROBIN => __('Round Robin', TennisEvents::TEXT_DOMAIN )
+					, self::TOURNAMENT  => __('Tournament', TennisEvents::TEXT_DOMAIN ) );
 	}
 }

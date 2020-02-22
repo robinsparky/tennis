@@ -9,6 +9,7 @@
 */
 use api\CustomMenu;
 use api\BaseLoggerEx;
+use cpt\TennisEventCpt;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -134,20 +135,22 @@ class TennisEvents {
 		//Register various 
 		ManageSignup::register();
 		ManageDraw::register();
+		TennisEventCpt::register();
+
 		$this->aspects = array('Main Signup' => array("shortcode"=>ManageSignup::SHORTCODE, 'bracket'=>Bracket::WINNERS)
-							,'Main Matches' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=match', 'bracket'=>Bracket::WINNERS)
-							,'Main Draw' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=entrant', 'bracket'=>Bracket::WINNERS)
-							,'Consolation Signup' => array("shortcode"=>ManageSignup::SHORTCODE, 'bracket'=>Bracket::CONSOLATION)
-							,'Consolaton Matches' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=match', 'bracket'=>Bracket::CONSOLATION)
-							,'Consolation Draw' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=entrant', 'bracket'=>Bracket::CONSOLATION)
+							  ,'Main Matches' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=match', 'bracket'=>Bracket::WINNERS)
+							  ,'Main Draw' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=entrant', 'bracket'=>Bracket::WINNERS)
+							  ,'Consolation Signup' => array("shortcode"=>ManageSignup::SHORTCODE, 'bracket'=>Bracket::CONSOLATION)
+							  ,'Consolaton Matches' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=match', 'bracket'=>Bracket::CONSOLATION)
+							  ,'Consolation Draw' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=entrant', 'bracket'=>Bracket::CONSOLATION)
 							);
 
         // Add actions
 		add_action( 'init', array( $this, 'init') );
 		add_action( 'rest_api_init', array( self::$ControllerManager, 'register_tennis_rest_routes' ) );
-		add_action( 'admin_init', array($this, 'generatePages') );
-		// add_action( 'admin_init', array($this, 'removePages') );
-		add_action( 'wp', array( $this, 'generateMenu' ) );
+		//add_action( 'admin_init', array($this, 'generatePages') );
+		//add_action( 'admin_init', array($this, 'removePages') );
+		//add_action( 'wp', array( $this, 'generateMenu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this,'enqueue_admin') );
 	}   
 
@@ -502,5 +505,4 @@ endif;
 function TE() {
 	return TennisEvents::get_instance();
 }
-
-$tennis = TE();
+$tennisEvents = TE();

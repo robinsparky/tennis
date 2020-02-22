@@ -15,11 +15,13 @@ class Autoloader
                 require $file;
                 return true;
             }
-            //error_log("Register Data class failed: $class_filename. Calling api class search!");
-            if( self::apiClassRegister( $class ) ) {
+            elseif( self::apiClassRegister( $class ) ) {
                 return true;
             }
-            elseif( self::nameSpaceClassRegister( $class ) ){
+            elseif( self::nameSpaceClassRegister( $class ) ) {
+                return true;
+            }
+            elseif( self::cptClassRegister( $class ) ) {
                 return true;
             }
             else {
@@ -61,6 +63,18 @@ class Autoloader
             return true;
         }
         //error_log( "Register namespace class failed: $class_filename" );
+        return false;
+    }
+
+    public static function cptClassRegister( $class ) {
+        $class_filename = __DIR__ . "\\includes\\cpt\\$class" . ".php";
+        $file = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
+        if ( file_exists( $file ) ) {
+           //error_log( "Register custom post type class - loading: $class_filename" );
+            require_once $file;
+            return true;
+        }
+        //error_log( "Register custom post type class failed: $class_filename" );
         return false;
     }
 }

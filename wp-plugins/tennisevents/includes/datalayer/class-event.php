@@ -4,17 +4,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Formats
- */
-class Format {
-	const SINGLE_ELIM = 'selim';
-	const DOUBLE_ELIM = 'delim';
-	const CONSOLATION = 'consolation';
-	const GAMES       = 'games';
-	const SETS        = 'sets';
-}
-
 /** 
  * Data and functions for Event(s)
  * Events are organized into a hierarchy (1 level for now)
@@ -414,6 +403,8 @@ class Event extends AbstractData
 	 */
 	public function setSignupBy( string $signup ) {
 		$result = false;
+		if( empty( $signup ) ) return $result;
+
 		$test = DateTime::createFromFormat( '!Y/m/d', $signup );
 		if(false === $test) $test = DateTime::createFromFormat( '!Y/n/j', $signup );
 		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $signup );
@@ -421,7 +412,7 @@ class Event extends AbstractData
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
-			$mess = '';
+			$mess = 'SignupBy: ';
 			foreach($arr as $err) {
 				$mess .= $err.':';
 			}
@@ -458,6 +449,8 @@ class Event extends AbstractData
 	
 	public function setStartDate( string $start ) {
 		$result = false;
+		if( empty( $start ) ) return $result;
+
 		$test = DateTime::createFromFormat( '!Y/m/d', $start );
 		if(false === $test) $test = DateTime::createFromFormat( '!Y/n/j', $start );
 		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $start );
@@ -465,7 +458,7 @@ class Event extends AbstractData
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
-			$mess = '';
+			$mess = 'Start Date: ';
 			foreach( $arr as $err ) {
 				$mess .= $err.':';
 			}
@@ -509,6 +502,8 @@ class Event extends AbstractData
 	 */
 	public function setEndDate( string $end ) {
 		$result = false;
+		if( empty( $end ) ) return $result;
+
 		$test = DateTime::createFromFormat('!Y/m/d',$end);
 		if(false === $test) $test = DateTime::createFromFormat( '!Y/n/j', $end );
 		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $end );
@@ -516,7 +511,7 @@ class Event extends AbstractData
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
-			$mess = '';
+			$mess = 'End Date: ';
 			foreach( $arr as $err ) {
 				$mess .= $err . ':';
 			}
