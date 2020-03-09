@@ -19,7 +19,8 @@ class Entrant extends AbstractData
     public static $tablename = 'tennis_entrant';
 	
 	//Foreign keys
-    private $event_ID;
+	private $event_ID;
+	private $bracket_num;
 
 	/**
 	 * Position in the draw (not to be confused with seeding)
@@ -48,9 +49,9 @@ class Entrant extends AbstractData
 	private $players;
     
     /**
-     * Search for Draws that have a name 'like' the provided criteria
+     * Search for Entrants that have a name 'like' the provided criteria
      */
-    public static function search($criteria) {
+    public static function search( $criteria ) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		
@@ -144,14 +145,15 @@ class Entrant extends AbstractData
 
 			$format = "%s(%d,%d,%d,%d) -> %d rows returned.";
 		}
-		elseif(count($fk_criteria) === 1) {
+		elseif( count($fk_criteria) === 2 ) {
 			$where[] = $fk_criteria[0];
+			$where[] = $fk_criteria[1];
 			$sql = "select event_ID,position,name,seed 
-					from $table where event_ID = %d order by position;";
-			$format = "%s(%d) -> %d rows returned.";
+					from $table where event_ID=%d and bracket_num=%d order by position;";
+			$format = "%s(%d,%d) -> %d rows returned.";
 		}
 		else {
-			error_log( sprintf("%s -> received %d args so 0 rows returned.", $loc, $count( $fk_criteria) ) );
+			error_log( sprintf("%s -> incorrect number of args=%d, so 0 rows returned.", $loc, $count( $fk_criteria) ) );
 			return $col;
 		}
 
@@ -174,7 +176,7 @@ class Entrant extends AbstractData
     }
 
 	/**
-	 * Get instance of a Entrant using it's primary key: event_ID, position
+	 * Get instance of a Entrant using it's primary key: event_ID, bracket_num, position
 	 */
     static public function get( int ...$pks ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
@@ -183,14 +185,14 @@ class Entrant extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
 		$obj = NULL;
 
-		if( count( $pks ) !== 2 ) return $obj;
+		if( count( $pks ) !== 3 ) return $obj;
 
-		$sql = "select event_ID,position,name,seed 
-				from $table where event_ID=%d and position=%d;";
+		$sql = "select event_ID,bracket_num,position,name,seed 
+				from $table where event_ID=%d and bracket_num=%d and position=%d;";
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		error_log( sprintf("%s(%d,%d) -> %d rows returned.", $loc, $pks[0], $pks[1], $wpdb->num_rows ) );
+		error_log( sprintf("%s(%d,%d,%d) -> %d rows returned.", $loc, $pks[0], $pks[1], $pks[2], $wpdb->num_rows ) );
 
 		if(count($rows) === 1) {
 			$obj = new Entrant( ...$pks );
@@ -199,25 +201,27 @@ class Entrant extends AbstractData
 		return $obj;
 	}
 
-	static public function deleteEntrant( int $eventId, int $pos ) {
+	static public function deleteEntrant( int $eventId, int $bracket_num, int $pos ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		
 		global $wpdb;
 		$result = 0;
 		$table = $wpdb->prefix . self::$tablename;
-		$wpdb->delete( $table, array( 'event_ID'=>$eventId, 'position'=>$pos), array( '%d', '%d' ) );
+		$wpdb->delete( $table, array( 'event_ID'=>$eventId, 'bracket_num'=>$bracket_num, 'position'=>$pos)
+							 , array( '%d', '%d', '%d' ) );
 		$result = $wpdb->rows_affected;
 
-		error_log( sprintf( "%s(%d,%d) -> deleted %d row(s)", $loc, $eventId, $pos, $result ) );
+		error_log( sprintf( "%s(%d,%d,%d) -> deleted %d row(s)", $loc, $eventId, $bracket_num, $pos, $result ) );
 		return $result;
 	}
 
 
 	/*************** Instance Methods ****************/
-	public function __construct(int $eventID=null, string $pname=null,int $seed=null) {
+	public function __construct( int $eventID=null, int $bracket=null, string $pname=null,int $seed=null ) {
 		parent::__construct ( false );
 		$this->isnew = TRUE;
 		$this->event_ID = $eventID;
+		$this->bracket_num = $bracket;
 		$this->name = $pname;
 		$this->seed = $seed;
 		$this->init();
@@ -225,8 +229,8 @@ class Entrant extends AbstractData
 
 	public function __destruct() {
 		//destroy players
-		if(isset($this->players)) {
-			foreach($this->players as &$player) {
+		if( isset( $this->players ) ) {
+			foreach( $this->players as &$player ) {
 				$player = null;
 			}
 		}
@@ -268,7 +272,7 @@ class Entrant extends AbstractData
      */
     public function setEventId( int $eventId ) {
 		$result = false;
-		if(isset($eventID)) {
+		if(isset( $eventID )) {
 			if($eventId < 1) return false;
 			$this->event_ID = $eventId;
 			$result = $this->setDirty();
@@ -281,6 +285,25 @@ class Entrant extends AbstractData
      */
     public function getEventId():int {
         return $this->event_ID;
+	}
+	
+    /**
+     * Set the bracket number for this bracket
+     */
+    public function setBracketNum( int $b ) {
+		$result = false;
+		if(isset($b) && $b > 0 ) {
+			$this->bracket_num = $b;
+			$result = $this->setDirty();
+		}
+		return $result;
+    }
+
+    /**
+     * Get this Entrant's Draw id.
+     */
+    public function getBracketNum():int {
+        return $this->bracket_num;
     }
 	
 	/**
@@ -288,8 +311,7 @@ class Entrant extends AbstractData
 	 */
 	public function setPosition( int $pos ) {
 		$result = false;
-		if(isset($pos)) {
-			if($pos < 1) return;
+		if(isset($pos) && $pos > 0 ) {
 			$this->position = $pos;
 			$result = $this->setDirty();
 		}
@@ -308,8 +330,7 @@ class Entrant extends AbstractData
 	 */
 	public function setSeed( int $seed = 0 ) {
 		$result = false;
-		if( isset( $seed ) ) {
-			if( $seed < 0 ) $seed=0;
+		if( isset( $seed ) && $seed > 0 ) {
 			$this->seed = $seed;
 			$result = $this->setDirty();
 		}
@@ -328,11 +349,13 @@ class Entrant extends AbstractData
 		global $wpdb;
 		$result = 0;
 		$eventId = $this->getEventId();
+		$brac = $this->getBracketNum();
 		$pos = $this->getPosition();
 		if( isset( $eventId ) && isset( $pos ) ) {
 			$table = $wpdb->prefix . self::$tablename;
 			
-			$wpdb->delete( $table,array( 'event_ID'=>$eventId,'position'=>$pos ),array( '%d', '%d' ) );
+			$wpdb->delete( $table,array( 'event_ID'=>$eventId,'bracket_num'=>$brac,'position'=>$pos )
+			                     ,array( '%d', '%d', '%d' ) );
 			$result = $wpdb->rows_affected;
 
 			$this->log->error_log( sprintf("%s(%s): deleted %d rows", $loc, $this->toString(), $result ) );
@@ -345,15 +368,22 @@ class Entrant extends AbstractData
 	 * Check to see if this Entrant has valid data
 	 */
 	public function isValid() {
-		$mess = '';
-		$pos = isset( $this->position ) ? $this->position : '???';
+		$pos   = isset( $this->position ) ? $this->position : '???';
 		$evtId = isset( $this->event_ID ) ? $this->event_ID : '???';
-		$id = $this->toString();
+		$brac  = isset( $this->bracket_num ) ? $this->bracket_num : '???';
+		$name  = isset( $this->name ) ? $this->name : '???';
+		$id    = sprintf("P(%d,%d,%d,%s)",$this->evtId,$brac, $pos, $name );
+		$mess = '';
 		$code = 0;
 
 		if( !isset( $this->event_ID ) ) {
-			$mess = __( "$id entrant must have and event id." );
+			$mess = __( "$id entrant must have an event id." );
 			$code = 400;
+		}
+		
+		if( !isset( $this->bracket_num ) ) {
+			$mess = __( "$id entrant must have a bracket number within the event." );
+			$code = 405;
 		}
 
 		if( !$this->isNew() && !isset( $this->position ) ) {
@@ -372,14 +402,14 @@ class Entrant extends AbstractData
 	}
 
 	public function toString() {
-		return sprintf("P(%d,%d,%s)",$this->event_ID, $this->position, $this->name );
+		return sprintf("P(%d,%d,%d,%s)",$this->event_ID, $this->bracket_num, $this->position, $this->name );
 	}
 	
 	/**
 	 * Return this object as an associative array
 	 */
 	public function toArray() {
-		return ["eventId"=>$this->getEventId(), "position"=>$this->getPosition(), "name"=>$this->getName(), "seed"=>$this->getSeed()];
+		return ["eventId"=>$this->getEventId(),"bracket_num"=>$this->getBracketNum(), "position"=>$this->getPosition(), "name"=>$this->getName(), "seed"=>$this->getSeed()];
 	}
 
 	/**
@@ -398,15 +428,16 @@ class Entrant extends AbstractData
 		$table = $wpdb->prefix . self::$tablename;
 		$wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE");
 		
-		$sql = "SELECT IFNULL(MAX(position),0) FROM $table WHERE event_ID=%d;";
-		$safe = $wpdb->prepare($sql,$this->event_ID);
+		$sql = "SELECT IFNULL(MAX(position),0) FROM $table WHERE event_ID=%d and bracket_num=%d;";
+		$safe = $wpdb->prepare($sql,$this->event_ID,$this->getBracketNum());
 		$this->position = $wpdb->get_var($safe) + 1;
 
 		$values = array( 'event_ID' => $this->getEventId()
+						,'bracket_num' => $this->getBracketNum()
 						,'position' => $this->getPosition()
 						,'name' => $this->getName()
 						,'seed' => $this->getSeed());
-		$formats_values = array('%d','%d','%s','%d');
+		$formats_values = array('%d','%d','%d','%s','%d');
 
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$result = $wpdb->rows_affected;
@@ -428,8 +459,9 @@ class Entrant extends AbstractData
 		parent::update();
 		
 		$where = array( 'event_ID' => $this->getEventId()
+					   ,'bracket_num' => $this->getBracketNum()
 					   ,'position' => $this->getPosition());
-		$formats_where  = array('%d','%d');
+		$formats_where  = array('%d','%d','%d');
 
 
 		$values = array( 'name' => $this->getName()
@@ -458,6 +490,7 @@ class Entrant extends AbstractData
     protected static function mapData($obj,$row) {
 		parent::mapData($obj,$row);
 		$obj->event_ID = (int)$row["event_ID"];
+		$obj->bracket_num = (int)$row["bracket_num"];
 		$obj->position = (int)$row["position"];
         $obj->name = $row["name"];
 		$obj->seed = (int)$row["seed"];

@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 global $wpdb;
 $wpdb->hide_errors(); 
 
-if ( !class_exists( 'TennisEvents' ) ) :
+if (isset($tennisEvents) && is_object($tennisEvents) && is_a($tennisEvents, 'TennisEvents') && function_exists('TE')) return;
 
 /**
  * Main Plugin class.
@@ -48,21 +48,10 @@ class TennisEvents {
 
 	public const ROOT_PAGE_META_KEY = 'gw_tennis_root_page';
 	public const EVENT_PAGE_META_KEY = 'gw_tennis_eventid';
-	
-	
-	/**
-	 * Installer singleton
-	 */
-	public static $TE_Installer;
-
-	/**
-	 * Endpoint Controller Manager singleton
-	 */
-	public static $ControllerManager;
 
 	
 	// Aspects: namely -> main signup,consolation signup, main matches, consolation matches, main draw, consolation draw
-	private $aspects;
+	//private $aspects;
 
 	//This class's singleton
 	private static $_instance;
@@ -78,10 +67,20 @@ class TennisEvents {
 	 * @return $_instance --Main instance.
 	 */
 	public static function get_instance() {
-		if ( is_null( self::$_instance ) ) {
+		if ( is_null( TennisEvents::$_instance ) ) {
 			self::$_instance = new self();
 		}
-		return self::$_instance;
+		return TennisEvents::$_instance;
+	}
+
+	public static function getInstaller() {
+		include_once( 'includes/class-tennis-install.php' );
+		return TE_Install::get_instance();
+	}
+
+	static public function getControllerManager() {
+		include_once( 'includes/class-controller-manager.php' );
+		return TennisControllerManager::get_instance();
 	}
 	
 	/**
@@ -89,20 +88,22 @@ class TennisEvents {
 	 */
 	public function __construct() {
 		// Don't allow more than one instance of the class
-		if ( isset( self::$_instance ) ) {
+		if ( isset( TennisEvents::$_instance ) ) {
 			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ),get_class( $this ) ) );
 		}
+	}
+
+	public function plugin_setup() {
 		$this->includes();
 		$this->log = new BaseLoggerEx( true );//Must come after includes
-		$this->init_hooks();
+		$this->setup();
 	}
 	
-	public function includes() {
-		include_once( 'autoloader.php' );
-		include_once( 'includes/gw-support.php' );
-		include_once( 'includes/class-controller-manager.php' );
-		include_once( 'includes/class-tennis-install.php' );
+	private function includes() {
+		//include_once( 'includes/class-controller-manager.php' );
+		//include_once( 'includes/class-tennis-install.php' );
 		include_once( 'includes/functions-admin-menu.php' );
+		include_once( 'includes/tennis-template-loader.php' );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			include_once( 'includes/commandline/class-clubcommands.php' );
@@ -113,46 +114,7 @@ class TennisEvents {
 			include_once( 'includes/commandline/class-tournamentcommands.php' );
 			include_once( 'includes/commandline/class-signupcommands.php' );
 		}
-		
 	}
-	
-	private function __wakeup() {}
-	private function __clone() {}
-
-	/**
-	 * Hook into actions and filters.
-	 * @since  1.0
-	 */
-	private function init_hooks() {
-		
-		self::$TE_Installer = TE_Install::get_instance();
-		self::$ControllerManager = TennisControllerManager::get_instance();
-        // Register hooks
-		register_activation_hook( __FILE__, array( self::$TE_Installer , 'on_activate' ) );
-		register_deactivation_hook ( __FILE__, array( self::$TE_Installer , 'on_deactivate' ) );
-		register_uninstall_hook ( __FILE__, array( __class__ , 'on_uninstall' ) );
-
-		//Register various 
-		ManageSignup::register();
-		ManageDraw::register();
-		TennisEventCpt::register();
-
-		$this->aspects = array('Main Signup' => array("shortcode"=>ManageSignup::SHORTCODE, 'bracket'=>Bracket::WINNERS)
-							  ,'Main Matches' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=match', 'bracket'=>Bracket::WINNERS)
-							  ,'Main Draw' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=entrant', 'bracket'=>Bracket::WINNERS)
-							  ,'Consolation Signup' => array("shortcode"=>ManageSignup::SHORTCODE, 'bracket'=>Bracket::CONSOLATION)
-							  ,'Consolaton Matches' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=match', 'bracket'=>Bracket::CONSOLATION)
-							  ,'Consolation Draw' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=entrant', 'bracket'=>Bracket::CONSOLATION)
-							);
-
-        // Add actions
-		add_action( 'init', array( $this, 'init') );
-		add_action( 'rest_api_init', array( self::$ControllerManager, 'register_tennis_rest_routes' ) );
-		//add_action( 'admin_init', array($this, 'generatePages') );
-		//add_action( 'admin_init', array($this, 'removePages') );
-		//add_action( 'wp', array( $this, 'generateMenu' ) );
-		add_action( 'admin_enqueue_scripts', array( $this,'enqueue_admin') );
-	}   
 
 	public function enqueue_admin( $hook ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
@@ -162,8 +124,29 @@ class TennisEvents {
 			return;
 		}
 		$jsUrl = plugin_dir_url(__FILE__) . 'js/tennisadmin.js';
-		error_log("$loc: $jsUrl");
+		$this->log->error_log("$loc: $jsUrl");
 		wp_enqueue_script('gw_tennis_admin_script', $jsUrl, array('jquery'));
+	}
+
+	static public function on_activate() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc Start>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+		TennisEvents::getInstaller()->activate();
+		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+	}
+
+	static public function on_deactivate() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc Start>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+		TennisEvents::getInstaller()->deactivate();
+		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+	}
+
+	static public function on_uninstall() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc Start>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+		TennisEvents::getInstaller()->uninstall();
+		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 	}
 	
 	/**
@@ -173,13 +156,12 @@ class TennisEvents {
 	 */
 	public function init() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log( ">>>>>>>>>>>$loc>>>>>>>>>" );
-	}
-
-	public static function on_uninstall() {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log($loc);
-		self::$TE_Installer->uninstall();
+		$this->log->error_log( ">>>>>>>>>>>$loc start>>>>>>>>>" );
+		//Register various 
+		TennisEventCpt::register();
+		ManageSignup::register();
+		ManageDraw::register();
+		$this->log->error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
 	}
 	
 	public function getPluginPath() {
@@ -189,6 +171,60 @@ class TennisEvents {
 	public function getPluginUrl() {
 		return trailingslashit(plugins_url()) . trailingslashit(self::PLUGIN_SLUG);
 	}
+
+	/**
+	 * Customize the Query for Tennis Event Archives
+	 * Only want root events (i.e. no leaf events)
+	 * @param object $query 
+	 *
+	 */
+	public function archive_tennisevent_query( $query ) {
+		$loc = __FILE__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc");
+		
+		if( $query->is_main_query() && !$query->is_feed() && !is_admin() 
+		&& $query->is_post_type_archive( TennisEventCpt::CUSTOM_POST_TYPE ) ) {
+			$this->log->error_log($query, "Query Object Before");
+			$meta_query = array( 
+								array(
+									'key' => TennisEventCpt::PARENT_EVENT_META_KEY
+									,'compare' => 'NOT EXISTS'
+								)
+						);
+
+			$query->set( 'meta_query', $meta_query );
+			$this->log->error_log($query, "Query Object After");
+		}
+	}
+	
+	/**
+	 * Setup this plugin
+	 * @since  1.0
+	 */
+	private function setup() {
+
+        // Add actions
+		add_action( 'init', array( $this, 'init') );
+		//add_action( 'rest_api_init', array( self::getControllerManager(), 'register_tennis_rest_routes' ) );
+		add_action( 'admin_enqueue_scripts', array( $this,'enqueue_admin') );
+		add_action( 'pre_get_posts', array( $this, 'archive_tennisevent_query' ) );
+
+		// $this->aspects = array('Main Signup' => array("shortcode"=>ManageSignup::SHORTCODE, 'bracket'=>Bracket::WINNERS)
+		// 					  ,'Main Matches' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=match', 'bracket'=>Bracket::WINNERS)
+		// 					  ,'Main Draw' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=entrant', 'bracket'=>Bracket::WINNERS)
+		// 					  ,'Consolation Signup' => array("shortcode"=>ManageSignup::SHORTCODE, 'bracket'=>Bracket::CONSOLATION)
+		// 					  ,'Consolaton Matches' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=match', 'bracket'=>Bracket::CONSOLATION)
+		// 					  ,'Consolation Draw' => array("shortcode"=>ManageDraw::SHORTCODE . ' by=entrant', 'bracket'=>Bracket::CONSOLATION)
+		// 					);
+
+		//add_action( 'admin_init', array($this, 'generatePages') );
+		//add_action( 'admin_init', array($this, 'removePages') );
+		//add_action( 'wp', array( $this, 'generateMenu' ) );
+		
+	}   
+	
+	private function __wakeup() {}
+	private function __clone() {}
 
 	/**
 	 * Generate Pages based on definition of Tennis Events
@@ -500,9 +536,27 @@ class TennisEvents {
 		}
 	}
 }
-endif;
-
+$tennisEvents = TennisEvents::get_instance();
+$GLOBALS['tennisEvents'] = $tennisEvents;
 function TE() {
-	return TennisEvents::get_instance();
+	global $tennisEvents;
+	return $tennisEvents;
 }
-$tennisEvents = TE();
+
+include_once( 'autoloader.php' );
+include_once( 'includes/gw-support.php' );
+
+// Register activation/deactivation hooks
+register_activation_hook( __FILE__, array( 'TennisEvents', 'on_activate' ) );
+register_deactivation_hook ( __FILE__, array( 'TennisEvents', 'on_deactivate' ) );
+register_uninstall_hook ( __FILE__, array( 'TennisEvents', 'on_uninstall' ) );
+add_action(	'plugins_loaded', array ( $tennisEvents, 'plugin_setup' ) );
+
+function tl_save_error() {
+    update_option( 'plugin_error',  ob_get_contents() );
+}
+
+add_action( 'activated_plugin', 'tl_save_error' );
+
+/* Then to display the error message: */
+error_log( "Extra chars='" . get_option( 'plugin_error' ) ."'" );

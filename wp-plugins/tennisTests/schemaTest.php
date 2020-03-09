@@ -28,15 +28,22 @@ class SchemaTest extends TestCase
     public function test_drop_schema() {
         $installer = TE_Install::get_instance();
         $this->assertTrue( isset( $installer) );
-        $result = $installer->dropSchema();
+        $result = $installer->dropSchema( true );
         $this->assertEquals(1, $result);
     }
 
     public function test_add_schema() {
         $installer = TE_Install::get_instance();
-        $result = $installer->createSchema();
-        
+        $result = $installer->createSchema( true );
         $this->assertTrue( strlen($result) === 0 );
+    }
+
+    public function test_seed_data() {
+        $installer = TE_Install::get_instance();
+        $this->assertTrue( isset( $installer) );
+
+        $affected = $installer->seedData();
+        $this->assertEquals( 1, $affected );
     }
 }
  

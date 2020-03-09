@@ -94,6 +94,7 @@ class TournamentDirector
 
     /**
      * Get the name of the tournament
+     * @return string Name of the tournament (i.e. name of the underlying Event)
      */
     public function tournamentName() {
         return $this->name;
@@ -101,13 +102,24 @@ class TournamentDirector
 
     /**
      * Get the event for this tournament
+     * @return object The underlying Event object
      */
     public function getEvent() {
         return $this->event;
     }
 
     /**
+     * Get the name of the Tennis Club for this tournament
+     * @return string Name of the club
+     */
+    public function getClubName() {
+        $clubs = $this->getEvent()->getClubs();
+        return $clubs[0]->getName();
+    }
+
+    /**
      * Get the Match Type for this tournament
+     * @return float Match type
      */
     public function matchType():float {
         return $this->matchType;
@@ -115,9 +127,9 @@ class TournamentDirector
 
     /**
      * Get the ChairUmpire for match controlled by this Touornament Director
-     * @param $scoretype A bitmask of scoring features
+     * @param int $scoretype which is a bitmask of scoring types
      * @see ScoreType class
-     * @return ChairUmpire subclass
+     * @return object ChairUmpire subclass
      */
     public function getChairUmpire( int $scoretype = 0 ) : ChairUmpire {
         if( ($scoretype & ScoreType::NoAd) && ($scoretype & ScoreType::TieBreakAt3) ) {
@@ -147,7 +159,8 @@ class TournamentDirector
      *      have been made; such as moving the prelimary matches around.
      *  ...
      * Once approved, the brackets cannot be modified, only deleted.
-     * @param $bracket Bracket within the event
+     * @param string $bracketName of the Bracket within the event
+     * @return array Match hierarchy for the bracket
      */
     public function approve( $bracketName ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -166,9 +179,8 @@ class TournamentDirector
 
     /**
      * Advance completed matches to their respective next rounds.
-     * @param $bracketName name of the bracket
-     * @return Number of entrants advanced
-     * 
+     * @param string $bracketName name of the bracket
+     * @return int Number of entrants advanced
      */
     public function advance( $bracketName ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -264,6 +276,7 @@ class TournamentDirector
 
     /**
      * Get the name of the underlying Event
+     * @return string Name of the underlying event
      */
     public function getName() {
         return $this->event->getName();
@@ -274,6 +287,7 @@ class TournamentDirector
      * Calls save on the underlying Event.
      * NOTE: if significant changes are made to the underlying Event
      *       one should save these earlier.
+     * @return int The number of rows affected
      */
     public function save() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -284,16 +298,15 @@ class TournamentDirector
 
     /**
      * Traverse the Bracket to find the first incomplete Round
-     * @param $bracketName
-     * @return Number of the current round
+     * @param string $bracketName
+     * @return int Number of the current round
      */
     public function currentRound( string $bracketName = Bracket::WINNERS ):int {
-
         $loc = __CLASS__ . "::" . __FUNCTION__;
         
         $currentRound = -1;
         $umpire = $this->getChairUmpire();
-        $bracket = $this->event->getBracket( $bracketName );
+        $bracket = $this->getBracket( $bracketName );
         $totalRounds = $this->totalRounds( $bracketName );
         for($i = 0; !is_null( $bracket ) && $i < $totalRounds; $i++ ) {
             foreach( $bracket->getMatchesByRound( $i ) as $match ) {
@@ -301,7 +314,7 @@ class TournamentDirector
                 // $mess = sprintf( "%s(%s) -> i=%d status='%s'"
                 //                , $loc, $match->toString()
                 //                , $i, $status );
-                // error_log( $mess );
+                //$this->log->error_log( $mess );
                 if( $status === ChairUmpire::NOTSTARTED || $status === ChairUmpire::INPROGRESS ) {
                     $currentRound = $i;
                     break;
@@ -309,25 +322,25 @@ class TournamentDirector
             }
             if( $currentRound !== -1 ) break;
         }
-        error_log( sprintf( "%s -> returning bracket %s's current round=%d", $loc,$bracketName, $currentRound ) );
+        $this->log->error_log( sprintf( "%s -> returning bracket %s's current round=%d", $loc,$bracketName, $currentRound ) );
         return $currentRound;
     }
 
     /**
      * Check if the bracket has started or not
-     * @param $bracketName
-     * @return True if started False otherwise
+     * @param string $bracketName
+     * @return bool True if started False otherwise
      */
     public function hasStarted( string $bracketName ) { 
         $loc = __CLASS__ . "::" . __FUNCTION__;
         
         $started = false;
         $umpire = $this->getChairUmpire();
-        $bracket = $this->event->getBracket( $bracketName );
+        $bracket = $this->getBracket( $bracketName );
         if( !is_null( $bracket ) ) {
             foreach( $bracket->getMatches() as $match ) {
                 $status = $umpire->matchStatus( $match );
-                error_log( sprintf( "%s(%s) -> %s's bracket has status='%s'", $loc, $match->toString(), $bracketName, $status ) );
+                $this->log->error_log( sprintf( "%s(%s) -> %s's bracket has status='%s'", $loc, $match->toString(), $bracketName, $status ) );
                 if( $status != ChairUmpire::NOTSTARTED && $status != ChairUmpire::BYE && $status != ChairUmpire::WAITING ) {
                     $started = true;
                     break;
@@ -337,63 +350,73 @@ class TournamentDirector
         else {
             $started = true;
         }
-        error_log( sprintf( "%s->returning started=%d for bracket '%s'", $loc, $started, $bracketName ) );
+        $this->log->error_log( sprintf( "%s->returning started=%d for bracket '%s'", $loc, $started, $bracketName ) );
         return $started;
     }
     
     /**
      * The total number of rounds for this tennis event.
+     * @param string $bracketName
+     * @return int Total number of rounds in the bracket
      */
     public function totalRounds( string $bracketName = Bracket::WINNERS ) {
-        $bracket = $this->event->getBracket( $bracketName );
+        $bracket = $this->getBracket( $bracketName );
         $this->numRounds = self::calculateExponent( $bracket->signupSize() );
         return $this->numRounds;
     }
 
     /**
      * Get ths signup for this tournament sorted by position in the draw
+     * @param string $bracketName
+     * @return array Entrants signed up for the bracket
      */
     public function getSignup( $bracketName = Bracket::WINNERS ) {
-        if( $bracketName === Bracket::WINNERS ) {
-            $entrants = isset( $this->event ) ? $this->event->getSignup() : array();
-        }
-        elseif( $bracketName === Bracket::CONSOLATION ) {
-            $bracket = $this->getBracket( $bracketName );
-            $umpire = $this->getChairUmpire();
-            $entrants = $bracket->getSignup( $umpire );
-        }
 
-        usort( $entrants, array( 'TournamentDirector', 'sortByPositionAsc' ) );
+        $entrants = array();
+        $bracket = $this->getBracket( $bracketName );
+        if( !is_null( $bracket ) ) {
+            $entrants = $bracket->getSignup();
+            usort( $entrants, array( 'TournamentDirector', 'sortByPositionAsc' ) );
+        }
 
         return $entrants;
     }
     
     /**
      * Return the size of the signup for the tennis event
+     * @param string $bracketName
+     * @return int Size of the signup for the bracket
      */
-    public function signupSize( ) {
-        return $this->event->signupSize( );
+    public function signupSize( $bracketName = Bracket::WINNERS ) {
+        return count($this->getSignup( $bracketName ) );
     }
 
     /**
-     * Remove the signup and all brackets (and matches) for a tennis event
+     * Remove the signup and all brackets (and matches) for a tennis event/bracket
+     * @param string $bracketName
+     * @return int Number of rows affected
      */
-    public function removeSignup() {
+    public function removeSignup( $bracketName = Bracket::WINNERS ) {
         $result = 0;
-        $bracket = $this->event->getWinnersBracket();
+        $bracket = $this->getBracket( $bracketName );
+        if( is_null( $bracket ) ) return $result;
+
         if( $this->hasStarted( $bracket->getName() ) ) {
             throw new InvalidTournamentException( "Cannot remove signup because tournament has started." );
         }
-        $this->event->removeSignup();
-        $result = $this->event->save();
+
+        $bracket->removeSignup();
+        $result = $bracket->save();
         return $result;
     }
 
     /**
      * Resequence the positions in the signup
      */
-    public function resequenceSignup() {
-        return $this->event->resequenceSignup();
+    public function resequenceSignup( $bracketName = Bracket::WINNERS ) {
+        $bracket = $this->getBracket( $bracketName );
+        if( is_null( $bracket ) ) return;
+        return $bracket->resequenceSignup();
     }
 
     /**
@@ -426,9 +449,9 @@ class TournamentDirector
 
     /**
      * Return all matches for an event or just for a given round
-     * @param $bracketName The bracket name
-     * @param $round The round whose matches are to be retrieved
-     * @param $force Force reloading from database
+     * @param string $bracketName The bracket name
+     * @param mixed $round The round whose matches are to be retrieved
+     * @param bool $force Force reloading from database
      */
     public function getMatches( string $bracketName = Bracket::WINNERS, $round = null, $force = false ) {
         $matches = array();
@@ -452,7 +475,7 @@ class TournamentDirector
 
     /**
      * Remove all matches for a bracket
-     * @param $bracketName The name of the bracket
+     * @param string $bracketName The name of the bracket
      */
     public function removeMatches( string $bracketName = Bracket::WINNERS ) {
         $bracket = $this->event->getBracket( $bracketName );
@@ -488,16 +511,17 @@ class TournamentDirector
      * @param $name The name of the player or doubles team
      * @param $seed The seeding of this player or doubles team
      */
-    public function addEntrant( string $name, int $seed = 0 ) {
+    public function addEntrant( string $name, int $seed = 0, string $bracketName = Bracket::WINNERS  ) {
         $result = 0;
 
-        if( 0 < $this->getMatchCount() ) {
+        if( 0 < $this->getMatchCount( $bracketName ) ) {
             throw new InvalidTournamentException( __('Cannot add entrant because matches already exist.') );
         }
 
-        if( isset( $this->event ) ) {
-            $this->event->addToSignup( $name, $seed );
-            $result = $this->event->save();
+        $bracket = $this->getBracket( $bracketName );
+        if( !is_null( $bracket ) ) {
+            $bracket->addToSignup( $name, $seed );
+            $result = $this->save();
         }
         return $result > 0;
     }
@@ -506,16 +530,18 @@ class TournamentDirector
      * Remove an Entrant from the signup
      * @param $name The name of the player or doubles team
      */
-    public function removeEntrant( string $name ) {
+    public function removeEntrant( string $name, string $bracketName = Bracket::WINNERS ) {
         $result = 0;
 
-        if( 0 < $this->getMatchCount() ) {
+        if( 0 < $this->getMatchCount( $bracketName ) ) {
             throw new InvalidTournamentException( __('Cannot remove entrant because matches already exist.') );
         }
+        
+        $bracket = $this->getBracket( $bracketName );
 
-        if( isset( $this->event ) ) {
-            $this->event->removeFromSignup( $name );
-            $result = $this->event->save();
+        if( !is_null( $bracket ) ) {
+            $bracket->removeFromSignup( $name );
+            $result = $this->save();
         }
         return $result > 0;
     }
@@ -526,9 +552,12 @@ class TournamentDirector
      * @param $toPos The target position for the entrant
      * @return true if succeeded; false otherwise
      */
-    public function moveEntrant( int $fromPos, int $toPos ) {
+    public function moveEntrant( int $fromPos, int $toPos, string $bracketName = Bracket::WINNERS ) {
         $result = 0;
-        $result = $this->event->moveEntrant( $fromPos, $toPos );
+        $bracket = $this->getBracket( $bracketName );
+        if( !is_null( $bracket ) ) {
+            $result = $bracket->moveEntrant( $fromPos, $toPos );
+        }
         return $result;
     }
     
@@ -616,7 +645,6 @@ class TournamentDirector
     public function schedulePreliminaryRounds( string $bracketName, $randomizeDraw = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log( ">>>>>>>>>>>>>>>>>>>>>>>>>$loc called with bracket=$bracketName, randomize=$randomizeDraw" ); 
-
 
         //Get or create the requested bracket
         $mainbracket = null;
@@ -888,8 +916,9 @@ class TournamentDirector
 
     /**
      * Returns the next available integer that is not in the given array of integers
-     * @param $haystack the array to search
-     * @param $needle the integer starting point which will be returned if not in the array
+     * @param array $haystack the array to search
+     * @param int $needle the integer starting point which will be returned if not in the array
+     * @return int Next available integer
      */
     private function getNextAvailable( array &$haystack, int $needle ):int {
         if( in_array( $needle, $haystack ) ) {
@@ -902,9 +931,9 @@ class TournamentDirector
     
     /**
      * Determine if this integer is a power of 2
-     * @param $size 
-     * @param $upper The upper limit of the search; default is 8
-     * @return The exponent if found; zero otherwise
+     * @param int $size 
+     * @param int $upper The upper limit of the search; default is 8
+     * @return int The exponent if found; zero otherwise
      */
 	private function isPowerOf2( int $size, $upper = 8 ) {
         $exponent = 0;
@@ -922,6 +951,8 @@ class TournamentDirector
      * to cause the number of players in round 2 be a power of 2
      * The number of players and the number of byes must be 
      * of the same parity (i.e.both even or both odd)
+     * @param int $n Size of the round (i.e. number of entrants)
+     * @return int Number of byes (-1 if size is out of range)
      */
     public function byeCount( int $n ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -946,6 +977,8 @@ class TournamentDirector
      * to bring round 1 to a power of 2
      * The number of players and the number of challengers must be of opposite parity
      * (i.e. if one is odd the other must be even and visa versa )
+     * @param int $n Size of the round (i.e. number of entrants)
+     * @return int The number of challengers for a challenger round
      */
     private function challengerCount( int $n ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;

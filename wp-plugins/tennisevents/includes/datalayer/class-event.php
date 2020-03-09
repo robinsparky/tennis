@@ -33,11 +33,13 @@ class Event extends AbstractData
 	private $childEvents; //array of child events
 	private $signup; //array of entrants who signed up for this leaf event
 	private $brackets; //array of 1 or 2 brackets for this leaf event
+	private $external_refs; //array of external reference to something (e.g. custom post type in WordPress)
 
 	private $clubsToBeDeleted = array(); //array of club Id's to be removed from relations with this Event
 	private $childEventsToBeDeleted = array(); //array of child ID's events to be deleted
 	private $entrantsToBeDeleted = array(); //array of Entrants to be removed from the draw
 	private $bracketsToBeDeleted = array(); //array of bracket Id's to be deleted
+	private $external_refsToBeDeleted = array(); //array of external references to be deleted
     
     /**
      * Search for Events have a name 'like' the provided criteria
@@ -119,6 +121,35 @@ class Event extends AbstractData
 			$col[] = $obj;
 		}
 		return $col;
+	}
+
+	/**
+	 * Fetches one or more Events from the db with the given external reference
+	 * @param $extReference Alphanumeric up to 100 chars
+	 * @return Event with matching external reference.
+	 *         Or and array of events with matching reference
+	 *         Null if not found
+	 */
+	static public function getEventByExtRef( $extReference ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'tennis_external_event';		
+		$sql = "SELECT `event_ID`
+				FROM $table WHERE `external_ID`='%s'";
+		$safe = $wpdb->prepare( $sql, $extReference );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
+		error_log( sprintf("Event::getEventByExtRef(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
+		
+		$result = null;
+		if( count( $rows ) > 1) {
+			$result = array();
+			foreach( $rows as $row ) {
+				$result[] = Event::get( $row['event_ID'] );
+			}
+		}
+		elseif( count( $rows ) === 1 ) {
+			$result = Event::get( $rows[0]['event_ID'] );
+		}
+		return $result;
 	}
 
 	/**
@@ -226,6 +257,18 @@ class Event extends AbstractData
 		if( isset( $this->bracketsToBeDeleted ) ) {
 			foreach($this->bracketsToBeDeleted as &$bracket) {
 				unset( $bracket );
+			}
+		}
+
+		if( isset( $this->external_refs ) ) {
+			foreach( $this->external_refs as &$er ) {
+				unset( $er );
+			}
+		}
+
+		if( isset( $this->external_refsToBeDeleted ) ) {
+			foreach( $this->external_refsToBeDeleted as &$er ) {
+				unset( $er );
 			}
 		}
 	}
@@ -369,7 +412,7 @@ class Event extends AbstractData
 	 * @param $parent Reference to an Event; can set to null
 	 * @return true if succeeds false otherwise
      */
-    public function setParent( Event &$parent ) {
+    public function setParent( Event &$parent = null ) {
 		$result = false;
 		// if($parent->isNew() || !$parent->isValid()) {
 		// 	return false;
@@ -698,333 +741,98 @@ class Event extends AbstractData
 		return $this->clubs;
 	}
 
-	/**
-	 * Add an Entrant to the draw for this Child Event
-	 * This method ensures that Entrants are not added ore than once.
-	 * 
-	 * @param $name The name of a player in this event
-	 * @param $seed The seeding of this player
-	 * @return true if succeeds false otherwise
-	 */
-	public function addToSignup ( string $name, int $seed = null ) {
-		$result = false;
-		if( isset( $name ) && $this->isLeaf() ) {
-			$found = false;
-			foreach( $this->getSignup() as $d ) {
-				if( $name === $d->getName() ) {
-					$found = true;
-				}
-			}
-			if( !$found ) {
-				$ent = new Entrant( $this->getID(), $name, $seed );
-				$this->signup[] = $ent;
-				$result = $this->setDirty();
-			}
-		}
-		return $result;
-	}
+	// /**
+	//  * Add an Entrant to the draw for this Child Event
+	//  * This method ensures that Entrants are not added ore than once.
+	//  * 
+	//  * @param $name The name of a player in this event
+	//  * @param $seed The seeding of this player
+	//  * @return true if succeeds false otherwise
+	//  */
+	// public function addToSignup ( string $name, int $seed = null ) {
+	// 	$result = false;
+	// 	if( isset( $name ) && $this->isLeaf() ) {
+	// 		$found = false;
+	// 		foreach( $this->getSignup() as $d ) {
+	// 			if( $name === $d->getName() ) {
+	// 				$found = true;
+	// 			}
+	// 		}
+	// 		if( !$found ) {
+	// 			$ent = new Entrant( $this->getID(), $name, $seed );
+	// 			$this->signup[] = $ent;
+	// 			$result = $this->setDirty();
+	// 		}
+	// 	}
+	// 	return $result;
+	// }
 	
-	/**
-	 * Remove an Entrant from the signup
-	 * @param $entrant Entrant in the draw
-	 * @return true if succeeds false otherwise
-	 */
-	public function removeFromSignup( string $name ) {
-		$result = false;
-		$temp = array();
-		for( $i = 0; $i < count( $this->getSignup() ); $i++) {
-			if( $name === $this->signup[$i]->getName() ) {
-				$this->entrantsToBeDeleted[] = $this->signup[$i]->getPosition();
-				$result = $this->setDirty();
-			}
-			else {
-				$temp[] = $this->signup[$i];
-			}
-		}
-		$this->signup = $temp;
+	// /**
+	//  * Remove an Entrant from the signup
+	//  * @param $entrant Entrant in the draw
+	//  * @return true if succeeds false otherwise
+	//  */
+	// public function removeFromSignup( string $name ) {
+	// 	$result = false;
+	// 	$temp = array();
+	// 	for( $i = 0; $i < count( $this->getSignup() ); $i++) {
+	// 		if( $name === $this->signup[$i]->getName() ) {
+	// 			$this->entrantsToBeDeleted[] = $this->signup[$i]->getPosition();
+	// 			$result = $this->setDirty();
+	// 		}
+	// 		else {
+	// 			$temp[] = $this->signup[$i];
+	// 		}
+	// 	}
+	// 	$this->signup = $temp;
 
-		return $result;
-	}
+	// 	return $result;
+	// }
 
-	/**
-	 * Destroy the existing signup and all related brackets.
-	 */
-	public function removeSignup() {
-		foreach( $this->getSignup() as &$dr ) {
-			$this->entrantsToBeDeleted[] = $dr->getPosition();
-			unset( $dr );
-		}
-		$this->signup = array();
-		$this->removeBrackets(); //With no signups, must get rid of brackets and matches
-		return $this->setDirty();
-	}
+	// /**
+	//  * Destroy the existing signup and all related brackets.
+	//  */
+	// public function removeSignup() {
+	// 	foreach( $this->getSignup() as &$dr ) {
+	// 		$this->entrantsToBeDeleted[] = $dr->getPosition();
+	// 		unset( $dr );
+	// 	}
+	// 	$this->signup = array();
+	// 	$this->removeBrackets(); //With no signups, must get rid of brackets and matches
+	// 	return $this->setDirty();
+	// }
+	
+	// /**
+	//  * Get the signup for this Event
+	//  * @param $force When set to true will force loading of entrants from db
+	//  *               This will cause unsaved entrants to be lost.
+	//  */
+	// public function getSignup( $force=false ) {
+	// 	if( !isset( $this->signup ) || $force ) $this->fetchSignup();
+	// 	return $this->signup;
+	// }
+	
+	// /**
+	//  * Get the size of the signup for this event
+	//  */
+	// public function signupSize() {
+	// 	$this->getSignup();
+	// 	return isset( $this->signup ) ? sizeof( $this->signup ) : 0;
+	// }
 	
 	/**
-	 * Get the signup for this Event
-	 * @param $force When set to true will force loading of entrants from db
-	 *               This will cause unsaved entrants to be lost.
+	 * Get an entrant by name from the specified bracket in this Event
+	 * @param string $name
+	 * @param string $bracketname
+	 * @return Entrant
 	 */
-	public function getSignup( $force=false ) {
-		if( !isset( $this->signup ) || $force ) $this->fetchSignup();
-		return $this->signup;
-	}
-	
-	/**
-	 * Get the size of the signup for this event
-	 */
-	public function signupSize() {
-		$this->getSignup();
-		return isset( $this->signup ) ? sizeof( $this->signup ) : 0;
-	}
-	
-	/**
-	 * Get a contestant in the Draw by name
-	 */
-	public function getNamedEntrant( string $name ) {
+	public function getNamedEntrant( string $name, string $bracketname = Bracket::WINNERS ) {
 		$result = null;
 
-		foreach( $this->getSignup() as $draw ) {
-			if( $name === $draw->getName() ) {
-				$result = $draw;
-				break;
-			}
-		}
+		$bracket = $this->getBracket( $bracketname );
+		$result = $bracket->getNamedEntrant( $name );
+
 		return $result;
-	}
-	
-    /**
-     * Move an entrant from its current position to a new position.
-     * @param $fromPos The entrant's current position (i.e. place in the lineup)
-     * @param $toPos The intended position in the signup
-     * @return The rows affected by this update
-     */
-	public function moveEntrant( int $fromPos, int $toPos ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-		$eventId = $this->getID();
-		error_log("$loc:Event=$eventId; $fromPos to $toPos");
-		
-		global $wpdb;
-        $table = $wpdb->prefix . Entrant::$tablename;
-        $fromId = "Entrant($eventId,$fromPos)";
-        $toId = "Entrant($eventId,$toPos)";
-        $tempPos = 99999;
- 
-		$result = 0;
-
-        //Check match numbers for appropriate ranges
-        if( $fromPos < 1 || $toPos < 1 || $toPos >= $tempPos || ( $fromPos === $toPos ) ) {
-			$mess = __("Entrant::move $fromId to $toId: match number(s) out of range.", TennisEvents::TEXT_DOMAIN);
-			throw new InvalidEventException( $mess );
-        }
-
-        error_log( "Entrant::move: attempting to move from $fromId to $toId" );
-        $sql = "SELECT count(*) 
-                FROM $table WHERE event_ID = %d AND position = %d;";
-                
-        $safe = $wpdb->prepare( $sql, array( $eventId, $fromPos ) );
-        $sourceExists = (int) $wpdb->get_var( $safe );
-        $this->log->error_log("Move $fromId to $toId: sourceExists=$sourceExists");
-
-        if( $sourceExists === 1 ) {
-            //Source entrant exists
-            //Check if target (i.e. the toPos) exists             
-            $safe = $wpdb->prepare( $sql, array( $eventId, $toPos ) );
-            $targetExists = (int) $wpdb->get_var( $safe );
-            if( $targetExists === 0 ) {
-                //Target match number does not exist, so just update the match number to the target number
-                $values = array( 'position' => $toPos);
-				$formats_values = array( '%d' );
-				
-				$where          = array( 'event_ID'  => $eventId
-                                        ,'position'  => $fromPos );
-                $formats_where  = array( '%d', '%d' );
-        
-                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
-                $result = $wpdb->rows_affected;
-
-                if( $wpdb->last_error ) {
-                    $mess = "Moving $fromId to $toId: update open position encountered error: '$wpdb->last_error'";
-                    error_log("Entrant.move: $mess");
-                    throw new InvalidEntrantException( $mess ); 
-                }
-                error_log( "Entrant::move to open postion $toPos: $result rows affected." );
-            }
-            else {   
-                //Source and target position numbers exist ...
-                //First we have to move the source entrant to a safe place 
-                // ... give it a temporary position number
-                $values = array( 'position' => $tempPos);
-				$formats_values = array( '%d' );
-				
-                $where          = array( 'event_ID'  => $eventId
-                                        ,'position' => $fromPos );
-                $formats_where  = array( '%d', '%d' );
-
-                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
-
-                if( $wpdb->last_error ) {
-                    $mess = "Moving $fromId to temporary position $tempPos: encountered error: '$wpdb->last_error'";
-                    error_log("Entrant.move: $mess");
-                    throw new InvalidEntrantException( $mess ); 
-                }
-                error_log( "Entrant::move $fromId to temporary position $tempPos: $check rows affected." );
-
-                //Target exists so update match_num by 1 starting from highest to lowest 
-                // i.e. from the highest match_num (but less than temp number) down to the target match_num
-                //Need to start a transaction (default isolation level)
-                $wpdb->query( "start transaction;" );
-
-                $sql = "SELECT `event_ID`,`position`,`name`,`seed` 
-                        FROM $table WHERE event_ID = %d AND position >= %d and position < %d 
-                        ORDER BY position DESC FOR UPDATE;";
-                $safe = $wpdb->prepare( $sql, array( $eventId, $toPos, $tempPos ) );
-                $trows = $wpdb->get_results( $safe );
-
-                if( $wpdb->last_error ) {
-                    $mess = "Moving $fromId to $toId: select for update encountered error: '$wpdb->last_error'";
-                    error_log( "Entrant.move: $mess" );
-                    $wpdb->query( "rollback;" ); 
-                    throw new InvalidEntrantException( $mess ); 
-                }
-                
-                foreach( $trows as $trow ) {
-                    $oldNum = $trow->position;
-                    $newNum = $trow->position + 1;
-
-                    $values = array( 'position' => $newNum );
-                    $formats_values = array( '%d' );
-                    $where          = array( 'event_ID'  => $eventId
-                                            ,'position'  => $oldNum );
-                    $formats_where  = array( '%d', '%d' );
-                    $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
-
-                    if( $wpdb->last_error ) {
-                        $mess = "Moving $fromId to $toId: updating $oldNum to $newNum encountered error: '$wpdb->last_error'";
-                        error_log("Entrant.move: $mess");
-                        $wpdb->query( "rollback;" ); 
-                        throw new InvalidEntrantException( $mess ); 
-                    }
-
-                    $result += $wpdb->rows_affected;
-                    error_log( "Entrant::move making room -> moved position $oldNum to $newNum:  $result cumulative rows affected." );
-                }
-
-                //Now update the source's temporary position to the target position
-                $values = array( 'position' => $toPos );
-                $formats_values = array( '%d' );
-                $where          = array( 'event_ID'  => $eventId
-                                        ,'position'  => $tempPos );
-                $formats_where  = array( '%d', '%d' );
-                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
-
-                if( $wpdb->last_error ) {
-                    $mess = "Moving $fromId to $toId: updating $tempPos to $toPos encountered error: '$wpdb->last_error'";
-                    error_log("Entrant.move: $mess");
-                    $wpdb->query( "rollback;" ) ; 
-                    throw new InvalidEntrantException( $mess ); 
-                }
-                $result += $wpdb->rows_affected;
-                
-                $wpdb->query( "commit;" );  
-                error_log( "Entrant::move from $tempPos to $toPos: $result cumulative rows affected." );
-            }
-        }
-        elseif( $sourceExists > 1 ) {
-            //Error condition
-            $mess = __( "$fromId: multiple positions found." );
-            error_log( $mess );
-            throw new InvalidEntrantException( $mess, 500 );
-        }
-        elseif( $sourceExists === 0 ) {
-            $mess = __( "$fromId: position does not exist." );
-            error_log("Entrant::move $mess" );
-        }
-
-        return $result;
-    }
-	
-    /**
-     * Resequence the signup for the given event
-     */
-    public function resequenceSignup() {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log($loc);
-
-		$result = 0;
-		if( $this->isParent() ) {
-			$mess = __("Parent events do not have signups", TennisEvents::TEXT_DOMAIN );
-			throw new InvalidEventException( $mess );
-		}
-
-		global $wpdb;
-        $table = $wpdb->prefix . Entrant::$tablename;
-
-		$wpdb->query( "start transaction;" );
-		
-		$sql = "DROP TEMPORARY TABLE IF EXISTS temp_entrant;";
-		$affected = (int) $wpdb->get_var( $sql );
-		if( $wpdb->last_error ) {
-			$mess = "drop temp table encountered error: '$wpdb->last_error'";
-			error_log( "$loc: $mess" );
-			$wpdb->query( "rollback;" ); 
-			throw new InvalidSignupException( $mess ); 
-		}
-
-		$sql = "CREATE TEMPORARY TABLE temp_entrant as 
-					SELECT * 
-					FROM $table 
-					WHERE event_ID = %d
-					ORDER BY position ASC;";
-		$safe = $wpdb->prepare( $sql, array( $this->getID() ) );
-		$affected = (int) $wpdb->get_var( $safe );
-		if( $wpdb->last_error ) {
-			$mess = "create temp table encountered error: '$wpdb->last_error'";
-			error_log( "$loc: $mess" );
-			$wpdb->query( "rollback;" ); 
-			throw new InvalidSignupException( $mess ); 
-		}
-		
-		$where = array( "event_ID" => $this->getID() );
-		$affected = $wpdb->delete( $table, $where );
-		if( false === $affected ) {
-			$mess = "delete from table '$table' encountered error: '$wpdb->last_error'";
-			error_log( "$loc: $mess" );
-			$wpdb->query( "rollback;" ); 
-			throw new InvalidSignupException( $mess ); 
-		}
-		$this->log->error_log("$loc: deleted $affected rows from $table" );
-		
-		$sql = "SELECT `event_ID`,`position`,`name`,`seed` 
-				FROM temp_entrant 
-				ORDER BY event_ID, position ASC;";
-		$trows = $wpdb->get_results( $sql );
-		$pos = 1;
-		foreach( $trows as $trow ) {
-			$values = array( 'event_ID' => $trow->event_ID
-						   , 'position' => $pos++ 
-						   , 'name' => $trow->name
-						   , 'seed' => $trow->seed );
-
-			$this->log->error_log( $values, "$loc: inserting..." );
-
-			$formats_values = array( '%d', '%d', '%s', '%d' );
-			$check = $wpdb->insert( $table, $values, $formats_values );
-
-			if( $wpdb->last_error ) {
-				$mess = "$loc: inserting $trow->name at postion $pos encountered error: '$wpdb->last_error'";
-				error_log("$loc: $mess");
-				$wpdb->query( "rollback;" ); 
-				throw new InvalidSignupException( $mess ); 
-			}
-
-			$this->log->error_log("$loc: inserted $check row(s) into $table" );
-			$result += $wpdb->rows_affected;
-			error_log( "$loc: inserted last position $pos:  $result cumulative rows affected." );
-		}
-		
-		$wpdb->query( "commit;" );  
-		error_log( "$loc: $result rows affected." );
-        return $result;
 	}
 	
 	/**
@@ -1148,7 +956,7 @@ class Event extends AbstractData
 			}
 		}
 		if( !$found ) {
-			$result = new Bracket( );
+			$result = new Bracket;
 			$result->setName( $name );
 			$this->brackets[] = $result;
 			$result->setEvent( $this );
@@ -1183,7 +991,10 @@ class Event extends AbstractData
 		$this->fetchBrackets();
 		if( isset( $this->brackets ) ) {
 			foreach( $this->brackets as $bracket ) {
-				$bracket->removeAllMatches(); //Unnecssary because of cascading deletes??
+				//Unnecssary because of cascading deletes??
+				$bracket->removeSignup();
+				$bracket->removeAllMatches(); 
+
 				$this->bracketsToBeDeleted[] = $bracket;
 				$bracket = null;
 			}
@@ -1191,8 +1002,63 @@ class Event extends AbstractData
 		$this->brackets = array();
 		return $this->setDirty();
 	}
-
 	
+	/**
+	 * An Event can have zero or more external references associated with it.
+	 * How these are usesd is up to the developer. 
+	 * For example, a custom post type in WordPress
+	 * @param $extRef the external reference to be added to this event
+	 * @return True if successful; false otherwise
+	 */
+	public function addExternalRef( $extRef ) {
+		$result = false;
+		if( isset( $extRef ) && !empty( $extRef ) ) {
+			$found = false;
+			foreach( $this->getExternalRefs() as $er ) {
+				if( $extRef === $er ) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->external_refs[] = $extRef;
+				$result = $this->setDirty();
+			}
+		}
+		return $result;
+	}
+
+	/**
+	 * Remove the external reference
+	 * @param $extRef The external reference to be removed	 
+	 * @return True if successful; false otherwise
+	 */
+	public function removeExternalRef( $extRef ) {
+		$result = false;
+		if( isset( $extRef ) ) {
+			$i=0;
+			foreach( $this->getExternalRefs() as $er ) {
+				if( $extRef === $er ) {
+					$this->external_refsToBeDeleted[] = $extRef;
+					unset( $this->external_refs[$i] );
+					$result = $this->setDirty();
+				}
+				$i++;
+			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Get all external references associated with this event
+	 * @param $force When set to true will force loading of related external references
+	 *               This will cause unsaved external refernces to be lost.
+	 */
+	public function getExternalRefs( $force = false ) {
+		if( !isset( $this->external_refs ) || $force ) $this->fetchExternalRefs();
+		return $this->external_refs;
+	}
+
 	/**
 	 * Check to see if this Event has valid data
 	 */
@@ -1255,14 +1121,6 @@ class Event extends AbstractData
 	}
 
 	/**
-	 * Fetch all Entrants for this event.
-	 */
-	private function fetchSignup() {
-		if( $this->isParent() ) $this->signup = array();
-		$this->signup = Entrant::find( $this->getID() );
-	}
-
-	/**
 	 * Fetch all related clubs for this Event
 	 * Root-level Events can be associated with one or more clubs
 	 */
@@ -1279,6 +1137,13 @@ class Event extends AbstractData
 			$bracket->setEvent( $this );
 		}
 
+	}
+
+	/**
+	 * Fetch the external references to this event from the database
+	 */
+	private function fetchExternalRefs() {	
+		$this->external_refs = EventExternalRefRelations::fetchExternalRefs( $this->getID() );
 	}
 	
     private function sortBySeedDesc( $a, $b ) {
@@ -1412,25 +1277,6 @@ class Event extends AbstractData
 		}
 		$this->bracketsToBeDeleted = array();
 
-		//Save signups
-		if( isset( $this->signup ) ) {
-			foreach($this->signup as $ent) {
-				$ent->setEventID( $this->getID() );
-				$result += $ent->save();
-			}
-		}
-
-		//Delete signups (Entrants) that were removed from the draw for this Event
-		if(count($this->entrantsToBeDeleted) > 0 ) {
-			$entrantIds = array_map( function($e){return $e->getID();}, $this->getSignup() );
-			foreach( $this->entrantsToBeDeleted as $entId )  {
-				if( !in_array( $entId, $entrantIds ) ) {
-					$result += Entrant::deleteEntrant( $this->getID(), $entId );
-				}
-			}
-			$this->entrantsToBeDeleted = array();
-		}
-
 		//Save the Clubs related to this Event
 		if( isset( $this->clubs) ) {
 			foreach($this->clubs as $cb) {
@@ -1449,6 +1295,24 @@ class Event extends AbstractData
 				}
 			}
 			$this->clubsToBeDeleted = array();
+		}
+		
+		//Save the External references related to this Event
+		if( isset( $this->external_refs ) ) {
+			foreach($this->external_refs as $er) {
+				//Create relation between this Event and its external references
+				$result += EventExternalRefRelations::add( $this->getID(), $er );
+			}
+		}
+
+		//Remove relation between this Event and external referenceds
+		if( count( $this->external_refsToBeDeleted ) > 0 ) {
+			foreach( $this->external_refsToBeDeleted as $er ) {
+				if( !in_array( $er, $this->external_refs ) ) {
+					$result += EventExternalRefRelations::remove( $this->getID(), $er );
+				}
+			}
+			$this->external_refsToBeDeleted = array();
 		}
 
 		return $result;

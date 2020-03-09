@@ -93,4 +93,3 @@ class TennisControllerManager
 	}
 
 } // end class
-

@@ -44,8 +44,8 @@ class TennisEventCpt {
 		
 		$tennisEvt = new TennisEventCpt();
 
-		add_action( 'init', array( $tennisEvt, 'customPostType') ); 
-		add_action( 'init', array( $tennisEvt, 'customTaxonomy' ) );
+		$tennisEvt->customPostType(); 
+		$tennisEvt->customTaxonomy();
 		add_action( 'admin_enqueue_scripts', array( $tennisEvt, 'enqueue') );
 			
 		add_filter( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_columns', array( $tennisEvt, 'addColumns' ), 10 );
@@ -112,7 +112,7 @@ class TennisEventCpt {
 		$args = array( 'labels' => $labels
 					 //, 'taxonomies' => array( 'category', 'post_tag' )
 					 , 'description' => 'Tennis Event as a CPT'
-					 , 'menu_position' => 6
+					 , 'menu_position' => 80
 					 , 'menu_icon' => 'dashicons-code-standards'
 					 , 'exclude_from_search' => false
 					 , 'has_archive' => true
@@ -447,8 +447,8 @@ class TennisEventCpt {
 		$this->log->error_log("$loc --> actual='$actual'");
 		
 		//Now echo the html desired
-		echo'<select name="tennis_parent_event_field">';
-		echo "<option value=''>Parent Event...</option>";
+		echo '<select name="tennis_parent_event_field">';
+		echo '<option value="-1">Remove Parent...</option>';
 		foreach( $this->parentEvents( $post ) as $candidate ) {
 			$disp = esc_attr($candidate->post_title);
 			$value = esc_attr($candidate->ID );
@@ -457,10 +457,11 @@ class TennisEventCpt {
 			echo "<option value='$value' $sel>$disp</option>";
 		}
 		echo '</select>';
+		echo "<input type='hidden' name='currentExtRefId' value='$actual'/>";
 	}
 
 	/**
-	 * Retieve candidate parent events for the given post
+	 * Retrieve candidate parent events for the given post
 	 * @param $post A tennis event cpt
 	 */
 	private function parentEvents( $post ) {
@@ -922,7 +923,7 @@ class TennisEventCpt {
 		$homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
 		if( 0 === $homeClubId ) {
 			$this->log->error_log( "$loc - Home club id is not set." );
-			return;
+			throw new InvalidEventException(__('Home club id is not set.'), TennisEvents::TEXT_DOMAIN );
 		}
 
 		$eventType = '';
@@ -936,17 +937,26 @@ class TennisEventCpt {
 			delete_post_meta( $post_id, self::EVENT_TYPE_META_KEY );
 		}
 		
-		$parentEventId = 0;
+		$parentPostId = 0;
+		$parentEvent = $parentPost = null;
+		$currentParentPostId = $_POST['currentExtRefId'];
 		if( isset( $_POST['tennis_parent_event_field'] ) ) {
-			$parentEventId = sanitize_text_field($_POST['tennis_parent_event_field']);
+			$parentPostId = (int)sanitize_text_field( $_POST['tennis_parent_event_field'] );
 		}
-		if( !empty( $parentEventId ) ) {
-			update_post_meta( $post_id, self::PARENT_EVENT_META_KEY, $parentEventId );
-			$parentPost = get_post( $parentEventId );
-			$parentEvent = $this->getEvent( $parentPost->post_title );
-			if( is_null( $parentEvent ) ) {
-				throw new InvalidEventException(__('No such parent event'), TennisEvents::TEXT_DOMAIN );
+
+		if( !empty( $parentPostId ) && (int)$parentPostId > 0 ) {
+			$parentPost = get_post( $parentPostId );
+			if( is_null( $parentPost ) ) {
+				//TODO: Insert into external ref table????
+				delete_post_meta( $post_id, self::PARENT_EVENT_META_KEY );
+				throw new InvalidEventException( __('No such parent post', TennisEvents::TEXT_DOMAIN ) );
 			}
+			$parentEvent = $this->getEventByExtRef( $parentPostId );
+			if( is_null( $parentEvent ) ) {
+				delete_post_meta( $post_id, self::PARENT_EVENT_META_KEY );
+				throw new InvalidEventException( __('No such parent event', TennisEvents::TEXT_DOMAIN) );
+			}
+			update_post_meta( $post_id, self::PARENT_EVENT_META_KEY, $parentPostId );
 		}
 		else {
 			delete_post_meta( $post_id, self::PARENT_EVENT_META_KEY );
@@ -1010,16 +1020,17 @@ class TennisEventCpt {
 		}
 
 		$club = Club::get( $homeClubId );
-		$event = $this->getEvent( $evtName );
+		$event = $this->getEventByExtRef( $post_id );
 		if( is_null( $event ) ) {
 			$event = new Event( $evtName );
 		}
 		$event->addClub( $club );
 
-		//Now set the parent even if required/given
+		//Set the parent event before setting other props
+		$event->setParent( $parentEvent );
 
-
-		////////////////////////////////////////////
+		//Set external references
+		$event->addExternalRef( $post_id );
 
 		if( ! $event->setEventType( $eventType ) ) {
 			delete_post_meta( $post_id, self::EVENT_TYPE_META_KEY );
@@ -1036,29 +1047,27 @@ class TennisEventCpt {
 		$event->setSignupBy( $signupBy );
 		$event->setStartDate( $startDate );
 		$event->setEndDate( $endDate );
-		$this->log->error_log($event, "$loc - Tennis Event:");
-		//$event->save();
+		$this->log->error_log( $event, "$loc - Tennis Event:" );
+		$event->save();
 	}
 
 	public function deleteTennisDB( int $post_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log("$loc: post_id=$post_id");
+		$this->log->error_log("$loc: post_id='$post_id'");
 
 		$post = get_post( $post_id );
 		if( isset( $post ) && $post->post_type === self::CUSTOM_POST_TYPE ) {
 			//First delete any references to this post as a parent event
 			$this->deleteParentReferences( $post_id );
 			//Second delete the Event
-			$tennisEvents = Event::search( $post->post_title );
-			foreach( $tennisEvents as $evt ) {
-				Event::deleteEvent( $evt->ID() );
-			}
+			$evt = $this->getEventByExtRef( $post_id );
+			if( ! is_null( $evt ) ) $evt->delete();
 		}
 	}
 
 	/**
-	 * Delete all references to the given parent
-	 * @param $parent_id The id of the parent event
+	 * Delete all references to the given parent post id
+	 * @param $parent_id The id of the parent post (i.e. event custom post)
 	 */
 	private function deleteParentReferences( $parent_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -1086,7 +1095,27 @@ class TennisEventCpt {
 			delete_post_meta( $p->ID, self::PARENT_EVENT_META_KEY );
 			++$numDel;
 		}
-		$this->log->error_log("$loc: number parent references deleted=$numDel");
+		$this->log->error_log("$loc: number parent references deleted='$numDel'");
+	}
+	
+	/**
+	 * Get the event using external reference
+	 * @param $postId The id of the event custom post 
+	 * @return Event if found null otherwise
+	 */
+	private function getEventByExtRef( $postId ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc: postId='$postId'");
+
+		$result = null;
+		$events = Event::getEventByExtRef( $postId );
+		if( is_array( $events ) ) {
+			$result = $events[0];
+		}
+		else {
+			$result = $events;
+		}
+		return $result;
 	}
 
 	/**
@@ -1094,7 +1123,7 @@ class TennisEventCpt {
 	 * @return Event if found null otherwise
 	 * @param $name The name of the event
 	 */
-	private function getEvent( string $name ) {
+	private function getEventByName( string $name ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc: name='$name'");
 
@@ -1109,5 +1138,4 @@ class TennisEventCpt {
 		}
 		return $event;
 	}
-
 } //end class

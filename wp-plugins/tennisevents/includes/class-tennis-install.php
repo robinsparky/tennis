@@ -1,5 +1,6 @@
 <?php
-
+use cpt\TennisEventCpt;
+use api\BaseLoggerEx;
 
 /**
  * Installation related functions and actions.
@@ -24,6 +25,7 @@ class TE_Install {
 	const OPTION_NAME_VERSION = 'tennis_version';
 
 	private $dbTableNames; 
+	private $log;
 
 	/**
 	 * A reference to an instance of this class.
@@ -49,7 +51,7 @@ class TE_Install {
 	} // end getInstance
 	
 	private function __construct()	{
-		$this->includes();
+		$this->log = new BaseLoggerEx( true );
 
 		global $wpdb;
 		$this->dbTableNames = array("club"					=> $wpdb->prefix . "tennis_club"
@@ -68,6 +70,7 @@ class TE_Install {
 								   ,"court_booking"			=> $wpdb->prefix . "tennis_court_booking"
 								   ,"match_court_booking"	=> $wpdb->prefix . "tennis_match_court_booking"
 								   ,"club_event"			=> $wpdb->prefix . "tennis_club_event"
+								   ,"external_event"        => $wpdb->prefix . "tennis_external_event"
 								);
 		
         add_filter( 'query_vars', array( $this,'add_query_vars_filter' ) );
@@ -81,62 +84,86 @@ class TE_Install {
 
 	}
 
-
-	protected function includes() {
-		include_once( 'gw-support.php' );
-	}
-	
 	/**
 	 * Activate Tennis Events.
 	 */
-	public function on_activate() {
-		// Ensure needed classes are loaded
-		//add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
-		error_log( __class__ . ": on_activate" );
-		
+	public function activate() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
+
+		// Ensure needed classes are loaded		
+		ManageSignup::register();
+		ManageDraw::register();
+		TennisEventCpt::register();
+		// clear the permalinks after the post type has been registered
+		flush_rewrite_rules();
+
 		// $this->addRoles();
 		// $this->addCap();
 		$this->create_options();
 		$this->createSchema();
-		//$this->seedData();
-		add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
+		$this->seedData();
+		//add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
+		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
-	
-	
-	public function on_deactivate() {
-		error_log( __class__ . ": on_deactivate" );
+
+	public function deactivate() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
+		// unregister the post type, so the rules are no longer in memory
+		unregister_post_type( TennisEventCpt::CUSTOM_POST_TYPE );
+		// clear the permalinks to remove our post type's rules from the database
+		flush_rewrite_rules();
+
+		//remove roles?
 		//$this->removeCap();
+		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
 
 	public function uninstall() {
-		error_log( __class__ . ": uninstall" );
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
+
 		$this->delete_options();
 		$this->dropSchema();
+		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
 	
 	protected function create_options() {
-		add_option( self::OPTION_NAME_VERSION , TennisEvents::VERSION, false );
+		update_option( self::OPTION_NAME_VERSION , TennisEvents::VERSION, false );
 	}
 	
 	protected function delete_options() {
-		delete_option(self::OPTION_NAME_VERSION );
+		delete_option( self::OPTION_NAME_VERSION );
 	}
 
+	/**
+	 * Add the role of 'Tennis Player'
+	 */
 	private function addRoles() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$result = add_role( 'tennis_player', 'Tennis Player'
 						  , array( 'read' => true
 						         , 'level_10' => true ) );
 
 		if( null !== $result ) {
-			error_log( "Role 'Tennis Player' added." );
+			$this->log->error_log( "Role 'Tennis Player' added." );
 		}
 		else {
-			error_log( "Could not add role 'Tennis Player'." );
+			$this->log->error_log( "Could not add role 'Tennis Player'." );
 		}
 	}
 	
-    // Add the new capability to all roles having a certain built-in capability
+    /**
+	 * Add the new capability to all roles having a certain built-in capability
+	 * This is just a model of how to do this
+	 */
     private function addCap() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
         $roles = get_editable_roles();
         foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
             if (isset($roles[$key]) && $role->has_cap('BUILT_IN_CAP')) {
@@ -145,8 +172,14 @@ class TE_Install {
         }
 	}
 
-	// Remove the plugin-specific custom capability
+	/**
+	 * Remove the plugin-specific custom capability
+	 * This is just a model of how to do this
+	 */
 	private function removeCap() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$roles = get_editable_roles();
 		foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
 			if (isset($roles[$key]) && $role->has_cap('THE_NEW_CAP')) {
@@ -154,8 +187,14 @@ class TE_Install {
 			}
 		}
 	}
-
+	/**
+	 * Create the Tennis Events schema
+	 * TODO: test upgrading using dbDelta
+	 */
 	public function createSchema( bool $withReports=false ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		global $wpdb;
 		if($withReports) $wpdb->show_errors(); 
 		
@@ -175,11 +214,16 @@ class TE_Install {
 		$booking_table 				= $this->dbTableNames["court_booking"];
 		$booking_match_table 		= $this->dbTableNames["match_court_booking"];
 		$club_event_table			= $this->dbTableNames["club_event"];
+		$ext_event_ref_table        = $this->dbTableNames["external_event"];
 
 		//Check if schema already installed
+		$newSchema = true;
 		if( $wpdb->get_var("SHOW TABLES LIKE '$club_table'") == $club_table ) {
-			return;
+			$newSchema = false;
 		}
+
+		//Temporarily until can test/fix dbDelta usage
+		if( ! $newSchema ) return;
 
 		/**
 		 * Club or venue that owns tennis courts
@@ -188,12 +232,15 @@ class TE_Install {
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(255) NOT NULL,
 				PRIMARY KEY (`ID`) );";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $club_table" : "$club_table Created";
+			$this->log->error_log( $res );
 		}
-		
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$club_table");
+		}
+
 		/**
 		 * Court ... where you play tennis!
 		 */
@@ -202,16 +249,44 @@ class TE_Install {
 				`court_num` INT NOT NULL,
 				`court_type` VARCHAR(45) NOT NULL DEFAULT 'hard',
 				PRIMARY KEY (`club_ID`,`court_num`),
+				CONSTRAINT `fk_court_club`
 				FOREIGN KEY (`club_ID`)
 				  REFERENCES `$club_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $court_table" : "$court_table Created";
+			$this->log->error_log( $res );
 		}
-		
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$court_table");
+		}
+
+		/**
+		 * Court bookings are recorded in this table.
+		 */
+		$sql = "CREATE TABLE $booking_table (
+			`ID` INT NOT NULL AUTO_INCREMENT,
+			`club_ID` INT NOT NULL,
+			`court_num` INT NOT NULL,
+			`book_date` DATE NULL,
+			`book_time` TIME(6) NULL,
+			PRIMARY KEY (`ID`),
+			CONSTRAINT `fk_club_court_booking`
+			FOREIGN KEY (`club_ID`,`court_num`)
+			  REFERENCES $court_table (`club_ID`,`court_num`)
+			  ON DELETE CASCADE
+			  ON UPDATE CASCADE);";	
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $booking_table" : "$booking_table Created";
+			$this->log->error_log( $res );
+		}
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$booking_table");
+		}
+
 		/**
 		 * Events are hierarchical entities
 		 * representing leagues, tournaments, ladder, etc.
@@ -229,14 +304,42 @@ class TE_Install {
 				`start_date` DATE NULL,
 				`end_date` DATE NULL,
 				PRIMARY KEY (`ID`),
+				CONSTRAINT `fk_hierarchy`
 				FOREIGN KEY (`parent_ID`)
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $event_table" : "$event_table Created";
+			$this->log->error_log( $res );
+		}
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$event_table");
+		}
+	
+		/**
+		 * This table enables a relationship
+		 * between events and external events in a foreign schema table 
+		 * Namely, the custom post type in WordPress called TennisEventCPT 
+		 */
+		$sql = "CREATE TABLE `$ext_event_ref_table` (
+				`event_ID` INT NOT NULL,
+				`external_ID` NVARCHAR(100) NOT NULL,
+				INDEX USING BTREE (`external_ID`),
+				PRIMARY KEY (`event_ID`, `external_ID`),
+				CONSTRAINT `fk_ext_event`
+				FOREIGN KEY (`event_ID`)
+					REFERENCES `$event_table` (`ID`)
+					ON DELETE CASCADE
+					ON UPDATE NO ACTION);";
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $ext_event_ref_table" : "$ext_event_ref_table Created";
+			$this->log->error_log( $res );
+		}
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$ext_event_ref_table");
 		}
 
 		/**
@@ -248,18 +351,43 @@ class TE_Install {
 				`club_ID` INT NOT NULL,
 				`event_ID` INT NOT NULL,
 				PRIMARY KEY(`club_ID`,`event_ID`),
+				CONSTRAINT `fk_club_event`
 				FOREIGN KEY (`club_ID`)
 					REFERENCES `$club_table` (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE NO ACTION,
+				CONSTRAINT `fk_event_club`
 				FOREIGN KEY (`event_ID`)
 					REFERENCES `$event_table` (`ID`)
 					ON DELETE CASCADE
-					ON UPDATE NO ACTION);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+					ON UPDATE NO ACTION);";	
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $club_event_table" : "Created table '$club_event_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$club_event_table");
+		}
+
+		$sql = "CREATE TABLE `$bracket_table` (
+			`event_ID` INT NOT NULL,
+			`bracket_num` INT NOT NULL,
+			`is_approved` TINYINT NOT NULL DEFAULT 0,
+			`name` VARCHAR(256) NOT NULL,
+			PRIMARY KEY (`event_ID`,`bracket_num`),
+			CONSTRAINT `fk_bracket_event`
+			FOREIGN KEY (`event_ID`)
+			   REFERENCES `$event_table` (`ID`)
+			  ON DELETE CASCADE
+			  ON UPDATE CASCADE);";
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $bracket_table" : "Created table '$bracket_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$bracket_table");
 		}
 
 		/**
@@ -269,36 +397,30 @@ class TE_Install {
 		 */
 		$sql = "CREATE TABLE `$entrant_table` (
 				`event_ID` INT NOT NULL,
+				`bracket_num` INT NOT NULL,
 				`position` INT NOT NULL,
 				`name` VARCHAR(100) NOT NULL,
 				`seed` INT NULL,
-				PRIMARY KEY (`event_ID`,`position`),
-				FOREIGN KEY (`event_ID`)
+				PRIMARY KEY  (`event_ID`,`bracket_num`,`position`),
+				CONSTRAINT `fk_entrant_bracket`
+				FOREIGN KEY  (`event_ID`,`bracket_num`)
+				  REFERENCES `$bracket_table` (`event_ID`,`bracket_num`)
+				  ON DELETE CASCADE
+				  ON UPDATE NO ACTION,
+				CONSTRAINT `fk_entrant_event`
+				FOREIGN KEY  (`event_ID`)
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
 				  ON UPDATE NO ACTION);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $entrant_table" : "Created table '$entrant_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$entrant_table");
 		}
 		
-		$sql = "CREATE TABLE `$bracket_table` (
-			`event_ID` INT NOT NULL,
-			`bracket_num` INT NOT NULL,
-			`is_approved` TINYINT NOT NULL DEFAULT 0,
-			`name` VARCHAR(256) NOT NULL,
-			PRIMARY KEY (`event_ID`, `bracket_num`),
-			FOREIGN KEY (`event_ID`)
-			   REFERENCES `$event_table` (`ID`)
-			  ON DELETE CASCADE
-			  ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
-		}
-
 		/**
 		 * A tennis match within a round within an event
 		 * Holds pointers to the next round creating a linked list
@@ -316,14 +438,18 @@ class TE_Install {
 				`next_match_num` INT DEFAULT 0, 
 				`comments` VARCHAR(255) NULL, 
 				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`), 
-				FOREIGN KEY (`event_ID`, `bracket_num`) 
-				  REFERENCES `$bracket_table` (`event_ID`, `bracket_num`) 
+				CONSTRAINT `fk_match_bracket`
+				FOREIGN KEY (`event_ID`,`bracket_num`) 
+				  REFERENCES `$bracket_table` (`event_ID`,`bracket_num`) 
 				  ON DELETE CASCADE 
 				  ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $match_table" : "Created table '$match_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$match_table");
 		}
 		
 		/**
@@ -337,20 +463,25 @@ class TE_Install {
 			`entrant_position` INT NOT NULL,
 			`is_visitor` TINYINT DEFAULT 0,
 			PRIMARY KEY(`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`,`entrant_position`),
+			CONSTRAINT `fk_entrant_match`
 			FOREIGN KEY (`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`)
 				REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE,
-			FOREIGN KEY (`match_event_ID`,`entrant_position`)
-				REFERENCES `$entrant_table` (`event_ID`,`position`)
+			CONSTRAINT `fk_match_entrant`
+			FOREIGN KEY (`match_event_ID`,`match_bracket_num`,`entrant_position`)
+				REFERENCES `$entrant_table` (`event_ID`,`bracket_num`,`position`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $match_entrant_table" : "Created table '$match_entrant_table'";
+			$this->log->error_log( $res );
 		}
-		
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$match_entrant_table");
+		}
+
 		/**
 		 * Sets scores are kept here.
 		 */
@@ -369,16 +500,20 @@ class TE_Install {
 				`early_end` TINYINT DEFAULT 0 COMMENT '0 means set completed normally, 1 means abnormal end home defaulted, 2 means abnormal end visitor defaulted, see comments for details',
 				`comments` VARCHAR(512), 
 				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`,`set_num`),
+				CONSTRAINT `fk_set_match`
 				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 				  REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 				  ON DELETE CASCADE
 				  ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $set_table" : "Created table '$set_table'";
+			$this->log->error_log( $res );
 		}
-		
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$set_table");
+		}
+
 		/**
 		 * A tennis team from a league for example
 		 */
@@ -388,20 +523,25 @@ class TE_Install {
 				`club_ID` INT NULL,
 				`name` VARCHAR(100) NOT NULL,
 			PRIMARY KEY (`event_ID`,`team_num`),
+			CONSTRAINT `fk_team_club`
 			FOREIGN KEY (`club_ID`)
 				REFERENCES `$club_table` (`ID`)
 				ON DELETE SET NULL
 				ON UPDATE CASCADE,
+			CONSTRAINT `fk_team_event`
 			FOREIGN KEY (`event_ID`)
 				REFERENCES `$event_table` (`ID`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $team_table" : "Created table '$team_table'";
+			$this->log->error_log( $res );
 		}
-		
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$team_table");
+		}
+
 		/**
 		 * Teams can be divided into squads
 		 * This supports things like Team 1 with 'a' anb 'b' divisions for example.
@@ -412,99 +552,97 @@ class TE_Install {
 			  	`team_num` INT NOT NULL,
 			  	`division` VARCHAR(25) NOT NULL,
 			  PRIMARY KEY (`event_ID`,`team_num`,`division`),
+			  CONSTRAINT `fk_squad_team`
 			  FOREIGN KEY (`event_ID`,`team_num`)
 				REFERENCES `$team_table` (`event_ID`,`team_num`)
 				ON DELETE CASCADE
 				ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $squad_table" : "Created table '$squad_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$squad_table");
 		}
 		
 		/**
 		 * All the info about a tennis player
 		 */
 		$sql = "CREATE TABLE `$player_table` (
-			  `ID` INT NOT NULL AUTO_INCREMENT,
-			  `first_name` VARCHAR(45) NULL,
-			  `last_name` VARCHAR(45) NOT NULL,
-			  `gender`   VARCHAR(1) NOT NULL DEFAULT 'M',
-			  `skill_level` DECIMAL(4,1) NULL DEFAULT 2.5,
-			  `emailHome`  VARCHAR(100),
+			  `ID`            INT NOT NULL AUTO_INCREMENT,
+			  `first_name`    VARCHAR(45) NULL,
+			  `last_name`     VARCHAR(45) NOT NULL,
+			  `gender`        VARCHAR(1) NOT NULL DEFAULT 'M',
+			  `skill_level`   DECIMAL(4,1) NULL DEFAULT 2.5,
+			  `emailHome`     VARCHAR(100),
 			  `emailBusiness` VARCHAR(100),
-			  `phoneHome` VARCHAR(45),
-			  `phoneMobile` VARCHAR(45),
+			  `phoneHome`     VARCHAR(45),
+			  `phoneMobile`   VARCHAR(45),
 			  `phoneBusiness` VARCHAR(45),
 			  PRIMARY KEY (`ID`));";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $player_table" : "Created table '$player_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$player_table");
 		}
 		
 		/**
 		 * This table maps players to a team's squads
 		 */
-		$sql =  "CREATE TABLE `$team_squad_player_table` ( 
+		$sql = "CREATE TABLE `$team_squad_player_table` ( 
 				`player_ID` INT NOT NULL,
-				`event_ID` INT NOT NULL,
-				`team_num` INT NOT NULL,
-				`division` VARCHAR(2) NOT NULL,
+				`event_ID`  INT NOT NULL,
+				`team_num`  INT NOT NULL,
+				`division`  VARCHAR(2) NOT NULL,
+				CONSTRAINT `fk_squad_player`
 				FOREIGN KEY (`player_ID`)
 					REFERENCES $player_table (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE,
+				CONSTRAINT `fk_player_squad`
 				FOREIGN KEY (`event_ID`,`team_num`,`division`)
 					REFERENCES $squad_table (`event_ID`,`team_num`,`division`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE);";	
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $team_squad_player_table" : "Created table '$team_squad_player_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$team_squad_player_table");
 		}
 
 		/**
 		 * The player_entrant table is an intersection
-		 * between an a entrant in a draw and the player
+		 * between an an entrant in a draw and the player
 		 */
-		$sql ="CREATE TABLE `$player_entrant_table` (
-				`player_ID` INT NOT NULL,
+		$sql = "CREATE TABLE `$player_entrant_table` (
+				`player_ID`  INT NOT NULL,
 				`event_ID`   INT NOT NULL,
+				`bracket_num`   INT NOT NULL,
 				`position`  INT NOT NULL,
+				CONSTRAINT `fk_entrant_player`
 				FOREIGN KEY (`player_ID`)
 					REFERENCES `$player_table` (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE,
-				FOREIGN KEY (`event_ID`,`position`)
-					REFERENCES $entrant_table (`event_ID`,`position`)
+				CONSTRAINT `fk_player_entrant`
+				FOREIGN KEY (`event_ID`,`bracket_num`,`position`)
+					REFERENCES $entrant_table (`event_ID`,`bracket_num`,`position`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE );";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $player_entrant_table" : "Created table '$player_entrant_table'";
+			$this->log->error_log( $res );
 		}
-		
-		/**
-		 * Court bookings are recorded in this table.
-		 */
-		$sql = "CREATE TABLE $booking_table (
-				`ID` INT NOT NULL AUTO_INCREMENT,
-				`club_ID` INT NOT NULL,
-				`court_num` INT NOT NULL,
-				`book_date` DATE NULL,
-				`book_time` TIME(6) NULL,
-				PRIMARY KEY (`ID`),
-				FOREIGN KEY (`club_ID`,`court_num`)
-				  REFERENCES $court_table (`club_ID`,`court_num`)
-				  ON DELETE CASCADE
-				  ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$player_entrant_table");
 		}
 
 		/**
@@ -517,34 +655,48 @@ class TE_Install {
 				`bracket_num` INT NOT NULL,
 				`round_num` INT NOT NULL,
 				`match_num` INT NOT NULL,
+				CONSTRAINT `fk_match_booking`
 				FOREIGN KEY (`booking_ID`)
 					REFERENCES $booking_table (`ID`)
 					ON DELETE CASCADE
 					ON UPDATE NO ACTION,
+				CONSTRAINT `fk_booking_match`
 				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 					REFERENCES $match_table (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 					ON DELETE CASCADE
 					ON UPDATE CASCADE);";
-		dbDelta( $sql );
-		if($withReports) {
-			var_dump( dbDelta( $sql ) );
-			$wpdb->print_error();
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $booking_match_table" : "Created table '$booking_match_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$booking_match_table");
 		}
 
 		return $wpdb->last_error;
 
 	} //end add schema
 
+	/**
+	 * Seed the newly created schema
+	 */
 	public function seedData() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 		global $wpdb;
 
+		$table = $this->dbTableNames["club"];
 		$values = array("name" => "Tyandaga Tennis Club");
 		$formats_values = array('%s');
-		$table = $wpdb->prefix . "tennis_club";
-		$affected = $wpdb->insert($table,$values,$formats_values);
+		$affected = $wpdb->insert( $table, $values, $formats_values );
+		$this->log->error_log( "$loc: last error='{$wpdb->last_error}'" );
+		$this->log->error_log( "$loc: rows affected = $affected" );
 		return $affected;
 	}
 	
+	/**
+	 * Drop the Tennis Events schema
+	 */
 	public function dropSchema(bool $withReports=false) {
 		global $wpdb;
 		if($withReports) $wpdb->show_errors(); 
@@ -557,6 +709,7 @@ class TE_Install {
 		$sql = $sql . "," . $this->dbTableNames["match_entrant"];
 		$sql = $sql . "," . $this->dbTableNames["player_team"];
 		$sql = $sql . "," . $this->dbTableNames["club_event"];
+		$sql = $sql . "," . $this->dbTableNames["external_event"];
 		$sql = $sql . "," . $this->dbTableNames["squad"];
 		$sql = $sql . "," . $this->dbTableNames["team"];
 		$sql = $sql . "," . $this->dbTableNames["player"];
@@ -650,12 +803,14 @@ class TE_Install {
 	}
 
 	public function enqueue_style() {
+		$loc = __CLASS__  . "::" . __FUNCTION__;
 		// guess current plugin directory URL
 		$plugin_url = plugin_dir_url(__FILE__);
 		wp_enqueue_style('tennis_css',$plugin_url . '../css/tennisevents.css');
 	}
 
 	public function enqueue_script() {
+		$loc = __CLASS__  . "::" . __FUNCTION__;
 		// guess current plugin directory URL
 		$plugin_url = plugin_dir_url(__FILE__);
 		wp_register_script( 'tennis_js', $plugin_url . 'js/te-support.js', array('jquery'),false,true );
@@ -664,11 +819,14 @@ class TE_Install {
 
 	//Need one extra query parameter
 	public function add_query_vars_filter( $vars ) {
+		$loc = __CLASS__  . "::" . __FUNCTION__;
 		$vars[] = "te_vars";
 		return $vars;
 	}
 
 	public function add_todaysdate_in_menu( $items, $args ) {
+		$loc = __CLASS__  . "::" . __FUNCTION__;
+		
 		if( $args->theme_location == 'primary')  {
 			$todaysdate = date('l jS F Y');
 			$items .=  '<li>' . $todaysdate .  '</li>';

@@ -1,4 +1,5 @@
 <?php
+use cpt\TennisEventCpt;
 
 $gw_queued_js = '';
 /**
@@ -204,7 +205,6 @@ function micro_time_elapsed( $start ) {
 class GW_Debug {
 
 	private function __construct() {
-
 	}
 	
 	public static function debug($obj,$label='') {
@@ -241,4 +241,28 @@ class GW_Debug {
 		echo "<div><span><strong>$label</strong> $datetime $usec</span></div>";
 	}
 }
-
+	
+/**
+ * Function to render taxonomy/tag links
+ */
+function tennis_events_get_term_links( $postID, $termname ) {
+	$term_list = wp_get_post_terms( $postID, $termname ); 
+	$i = 0;
+	$len = count( $term_list );
+	foreach( $term_list as $term ) {
+		if( $i++ >= 0 && $i < $len) {
+			$sep = ',';
+		}
+		else if( $i >= $len ) {
+			$sep = '';
+		}
+		$lnk = get_term_link( $term );
+		if( is_wp_error( $lnk ) ) {
+			$mess = $lnk->get_error_message();
+			echo "<span>$mess</span>$sep";
+		}
+		else {
+			echo "<a href='$lnk'>$term->name</a>$sep";
+		}
+	}
+}

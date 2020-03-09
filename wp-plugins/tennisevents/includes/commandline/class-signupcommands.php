@@ -255,7 +255,7 @@ class SignupCommands extends WP_CLI_Command {
      * 
      * ## EXAMPLES
      *
-     *  wp tennis signup move 10 16
+     *  wp tennis signup move 10 16 bracketname
      *
      * @when after_wp_load
      */
@@ -265,10 +265,10 @@ class SignupCommands extends WP_CLI_Command {
         list( $clubId, $eventId ) = $support->getEnvError();
 
         error_clear_last();
-        list( $source, $dest ) = $args;
+        list( $source, $dest, $bracketName ) = $args;
         $last_error = error_get_last();
         if( !is_null( $last_error  ) ) {
-            WP_CLI::error("Wrong args for ... source destination ");
+            WP_CLI::error("Wrong args for ... source destination bracketname ");
             exit;
         }
         
@@ -319,14 +319,21 @@ class SignupCommands extends WP_CLI_Command {
      * 
      * ## EXAMPLES
      *
-     *  wp tennis signup resequence
+     *  wp tennis signup resequence bracketname
      *
      * @when after_wp_load
      */
     function resequence( $args, $assoc_args ) {
 
         $support = CmdlineSupport::preCondtion();
-        list( $clubId, $eventId ) = $support->getEnvError();
+        list( $clubId, $eventId) = $support->getEnvError();
+        error_clear_last();
+        list( $bracketName ) = $args;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong args for ... bracketname ");
+            exit;
+        }
 
         // error_clear_last();
         // list( $source, $dest ) = $args;

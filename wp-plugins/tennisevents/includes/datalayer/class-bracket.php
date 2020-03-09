@@ -30,11 +30,15 @@ class Bracket extends AbstractData
     //Event to which this bracket belongs ( fetched using $event_ID )
     private $event;
 
+    //All entrants signed up for this bracket in this event
+    private $signup = array();	
+    private $entrantsToBeDeleted = array(); //array of Entrants to be removed from the draw
+
     //Matches in this bracket
     private $matches;
     private $matchesToBeDeleted = array();
     private $matchHierarchy = array();
-	
+
 	/*************** Static methods ******************/
 	/**
 	 * Search not used
@@ -117,7 +121,20 @@ class Bracket extends AbstractData
 			foreach($this->matchesToBeDeleted as &$match) {
 				unset( $match );
 			}
-		}
+        }
+        
+		//destroy entrants
+		if( isset( $this->signup ) ) {
+			foreach( $this->signup as &$ent ) {
+				unset( $ent );
+			}
+        }
+        
+		if( isset( $this->entrantsToBeDeleted ) ) {
+			foreach($this->entrantsToBeDeleted as &$ent) {
+				unset( $ent );
+			}
+        }
     }
     
     public function setDirty() {
@@ -183,13 +200,347 @@ class Bracket extends AbstractData
         return $this->event;
     }
 
+
+	/**
+	 * Add an Entrant to the draw for this Bracket/Event
+	 * This method ensures that Entrants are not added ore than once.
+	 * 
+	 * @param $name The name of a player in this event
+	 * @param $seed The seeding of this player
+	 * @return true if succeeds false otherwise
+	 */
+	public function addToSignup ( string $name, int $seed = null ) {
+		$result = false;
+		if( isset( $name ) ) {
+			$found = false;
+			foreach( $this->getSignup() as $d ) {
+				if( $name === $d->getName() ) {
+					$found = true;
+				}
+			}
+			if( !$found ) {
+				$ent = new Entrant( $this->getEventId(), $this->getBracketNumber(), $name, $seed );
+				$this->signup[] = $ent;
+				$result = $this->setDirty();
+			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Remove an Entrant from the signup
+	 * @param $entrant Entrant in the draw
+	 * @return true if succeeds false otherwise
+	 */
+	public function removeFromSignup( string $name ) {
+		$result = false;
+		$temp = array();
+		for( $i = 0; $i < count( $this->getSignup() ); $i++) {
+			if( $name === $this->signup[$i]->getName() ) {
+				$this->entrantsToBeDeleted[] = $this->signup[$i]->getPosition();
+				$result = $this->setDirty();
+			}
+			else {
+				$temp[] = $this->signup[$i];
+			}
+		}
+		$this->signup = $temp;
+
+		return $result;
+	}
+
+	/**
+	 * Destroy the existing signup and all related brackets.
+	 */
+	public function removeSignup() {
+		foreach( $this->getSignup() as &$dr ) {
+			$this->entrantsToBeDeleted[] = $dr->getPosition();
+			unset( $dr );
+		}
+		$this->signup = array();
+		return $this->setDirty();
+	}
+	
+	/**
+	 * Get the signup for this Event/Bracket
+	 * @param $force When set to true will force loading of entrants from db
+	 *               This will cause unsaved entrants to be lost.
+	 */
+	public function getSignup( $force=false ) {
+		if( !isset( $this->signup ) || $force ) $this->fetchSignup();
+		return $this->signup;
+	}
+	
+	/**
+	 * Get the size of the signup for this bracket
+	 */
+	public function signupSize() {
+		$this->getSignup();
+		return isset( $this->signup ) ? sizeof( $this->signup ) : 0;
+	}
+	
+	/**
+	 * Get an entrant by name from the this bracket
+	 */
+	public function getNamedEntrant( string $name ) {
+		$result = null;
+
+		foreach( $this->getSignup() as $draw ) {
+			if( $name === $draw->getName() ) {
+				$result = $draw;
+				break;
+			}
+		}
+		return $result;
+	}
+	
+    /**
+     * Move an entrant from its current position to a new position.
+     * @param int $fromPos The entrant's current position (i.e. place in the lineup)
+     * @param int $toPos The intended position in the signup
+     * @return int rows affected by this update
+     */
+	public function moveEntrant( int $fromPos, int $toPos ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $eventId = $this->getEventId();
+        $bracketNum = $this->getBracketNumber();
+		$this->log->error_log("$loc:Event=$eventId, Bracket=$bracketNum; move $fromPos to $toPos");
+		
+		global $wpdb;
+        $table = $wpdb->prefix . Entrant::$tablename;
+        $fromId = "Entrant($eventId,$bracketNum,$fromPos)";
+        $toId = "Entrant($eventId,$bracketNum,$toPos)";
+        $tempPos = 99999;
+ 
+		$result = 0;
+
+        //Check match numbers for appropriate ranges
+        if( $fromPos < 1 || $toPos < 1 || $toPos >= $tempPos || ( $fromPos === $toPos ) ) {
+			$mess = __("Entrant::move $fromId to $toId: match number(s) out of range.", TennisEvents::TEXT_DOMAIN);
+			throw new InvalidEventException( $mess );
+        }
+
+        $this->log->error_log( "Entrant::move: attempting to move from $fromId to $toId" );
+        $sql = "SELECT count(*) 
+                FROM $table WHERE event_ID = %d AND bracket_num=%d AND position = %d;";
+                
+        $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum, $fromPos ) );
+        $sourceExists = (int) $wpdb->get_var( $safe );
+        $this->log->error_log("Move $fromId to $toId: sourceExists=$sourceExists");
+
+        if( $sourceExists === 1 ) {
+            //Source entrant exists
+            //Check if target (i.e. the toPos) exists             
+            $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum, $toPos ) );
+            $targetExists = (int) $wpdb->get_var( $safe );
+            if( $targetExists === 0 ) {
+                //Target match number does not exist, so just update the match number to the target number
+                $values = array( 'position' => $toPos);
+				$formats_values = array( '%d' );
+				
+                $where          = array( 'event_ID'    => $eventId
+                                        ,'bracket_num' => $bracketNum
+                                        ,'position'    => $fromPos );
+                $formats_where  = array( '%d', '%d', '%d' );
+        
+                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
+                $result = $wpdb->rows_affected;
+
+                if( $wpdb->last_error ) {
+                    $mess = "Moving $fromId to $toId: update open position encountered error: '$wpdb->last_error'";
+                    $this->log->error_log("Entrant.move: $mess");
+                    throw new InvalidEntrantException( $mess ); 
+                }
+                $this->log->error_log( "Entrant::move to open postion $toPos: $result rows affected." );
+            }
+            else {   
+                //Source and target position numbers exist ...
+                //First we have to move the source entrant to a safe place 
+                // ... give it a temporary position number
+                $values = array( 'position' => $tempPos);
+				$formats_values = array( '%d' );
+				
+                $where          = array( 'event_ID'    => $eventId
+                                        ,'bracket_num' => $bracketNum
+                                        ,'position'    => $fromPos );
+                $formats_where  = array( '%d', '%d', '%d' );
+
+                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
+
+                if( $wpdb->last_error ) {
+                    $mess = "Moving $fromId to temporary position $tempPos: encountered error: '$wpdb->last_error'";
+                    error_log("Entrant.move: $mess");
+                    throw new InvalidEntrantException( $mess ); 
+                }
+                error_log( "Entrant::move $fromId to temporary position $tempPos: $check rows affected." );
+
+                //Target exists so update match_num by 1 starting from highest to lowest 
+                // i.e. from the highest position (but less than temp number) down to the target position
+                //Need to start a transaction (default isolation level)
+                $wpdb->query( "start transaction;" );
+
+                $sql = "SELECT `event_ID`,`bracket_num`,`position`,`name`,`seed` 
+                        FROM $table WHERE event_ID = %d AND bracket_num=%d AND position >= %d and position < %d 
+                        ORDER BY position DESC FOR UPDATE;";
+                $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum, $toPos, $tempPos ) );
+                $trows = $wpdb->get_results( $safe );
+
+                if( $wpdb->last_error ) {
+                    $mess = "Moving $fromId to $toId: select for update encountered error: '$wpdb->last_error'";
+                    error_log( "Entrant.move: $mess" );
+                    $wpdb->query( "rollback;" ); 
+                    throw new InvalidEntrantException( $mess ); 
+                }
+                
+                foreach( $trows as $trow ) {
+                    $oldNum = $trow->position;
+                    $newNum = $trow->position + 1;
+
+                    $values = array( 'position' => $newNum );
+                    $formats_values = array( '%d' );
+                    $where          = array( 'event_ID'    => $eventId
+                                            ,'bracket_num' => $bracketNum
+                                            ,'position'    => $oldNum );
+                    $formats_where  = array( '%d', '%d', '%d' );
+                    $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
+
+                    if( $wpdb->last_error ) {
+                        $mess = "Moving $fromId to $toId: updating $oldNum to $newNum encountered error: '$wpdb->last_error'";
+                        error_log("Entrant.move: $mess");
+                        $wpdb->query( "rollback;" ); 
+                        throw new InvalidEntrantException( $mess ); 
+                    }
+
+                    $result += $wpdb->rows_affected;
+                    error_log( "Entrant::move making room -> moved position $oldNum to $newNum:  $result cumulative rows affected." );
+                }
+
+                //Now update the source's temporary position to the target position
+                $values = array( 'position' => $toPos );
+                $formats_values = array( '%d' );
+                $where          = array( 'event_ID'    => $eventId
+                                        ,'bracket_num' => $bracketNum
+                                        ,'position'    => $tempPos );
+                $formats_where  = array( '%d', '%d', '%d' );
+                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
+
+                if( $wpdb->last_error ) {
+                    $mess = "Moving $fromId to $toId: updating $tempPos to $toPos encountered error: '$wpdb->last_error'";
+                    error_log("Entrant.move: $mess");
+                    $wpdb->query( "rollback;" ) ; 
+                    throw new InvalidEntrantException( $mess ); 
+                }
+                $result += $wpdb->rows_affected;
+                
+                $wpdb->query( "commit;" );  
+                error_log( "Entrant::move from $tempPos to $toPos: $result cumulative rows affected." );
+            }
+        }
+        elseif( $sourceExists > 1 ) {
+            //Error condition
+            $mess = __( "$fromId: multiple positions found." );
+            error_log( $mess );
+            throw new InvalidEntrantException( $mess, 500 );
+        }
+        elseif( $sourceExists === 0 ) {
+            $mess = __( "$fromId: position does not exist.", TennisEvents::TEXT_DOMAIN );
+            error_log("Entrant::move $mess" );
+        }
+
+        return $result;
+    }
+	
+    /**
+     * Resequence the signup for the given event
+     */
+    public function resequenceSignup() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log($loc);
+
+		$result = 0;
+		if( $this->isParent() ) {
+			$mess = __("Parent events do not have signups", TennisEvents::TEXT_DOMAIN );
+			throw new InvalidEventException( $mess );
+		}
+
+		global $wpdb;
+        $table = $wpdb->prefix . Entrant::$tablename;
+
+		$wpdb->query( "start transaction;" );
+		
+		$sql = "DROP TEMPORARY TABLE IF EXISTS temp_entrant;";
+		$affected = (int) $wpdb->get_var( $sql );
+		if( $wpdb->last_error ) {
+			$mess = "drop temp table encountered error: '$wpdb->last_error'";
+			error_log( "$loc: $mess" );
+			$wpdb->query( "rollback;" ); 
+			throw new InvalidSignupException( $mess ); 
+		}
+
+		$sql = "CREATE TEMPORARY TABLE temp_entrant as 
+					SELECT * 
+					FROM $table 
+					WHERE event_ID = %d
+					ORDER BY position ASC;";
+		$safe = $wpdb->prepare( $sql, array( $this->getID() ) );
+		$affected = (int) $wpdb->get_var( $safe );
+		if( $wpdb->last_error ) {
+			$mess = "create temp table encountered error: '$wpdb->last_error'";
+			error_log( "$loc: $mess" );
+			$wpdb->query( "rollback;" ); 
+			throw new InvalidSignupException( $mess ); 
+		}
+		
+		$where = array( "event_ID" => $this->getID() );
+		$affected = $wpdb->delete( $table, $where );
+		if( false === $affected ) {
+			$mess = "delete from table '$table' encountered error: '$wpdb->last_error'";
+			error_log( "$loc: $mess" );
+			$wpdb->query( "rollback;" ); 
+			throw new InvalidSignupException( $mess ); 
+		}
+		$this->log->error_log("$loc: deleted $affected rows from $table" );
+		
+		$sql = "SELECT `event_ID`,`position`,`name`,`seed` 
+				FROM temp_entrant 
+				ORDER BY event_ID, position ASC;";
+		$trows = $wpdb->get_results( $sql );
+		$pos = 1;
+		foreach( $trows as $trow ) {
+			$values = array( 'event_ID' => $trow->event_ID
+						   , 'position' => $pos++ 
+						   , 'name' => $trow->name
+						   , 'seed' => $trow->seed );
+
+			$this->log->error_log( $values, "$loc: inserting..." );
+
+			$formats_values = array( '%d', '%d', '%s', '%d' );
+			$check = $wpdb->insert( $table, $values, $formats_values );
+
+			if( $wpdb->last_error ) {
+				$mess = "$loc: inserting $trow->name at postion $pos encountered error: '$wpdb->last_error'";
+				error_log("$loc: $mess");
+				$wpdb->query( "rollback;" ); 
+				throw new InvalidSignupException( $mess ); 
+			}
+
+			$this->log->error_log("$loc: inserted $check row(s) into $table" );
+			$result += $wpdb->rows_affected;
+			error_log( "$loc: inserted last position $pos:  $result cumulative rows affected." );
+		}
+		
+		$wpdb->query( "commit;" );  
+		error_log( "$loc: $result rows affected." );
+        return $result;
+	}
+
     /**
      * Determine the size of the signup
      * For the main draw, this is the actual signup for the event
      * For Losers or Consolation draw, the signup is one-half of the event signup
-     * TODO: For other ... ???????????
+     * TODO: Remove this function
      */
-    public function signupSize( $umpire = null ) {
+    public function signupSize1( $umpire = null ) {
         $size = 0;
         if( self::WINNERS === $this->getName() ) {
             $size =  $this->getEvent()->signupSize();
@@ -207,9 +558,9 @@ class Bracket extends AbstractData
 
     /**
      * Get this bracket's signup
-     * TODO: Figure out how to get losers signup
+     * TODO: Remove this function
      */
-    public function getSignup( $umpire = null ) {
+    public function getSignup1( $umpire = null ) {
         $result = array();
         if( self::WINNERS === $this->getName() ) {
             $result = $this->getEvent()->getSignup();
@@ -224,6 +575,10 @@ class Bracket extends AbstractData
         return $result;
     }
     
+    /**
+     * Hack to fudge fact that sigups are not by bracket
+     * TODO: Remove this function
+     */
     private function entrantsByMatchCount( int $numberMatches = 99 ) {
 		global $wpdb;
         $loc = __CLASS__ . '::' .  __FUNCTION__;
@@ -259,6 +614,9 @@ class Bracket extends AbstractData
         return $result;
     }
 
+    /**
+     * Get the early losers in this bracket
+     */
     private function getEarlyLosers( $umpire ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
@@ -275,7 +633,7 @@ class Bracket extends AbstractData
 
 
     /**
-     * Get all the known losers in the main (i.e. winners ) bracket
+     * Get all the known losers in this bracket
      * @param $umpire is needed to determine who won a given match
      * @return Array of entrants by round and match number who lost
      */
@@ -283,7 +641,7 @@ class Bracket extends AbstractData
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $losers = array();
-        if( !is_null( $umpire ) && self::WINNERS === $this->getName() ) {
+        if( !is_null( $umpire ) ) {
             $allMatches = $this->getMatches();
             foreach( $allMatches as $match ) {
                 $home = $match->getHomeEntrant();
@@ -305,12 +663,12 @@ class Bracket extends AbstractData
     /**
      * Create a new Match and add it to this Event.
 	 * The Match must pass validity checks
-	 * @param $round The round number for this match
-	 * @param $matchType The type of match @see MatchType class
-	 * @param $matchnum The match number if known
-     * @param $home
-     * @param $visitor
-     * @param $bye Set to true if the new match is a bye
+	 * @param int $round The round number for this match
+	 * @param int $matchType The type of match @see MatchType class
+	 * @param int $matchnum The match number if known
+     * @param Entrant $home
+     * @param Entrant $visitor
+     * @param bool $bye Set to true if the new match is a bye
      * @return Match if successful; null otherwise
      */
     public function addNewMatch( int $round, float $matchType, $matchnum = 0, Entrant $home = null, Entrant $visitor = null, bool $bye = false ) {
@@ -342,7 +700,7 @@ class Bracket extends AbstractData
     /**
      * Add a Match to this Bracket
 	 * The Match must pass validity checks
-     * @param $match
+     * @param Match $match
 	 * @return true if successful, false otherwise
      */
     public function addMatch( Match &$match ) {
@@ -367,7 +725,7 @@ class Bracket extends AbstractData
 
     /**
      * Access all Matches in this Event sorted by round number then match number
-	 * @param $force When set to true will force loading of matches
+	 * @param bool $force When set to true will force loading of matches
 	 *               This will cause unsaved matches to be lost.
 	 * @return Array of all matches for this event
      */
@@ -385,7 +743,8 @@ class Bracket extends AbstractData
 	
     /**
      * Access all Matches in this Event for a specific round
-	 * @param $rndnum The round number of interest
+	 * @param int $rndnum The round number of interest
+     * @param bool $force If true forces fetching of matches from db.
 	 * @return Array of matches belonging to the round
      */
 	public function getMatchesByRound( int $rndnum, $force = false ) {
@@ -403,8 +762,8 @@ class Bracket extends AbstractData
     
     /**
      * Get a specific match in this Bracket
-	 * @param $rndnum The round number
-	 * @param $matchnum The match number
+	 * @param int $rndnum The round number
+	 * @param int $matchnum The match number
 	 * @return Match if successful, null otherwise
      */
 	public function getMatch( int $rndnum, int $matchnum, $force = false ) {
@@ -420,7 +779,7 @@ class Bracket extends AbstractData
 	}
 
     /**
-     * Get the number of matches in this total
+     * Get the total number of matches in this bracket
      */
     public function numMatches():int {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -429,8 +788,8 @@ class Bracket extends AbstractData
 	
     /**
      * Get the number of matches in this Round
-	 * @param $round The round number of the desired matches
-	 * @return Count of matches in the given round
+	 * @param int $round The round number of the desired matches
+	 * @return int Count of matches in the given round
      */
     public function numMatchesByRound( int $round ):int {	
         $loc = __CLASS__ . "::" . __FUNCTION__;	
@@ -440,7 +799,7 @@ class Bracket extends AbstractData
     /**
      * Get the number of byes in this bracket.
      * Note that the preliminary rounds must have already been scheduled.
-     * @return number of byes
+     * @return int number of byes
      */
     public function getNumberOfByes() {
 		global $wpdb;
@@ -470,8 +829,8 @@ class Bracket extends AbstractData
     /**
      * Get the highest match number used in the given round
 	 * in a tournament
-     * @param $rn the round number of interest
-	 * @return The maximum of all the match numbers in the round
+     * @param int $rn the round number of interest
+	 * @return int The maximum of all the match numbers in the round
      */
     public function maxMatchNumber( int $rn ):int {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -499,7 +858,9 @@ class Bracket extends AbstractData
 		return $this->setDirty();
     }
     
-    //TODO: Fix this ... use the owning event
+    /**
+     * Get the match type
+     */
 	public function getMatchType() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
@@ -507,7 +868,7 @@ class Bracket extends AbstractData
 			return $this->matches[0]->getMatchType();
 		}
 		else {
-			return 0.0;
+			return $this->getEvent()->getMatchType();
 		}
     }
     
@@ -531,21 +892,21 @@ class Bracket extends AbstractData
         $this->is_approved = true;
         $this->setDirty();
 
-        if( $this->getName() == self::WINNERS ) {
-            if( $this->getEvent()->getFormat() === Format::SINGLE_ELIM ) {
-                $losers = $this->getEvent()->getConsolationBracket();
-            } 
-            elseif( $this->getEvent()->getFormat() == Format::DOUBLE_ELIM ) {
-                $losers = $this->getEvent()->getLosersBracker();
-            }
-        }
+        // if( $this->getName() == self::WINNERS ) {
+        //     if( $this->getEvent()->getFormat() === Format::SINGLE_ELIM ) {
+        //         $losers = $this->getEvent()->getConsolationBracket();
+        //     } 
+        //     elseif( $this->getEvent()->getFormat() == Format::DOUBLE_ELIM ) {
+        //         $losers = $this->getEvent()->getLosersBracker();
+        //     }
+        // }
 
         return $this->matchHierarchy;
     }
 
     /**
      * Get the 2-dimensional array of matches for this bracket
-     * @return Array of matches by round number, match number
+     * @return array of matches by round number, match number
      */
     public function getMatchHierarchy( $force = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -553,10 +914,7 @@ class Bracket extends AbstractData
 
         //if hierarchy not loaded yet then load from db
         if( count( $this->matchHierarchy ) < 1 ) {
-            $matches = $this->getMatches( $force );
-            foreach($matches as $match ) {
-                $this->matchHierarchy[$match->getRoundNumber()][$match->getMatchNumber()] = $match;
-            }
+            $this->matchHierarchy = $this->loadMatchHierarchy();
         }
         return $this->matchHierarchy;
     }
@@ -659,7 +1017,7 @@ class Bracket extends AbstractData
     /**
      * Load the matches from db into 
      * a 2-dimensional array[round number][match number]
-     * @return Array of matches by round and match number
+     * @return array of matches by round and match number
      */
     private function loadMatchHierarchy() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -700,10 +1058,10 @@ class Bracket extends AbstractData
         $mess = '';
         
         if( $this->event_ID < 1 ) {
-            $mess = __( "Bracket must have an event id." );
+            $mess = __( "Bracket must have an event id.", TennisEvents::TEXT_DOMAIN );
         }
         elseif( !$this->isNew() &&  $this->bracket_num < 1 ) {
-            $mess = __( "Bracket must have a bracket number." );
+            $mess = __( "Bracket must have a bracket number.", TennisEvents::TEXT_DOMAIN );
         }
 
 		if( strlen( $mess ) > 0 ) {
@@ -742,19 +1100,26 @@ class Bracket extends AbstractData
 	 * Fetch event for this bracket
 	 */
 	private function fetchEvent() {
-		$this->event = Event::get( $this->event_ID );
+		$this->event = Event::get( $this->getEventId() );
     }
-    
+
+	/**
+	 * Fetch all Entrants for this bracket.
+	 */
+	private function fetchSignup() {
+		$this->signup = Entrant::find( $this->getEventId(), $this->getBracketNum() );
+	}
+
     /**
      * Fetch Matches all Matches for this bracket from the database
      */
     private function fetchMatches() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $eventId = $this->getEvent()->getID();
-        $bracket_num = $this->bracket_num;
+        $bracket_num = $this->getBracketNumber();
         $this->log->error_log("$loc: eventId=$eventId; bracket_num=$bracket_num ");
 
-		$this->matches = Match::find( $this->getEvent()->getID(), $this->bracket_num );
+		$this->matches = Match::find( $eventId, $bracket_num );
 	}
     
 	private function sortByMatchNumberAsc( $a, $b ) {
@@ -796,6 +1161,7 @@ class Bracket extends AbstractData
         }
         else {
             //If bracket_num is zero, then use the next largest value from the db
+            //TODO: do we need this?
             $sql = "SELECT IFNULL(MAX(bracket_num),0) FROM $table WHERE event_ID=%d;";
             $safe = $wpdb->prepare( $sql, $this->event_ID );
             $this->bracket_num = $wpdb->get_var( $safe ) + 1;
@@ -857,7 +1223,27 @@ class Bracket extends AbstractData
 			$result += $match->delete();
 			unset( $match );			
 		}
-		$this->matchesToBeDeleted = array();
+        $this->matchesToBeDeleted = array();
+        
+		//Save signups
+		if( isset( $this->signup ) ) {
+			foreach($this->signup as $ent) {
+                $ent->setEventID( $this->getEventId() );
+                $ent->setBracketNumber( $this->getBracketNumber() );
+				$result += $ent->save();
+			}
+		}
+
+		//Delete signups (Entrants) that were removed from this Bracket/Event
+		if(count($this->entrantsToBeDeleted) > 0 ) {
+			$positions = array_map( function($ent){ return $ent->getPosition();}, $this->getSignup() );
+			foreach( $this->entrantsToBeDeleted as $pos )  {
+				if( !in_array( $pos, $positions ) ) {
+					$result += Entrant::deleteEntrant( $this->getEventId(), $this->getBracketNumber(), $pos );
+				}
+			}
+			$this->entrantsToBeDeleted = array();
+		}
 
 		return $result;
 	}

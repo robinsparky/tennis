@@ -38,6 +38,7 @@ class ManageSignup
 
     private $clubId;
     private $eventId;
+    private $bracketName;
 
     private $signup = array();
     private $nameKeys = array();
@@ -264,7 +265,7 @@ EOT;
             $this->handleErrors('Not Ajax');
         }
         
-        if( !is_user_logged_in() ){
+        if( !is_user_logged_in() ) {
             $this->errobj->add( $this->errcode++, __( 'User is not logged in!.',  TennisEvents::TEXT_DOMAIN ));
         }
         
@@ -330,22 +331,24 @@ EOT;
 
     /**
      * Move the entrant to another position in the signup
-     * @param $data Associative array contaning entrant's data
-     * @return message describing the result of the operation
+     * @param array $data Associative array contaning entrant's data
+     * @return string message describing the result of the operation
      */
     private function moveEntrant( array $data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
         $this->eventId = $data["eventId"];
+        $this->bracketName = $data["bracketname"];
         $fromPos = $data["currentPos"];
         $toPos   = round($data["newPos"]);
 
         $mess    =  __('Move Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
         try {            
             $event = Event::get( $this->eventId );
-            $event->moveEntrant( $fromPos, $toPos );
-            $this->signup = $event->getSignup( true );
+            $bracket = $event->getBracket( $this->bracketName );
+            $bracket->moveEntrant( $fromPos, $toPos );
+            $this->signup = $bracket->getSignup( true );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -357,14 +360,15 @@ EOT;
 
     /**
      * Update the entrant's name, seeding
-     * @param $data Associative array containing entrant's data
-     * @return message describing result of the operation
+     * @param array $data Associative array containing entrant's data
+     * @return string message describing result of the operation
      */
     private function updateEntrant( array $data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
 
         $this->eventId = $data["eventId"];
+        $this->bracketName = $data["bracketname"];
         $fromPos = $data["position"];
         $seed    = $data["seed"];
         $oldName = $data["name"]; 
@@ -376,7 +380,8 @@ EOT;
         $mess    =  __('Update Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
-            $entrant = $event->getNamedEntrant( $oldName );
+            $bracket = $event->getBracket( $this->bracketName );
+            $entrant = $bracket->getNamedEntrant( $oldName );
             if( is_null( $entrant ) ) {
                 $mess = "No such entrant: '$oldName'";
                 $this->log->error_log($mess);
@@ -404,20 +409,22 @@ EOT;
 
     /**
      * Delete the given entrant from the signup
-     * @param $data Associative array of entrant's data
-     * @return message describing result of the operation
+     * @param array $data Associative array of entrant's data
+     * @return string message describing result of the operation
      */
     private function deleteEntrant( array $data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
         $this->eventId = $data["eventId"];
-        $name          = $data["name"]; 
+        $this->bracketName = $data["bracketname"];
+        $name = $data["name"]; 
 
         $mess  =  __('Delete Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
-            $event->removeFromSignup( $name );
+            $bracket = $event->getBracket( $this->bracketName );
+            $bracket->removeFromSignup( $name );
             $event->save();
             $this->signup = [];
         }
@@ -431,14 +438,15 @@ EOT;
 
     /**
      * Add a new entrant to the signup for an event
-     * @param $data Associative array containing the entrant's data
-     * @return message describing result of the operation
+     * @param array $data Associative array containing the entrant's data
+     * @return string message describing result of the operation
      */
     private function addEntrant( array $data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
         $this->eventId = $data["eventId"];
+        $this->bracketName = $data["bracketname"];
         $fromPos = $data["position"];
         $seed    = $data["seed"];
         $name    = $data["name"]; 
@@ -446,7 +454,8 @@ EOT;
         $mess    =  __('Add Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
-            $event->addToSignup( $name, $seed );
+            $bracket = $event->getBracket( $this->bracketName );
+            $bracket->addToSignup( $name, $seed );
             $event->save();
             $this->signup = $event->getSignup( true );
         }
@@ -461,6 +470,8 @@ EOT;
     
     /**
      * Create preliminary rounds for this event/bracket
+     * @param array $data Associative array containing the entrant's data
+     * @return string message describing result of the operation
      */
     private function createPreliminary( $data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
