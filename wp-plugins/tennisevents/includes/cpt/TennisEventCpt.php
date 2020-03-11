@@ -884,6 +884,8 @@ class TennisEventCpt {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
 
+		if( empty( $_POST ) ) return;
+
 		$this->log->error_log($_POST, "POST:");
 		
 		if( ! isset( $_POST['tennis_end_date_nonce'] ) ) {
@@ -1025,6 +1027,7 @@ class TennisEventCpt {
 			$event = new Event( $evtName );
 		}
 		$event->addClub( $club );
+		$bracket = $event->getWinnersBracket(); //Ensure at least bracket is available.
 
 		//Set the parent event before setting other props
 		$event->setParent( $parentEvent );

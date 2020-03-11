@@ -9,7 +9,7 @@
         var shorttimeout = 5000;
         var minNameLength = 3;
 
-        var signupDataMask = {task: "", name: "", newName: "", position: 0, newPos: 0, seed: 0, clubId: 0, eventId: 0 }
+        var signupDataMask = {task: "", name: "", newName: "", position: 0, newPos: 0, seed: 0, clubId: 0, eventId: 0, bracketName: "" }
         var signupData = null;
 
         let ajaxFun = function( signupData ) {
@@ -170,6 +170,8 @@
 
             signupData.clubId = $('.signupContainer').attr("data-clubid");
             signupData.eventId = $('.signupContainer').attr("data-eventid");
+            signupData.bracketName = $('.signupContainer').attr("data-bracketname");
+
 
             ajaxFun( signupData );
         }
@@ -225,6 +227,7 @@
 
             signupData.clubId = $('.signupContainer').attr("data-clubid");
             signupData.eventId = $('.signupContainer').attr("data-eventid");
+            signupData.bracketName = $('.signupContainer').attr("data-bracketname");
             ajaxFun( signupData );
         });
         
@@ -249,6 +252,7 @@
 
             signupData.clubId = $('.signupContainer').attr("data-clubid");
             signupData.eventId = $('.signupContainer').attr("data-eventid");
+            signupData.bracketName = $('.signupContainer').attr("data-bracketname");
             ajaxFun( signupData );
 
         });
@@ -264,6 +268,7 @@
 
             signupData.clubId = $('.signupContainer').attr("data-clubid");
             signupData.eventId = $('.signupContainer').attr("data-eventid");
+            signupData.bracketName = $('.signupContainer').attr("data-bracketname");
             
             $(this).parent("li.entrantSignup").hide();
 
@@ -285,6 +290,7 @@
             signupData.task = "add";
             signupData.clubId = $('.signupContainer').attr("data-clubid");
             signupData.eventId = $('.signupContainer').attr("data-eventid");
+            signupData.bracketName = $('.signupContainer').attr("data-bracketname");
 
             liNode = $('<li>',{ id: name.replace(/ /g, '_')
                             ,class:"entrantSignup sortable-container ui-state-default"

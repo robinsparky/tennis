@@ -229,13 +229,13 @@ class Bracket extends AbstractData
 	
 	/**
 	 * Remove an Entrant from the signup
-	 * @param $entrant Entrant in the draw
-	 * @return true if succeeds false otherwise
+	 * @param string $entrant Entrant in the draw
+	 * @return bool true if succeeds false otherwise
 	 */
 	public function removeFromSignup( string $name ) {
 		$result = false;
 		$temp = array();
-		for( $i = 0; $i < count( $this->getSignup() ); $i++) {
+		for( $i = 0; $i < count( $this->getSignup( true ) ); $i++) {
 			if( $name === $this->signup[$i]->getName() ) {
 				$this->entrantsToBeDeleted[] = $this->signup[$i]->getPosition();
 				$result = $this->setDirty();
@@ -1107,7 +1107,7 @@ class Bracket extends AbstractData
 	 * Fetch all Entrants for this bracket.
 	 */
 	private function fetchSignup() {
-		$this->signup = Entrant::find( $this->getEventId(), $this->getBracketNum() );
+		$this->signup = Entrant::find( $this->getEventId(), $this->getBracketNumber() );
 	}
 
     /**

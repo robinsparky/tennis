@@ -144,7 +144,7 @@ class ManageSignup
         if( is_null( $club ) ) return __('Please set home club id in options or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
         $this->clubId = $club->getID();
 
-        $this->eventId = $my_shorts['eventid'];
+        $this->eventId = (int)$my_shorts['eventid'];
         $this->log->error_log("$loc: EventId=$this->eventId");
         if( $this->eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
 
@@ -183,7 +183,8 @@ class ManageSignup
         //Get the signup for this bracket
         //NOTE: Winners bracket gets the event's signup
         //      Consolation bracket gets the losers from the first 2 rounds
-        $this->signup = $td->getSignup( $bracketName );
+        $this->signup = $bracket->getSignup( $bracketName );
+        $this->log->error_log( $this->signup, "$loc: Signup");
         $numSignedUp = count( $this->signup );
 
         $jsData = $this->get_ajax_data();
@@ -196,7 +197,6 @@ class ManageSignup
         wp_enqueue_script( 'manage_signup' );       
         wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $jsData );
         
-
         //Signup
         $out = '';
         $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
@@ -339,7 +339,7 @@ EOT;
         $this->log->error_log("$loc");
 
         $this->eventId = $data["eventId"];
-        $this->bracketName = $data["bracketname"];
+        $this->bracketName = $data["bracketName"];
         $fromPos = $data["currentPos"];
         $toPos   = round($data["newPos"]);
 
@@ -368,7 +368,7 @@ EOT;
         $this->log->error_log($loc);
 
         $this->eventId = $data["eventId"];
-        $this->bracketName = $data["bracketname"];
+        $this->bracketName = $data["bracketName"];
         $fromPos = $data["position"];
         $seed    = $data["seed"];
         $oldName = $data["name"]; 
@@ -417,14 +417,16 @@ EOT;
         $this->log->error_log("$loc");
 
         $this->eventId = $data["eventId"];
-        $this->bracketName = $data["bracketname"];
+        $this->bracketName = $data["bracketName"];
         $name = $data["name"]; 
 
         $mess  =  __('Delete Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
             $bracket = $event->getBracket( $this->bracketName );
-            $bracket->removeFromSignup( $name );
+            if( !$bracket->removeFromSignup( $name ) ) {
+                $mess =  __("Delete Entrant '{$name}' failed.", TennisEvents::TEXT_DOMAIN );
+            }
             $event->save();
             $this->signup = [];
         }
@@ -446,7 +448,7 @@ EOT;
         $this->log->error_log("$loc");
 
         $this->eventId = $data["eventId"];
-        $this->bracketName = $data["bracketname"];
+        $this->bracketName = $data["bracketName"];
         $fromPos = $data["position"];
         $seed    = $data["seed"];
         $name    = $data["name"]; 
@@ -457,7 +459,7 @@ EOT;
             $bracket = $event->getBracket( $this->bracketName );
             $bracket->addToSignup( $name, $seed );
             $event->save();
-            $this->signup = $event->getSignup( true );
+            $this->signup = $bracket->getSignup( true );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

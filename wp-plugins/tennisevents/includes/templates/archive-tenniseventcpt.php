@@ -51,21 +51,34 @@ get_header();  ?>
                 
                 <hr style="clear:left;">
 				<h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
-				<?php tennis_events_get_term_links( $post->ID, TennisEventCpt::CUSTOM_POST_TYPE_TAX ); ?>	
+				<?php tennis_events_get_term_links( $post->ID, TennisEventCpt::CUSTOM_POST_TYPE_TAX ); 
+					$eventType = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
+					$eventType   = EventType::AllTypes()[$eventType];
+				?>							
+				<ul class='eventmeta eventmetalist'>							
+					<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
+				</ul>
                 <?php the_content() ?> 
+				<!-- Now the child events -->
 				<?php
 					$args = array( "post_type" => TennisEventCpt::CUSTOM_POST_TYPE
-								 , "meta_key"  => TennisEventCpt::PARENT_EVENT_META_KEY
-								 , "meta_value_num" => $eventCPTId
-								 , "meta_compare"   => "=" 	
 								 , "orderby" => "title"
-								 , "order"   => "ASC" );
+								 , "order"   => "ASC" 
+								 , "meta_query" => array( "relation" => "OR"
+										,array(
+											'key' => TennisEventCpt::PARENT_EVENT_META_KEY
+											,'value' => $eventCPTId
+											,'compare' => '='
+										)
+									)
+								);
 					$myQuery = new WP_Query( $args );
+					// echo $myQuery->request;
+					// echo "<br>Found?" . $myQuery->have_posts();
 					//Loop
-					if( $myQuery->havePosts() ) {
-						while( $myQuery->havePosts() ) { $myQuery->the_post(); 
-							$eventType = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
-							$eventType   = EventType::AllTypes()[$eventType];
+					if( $myQuery->have_posts() ) {
+						while( $myQuery->have_posts() ) { 
+							$myQuery->the_post(); 
 							$matchType = get_post_meta( get_the_ID(), TennisEventCpt::MATCH_TYPE_META_KEY, true );
 							$matchType   = MatchType::AllTypes()[$matchType];
 							$eventFormat = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_FORMAT_META_KEY, true );
@@ -76,13 +89,13 @@ get_header();  ?>
 						?>
 						<a href="<?php the_permalink() ?>"><?php echo the_title() ?></a>
 						<ul class='eventmeta eventmetalist'>
-							<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
 							<li><?php echo __("Match Type: ", TennisEvents::TEXT_DOMAIN);  echo $matchType; ?></li>
 							<li><?php echo __("Format: ", TennisEvents::TEXT_DOMAIN);  echo $eventFormat; ?></li>
 							<li><?php echo __("Signup Deadline: ", TennisEvents::TEXT_DOMAIN);  echo $signupBy; ?></li>
 							<li><?php echo __("Event Starts: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
 							<li><?php echo __("Event Ends: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
-						</ul>
+						</ul>						
+						<p> <?php the_content() ?> </p>
 						<?php } ?>
 					<?php }
 					   else {

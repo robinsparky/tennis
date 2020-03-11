@@ -51,7 +51,7 @@ function tennis_locate_template( $template_name, $template_path = '', $default_p
  *
  * @since 1.0.0
  *
- * @see tept_locate_template()
+ * @see tennis_locate_template()
  *
  * @param string 	$template_name			Template to load.
  * @param array 	$args					Args passed for the template file.
@@ -60,7 +60,7 @@ function tennis_locate_template( $template_name, $template_path = '', $default_p
  */
 function tennis_get_template( $template_name, $args = array(), $tempate_path = '', $default_path = '' ) {
 
-	if ( is_array( $args ) && isset( $args ) ) :
+	if ( isset( $args ) && is_array( $args ) ) :
 		extract( $args );
 	endif;
 
@@ -71,7 +71,32 @@ function tennis_get_template( $template_name, $args = array(), $tempate_path = '
 		return;
 	endif;
 
-	include $template_file;
+	load_template( $template_file, true );
+	//include $template_file;
+
+}
+
+/**
+ * Get template part.
+ *
+ * Search for the template and include the file.
+ *
+ * @since 1.0.0
+ *
+ * @see tennis_locate_template()
+ *
+ * @param string 	$slug The slug name for the generic template.
+ * @param string 	$name The name of the specialised template. Defaults to null
+ */
+function tennis_get_template_part( $slug, $name = null ) {
+
+	$template_name = "{$slug}.php";
+    $name  = (string) $name;
+    if ( '' !== $name ) {
+        $template_name = "{$slug}-{$name}.php";
+	}
+ 
+	tennis_get_template( $template_name );
 
 }
 
@@ -127,7 +152,7 @@ function tennis_template_loader( $template ) {
 		  $file = 'archive-tenniseventcpt.php';
 	  }
 	  elseif( is_singular( $my_post_types ) ) {
-		  $file = 'single-tennisevent.php';
+		  $file = 'single-tenniseventcpt.php';
 	  }
 	  error_log("$loc: looking for file='$file'");
 	
@@ -139,7 +164,7 @@ function tennis_template_loader( $template ) {
 
 }
 add_filter( 'template_include', 'tennis_template_loader' );
-// Commented out as this can screw things up a bit, uncomment if you want to override template files.
+
 
 
 // define( 'MY_PLUGIN_DIR', plugin_dir_path( __FILE__) );

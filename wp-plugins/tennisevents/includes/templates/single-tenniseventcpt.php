@@ -1,7 +1,7 @@
 	
 <?php
 get_header();
-//get_template_part('index','banner'); ?>
+?>
 <!-- Blog Section Right Sidebar -->
 <div class="page-builder">
 	<div class="container">
@@ -14,7 +14,7 @@ get_header();
 				while( have_posts() ) { 
 					the_post();
 					$postid = get_the_ID();
-					get_template_part('content','tennisevent'); 
+					tennis_get_template_part('draw','tenniseventcpt'); 
 					?>
 				<!--/Blog Author-->
 			<?php } 

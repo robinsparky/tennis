@@ -873,45 +873,57 @@ class Event extends AbstractData
 		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$this->log->error_log($loc);
 
-		$bracket = $this->getBracket( Bracket::WINNERS );
-		if( is_null( $bracket ) ) {
-			$bracket = $this->createBracket( Bracket::WINNERS );
+		if( $this->isLeaf() ) {
+			$bracket = $this->getBracket( Bracket::WINNERS );
 			if( is_null( $bracket ) ) {
-				throw new InvalidEventException(__("Could not create Winners bracket.",TennisEvents::TEXT_DOMAIN) );
+				$bracket = $this->createBracket( Bracket::WINNERS );
+				if( is_null( $bracket ) ) {
+					throw new InvalidEventException(__("Could not create Winners bracket.",TennisEvents::TEXT_DOMAIN) );
+				}
+				$bracket->save();
+				return $bracket;
 			}
-			$bracket->save();
 		}
-		return $bracket;
 	}
 
 	/**
 	 * Get the losers bracket for this event.
 	 */
 	public function getLosersBracket( ) {
-		$bracket = $this->getBracket( Bracket::LOSERS );
-		if( is_null( $bracket ) ) {
-			$bracket = $this->createBracket( Bracket::LOSERS );
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		if( $this->isLeaf() ) {
+			$bracket = $this->getBracket( Bracket::LOSERS );
 			if( is_null( $bracket ) ) {
-				throw new InvalidEventException(__("Could not create Losers bracket.",TennisEvents::TEXT_DOMAIN) );
+				$bracket = $this->createBracket( Bracket::LOSERS );
+				if( is_null( $bracket ) ) {
+					throw new InvalidEventException(__("Could not create Losers bracket.",TennisEvents::TEXT_DOMAIN) );
+				}
+				$bracket->save();
+				return $bracket;
 			}
-			$bracket->save();
 		}
-		return $bracket;
 	}
 	
 	/**
 	 * Get the consolation bracket for this event.
 	 */
 	public function getConsolationBracket( ) {
-		$bracket = $this->getBracket( Bracket::CONSOLATION );
-		if( is_null( $bracket ) ) {
-			$bracket = $this->createBracket( Bracket::CONSOLATION );
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		if( $this->isLeaf() ) {
+			$bracket = $this->getBracket( Bracket::CONSOLATION );
 			if( is_null( $bracket ) ) {
-				throw new InvalidEventException(__("Could not create Consolation bracket.",TennisEvents::TEXT_DOMAIN) );
+				$bracket = $this->createBracket( Bracket::CONSOLATION );
+				if( is_null( $bracket ) ) {
+					throw new InvalidEventException(__("Could not create Consolation bracket.",TennisEvents::TEXT_DOMAIN) );
+				}
+				$bracket->save();
+				return $bracket;
 			}
-			$bracket->save();
 		}
-		return $bracket;
 	}
 	
     /**
@@ -919,48 +931,61 @@ class Event extends AbstractData
 	 * For regulation single elimination tournaments there should be only 1 bracket
 	 * For regulation double elimination tournaments there should be only 2 brackets
 	 * For all other situations it depends on the nature of the event
+	 * @param object $bracket The bracket to be added
+	 * @return bool  True if added false otherwise
      */
     public function addBracket( Bracket &$bracket ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$result = false;
 		$found = false;
-        if( $this->isLeaf() && $bracket->getEvent()->getID() === $this->getID() && $bracket->isValid() ) {
-			foreach( $this->getBrackets() as $b ) {
-				if($b->getBracketNumber() === $bracket->getBracketNumber() ) {
-					$found = true;
-					break;
+		if( $this->isLeaf() ) {
+			if( $this->isLeaf() && $bracket->getEvent()->getID() === $this->getID() && $bracket->isValid() ) {
+				foreach( $this->getBrackets() as $b ) {
+					if($b->getBracketNumber() === $bracket->getBracketNumber() ) {
+						$found = true;
+						break;
+					}
+				}
+				if( !$found ) {
+					$this->brackets[] = $bracket;
+					$bracket->setEvent( $this );
+					$result = $this->setDirty();
 				}
 			}
-			if( !$found ) {
-				$this->brackets[] = $bracket;
-				$bracket->setEvent( $this );
-				$result = $this->setDirty();
-			}
-        }
+		}
         return $result;
 	}
 
 	/**
 	 * Create a bracket with the given name.
 	 * If a bracket with that name already exists it is returned.
-	 * @param $name
+	 * @param string $name The name of the bracket
+	 * @return object The bracket or null if this event is not a leaf
 	 */
 	public function createBracket( string $name ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$num = 0;
 		$found = false;
 		$result = null;
-		foreach( $this->getBrackets() as $b ) {
-			++$num;
-			if( $b->getName() === $name ) {
-				$found = true;
-				$result = $b;
+		if( $this->isLeaf() ) {
+			foreach( $this->getBrackets() as $b ) {
+				++$num;
+				if( $b->getName() === $name ) {
+					$found = true;
+					$result = $b;
+				}
 			}
-		}
-		if( !$found ) {
-			$result = new Bracket;
-			$result->setName( $name );
-			$this->brackets[] = $result;
-			$result->setEvent( $this );
-			$this->setDirty();
+			if( !$found ) {
+				$result = new Bracket;
+				$result->setName( $name );
+				$this->brackets[] = $result;
+				$result->setEvent( $this );
+				$this->setDirty();
+			}
 		}
 		return $result;
 	}
@@ -970,24 +995,32 @@ class Event extends AbstractData
 	 * @param $name
 	 */
 	public function removeBracket( string $name ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$num = 0;
 		$result = false;
-		foreach( $this->getBrackets() as &$bracket ) {
-			if( $bracket->getName() === $name ) {
-				$result = true;
-				$this->bracketsToBeDeleted[] = $bracket;
-				unset( $this->brackets[$num] );
+		if( isset( $this->brackets ) ) {
+			foreach( $this->getBrackets() as &$bracket ) {
+				if( $bracket->getName() === $name ) {
+					$result = true;
+					$this->bracketsToBeDeleted[] = $bracket;
+					unset( $this->brackets[$num] );
+				}
+				++$num;
 			}
-			++$num;
 		}
 		return $result;
 	}
 	
 	/**
 	 * Remove this Event's collection of Brackets
+	 * @return bool True if successful false otherwise
 	 */
 	public function removeBrackets() {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$this->fetchBrackets();
 		if( isset( $this->brackets ) ) {
 			foreach( $this->brackets as $bracket ) {
@@ -1011,6 +1044,9 @@ class Event extends AbstractData
 	 * @return True if successful; false otherwise
 	 */
 	public function addExternalRef( $extRef ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$result = false;
 		if( isset( $extRef ) && !empty( $extRef ) ) {
 			$found = false;
@@ -1034,6 +1070,9 @@ class Event extends AbstractData
 	 * @return True if successful; false otherwise
 	 */
 	public function removeExternalRef( $extRef ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
 		$result = false;
 		if( isset( $extRef ) ) {
 			$i=0;
@@ -1055,6 +1094,9 @@ class Event extends AbstractData
 	 *               This will cause unsaved external refernces to be lost.
 	 */
 	public function getExternalRefs( $force = false ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+		
 		if( !isset( $this->external_refs ) || $force ) $this->fetchExternalRefs();
 		return $this->external_refs;
 	}

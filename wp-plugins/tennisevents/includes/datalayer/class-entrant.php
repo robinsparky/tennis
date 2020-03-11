@@ -148,7 +148,7 @@ class Entrant extends AbstractData
 		elseif( count($fk_criteria) === 2 ) {
 			$where[] = $fk_criteria[0];
 			$where[] = $fk_criteria[1];
-			$sql = "select event_ID,position,name,seed 
+			$sql = "select event_ID,bracket_num,position,name,seed 
 					from $table where event_ID=%d and bracket_num=%d order by position;";
 			$format = "%s(%d,%d) -> %d rows returned.";
 		}
@@ -160,12 +160,12 @@ class Entrant extends AbstractData
 		$safe = $wpdb->prepare($sql,$where);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		// if( count( $where) > 1 ) {
-		// 	error_log( sprintf($format, $loc, $where[0], $where[1], $where[2], $where[3], $wpdb->num_rows ) );
-		// }
-		// else {
-		// 	error_log( sprintf($format, $loc, $where[0], $wpdb->num_rows ) );
-		// }
+		if( count( $where) > 2 ) {
+			error_log( sprintf($format, $loc, $where[0], $where[1], $where[2], $where[3], $wpdb->num_rows ) );
+		}
+		else {
+			error_log( sprintf($format, $loc, $where[0], $where[1], $wpdb->num_rows ) );
+		}
 		
 		foreach($rows as $row) {
             $obj = new Entrant;
@@ -290,7 +290,7 @@ class Entrant extends AbstractData
     /**
      * Set the bracket number for this bracket
      */
-    public function setBracketNum( int $b ) {
+    public function setBracketNumber( int $b ) {
 		$result = false;
 		if(isset($b) && $b > 0 ) {
 			$this->bracket_num = $b;
@@ -302,7 +302,7 @@ class Entrant extends AbstractData
     /**
      * Get this Entrant's Draw id.
      */
-    public function getBracketNum():int {
+    public function getBracketNumber():int {
         return $this->bracket_num;
     }
 	
@@ -349,7 +349,7 @@ class Entrant extends AbstractData
 		global $wpdb;
 		$result = 0;
 		$eventId = $this->getEventId();
-		$brac = $this->getBracketNum();
+		$brac = $this->getBracketNumber();
 		$pos = $this->getPosition();
 		if( isset( $eventId ) && isset( $pos ) ) {
 			$table = $wpdb->prefix . self::$tablename;
@@ -372,7 +372,7 @@ class Entrant extends AbstractData
 		$evtId = isset( $this->event_ID ) ? $this->event_ID : '???';
 		$brac  = isset( $this->bracket_num ) ? $this->bracket_num : '???';
 		$name  = isset( $this->name ) ? $this->name : '???';
-		$id    = sprintf("P(%d,%d,%d,%s)",$this->evtId,$brac, $pos, $name );
+		$id    = sprintf("P(%d,%d,%d,%s)",$evtId,$brac, $pos, $name );
 		$mess = '';
 		$code = 0;
 
@@ -409,7 +409,7 @@ class Entrant extends AbstractData
 	 * Return this object as an associative array
 	 */
 	public function toArray() {
-		return ["eventId"=>$this->getEventId(),"bracket_num"=>$this->getBracketNum(), "position"=>$this->getPosition(), "name"=>$this->getName(), "seed"=>$this->getSeed()];
+		return ["eventId"=>$this->getEventId(),"bracket_num"=>$this->getBracketNumber(), "position"=>$this->getPosition(), "name"=>$this->getName(), "seed"=>$this->getSeed()];
 	}
 
 	/**
@@ -429,11 +429,11 @@ class Entrant extends AbstractData
 		$wpdb->query("LOCK TABLES $table LOW_PRIORITY WRITE");
 		
 		$sql = "SELECT IFNULL(MAX(position),0) FROM $table WHERE event_ID=%d and bracket_num=%d;";
-		$safe = $wpdb->prepare($sql,$this->event_ID,$this->getBracketNum());
+		$safe = $wpdb->prepare($sql,$this->event_ID,$this->getBracketNumber());
 		$this->position = $wpdb->get_var($safe) + 1;
 
 		$values = array( 'event_ID' => $this->getEventId()
-						,'bracket_num' => $this->getBracketNum()
+						,'bracket_num' => $this->getBracketNumber()
 						,'position' => $this->getPosition()
 						,'name' => $this->getName()
 						,'seed' => $this->getSeed());
@@ -459,7 +459,7 @@ class Entrant extends AbstractData
 		parent::update();
 		
 		$where = array( 'event_ID' => $this->getEventId()
-					   ,'bracket_num' => $this->getBracketNum()
+					   ,'bracket_num' => $this->getBracketNumber()
 					   ,'position' => $this->getPosition());
 		$formats_where  = array('%d','%d','%d');
 
