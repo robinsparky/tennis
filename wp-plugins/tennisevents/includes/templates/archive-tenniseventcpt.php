@@ -1,6 +1,8 @@
 <?php
 use cpt\TennisEventCpt;
-get_header();  ?>
+get_header();  
+wp_enqueue_style('events', TE()->getPluginUrl().'css/tennisevents.css');
+?>
 <div class="page-title-section">		
 	<div class="overlay">
 		<div class="container">
@@ -49,7 +51,7 @@ get_header();  ?>
 					if( is_null( $event ) ) wp_die("Could not find event with external id=$eventCPTId");
                 ?>
                 
-                <hr style="clear:left;">
+                <hr style="clear:left;" class='event-divider'>
 				<h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
 				<?php tennis_events_get_term_links( $post->ID, TennisEventCpt::CUSTOM_POST_TYPE_TAX ); 
 					$eventType = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
@@ -86,16 +88,34 @@ get_header();  ?>
 							$signupBy = get_post_meta( get_the_ID(), TennisEventCpt::SIGNUP_BY_DATE_META_KEY, true );
 							$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
 							$endDate = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
+							$leafEvent = Event::getEventByExtRef( get_the_ID() );
 						?>
-						<a href="<?php the_permalink() ?>"><?php echo the_title() ?></a>
-						<ul class='eventmeta eventmetalist'>
-							<li><?php echo __("Match Type: ", TennisEvents::TEXT_DOMAIN);  echo $matchType; ?></li>
-							<li><?php echo __("Format: ", TennisEvents::TEXT_DOMAIN);  echo $eventFormat; ?></li>
-							<li><?php echo __("Signup Deadline: ", TennisEvents::TEXT_DOMAIN);  echo $signupBy; ?></li>
-							<li><?php echo __("Event Starts: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
-							<li><?php echo __("Event Ends: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
-						</ul>						
-						<p> <?php the_content() ?> </p>
+						<section class="leaf-events"> <!-- Leaf Events -->
+							<hr class="leaf-divider">
+							<?php echo the_title("<h3>","</h3>") ?>
+							<div><?php the_content() ?> </div>
+							<table class='eventmeta'>
+							<h5>Info</h5>
+							<tbody>
+								<tr class="eventmeta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
+								<tr class="eventmeta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php echo $eventFormat; ?></td></tr>
+								<tr class="eventmeta-detail"><td><strong><?php echo __("Signup Deadline", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php   echo $signupBy; ?></td></tr>
+								<tr class="eventmeta-detail"><td><strong><?php echo __("Event Starts", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $startDate; ?></td></tr>
+								<tr class="eventmeta-detail"><td><strong><?php echo __("Event Ends", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $endDate; ?></td></tr>
+							</tbody>
+							</table>
+							<h5>Actions</h5>
+							<ul class="eventbrackets">
+							<?php 
+								$td = new TournamentDirector( $leafEvent );
+								$brackets = $td->getBrackets( );
+								foreach( $brackets as $bracket ) {
+							?>
+								<li><a href="<?php the_permalink() ?>?manage=signup&bracket=<?php echo $bracket->getName() ?>"><?php echo $bracket->getName()?> Signup</a></li>
+								<li><a href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo $bracket->getName() ?>"><?php echo $bracket->getName()?> Draw</a></li>	
+							<?php } ?>
+							</ul>	
+						</section> <!-- /leaf events -->	
 						<?php } ?>
 					<?php }
 					   else {

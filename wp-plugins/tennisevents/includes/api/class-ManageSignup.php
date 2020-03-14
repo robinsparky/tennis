@@ -69,8 +69,10 @@ class ManageSignup
         $this->log->error_log( $loc );
 
         $jsurl =  TE()->getPluginUrl() . 'js/signup.js';
+        $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
         $this->log->error_log("$loc: $jsurl");
         wp_register_script( 'manage_signup', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
+        wp_register_style( 'manage_signup_css', $cssurl );
 
         //wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
     }
@@ -181,9 +183,7 @@ class ManageSignup
         $isApproved = $bracket->isApproved();
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
         //Get the signup for this bracket
-        //NOTE: Winners bracket gets the event's signup
-        //      Consolation bracket gets the losers from the first 2 rounds
-        $this->signup = $bracket->getSignup( $bracketName );
+        $this->signup = $td->getSignup( $bracketName );
         $this->log->error_log( $this->signup, "$loc: Signup");
         $numSignedUp = count( $this->signup );
 
@@ -194,7 +194,8 @@ class ManageSignup
         $jsData["numSignedUp"] = $numSignedUp;
         $jsData["numPreliminary"] = $numPrelimMatches;
         $jsData["isBracketApproved"] = $isApproved ? 1:0;
-        wp_enqueue_script( 'manage_signup' );       
+        wp_enqueue_script( 'manage_signup' );   
+        wp_enqueue_style( 'manage_signup_css');    
         wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $jsData );
         
         //Signup
@@ -227,7 +228,7 @@ EOT;
             $nameId = str_replace( ' ', '_', $name );
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
-            if( $numPrelimMatches > 0 || $bracketName !== Bracket::WINNERS ) {
+            if( $numPrelimMatches > 0 ) {
                 $tbl = sprintf( $templr, $nameId, $pos, $rname );
             }
             else {
@@ -237,13 +238,13 @@ EOT;
         }
         $out .= '</ul>' . PHP_EOL;
 
-        if( $numPrelimMatches < 1 && $bracketName === Bracket::WINNERS ) {
+        if( $numPrelimMatches < 1 ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;
         }
-        elseif( $numPrelimMatches < 1 && $bracketName === Bracket::CONSOLATION ) {
-            $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;   
-        }
+        // elseif( $numPrelimMatches < 1 && $bracketName === Bracket::CONSOLATION ) {
+        //     $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;   
+        // }
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';
 

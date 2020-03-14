@@ -51,6 +51,9 @@ class ManageDraw
         //By match
         $jsurl =  TE()->getPluginUrl() . 'js/matches.js';
         wp_register_script( 'manage_matches', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
+        
+        $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
+        wp_register_style( 'manage_draw_css', $cssurl );
     }
     
     public function registerHandlers() {
@@ -110,7 +113,7 @@ class ManageDraw
         if( is_null( $club ) ) return __('Please set home club id or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
 
         //Get the event from attributes
-        $eventId = $my_atts['eventid'];
+        $eventId = (int)$my_atts['eventid'];
         $this->log->error_log("$loc: EventId=$eventId");
         if( $eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
 
@@ -143,8 +146,9 @@ class ManageDraw
         //Go
         $td = new TournamentDirector( $target );
         $bracket = $td->getBracket( $bracketName );
-        if( is_null( $bracket ) ) {
-            $bracket = $target->getWinnersBracket();
+        if( is_null( $bracket ) ) {            
+            $mess = sprintf("No such bracket='%s' for the event '%s'", $bracketName, $target->getName() );
+            return __($mess, TennisEvents::TEXT_DOMAIN );
         }
 
         if( !is_null( $bracket ) ) {
@@ -647,11 +651,13 @@ class ManageDraw
         $this->log->error_log("$loc");
 
         $this->eventId = $data["eventId"];
+        $bracketName = $data["bracketName"];
         try {            
             $event = Event::get( $this->eventId );
-            $event->removeBrackets();
+            $td = new TournamentDirector( $event );
+            $td->removeAllMatches( $bracketName );
             $numMatches = $event->save();
-            $mess =  __("Removed all brackets for this event.", TennisEvents::TEXT_DOMAIN );
+            $mess =  __("Removed all matches for this event/bracket.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -702,7 +708,8 @@ class ManageDraw
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
         wp_enqueue_script( 'manage_matches' );         
-        wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );
+        wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
+        wp_enqueue_style( 'manage_draw_css' );      
 
         $begin = <<<EOT
 <table id="%s" class="bracketdraw" data-eventid="%d" data-bracketname="%s">
@@ -871,8 +878,8 @@ EOT;
         $out .= "</table>";	 
         $out .= "<div class='bracketDrawButtons'>";
         if( !$bracket->isApproved() ) {
-            $out .= '<button class="button" type="button" id="removePrelim">Remove Preliminary Round</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="approveDraw">Approve Preliminary Round</button>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="removePrelim">Reset</button><br/>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="approveDraw">Approve</button>' . PHP_EOL;
         }
         $out .= "</div>";
 
@@ -990,8 +997,8 @@ EOT;
         $jsData["matches"] = $arrData;
 
         wp_enqueue_script( 'manage_draw' );         
-        wp_localize_script( 'manage_draw', 'tennis_draw_obj', $jsData );
-  
+        wp_localize_script( 'manage_draw', 'tennis_draw_obj', $jsData );        
+        wp_enqueue_style( 'manage_draw_css' );      
 
         $umpire = $td->getChairUmpire();
         $gen = new DrawTemplateGenerator("$tournamentName - $bracketName Bracket", $signupSize, $eventId, $bracketName  );

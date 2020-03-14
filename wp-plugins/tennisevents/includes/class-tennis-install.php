@@ -92,8 +92,8 @@ class TE_Install {
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
 
 		// Ensure needed classes are loaded		
-		ManageSignup::register();
-		ManageDraw::register();
+		//ManageSignup::register();
+		//ManageDraw::register();
 		TennisEventCpt::register();
 		// clear the permalinks after the post type has been registered
 		flush_rewrite_rules();

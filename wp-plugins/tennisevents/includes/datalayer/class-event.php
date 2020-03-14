@@ -740,85 +740,6 @@ class Event extends AbstractData
 		if( !isset( $this->clubs ) || $force ) $this->fetchClubs();
 		return $this->clubs;
 	}
-
-	// /**
-	//  * Add an Entrant to the draw for this Child Event
-	//  * This method ensures that Entrants are not added ore than once.
-	//  * 
-	//  * @param $name The name of a player in this event
-	//  * @param $seed The seeding of this player
-	//  * @return true if succeeds false otherwise
-	//  */
-	// public function addToSignup ( string $name, int $seed = null ) {
-	// 	$result = false;
-	// 	if( isset( $name ) && $this->isLeaf() ) {
-	// 		$found = false;
-	// 		foreach( $this->getSignup() as $d ) {
-	// 			if( $name === $d->getName() ) {
-	// 				$found = true;
-	// 			}
-	// 		}
-	// 		if( !$found ) {
-	// 			$ent = new Entrant( $this->getID(), $name, $seed );
-	// 			$this->signup[] = $ent;
-	// 			$result = $this->setDirty();
-	// 		}
-	// 	}
-	// 	return $result;
-	// }
-	
-	// /**
-	//  * Remove an Entrant from the signup
-	//  * @param $entrant Entrant in the draw
-	//  * @return true if succeeds false otherwise
-	//  */
-	// public function removeFromSignup( string $name ) {
-	// 	$result = false;
-	// 	$temp = array();
-	// 	for( $i = 0; $i < count( $this->getSignup() ); $i++) {
-	// 		if( $name === $this->signup[$i]->getName() ) {
-	// 			$this->entrantsToBeDeleted[] = $this->signup[$i]->getPosition();
-	// 			$result = $this->setDirty();
-	// 		}
-	// 		else {
-	// 			$temp[] = $this->signup[$i];
-	// 		}
-	// 	}
-	// 	$this->signup = $temp;
-
-	// 	return $result;
-	// }
-
-	// /**
-	//  * Destroy the existing signup and all related brackets.
-	//  */
-	// public function removeSignup() {
-	// 	foreach( $this->getSignup() as &$dr ) {
-	// 		$this->entrantsToBeDeleted[] = $dr->getPosition();
-	// 		unset( $dr );
-	// 	}
-	// 	$this->signup = array();
-	// 	$this->removeBrackets(); //With no signups, must get rid of brackets and matches
-	// 	return $this->setDirty();
-	// }
-	
-	// /**
-	//  * Get the signup for this Event
-	//  * @param $force When set to true will force loading of entrants from db
-	//  *               This will cause unsaved entrants to be lost.
-	//  */
-	// public function getSignup( $force=false ) {
-	// 	if( !isset( $this->signup ) || $force ) $this->fetchSignup();
-	// 	return $this->signup;
-	// }
-	
-	// /**
-	//  * Get the size of the signup for this event
-	//  */
-	// public function signupSize() {
-	// 	$this->getSignup();
-	// 	return isset( $this->signup ) ? sizeof( $this->signup ) : 0;
-	// }
 	
 	/**
 	 * Get an entrant by name from the specified bracket in this Event
@@ -852,7 +773,7 @@ class Event extends AbstractData
 	 * Get a bracket by its name
 	 * Ignores case
 	 * @param $bracketName The name of the bracket
-	 * @return Bracket object or null if not found
+	 * @return object Bracket object or null if not found
 	 */
 	public function getBracket( string $bracketName = Bracket::WINNERS ) {
 		$result = null;
@@ -868,11 +789,13 @@ class Event extends AbstractData
 	
 	/**
 	 * Get the winners bracket for this event.
+	 * @return object Bracket
 	 */
 	public function getWinnersBracket( ) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$this->log->error_log($loc);
 
+		$bracket = null;
 		if( $this->isLeaf() ) {
 			$bracket = $this->getBracket( Bracket::WINNERS );
 			if( is_null( $bracket ) ) {
@@ -881,18 +804,20 @@ class Event extends AbstractData
 					throw new InvalidEventException(__("Could not create Winners bracket.",TennisEvents::TEXT_DOMAIN) );
 				}
 				$bracket->save();
-				return $bracket;
 			}
 		}
+		return $bracket;
 	}
 
 	/**
 	 * Get the losers bracket for this event.
+	 * @return object Bracket
 	 */
 	public function getLosersBracket( ) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$this->log->error_log($loc);
 
+		$bracket = null;
 		if( $this->isLeaf() ) {
 			$bracket = $this->getBracket( Bracket::LOSERS );
 			if( is_null( $bracket ) ) {
@@ -901,18 +826,20 @@ class Event extends AbstractData
 					throw new InvalidEventException(__("Could not create Losers bracket.",TennisEvents::TEXT_DOMAIN) );
 				}
 				$bracket->save();
-				return $bracket;
 			}
 		}
+		return $bracket;
 	}
 	
 	/**
 	 * Get the consolation bracket for this event.
+	 * @return object Bracket
 	 */
 	public function getConsolationBracket( ) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$this->log->error_log($loc);
 
+		$bracket = null;
 		if( $this->isLeaf() ) {
 			$bracket = $this->getBracket( Bracket::CONSOLATION );
 			if( is_null( $bracket ) ) {
@@ -921,9 +848,9 @@ class Event extends AbstractData
 					throw new InvalidEventException(__("Could not create Consolation bracket.",TennisEvents::TEXT_DOMAIN) );
 				}
 				$bracket->save();
-				return $bracket;
 			}
 		}
+		return $bracket;
 	}
 	
     /**

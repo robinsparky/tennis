@@ -370,7 +370,9 @@ class TournamentDirector
      * @param string $bracketName
      * @return array Entrants signed up for the bracket
      */
-    public function getSignup( $bracketName = Bracket::WINNERS ) {
+    public function getSignup( $bracketName = Bracket::WINNERS ) { 
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc: bracketName={$bracketName}");
 
         $entrants = array();
         $bracket = $this->getBracket( $bracketName );
@@ -421,14 +423,23 @@ class TournamentDirector
 
     /**
      * Get all the Brackets for the underlying Event
+     * If the event has no brackets, then Winners and Consolation are created
+     * @param bool $force True will force a db fetch
+     * @return array Array of brackets for the underlying Event
      */
     public function getBrackets( $force = false ) {
-        return $this->event->getBrackets( $force );
+        $brackets = $this->event->getBrackets( $force );
+        if( empty( $brackets ) ) {
+            $this->event->getWinnersBracket();
+            $this->event->getConsolationBracket();
+            $brackets = $this->event->getBrackets();
+        }
+        return $brackets;
     }
 
     /**
      * Get a bracket by name
-     * @param $bracketName The name of the bracket
+     * @param string $bracketName The name of the bracket
      * @return Bracket if exists, null otherwise
      */
     public function getBracket( $bracketName ) {
@@ -436,8 +447,8 @@ class TournamentDirector
     }
 
     /**
-     * Remove all brackets and matches for a tennis event
-     * Use with caution as it deletes all of an event's brackets and matches from the database.
+     * Remove all brackets, signups and matches for a tennis event
+     * Use with caution as it deletes all of an event's brackets, signups and matches from the database.
      */
     public function removeBrackets( ) {
         $result = 0;

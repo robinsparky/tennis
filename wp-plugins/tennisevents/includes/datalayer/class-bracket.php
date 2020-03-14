@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Bracket extends AbstractData
 { 
     //Known names of brackets for Single and Double Elimination brackets
-    public const WINNERS = "Winners";
+    public const WINNERS = "Main";
     public const LOSERS  = "Losers";
     public const CONSOLATION = "Consolation";
 
@@ -267,7 +267,7 @@ class Bracket extends AbstractData
 	 *               This will cause unsaved entrants to be lost.
 	 */
 	public function getSignup( $force=false ) {
-		if( !isset( $this->signup ) || $force ) $this->fetchSignup();
+		if( !isset( $this->signup ) || (0 === count( $this->signup)) || $force ) $this->fetchSignup();
 		return $this->signup;
 	}
 	

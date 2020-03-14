@@ -184,7 +184,7 @@ class TennisEvents {
 		
 		if( $query->is_main_query() && !$query->is_feed() && !is_admin() 
 		&& $query->is_post_type_archive( TennisEventCpt::CUSTOM_POST_TYPE ) ) {
-			$this->log->error_log($query, "Query Object Before");
+			//$this->log->error_log($query, "Query Object Before");
 			$meta_query = array( 
 								array(
 									'key' => TennisEventCpt::PARENT_EVENT_META_KEY
@@ -193,7 +193,7 @@ class TennisEvents {
 						);
 
 			$query->set( 'meta_query', $meta_query );
-			$this->log->error_log($query, "Query Object After");
+			//$this->log->error_log($query, "Query Object After");
 		}
 	}
 	
