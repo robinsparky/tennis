@@ -492,6 +492,7 @@ class TournamentDirector
         $bracket = $this->event->getBracket( $bracketName );
         if( !is_null( $bracket ) ) {
             $bracket->removeAllMatches();
+            $bracket->save();
         }
         else {
             throw new InvalidTournamentException( __( "Bracket name $bracketName does not exist when trying to remove its matches." ) );

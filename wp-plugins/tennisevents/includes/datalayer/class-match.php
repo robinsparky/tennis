@@ -929,6 +929,7 @@ class Match extends AbstractData
      */
     public function delete() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        
         global $wpdb;		
         
         $table = $wpdb->prefix . self::$tablename;

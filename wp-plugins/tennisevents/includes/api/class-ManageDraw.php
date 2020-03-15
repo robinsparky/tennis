@@ -655,7 +655,7 @@ class ManageDraw
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
-            $td->removeAllMatches( $bracketName );
+            $td->removeMatches( $bracketName );
             $numMatches = $event->save();
             $mess =  __("Removed all matches for this event/bracket.", TennisEvents::TEXT_DOMAIN );
         }
@@ -873,14 +873,16 @@ EOT;
             }  
         } //preliminaryRound  
              
-
         $out .= "</tbody><tfooter></tfooter>";
         $out .= "</table>";	 
         $out .= "<div class='bracketDrawButtons'>";
-        if( !$bracket->isApproved() ) {
+        if( $numPreliminaryMatches > 0 ) {
+            if( !$bracket->isApproved() ) {
+                $out .= '<button class="button" type="button" id="approveDraw">Approve</button>' . PHP_EOL;
+            }
             $out .= '<button class="button" type="button" id="removePrelim">Reset</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="approveDraw">Approve</button>' . PHP_EOL;
         }
+
         $out .= "</div>";
 
         $out .= '<div id="tennis-event-message"></div>';

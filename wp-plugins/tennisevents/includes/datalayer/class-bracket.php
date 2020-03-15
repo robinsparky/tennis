@@ -733,7 +733,7 @@ class Bracket extends AbstractData
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log($loc);
 
-        if( !isset( $this->matches ) || $force ) $this->fetchMatches();
+        if( !isset( $this->matches ) || (is_array($this->matches) && (0 === count($this->matches))) || $force ) $this->fetchMatches();
         foreach( $this->matches as $match ) {
             $match->setBracket( $this );
         }
@@ -848,12 +848,17 @@ class Bracket extends AbstractData
 	 */
 	public function removeAllMatches() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
-		if( isset( $this->matches ) ) {
-			foreach( $this->matches as $match ) {
-				$this->matchesToBeDeleted[] = $match;
-				$match = null;
-			}
+
+        $num = 0;
+        $this->getMatches( true );
+        foreach( $this->matches as &$match ) {
+            $this->matchesToBeDeleted[] = $match;
+            $match = null;
+            ++$num;
         }
+        $this->UnApprove();
+        $rem = count($this->matches);
+        $this->log->error_log("$loc: removed {$num}; remaining {$rem}");
         $this->matches = array();
 		return $this->setDirty();
     }
@@ -876,7 +881,7 @@ class Bracket extends AbstractData
      * Approve this bracket
      * This causes the match hierarchy to be constructed
      */
-    public function approve( TournamentDirector $td ) {
+    public function approve() {
         $loc = __CLASS__ . '::' .  __FUNCTION__;
         $this->log->error_log( $loc );
 
@@ -892,17 +897,19 @@ class Bracket extends AbstractData
         $this->is_approved = true;
         $this->setDirty();
 
-        // if( $this->getName() == self::WINNERS ) {
-        //     if( $this->getEvent()->getFormat() === Format::SINGLE_ELIM ) {
-        //         $losers = $this->getEvent()->getConsolationBracket();
-        //     } 
-        //     elseif( $this->getEvent()->getFormat() == Format::DOUBLE_ELIM ) {
-        //         $losers = $this->getEvent()->getLosersBracker();
-        //     }
-        // }
-
         return $this->matchHierarchy;
     }
+    /**
+     * Un-Approve this bracket
+     */
+    public function unApprove() {
+        $loc = __CLASS__ . '::' .  __FUNCTION__;
+        $this->log->error_log( $loc );
+
+        $this->is_approved = false;
+        return $this->setDirty();
+    }
+
 
     /**
      * Get the 2-dimensional array of matches for this bracket
