@@ -657,7 +657,7 @@ class ManageDraw
             $td = new TournamentDirector( $event );
             $td->removeMatches( $bracketName );
             $numMatches = $event->save();
-            $mess =  __("Removed all matches for this event/bracket.", TennisEvents::TEXT_DOMAIN );
+            $mess =  __("Removed {$numMatches} matches for this event/bracket.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

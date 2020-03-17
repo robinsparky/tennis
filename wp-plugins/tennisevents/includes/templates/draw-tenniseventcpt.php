@@ -36,13 +36,19 @@
 				?>
 				<div class="eventsignup">
 				<?php
-				if( $mode === "signup") {
+				if( $mode === "signup" ) {
 					echo do_shortcode("[manage_signup club=1 eventid={$event->getID()}, bracketname={$bracketName}]");
+					$drawUrl = get_permalink() . "?manage=draw&bracket=" . $bracketName;
+					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
+					echo "<div class='link-container'><button class='link-to-draw' onClick={$onClick}>Draw</button></div>";
 				}
-				elseif( $mode === "draw") {
+				elseif( $mode === "draw" ) {
 					echo do_shortcode("[manage_draw by=match eventid={$event->getID()}, bracketname={$bracketName}]");
+					$drawUrl = get_permalink() . "?manage=signup&bracket=" . $bracketName;
+					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
+					echo "<div class='link-container'><button class='link-to-draw' onClick={$onClick}>Signup</button></div>";
 				}
-				the_content( __('Read More', TennisEvents::TEXT_DOMAIN ) );
+				//the_content( __('Read More', TennisEvents::TEXT_DOMAIN ) );
 				?>
 				</div>
 		</div>

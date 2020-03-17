@@ -471,6 +471,24 @@ a.entrantDelete:link, a.entrantDelete:visited {
     background-color: green;
   }
 
+  button.link-to-draw {
+    background-color: blue;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    margin: 4px 2px;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-transform: none;
+  }
+  .link-container .button:hover, .bracketDrawButtons .button:active {
+    background-color: green;
+  }
+
 .bracketDrawButtons .button:hover, .bracketDrawButtons .button:active {
     background-color: green;
   }
