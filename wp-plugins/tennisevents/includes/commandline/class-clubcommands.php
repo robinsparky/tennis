@@ -124,7 +124,7 @@ class ClubCommands extends WP_CLI_Command {
      * @when after_wp_load
      */
     public function attach( $args, $assoc_args ) {
-        list( $eventId, $clubId ) = $args;
+        list( $eventId, $clubId, $bracketName ) = $args;
 
         $event = Event::get( $eventId );
         $club  = Club::get ( $clubId );

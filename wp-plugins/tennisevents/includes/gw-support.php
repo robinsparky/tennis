@@ -266,3 +266,20 @@ function tennis_events_get_term_links( $postID, $termname ) {
 		}
 	}
 }
+
+/**
+ * Shuffle for associative arrays
+ */
+function shuffle_assoc(&$array) {
+	$keys = array_keys($array);
+
+	shuffle($keys);
+
+	foreach($keys as $key) {
+		$new[$key] = $array[$key];
+	}
+
+	$array = $new;
+
+	return true;
+}

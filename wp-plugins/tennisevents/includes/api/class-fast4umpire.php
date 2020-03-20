@@ -10,7 +10,8 @@ include_once($dir . '/gw-support.php' );
 
 /**
 * Fast4
-    * Fast4 is a shortened format that offers a "fast" alternative, with four points, four games and four rules: 
+	* Fast4 is a shortened format that offers a "fast" alternative, 
+	* with four points, four games and four rules: 
     * 1. there are no advantage scores 
     * 2. lets are played
     * 3. tie-breakers apply at three games all 

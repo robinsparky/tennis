@@ -1,4 +1,5 @@
 <?php
+use api\Math_Combinatorics;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,13 +29,13 @@ class TournamentDirector
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
     public const MAXIMUM_ENTRANTS = 256; //maximum for an elimination tournament
 
-    private const CHALLENGERS = "challengers";
+    //private const CHALLENGERS = "challengers";
     private const BYES = "byes";
     private const AUTO = "auto";
 
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
-    private $hasChallengerRound = false; //Is a challenger round required
+    //private $hasChallengerRound = false; //Is a challenger round required
     private $matchType; //The type of match such as mens singles, womens doubles etc
     private $name = '';
 
@@ -45,9 +46,9 @@ class TournamentDirector
     /**
      * Given the size of the draw (or any integer), calculate the highest 
      * power of 2 which is greater than or equal to that size (or integer)
-     * @param $size 
-     * @param $upper The upper limit of the search; default is 8
-     * @return The exponent if found; zero otherwise
+     * @param int $size 
+     * @param int $upper The upper limit of the search; default is 8
+     * @return int The exponent if found; zero otherwise
      */
 	public static function calculateExponent( int $size, $upper = 8 ) {
         $exponent = 0;
@@ -640,7 +641,25 @@ class TournamentDirector
         if( $result === true ) $this->save();
         return $result;
     }
+   /**
+     * Organize the initial matches depending on the Event Type of the underlying event 
+     * @param string $bracketName
+     * @param bool $randomizeDraw true if the signup should be randomized
+     * @return int Number of matches created
+     */
+    public function schedulePreliminaryRounds( string $bracketName, $randomizeDraw = false ) {
 
+        switch( $this->getEvent()->getEventType() ) {
+            case EventType::TOURNAMENT:
+                $this->initializeEliminationRounds( $bracketName, $randomizeDraw );
+                break;
+            case EventType::LEAGUE:
+            case EventType::LADDER:
+            case EventType::ROUND_ROBIN:
+                $this->initializeRoundRobin( $bracketName, $randomizeDraw );
+                break;
+        }
+    }
 
     /**
      * The purpose of this function is to eliminate enough players 
@@ -649,11 +668,11 @@ class TournamentDirector
      * The next big question to work out is determining who gets the byes (if any).
      * Finally the seeded players (who get priority for bye selection) must be distributed
      * evenly amoung the un-seeded players with the first and second seeds being at opposite ends of the draw.
-     * @param $bracketName
-     * @param $randomizeDraw boolean to indicate if the signup should be randomized
-     * @return Number of matches created
+     * @param string $bracketName
+     * @param bool $randomizeDraw boolean to indicate if the signup should be randomized
+     * @return int Number of matches created
      */
-    public function schedulePreliminaryRounds( string $bracketName, $randomizeDraw = false ) {
+    private function initializeEliminationRounds( string $bracketName, $randomizeDraw = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log( ">>>>>>>>>>>>>>>>>>>>>>>>>$loc called with bracket=$bracketName, randomize=$randomizeDraw" ); 
 
@@ -883,6 +902,110 @@ class TournamentDirector
             $prevMatchNum = $m;
         }
         error_log('<<<<<');
+    }
+    
+    /**
+     * Initalize matches using Round Robin format
+     * @param string $bracketName
+     * @param bool $randomizeDraw boolean to indicate if the signup should be randomized
+     * @return int Number of matches created
+     */
+    private function initializeRoundRobin( string $bracketName, $randomizeDraw = false ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log( ">>>>>>>>>>>>>>>>>>>>>>>>>$loc called with bracket=$bracketName, randomize=$randomizeDraw" ); 
+
+        //Get or create the requested bracket
+        $mainbracket = null;
+        $loserbracket = null;
+        $chairUmpire = null;
+        $minplayers = self::MINIMUM_ENTRANTS;
+        $bracket = $this->getBracket( $bracketName );
+
+        
+        //Bracket must not be approved already
+        if( $bracket->isApproved() ) {
+            throw new InvalidBracketException( __("Bracket already approved. Please reset first.", TennisEvents::TEXT_DOMAIN ) );
+        }
+
+        //Cannot schedule preliminary rounds if matches have already started
+        if( 0 < $this->hasStarted( $bracket->getName() ) ) {
+            throw new BracketHasStartedException( __('Cannot schedule preliminary matches for bracket because play as already started.') );
+        }
+        
+        $matchesCreated = 0;
+        $entrants = $bracket->getSignup();
+        $bracketSignupSize = count( $entrants );
+        //Check minimum entrants constraint
+        if( $bracketSignupSize < $minplayers ) {
+            $mess = __( "Bracket must have at least $minplayers entrants for an elimination event. $bracketSignupSize entrants found.", TennisEvents::TEXT_DOMAIN );
+            throw new InvalidBracketException( $mess );
+        }
+        $this->log->error_log( "$loc: signup size=$bracketSignupSize" );
+
+
+        //Remove any existing matches ... we know they have not started yet
+        $this->removeMatches( $bracketName );
+        $this->save();
+
+        $this->numRounds = $bracketSignupSize * ( $bracketSignupSize - 1 ) / 2;
+        $this->numToEliminate = 0; //$bracketSignupSize - pow( 2, $this->numRounds ) / 2;
+
+        $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
+        
+        if( $randomizeDraw ) shuffle( $unseeded );
+        else usort( $unseeded, array( 'TournamentDirector', 'sortByPositionAsc' ) );
+
+        $seeded = array_filter( array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ) );
+        usort( $seeded, array( 'TournamentDirector', 'sortBySeedAsc') );
+
+        // $numInvolved = 2 * $this->numToEliminate;
+        // $remainder   = $numInvolved > 0 ? $bracketSignupSize - $numInvolved : 0;
+
+        // if($numInvolved > $remainder ) {
+        //     $seedByes    =  min( count( $seeded ) , $remainder );
+        //     $unseedByes  = $remainder - $seedByes;
+        // }
+        // else {
+        //     $seedByes = min( count( $seeded ), $numInvolved );
+        //     $unseedByes = $numInvolved - $seedByes;
+        // }
+        //$totalByes = $seedByes + $unseedByes;
+        $numMatches = $bracketSignupSize * ( $bracketSignupSize - 1 );
+        $numMatchesPerRound = $numMatches / $this->numRounds;
+        $this->log->error_log( "$loc: number of rounds={$this->numRounds}; number of matches={$numMatches}; matches per round=$numMatchesPerRound" );
+        
+        //Heavy lifting done here!
+        $contentants = array_map( function( $e ) { return $e->getName(); }, $entrants);
+
+        $matches = $this->getCombinations( $contentants );
+        if( $randomizeDraw ) $matches = shuffle( $matches );
+        $this->log->error_log( $matches, "$loc: Matches");
+        $rounds = range(1,$this->numRounds);
+        $matchesByRound = array();
+        for( $r=1; $r <= $this->numRounds; $r++ ) {
+            for( $m=1; $m <= $numMatchesPerRound; $m++ ) {
+                $matchesByRound[$r][$m] = array_shift( $matches );
+            }
+        }
+
+        $this->log->error_count( $matchesByRound, "$loc: Matches By Round" );
+
+        //$matchesCreated = $bracket->numMatches();
+        //$this->save();
+
+        $this->log->error_log("<<<<<<<<<<<<<<<<<<<<<<<$loc<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+
+        return $matchesCreated;
+    }
+
+    private function getCombinations( $set, int $num=2 ) {
+
+        $combinatorics = new Math_Combinatorics;
+        if( is_null( $set ) ) {
+            return array();
+        }
+        $combs = $combinatorics->combinations($set, $num);
+        return $combs;
     }
 
 

@@ -40,9 +40,9 @@ class RegulationMatchUmpire extends ChairUmpire
 	}
     
     /**
-     * Set the maximum nuber of sets in this tournament
-     * @param $max the maximum
-     * @return true if successful, false otherwise
+     * Set the maximum number of sets in this tournament
+     * @param int $max the maximum
+     * @return bool true if successful, false otherwise
      */
 	public function setMaxSets( int $max = 3 ) {
 		switch( $max ) {

@@ -18,9 +18,12 @@ class EnvironmentCommands extends WP_CLI_Command {
      * <eventId>
      * : The id of the event of interest
      * 
+     * <bracketName>
+     * : The name of the bracket
+     * 
      * ## EXAMPLES
      *
-     *     wp tennis env set 240 545
+     *     wp tennis env set 240 545 Main
      *
      * @when after_wp_load
      */
@@ -28,7 +31,13 @@ class EnvironmentCommands extends WP_CLI_Command {
 
         $tsc = CmdlineSupport::preCondtion();
 
-        list( $clubId, $eventId ) = $args;
+        list( $clubId, $eventId, $bracketName ) = $args;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong args for ... clubId, eventId, bracketName ");
+            exit;
+        }
+
         $club = Club::get( $clubId );
         $clubEvts = Event::find( array( 'club'=>$clubId ) );
         $found = false;
@@ -42,8 +51,12 @@ class EnvironmentCommands extends WP_CLI_Command {
                 }
             }
             if( $found ) {
-                set_transient( CmdlineSupport::ENVNAME, array($clubId, $eventId), 1 * HOUR_IN_SECONDS );
-                WP_CLI::success( "Tennis commandline environment set ($clubId, $eventId)." );
+                $bracket = $target->getBracket( $bracketName );
+                if( is_null( $bracket ) ) {
+                    throw new Exception("Invalid Bracket: {$bracketName}");
+                }
+                set_transient( CmdlineSupport::ENVNAME, array($clubId, $eventId, $bracketName), 1 * HOUR_IN_SECONDS );
+                WP_CLI::success( "Tennis commandline environment set ($clubId, $eventId, $bracketName)." );
             }
             else {
                 WP_CLI::error( "Event with Id '$eventId' does not exist for club with Id '$clubId'");
@@ -73,23 +86,23 @@ class EnvironmentCommands extends WP_CLI_Command {
 
     
     /**
-     * Get environment for tennis commands
+     * Show environment for tennis commands
      *
      * ## EXAMPLES
      *
-     *     wp tennis env get
+     *     wp tennis env show
      *
      * @when after_wp_load
      */
-    function get( $args, $assoc_args ) {
+    function show( $args, $assoc_args ) {
         
         CmdlineSupport::preCondtion();
 
         $env = get_transient( CmdlineSupport::ENVNAME );
 
-        if( is_array( $env ) &&  count( $env ) === 2 ) {
-            list( $clubId, $eventId ) = $env;
-            WP_CLI::success("Club Id is '$clubId' and Event Id is '$eventId'");
+        if( is_array( $env ) &&  count( $env ) === 3 ) {
+            list( $clubId, $eventId, $bracketName ) = $env;
+            WP_CLI::success("Club Id is '$clubId' and Event Id is '$eventId' and Bracket is '{$bracketName}' ");
         } else {
             WP_CLI::warning("Tennis commandline environment is not set.");
         }

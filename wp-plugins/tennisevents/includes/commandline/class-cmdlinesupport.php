@@ -92,10 +92,10 @@ class CmdlineSupport {
     
     public function getEnvError() {
         $env = get_transient( self::ENVNAME );
-        if( is_array( $env ) &&  count( $env ) === 2 ) {
+        if( is_array( $env ) &&  count( $env ) === 3 ) {
             return $env;
         }
-        WP_CLI::error( "Please set the club Id and Event Id in the tennis environment" );
+        WP_CLI::error( "Please set the club Id, Event Id and Bracket Names in the tennis environment" );
     }
 
     public function getEventRecursively( Event $evt, int $descendantId ) {

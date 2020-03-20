@@ -213,14 +213,17 @@ class Event extends AbstractData
 		parent::__construct( true );
 		$this->isnew = true;
 		$this->name = $name;
-		$this->format = Format::SINGLE_ELIM;
 
 		switch( $eventType ) {
 			case EventType::TOURNAMENT:
+				$this->event_type = $eventType;
+				$this->format = Format::SINGLE_ELIM;
+				break;
 			case EventType::LEAGUE:
 			case EventType::LADDER:
 			case EventType::ROUND_ROBIN:
 				$this->event_type = $eventType;
+				$this->format = Format::GAMES;
 				break;
 		}
 	}

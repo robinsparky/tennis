@@ -122,7 +122,7 @@ class ManageDraw
         if( !in_array( $by, ['match','entrant']) )  return __('Please specify how to render the draw in shortcode', TennisEvents::TEXT_DOMAIN );
 
         $evts = Event::find( array( "club" => $club->getID() ) );
-        $this->log->error_log( $evts, "$loc: All events for {$club->getName()}");
+        //$this->log->error_log( $evts, "$loc: All events for {$club->getName()}");
         $found = false;
         $target = null;
         if( count( $evts ) > 0 ) {

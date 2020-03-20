@@ -9,13 +9,21 @@ class SignupCommands extends WP_CLI_Command {
 
     /**
      * Shows the Signup for an Event.
+     * If the args are not provided then the env is uses
      *
      * ## OPTIONS
      * 
+     * --clubId=<id>
+     * 
+     * --eventId=<id>
+     * 
+     * --bracketName=<name>
+     * 
+     * 
      * ## EXAMPLES
      *
-     *     # Display the signup for club 2, event 6.
-     *     $ wp tennis signup show --clubId=2 --eventId=6
+     *     # Display the signup for club 2, event 6 and the main bracket
+     *     $ wp tennis signup show --clubId=2 --eventId=6 --bracketName=Main
      * 
      *     # Display the draw for club and event defined in the tennis command environment.
      *     $ wp tennis signup show
@@ -24,11 +32,17 @@ class SignupCommands extends WP_CLI_Command {
      */
     function show( $args, $assoc_args ) {
 
+        $support = CmdlineSupport::preCondtion();
         $clubId  = array_key_exists( 'clubId', $assoc_args )  ? $assoc_args["clubId"] : 0;
         $eventId = array_key_exists( 'eventId', $assoc_args ) ? $assoc_args["eventId"] : 0;
+        $eventId = array_key_exists( 'bracketName', $assoc_args ) ? $assoc_args["bracketName"] : Bracket::WINNERS;
         if( 0 === $clubId || 0 === $eventId ) {
-            $env = CmdlineSupport::get_instance()->getEnv();
-            list( $clubId, $eventId ) = $env;
+            list( $clubId, $eventId, $bracketName ) = $support->getEnvError();
+            $last_error = error_get_last();
+            if( !is_null( $last_error  ) ) {
+                WP_CLI::error("Wrong env for ... clubId, eventId, bracketName ");
+                exit;
+            }
         }
 
         $evts = Event::find( array( "club" => $clubId ) );
@@ -36,7 +50,7 @@ class SignupCommands extends WP_CLI_Command {
         $target = null;
         if( count( $evts ) > 0 ) {
             foreach( $evts as $evt ) {
-                $target = CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                $target = $support->getEventRecursively( $evt, $eventId );
                 if( isset( $target ) ) {
                     $found = true;
                     break;
@@ -46,11 +60,10 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $bracket = $target->getWinnersBracket();
                 WP_CLI::line( "Signup for '$evtName' at '$name'");
-                $td = new TournamentDirector( $target, $bracket->getMatchType() );
+                $td = new TournamentDirector( $target );
                 $items = array();
-                $entrants = $td->getSignup();
+                $entrants = $td->getSignup( $bracketName );
                 foreach( $entrants as $ent ) {
                     $seed = $ent->getSeed() > 0 ? $ent->getSeed() : ''; 
                     $items[] = array( "Position" => $ent->getPosition()
@@ -70,7 +83,7 @@ class SignupCommands extends WP_CLI_Command {
     
     /**
      * Add a player to the tennis event
-     * The target club and event must first be set using 'tennis env'
+     * The target club, event and bracket name must first be set using 'tennis env'
      *
      * ## EXAMPLES
      *
@@ -87,9 +100,19 @@ class SignupCommands extends WP_CLI_Command {
         CmdlineSupport::preCondtion();
 
         list( $player, $seed ) = $args;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong args for ... player, seed ");
+            exit;
+        }
 
         $env = CmdlineSupport::get_instance()->getEnv();
-        list( $clubId, $eventId ) = $env;
+        list( $clubId, $eventId, $bracketName ) = $env;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong env for ... clubId, eventId, bracketName ");
+            exit;
+        }
         
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;
@@ -106,10 +129,9 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $bracket = $target->getWinnersBracket();
-                $td = new TournamentDirector( $target, $bracket->getMatchType() );
+                $td = new TournamentDirector( $target );
                 try {
-                    if( $td->addEntrant( $player, $seed ) ) {
+                    if( $td->addEntrant( $player, $seed, $bracketName ) ) {
                         WP_CLI::success("tennis signup add ... signed up $player");
                     }
                     else {
@@ -132,7 +154,7 @@ class SignupCommands extends WP_CLI_Command {
     
     /**
      * Remove a player from the tennis event
-     * The target club and event must first be set using 'tennis env'
+     * The target club, event and bracket name must first be set using 'tennis env'
      *
      * ## EXAMPLES
      *
@@ -150,7 +172,12 @@ class SignupCommands extends WP_CLI_Command {
         list( $player, $seed ) = $args;
 
         $env = CmdlineSupport::get_instance()->getEnv();
-        list( $clubId, $eventId ) = $env;
+        list( $clubId, $eventId, $bracketName ) = $env;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong env for ... clubId, eventId, bracketName ");
+            exit;
+        }
         
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;
@@ -167,14 +194,13 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
-                $bracket = $target->getWinnersBracket();
                 $td = new TournamentDirector( $target, $bracket->getMatchType() );
                 try {
-                    if( $td->removeEntrant( $player) ) {
+                    if( $td->removeEntrant( $player, $bracketName ) ) {
                         WP_CLI::success("tennis signup remove ... $player");
                     }
                     else {
-                        WP_CLI::error("tennis signup remove ... unable to remove $player");
+                        WP_CLI::error("tennis signup remove ... unable to remove $player in bracket '{$bracketName}'");
                     }
                 }
                 catch( Exception $ex ) {
@@ -193,7 +219,7 @@ class SignupCommands extends WP_CLI_Command {
 
     /**
      * Reset the signup for this tennis event
-     * The target club and event must first be set using 'tennis env'
+     * The target club, event and bracket name must first be set using 'tennis env'
      * 
      * ## EXAMPLES
      *
@@ -206,7 +232,13 @@ class SignupCommands extends WP_CLI_Command {
         CmdlineSupport::preCondtion();
 
         $env = CmdlineSupport::get_instance()->getEnv();
-        list( $clubId, $eventId ) = $env;
+        error_clear_last();
+        list( $clubId, $eventId, $bracketName ) = $env;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong env for ... clubId, eventId, bracketName ");
+            exit;
+        }
         
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;
@@ -224,12 +256,12 @@ class SignupCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $bracket = $target->getWinnersBracket();
-                $td = new TournamentDirector( $target, $bracket->getMatchType() );
-                if( $td->removeSignup() ) {
-                    WP_CLI::success("tennis signup reset");
+                $td = new TournamentDirector( $target );
+                if( $td->removeSignup( $bracketName ) ) {
+                    WP_CLI::success("tennis signup reset for '{$bracketName}'");
                 }
                 else {
-                    WP_CLI::error("tennis signup reset ... unable to reset");
+                    WP_CLI::error("tennis signup reset ... unable to reset for '{$bracketName}'");
                 }
             }
             else {
@@ -243,7 +275,7 @@ class SignupCommands extends WP_CLI_Command {
 
     /**
      * Move a postion to another position in the signup.
-     * The target club and event must first be set using 'tennis env set'
+     * The target club, event and bracket name must first be set using 'tennis env set'
      *
      * ## OPTIONS
      * 
@@ -263,6 +295,11 @@ class SignupCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
         list( $clubId, $eventId ) = $support->getEnvError();
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong env for ... clubId, eventId, bracketName ");
+            exit;
+        }
 
         error_clear_last();
         list( $source, $dest, $bracketName ) = $args;
@@ -313,7 +350,7 @@ class SignupCommands extends WP_CLI_Command {
 
     /**
      * Resequence the signup.
-     * The target club and event must first be set using 'tennis env set'
+     * The target club, event and bracket name must first be set using 'tennis env set'
      *
      * ## OPTIONS
      * 
@@ -326,12 +363,10 @@ class SignupCommands extends WP_CLI_Command {
     function resequence( $args, $assoc_args ) {
 
         $support = CmdlineSupport::preCondtion();
-        list( $clubId, $eventId) = $support->getEnvError();
-        error_clear_last();
-        list( $bracketName ) = $args;
+        list( $clubId, $eventId, $bracketName ) = $support->getEnvError();
         $last_error = error_get_last();
         if( !is_null( $last_error  ) ) {
-            WP_CLI::error("Wrong args for ... bracketname ");
+            WP_CLI::error("Wrong env for ... clubId, eventId, bracketname ");
             exit;
         }
 
@@ -358,8 +393,10 @@ class SignupCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = $club->getName();
                 $evtName = $target->getName();
+                $td = new TournamentDirector( $target );
+                $bracket = $td->getBracket( $bracketName );
                 try {
-                    $affected = $target->resequenceSignup();
+                    $affected = $bracket->resequenceSignup();
                     WP_CLI::success("Signup resequenced $affected rows.");
                 }
                 catch( Exception $ex ) {
@@ -378,7 +415,7 @@ class SignupCommands extends WP_CLI_Command {
 
     /**
      * Load the signup for this tennis event from an XML file
-     * The target club and event must first be set using 'tennis env'
+     * The target club, event and bracket name must first be set using 'tennis env'
      * 
      * ## EXAMPLES
      *
@@ -393,7 +430,13 @@ class SignupCommands extends WP_CLI_Command {
         list( $filename ) = $args;
 
         $env = CmdlineSupport::get_instance()->getEnv();
-        list( $clubId, $eventId ) = $env;
+        error_clear_last();
+        list( $clubId, $eventId, $bracketName ) = $env;
+        $last_error = error_get_last();
+        if( !is_null( $last_error  ) ) {
+            WP_CLI::error("Wrong env for ... clubId, eventId, bracketname ");
+            exit;
+        }
         
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;
@@ -411,14 +454,14 @@ class SignupCommands extends WP_CLI_Command {
                 $name = $club->getName();
                 $evtName = $target->getName();
                 $bracket = $target->getWinnersBracket();
-                $td = new TournamentDirector( $target, $bracket->getMatchType() );
+                $td = new TournamentDirector( $target );
                 $ents = $this->readDatabase( $filename );
                 $num = 0;
                 try {
                     foreach( $ents as $ent ) {
                         $name = $ent['name'];
                         $seed = isset( $ent['seed'] ) ? (int)$ent['seed'] : 0;
-                        $td->addEntrant($name,$seed);
+                        $td->addEntrant($name,$seed, $bracketName );
                         ++$num;
                         $player = sprintf("Added: %s(%d)", $name, $seed );
                         WP_CLI::line( $player );
