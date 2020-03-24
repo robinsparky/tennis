@@ -45,22 +45,37 @@ class EventCommands extends WP_CLI_Command {
      * Create a new event; standalone or associated with a club
      *
      * ## OPTIONS
+     * 
+     * <eventType>
+     * :The type of event
+     * 
      * <eventname>
      * :The name of the event
      * 
-     * [--<field>=<value>]
+     * [--clubId=<value>]
      * :The club id to attach to the created event
      * 
      *
      * ## EXAMPLES
-     *
-     *     # Create event for club  with id 2
-     *     $ wp tennis events create "My New Event" --clubId=2
+     * NOTE: event types are tournament, league, ladder, robin
+     * 
+     *     # Create event of type tournament for club  with id 2
+     *     $ wp tennis events create tournament "My New Event" --clubId=2
+     * 
+     *     # Create event of type robin for club  with id 1
+     *     $ wp tennis events create robin "My New Event" --clubId=1
      *
      * @when after_wp_load
      */
     function create( $args, $assoc_args ) {
-        list( $evtName ) = $args;
+
+        $support = CmdlineSupport::preCondtion();
+        list( $evtType, $evtName ) = $args;
+        if( !is_null( error_get_last()  ) ) {
+            WP_CLI::error("Wrong args for ... eventType, eventName");
+            exit;
+        }
+
         $clubId = array_key_exists( 'clubId', $assoc_args )  ? $assoc_args["clubId"] : 0;
 
         try {
@@ -71,8 +86,14 @@ class EventCommands extends WP_CLI_Command {
                 }
 
                 $event = new Event( $evtName );
-                //TODO: get event type from args
-                $event->setEventType( EventType::TOURNAMENT );
+                error_clear_last();
+                $et = EventType::AllTypes()[$evtType];
+                if( !is_null( error_get_last()  ) ) {
+                    WP_CLI::error("Wrong value for event type: {$evtType}");
+                    exit;
+                }
+
+                $event->setEventType( $evtType );
                 $event->addClub( $club );
                 $event->save();
                 WP_CLI::success(sprintf("Created event (%d) '%s' attached to %s'", $event->getID(), $event->getName(), $club->getName() ) );
@@ -133,9 +154,16 @@ class EventCommands extends WP_CLI_Command {
      * @when after_wp_load
      */
     function createsub( $args, $assoc_args ) {
+        $support = CmdlineSupport::preCondtion();
+
         list( $evtName, $parentId, $matchType, $format ) = $args;
-        $matchType = (float) $matchType;
+        if( !is_null( error_get_last()  ) ) {
+            WP_CLI::error("Wrong args for ... evtName, parentId, matchType, format");
+            exit;
+        }
+
         try {
+            $matchType = (float) $matchType;
             $parentEvent = Event::get( $parentId );
             $subEvent = new Event( $evtName );
             $parentEvent->addChild( $subEvent );
@@ -164,8 +192,13 @@ class EventCommands extends WP_CLI_Command {
      * @when after_wp_load
      */
     public function delete( $args, $assoc_args ) {
+        $support = CmdlineSupport::preCondtion();
         
         list( $eventId ) = $args;
+        if( !is_null( error_get_last()  ) ) {
+            WP_CLI::error("Wrong args for ... eventId");
+            exit;
+        }
 
         Event::deleteEvent( $eventId );
 
@@ -190,7 +223,13 @@ class EventCommands extends WP_CLI_Command {
      * @when after_wp_load
      */
     public function attach( $args, $assoc_args ) {
+        $support = CmdlineSupport::preCondtion();
+
         list( $eventId, $clubId ) = $args;
+        if( !is_null( error_get_last()  ) ) {
+            WP_CLI::error("Wrong args for ... eventId, clubId");
+            exit;
+        }
 
         $event = Event::get( $eventId );
         $club  = Club::get ( $clubId );
@@ -204,6 +243,7 @@ class EventCommands extends WP_CLI_Command {
         }
 
         if( $event->addClub( $club ) ) {
+            $event->save();
             wP_CLI::success( sprintf("Attached '%s' to '%s'", $club->getName(), $event->getName() ) );
         }
         else {
@@ -213,14 +253,14 @@ class EventCommands extends WP_CLI_Command {
     }
 
     /**
-     * 
+     * Show event and its hierarchy
      */
     private function showEvent( Event $evt, float $lineNum = 1.0, int $level = 0 ) {
         $id = $evt->getID();
         $name = $evt->getName();
         $tabs = str_repeat( " ", $level );
         if( 0 === $level ) $lineNum = floor( $lineNum );
-        WP_CLI::line("$tabs $lineNum. $name ($id)");
+        WP_CLI::line("$tabs $lineNum. $name ($id, {$evt->getEventType()})");
         if( count( $evt->getChildEvents() ) > 0 ) {
             ++$level;
             foreach( $evt->getChildEvents() as $child ) {

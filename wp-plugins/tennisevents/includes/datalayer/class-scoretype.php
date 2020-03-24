@@ -48,11 +48,12 @@ class ScoreType {
     public const MATCH_TIE_BREAK = "Match Tie Break";
     public const FAST4           = "Fast4";
 
-    public $ScoreTypes = array( REGULATION      => TieBreakAt6 & TieBreak6Pt,
-                                NO_AD           => TieBreakAt3 & TieBreak6Pt,
-                                PRO_SET8        => TieBreakAt8 & TieBreak12Pt,
-                                PRO_SET10       => TieBreakAt10 & TieBreak12Pt,
-                                MATCH_TIE_BREAK => TieBreakDecider & TieBreak10Pt );
+    public $ScoreTypes = array( self::REGULATION      => self::TieBreakAt6 & self::TieBreak6Pt,
+                                self::NO_AD           => self::TieBreakAt3 & self::TieBreak6Pt,
+                                self::PRO_SET8        => self::TieBreakAt8 & self::TieBreak12Pt,
+                                self::PRO_SET10       => self::TieBreakAt10 & self::TieBreak12Pt,
+                                self::MATCH_TIE_BREAK => self::TieBreakDecider & self::TieBreak10Pt, 
+                                self::FAST4           => self::NoAd & self::LetsNotPlayed & self::TieBreakAt3 );
                                
 
 	//This class's singleton
@@ -80,6 +81,13 @@ class ScoreType {
 		if ( isset( self::$_instance ) ) {
 			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ),get_class( $this ) ) );
 		}
+    }
+    
+    public function allowedTypes() {
+        return array_keys($this->ScoreTypes);
+    }
 
-	}
+    public function isValid( $possible ) {
+        return in_array( $possible, $this->allowedTypes() );
+    }
 }

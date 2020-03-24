@@ -4,6 +4,7 @@ use api\BaseLoggerEx;
 use \TennisEvents;
 use \EventType;
 use \MatchType;
+use \ScoreType;
 use \Format;
 use \Event;
 use \Club;
@@ -28,6 +29,7 @@ class TennisEventCpt {
 	const EVENT_FORMAT_META_KEY    = '_tennisevent_format';
 	const EVENT_TYPE_META_KEY      = '_tennisevent_type';
 	const MATCH_TYPE_META_KEY      = '_tennisevent_match_type';
+	const SCORE_TYPE_META_KEY      = '_tennisevent_score_type';
 	const PARENT_EVENT_META_KEY    = '_tennisevent_parent_event';
 	
     //Only emit on this page
@@ -141,6 +143,7 @@ class TennisEventCpt {
 		$newColumns['parent_event'] = __('Parent', TennisEvents::TEXT_DOMAIN );
 		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN );
 		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN );
+		$newColumns['score_type'] = __('Score Type', TennisEvents::TEXT_DOMAIN );
 		$newColumns['signup_by_date'] = __('Signup By', TennisEvents::TEXT_DOMAIN );
 		$newColumns['start_date'] = __('Start Date', TennisEvents::TEXT_DOMAIN );
 		$newColumns['end_date'] = __('End Date', TennisEvents::TEXT_DOMAIN );
@@ -214,6 +217,20 @@ class TennisEventCpt {
 			$matchType = get_post_meta( $postID, self::MATCH_TYPE_META_KEY, TRUE );
 			if( !empty($matchType) ) {
 				echo MatchType::AllTypes()[$matchType];
+			}
+			else {
+				echo "";
+			}
+		}
+		elseif( $column_name === 'score_type') {
+			$scoreType = get_post_meta( $postID, self::SCORE_TYPE_META_KEY, TRUE );
+			if( !empty($scoreType) ) {
+				if( ScoreType::get_instance()->isValid( $scoreType ) ) {
+					echo $scoreType;
+				}
+				else {
+					echo "";
+				}
 			}
 			else {
 				echo "";
@@ -332,6 +349,15 @@ class TennisEventCpt {
 					, 'high' // priority: low, high, default
 					// array callback args
 				);
+				
+		add_meta_box( 'tennis_score_type_meta_box'
+				, 'Score Type' //Title
+				, array( $this, 'scoreTypeCallBack' ) //Callback
+				, self::CUSTOM_POST_TYPE //mixed: screen cpt name or ???
+				, 'normal' //context: normal, side
+				, 'high' // priority: low, high, default
+				// array callback args
+			);
 
 		add_meta_box( 'event_signupby_meta_box'
 					, 'Signup By' //Title
@@ -367,24 +393,36 @@ class TennisEventCpt {
 	public function eventTypeCallBack( $post ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
+		global $pagenow;
 
 		wp_nonce_field( 'eventTypeSave' //action
 					  , 'tennis_event_type_nonce');
 
 		$actual = get_post_meta( $post->ID, self::EVENT_TYPE_META_KEY, true );
-		if( !@$actual ) $actual = EventType::TOURNAMENT;
-		$this->log->error_log("$loc --> actual=$actual");
-		
-		//Now echo the html desired
-		echo'<select name="tennis_event_type_field">';
-		foreach( EventType::AllTypes() as $key=>$val ) {
-			$disp = esc_attr($val);
-			$value = esc_attr($key);
-			$sel = '';
-			if($actual === $value) $sel = 'selected';
-			echo "<option value='$value' $sel>$disp</option>";
+		$this->log->error_log("$loc --> actual='$actual'; pagenow='$pagenow'");
+		if( $pagenow === 'post-new.php') {
+			if( !@$actual ) $actual = EventType::TOURNAMENT;
+			$parentId = false;
 		}
-		echo '</select>';
+		else {
+			$parentId = get_post_meta( $post->ID, self::PARENT_EVENT_META_KEY, true );
+		}
+		
+		if( false === $parentId ) {
+			//Now echo the html desired
+			echo'<select name="tennis_event_type_field">';
+			foreach( EventType::AllTypes() as $key=>$val ) {
+				$disp = esc_attr($val);
+				$value = esc_attr($key);
+				$sel = '';
+				if($actual === $value) $sel = 'selected';
+				echo "<option value='$value' $sel>$disp</option>";
+			}
+			echo '</select>';
+		}
+		else {
+			echo "<!-- No event type for child event {$post->ID}  -->";
+		}
 	}
 
 	/**
@@ -542,25 +580,38 @@ class TennisEventCpt {
 	public function eventFormatCallBack( $post ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
+		global $pagenow;
 
 		wp_nonce_field( 'eventFormatSave' //action
 					  , 'tennis_event_format_nonce');
 
 		$actual = get_post_meta( $post->ID, self::EVENT_FORMAT_META_KEY, true );
-		if( !isset($actual) ) $actual = Format::SINGLE_ELIM;
-		$this->log->error_log("$loc --> actual=$actual");
-		
-		//Now echo the html desired
-		echo'<select name="tennis_event_format_field">';
-		$formats = Format::AllFormats();
-		foreach( $formats as $key=>$val ) {
-			$disp = esc_attr($val);
-			$value = esc_attr($key);
-			$sel = '';
-			if($actual === $key) $sel = 'selected';
-			echo "<option value='$value' $sel>$disp</option>";
+		$this->log->error_log("$loc --> actual='$actual'");
+		if( $pagenow === 'post-new.php') {
+			if( !isset($actual) ) $actual = Format::SINGLE_ELIM;
+			$parentId = true;
 		}
-		echo '</select>';
+		else {
+			$parentId = get_post_meta( $post->ID, self::PARENT_EVENT_META_KEY, true );
+		}
+		
+		if( false !== $parentId ) {
+			//Now echo the html desired
+			echo'<select name="tennis_event_format_field">';
+			echo '<option value="-1">Select Format...</option>';
+			$formats = Format::AllFormats();
+			foreach( $formats as $key=>$val ) {
+				$disp = esc_attr($val);
+				$value = esc_attr($key);
+				$sel = '';
+				if($actual === $key) $sel = 'selected';
+				echo "<option value='$value' $sel>$disp</option>";
+			}
+			echo '</select>';
+		}
+		else {
+			echo "<!-- No format for root event {$post->ID} -->";
+		}
 	}
 
 	/**
@@ -614,24 +665,36 @@ class TennisEventCpt {
 	public function matchTypeCallBack( $post ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
+		global $pagenow;
 
 		wp_nonce_field( 'matchTypeSave' //action
 					  , 'tennis_match_type_nonce');
 
 		$actual = get_post_meta( $post->ID, self::MATCH_TYPE_META_KEY, true );
-		if( !@$actual ) $actual = MatchType::MENS_SINGLES;
 		$this->log->error_log("$loc --> actual=$actual");
-		
-		//Now echo the html desired
-		echo'<select name="tennis_match_type_field">';
-		foreach( MatchType::AllTypes() as $key => $val ) {
-			$disp = esc_attr($val);
-			$value = esc_attr($key);
-			$sel = '';
-			if($actual === $value) $sel = 'selected';
-			echo "<option value='$value' $sel>$disp</option>";
+		if( $pagenow === 'post-new.php') {
+			if( !@$actual ) $actual = MatchType::MENS_SINGLES;
+			$parentId = true;
 		}
-		echo '</select>';
+		else {
+			$parentId = get_post_meta( $post->ID, self::PARENT_EVENT_META_KEY, true );
+		}
+		
+		if( !is_null( $parentId ) ) {
+			//Now echo the html desired
+			echo'<select name="tennis_match_type_field">';		
+			echo '<option value="-1">Select Match Type...</option>';
+			foreach( MatchType::AllTypes() as $key => $val ) {
+				$disp = esc_attr($val);
+				$value = esc_attr($key);
+				$sel = '';
+				if($actual === $value) $sel = 'selected';
+				echo "<option value='$value' $sel>$disp</option>";
+			}
+			echo '</select>';
+		} else {
+			echo "<!-- No match type for root event {$post->ID} -->";
+		}
 	}
 
 	/**
@@ -678,6 +741,47 @@ class TennisEventCpt {
 		}
 
 	}
+	
+	/**
+	 * Score Type callback
+	 */
+	public function scoreTypeCallBack( $post ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+		global $pagenow;
+
+		wp_nonce_field( 'scoreTypeSave' //action
+					  , 'tennis_score_type_nonce');
+
+		$actual = get_post_meta( $post->ID, self::SCORE_TYPE_META_KEY, true );
+		if( $pagenow === 'post-new.php') {
+			if( !@$actual ) $actual = '';
+			$parentId = true;
+		}
+		else {
+			$parentId = get_post_meta( $post->ID, self::PARENT_EVENT_META_KEY, true );
+		}
+		
+		if( false !== $parentId ) {
+			$scoreType = ScoreType::get_instance();
+			error_clear_last();
+			$sts = array_keys( $scoreType->ScoreTypes );
+			//Now echo the html desired
+			echo'<select name="tennis_score_type_field">';
+			foreach( $sts as $st ) {
+				$disp = esc_attr($st);
+				$value = esc_attr($st);
+				$sel = '';
+				if($actual === $st) $sel = 'selected';
+				echo "<option value='$value' $sel>$disp</option>";
+			}
+			echo '</select>';
+		} 
+		else {
+			echo "<!-- No score type for root event {$post->ID} -->";
+		}
+	}
+
 	
 	/**
 	 * Signup By callback
@@ -986,6 +1090,17 @@ class TennisEventCpt {
 			delete_post_meta( $post_id, self::MATCH_TYPE_META_KEY );
 		}
 
+		$scoreType = '';
+		if( isset( $_POST['tennis_score_type_field'] ) ) {
+			$scoreType = sanitize_text_field($_POST['tennis_score_type_field']);
+		}
+		if( !empty( $scoreType ) ) {
+			update_post_meta( $post_id, self::SCORE_TYPE_META_KEY, $scoreType );
+		}
+		else {
+			delete_post_meta( $post_id, self::SCORE_TYPE_META_KEY );
+		}
+
 		//TODO: Validate the following 3 date fields
 		$signupBy = "";
 		if( isset( $_POST['tennis_signup_by_field'] ) ) {
@@ -1045,6 +1160,10 @@ class TennisEventCpt {
 
 		if( ! $event->setFormat( $eventFormat ) ) {
 			delete_post_meta( $post_id, self::EVENT_FORMAT_META_KEY );
+		}
+		
+		if( ! $event->setScoreType( $scoreType ) ) {
+			delete_post_meta( $post_id, self::SCORE_TYPE_META_KEY );
 		}
 
 		$event->setSignupBy( $signupBy );

@@ -153,6 +153,11 @@ class TournamentCommands extends WP_CLI_Command {
 
         $env = $support->getEnvError();
         list( $clubId, $eventId ) = $env;
+        error_clear_last();
+        if( !is_null( error_get_last() ) ) {
+            WP_CLI::error("Wrong env for ... clubId, eventId");
+            exit;
+        }
         
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;

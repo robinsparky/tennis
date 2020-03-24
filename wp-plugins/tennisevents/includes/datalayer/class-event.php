@@ -25,6 +25,7 @@ class Event extends AbstractData
 	private $event_type; //tournament, league, ladder, round robin
 	private $format; //single elim, double elim, games won, sets won
 	private $match_type; //see class MatchType
+	private $score_type; //see class ScoreType
 	private $signup_by; //Cut off date for signing up
 	private $start_date; //Start date of this event
 	private $end_date; //End date of this event
@@ -50,7 +51,7 @@ class Event extends AbstractData
 		
 		$criteria .= strpos($criteria,'%') ? '' : '%';
 		
-		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`parent_ID`,`signup_by`,`start_date`, `end_date` 
+		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`,`parent_ID`,`signup_by`,`start_date`, `end_date` 
 		        FROM $table WHERE `name` like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
@@ -84,7 +85,7 @@ class Event extends AbstractData
 			//All events who are children of specified Event
 			$col_value = $fk_criteria["parent_ID"];
 			error_log("Event::find using parent_ID=$col_value");
-			$sql = "SELECT ce.ID, ce.event_type, ce.name, ce.format, ce.match_type, ce.parent_ID
+			$sql = "SELECT ce.ID, ce.event_type, ce.name, ce.format, ce.match_type, ce.score_type, ce.parent_ID
 			 			  ,ce.signup_by,ce.start_date,ce.end_date  
 					FROM $table ce
 					WHERE ce.parent_ID = %d;";
@@ -93,7 +94,7 @@ class Event extends AbstractData
 			//All events belonging to specified club
 			$col_value = $fk_criteria["club"];
 			error_log( "Event::find using club_ID=$col_value" );
-			$sql = "SELECT e.ID, e.event_type, e.name, e.format, e.match_type, e.parent_ID 
+			$sql = "SELECT e.ID, e.event_type, e.name, e.format, e.match_type, e.score_type, e.parent_ID 
 						  ,e.signup_by,e.start_date,e.end_date 
 					from $table e 
 					INNER JOIN $joinTable AS j ON j.event_ID = e.ID 
@@ -103,7 +104,7 @@ class Event extends AbstractData
 			//All events
 			error_log( "Event::find all events" );
 			$col_value = 0;
-			$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
+			$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
 					FROM $table;";
 		}
 		else {
@@ -158,7 +159,7 @@ class Event extends AbstractData
     static public function get( int ...$pks ) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
+		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
 		        FROM $table WHERE `ID`=%d";
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
@@ -390,17 +391,9 @@ class Event extends AbstractData
 	public function setFormat( string $format ) {
 		$result = false;
 		if( $this->isLeaf() ) {
-			switch($format) {
-				case Format::SINGLE_ELIM:
-				case Format::DOUBLE_ELIM:
-				case Format::GAMES:
-				case Format::SETS:
-					$this->format = $format;
-					$result = $this->setDirty();
-					break;
-				default:
-					$result = false;
-					break;
+			if( Format::isValid( $format ) ) {
+				$this->format = $format;
+				$result = $this->setDirty();
 			}
 		}
 		return $result;
@@ -408,6 +401,26 @@ class Event extends AbstractData
 
 	public function getFormat():string {
 		return isset( $this->format ) ? $this->format : '';
+	}
+
+	/**
+	 * Set the score type for this leaf events
+	 * @param string $scoreType
+	 * @return bool True if successful false otherwises
+	 */
+	public function setScoreType( string $scoreType ) {
+		$result = false;
+		if( $this->isLeaf() ) {
+			if( ScoreType::get_instance()->isValid( $scoreType ) ) {
+				$this->score_type = $scoreType;
+				$result = $this->setDirty();
+			}
+		}
+		return $result;
+	}
+
+	public function getScoreType( ): string {
+		return isset($this->score_type) ? $this->score_type : '';
 	}
 
     /**
@@ -660,6 +673,7 @@ class Event extends AbstractData
 
 	/**
 	 * Get an Event with a specific name belonging to this Event
+	 * TODO: Make recursive
 	 */
 	public function getNamedEvent( string $name ) {
 		$result = null;
@@ -1049,6 +1063,9 @@ class Event extends AbstractData
 		elseif( !isset( $this->match_type ) && $this->isLeaf() ) {
 			$mess = __('Leaf events must have a match type.', TennisEvents::TEXT_DOMAIN );
 		}
+		elseif( !isset( $this->score_type ) && $this->isLeaf() ) {
+			$mess = __('Leaf events must have a score type.', TennisEvents::TEXT_DOMAIN );
+		}
 		elseif( $this->isRoot() && count( $this->getClubs() ) < 1 ) {
 			$mess = __('Root event must be associated with at least one club', TennisEvents::TEXT_DOMAIN );
 		}
@@ -1145,11 +1162,12 @@ class Event extends AbstractData
 						,'event_type' => $this->getEventType()
 						,'format'     => $this->getFormat()
 						,'match_type' => $this->getMatchType()
+						,'score_type' => $this->getScoreType()
 						,'signup_by'  => $this->getSignupBy_Str()
 						,'start_date' => $this->getStartDate_Str()
 						,'end_date'   => $this->getEndDate_Str()
 					    );
-		$formats_values = array( '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s' );
+		$formats_values = array( '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s', '%s' );
 		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
 		$this->ID = $wpdb->insert_id;
 		$result = $wpdb->rows_affected;
@@ -1177,11 +1195,12 @@ class Event extends AbstractData
 						,'event_type' => $this->getEventType()
 						,'format'     => $this->getFormat()
 						,'match_type' => $this->getMatchType()
+						,'score_type' => $this->getScoreType()
 						,'signup_by'  => $this->getSignupBy_Str()
 						,'start_date' => $this->getStartDate_Str()
 						,'end_date'   => $this->getEndDate_Str()
 					    );
-		$formats_values = array( '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s' );
+		$formats_values = array( '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s', '%s' );
 		$where          = array( 'ID' => $this->ID );
 		$formats_where  = array( '%d ');
 		$check = $wpdb->update( $wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where );
@@ -1205,6 +1224,7 @@ class Event extends AbstractData
 		$obj->match_type = $row["match_type"];
         $obj->parent_ID  = $row["parent_ID"];
 		$obj->format     = $row["format"];
+		$obj->score_type = $row["score_type"];
 		$obj->signup_by  = isset( $row['signup_by'] )  ? new DateTime( $row['signup_by'] ) : null;
 		$obj->start_date = isset( $row['start_date'] ) ? new DateTime( $row['start_date'] ) : null;
 		$obj->end_date   = isset( $row["end_date"] )   ? new DateTime( $row["end_date"] ) : null;
