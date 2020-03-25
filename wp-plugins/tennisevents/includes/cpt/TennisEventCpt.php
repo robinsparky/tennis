@@ -1,5 +1,8 @@
 <?php
 namespace cpt;
+use \DateTime;
+use \DateTimeInterface;
+use \WP_Error;
 use api\BaseLoggerEx;
 use \TennisEvents;
 use \EventType;
@@ -238,11 +241,11 @@ class TennisEventCpt {
 		}
 		elseif( $column_name === 'signup_by_date') {
 			$signupBy = get_post_meta( $postID, self::SIGNUP_BY_DATE_META_KEY, TRUE );
-			if( !empty($signupBy)  ) {
+			if( !empty($signupBy) ) {
 				echo $signupBy;
 			}
 			else {
-				echo __('TBA', TennisEvents::TEXT_DOMAIN );
+				echo __( 'TBA', TennisEvents::TEXT_DOMAIN );
 			}
 		}
 		elseif( $column_name === 'start_date' ) {
@@ -398,7 +401,7 @@ class TennisEventCpt {
 					  , 'tennis_event_type_nonce');
 
 		$actual = get_post_meta( $post->ID, self::EVENT_TYPE_META_KEY, true );
-		$this->log->error_log("$loc --> actual='$actual'; pagenow='$pagenow'");
+		$this->log->error_log("$loc --> actual='$actual'");
 		if( $this->isNewEvent() ) {
 			if( !@$actual ) $actual = EventType::TOURNAMENT;
 			$parentId = false;
@@ -982,7 +985,7 @@ class TennisEventCpt {
 	 */
 	public function updateTennisDB( $post_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
+		$this->log->error_log("$loc: post id={$post_id}");
 
 		if( empty( $_POST ) ) return;
 
@@ -1046,13 +1049,15 @@ class TennisEventCpt {
 			$parentPostId = (int)sanitize_text_field( $_POST['tennis_parent_event_field'] );
 		}
 
-		if( !empty( $parentPostId ) && (int)$parentPostId > 0 ) {
+		if( !empty( $parentPostId ) && $parentPostId > 0 ) {
 			$parentPost = get_post( $parentPostId );
 			if( is_null( $parentPost ) ) {
 				//TODO: Insert into external ref table????
 				delete_post_meta( $post_id, self::PARENT_EVENT_META_KEY );
 				throw new InvalidEventException( __('No such parent post', TennisEvents::TEXT_DOMAIN ) );
 			}
+			$this->log->error_log($parentPostId,"$loc: Parent post id");
+
 			$parentEvent = $this->getEventByExtRef( $parentPostId );
 			if( is_null( $parentEvent ) ) {
 				delete_post_meta( $post_id, self::PARENT_EVENT_META_KEY );
@@ -1097,12 +1102,59 @@ class TennisEventCpt {
 			delete_post_meta( $post_id, self::SCORE_TYPE_META_KEY );
 		}
 
-		//TODO: Validate the following 3 date fields
+		//Posted SignupBy, Start and End Dates
 		$signupBy = "";
 		if( isset( $_POST['tennis_signup_by_field'] ) ) {
 			$signupBy = $_POST['tennis_signup_by_field'];
 		}
-		
+		$startDate = "";
+		if( isset( $_POST['tennis_start_date_field'] ) ) {
+			$startDate = $_POST['tennis_start_date_field'];
+		}
+		$endDate = "";
+		if( isset( $_POST['tennis_end_date_field'] ) ) {
+			$endDate = $_POST['tennis_end_date_field'];
+		}
+		$this->log->error_log("$loc: signupBy='{$signupBy}'; start='{$startDate}'; end='{$endDate}'");
+
+		//Validate SignupBy date
+		$test = $this->getDateValue( $signupBy );
+		if( is_wp_error( $test ) ) {
+			$this->log->error_log("$loc: Error in signup date: " . $test->get_error_message());
+			$signupBy = '';
+			$compareSign = null;
+		}
+		else {
+			$signupBy = $this->getDateStr( $test );
+			$compareSign = $test;
+		}
+
+		//Validate Start Date
+		$test = $this->getDateValue( $startDate );
+		if( is_wp_error( $test ) ) {
+			$this->log->error_log("$loc: Error in start date: " . $test->get_error_message());
+			$startDate = '';
+			$compareStart = null;
+		}
+		else {
+			$startDate = $this->getDateStr( $test );
+			$compareStart = $test;
+		}
+
+		//Validate End Dates
+		$test = $this->getDateValue( $endDate );
+		if( is_wp_error( $test ) ) {
+			$this->log->error_log("$loc: Error in end date: " . $test->get_error_message());
+			$endDate = '';
+			$compareEnd = null;
+		}
+		else {
+			$endDate = $this->getDateStr( $test );
+			$compareEnd = $test;
+		}
+
+
+		//Update meta signupBy
 		if( !empty( $signupBy ) ) {
 			update_post_meta( $post_id, self::SIGNUP_BY_DATE_META_KEY, $signupBy );
 		}
@@ -1110,10 +1162,7 @@ class TennisEventCpt {
 			delete_post_meta( $post_id, self::SIGNUP_BY_DATE_META_KEY );
 		}
 
-		$startDate = "";
-		if( isset( $_POST['tennis_start_date_field'] ) ) {
-			$startDate = $_POST['tennis_start_date_field'];
-		}
+		//Update meta Start Date
 		if( !empty( $startDate ) ) {
 			update_post_meta( $post_id, self::START_DATE_META_KEY, $startDate );
 		}
@@ -1121,51 +1170,50 @@ class TennisEventCpt {
 			delete_post_meta( $post_id, self::START_DATE_META_KEY );
 		}
 
-		$endDate = "";
-		if( isset( $_POST['tennis_end_date_field'] ) ) {
-			$endDate = $_POST['tennis_end_date_field'];
-		}
+		//Update meta End Date
 		if( !empty( $endDate ) ) {
 			update_post_meta( $post_id, self::END_DATE_META_KEY, $endDate );
 		}
 		else {
 			delete_post_meta( $post_id, self::END_DATE_META_KEY );
 		}
-
+		
+		//Event stuff
 		$club = Club::get( $homeClubId );
 		$event = $this->getEventByExtRef( $post_id );
 		if( is_null( $event ) ) {
 			$event = new Event( $evtName );
 		}
-		$event->addClub( $club );
-		$bracket = $event->getWinnersBracket(); //Ensure at least bracket is available.
 
-		//Set the parent event before setting other props
+		$event->addClub( $club );
+		$bracket = $event->getWinnersBracket(); //Ensure at 1 least bracket is available.
+
+		//Set the parent event of the Event before setting other props
 		$event->setParent( $parentEvent );
 
-		//Set external references
-		$event->addExternalRef( $post_id );
+		//Set Event external references
+		$event->addExternalRef( (string)$post_id );
 
-		if( ! $event->setEventType( $eventType ) ) {
+		//Set other Event props
+		if( !empty( $eventType) && !$event->setEventType( $eventType ) ) {
 			delete_post_meta( $post_id, self::EVENT_TYPE_META_KEY );
 		}
 
-		if( ! $event->setMatchType( $matchType ) ) {
+		if( !empty( $matchType) && !$event->setMatchType( $matchType ) ) {
 			delete_post_meta( $post_id, self::MATCH_TYPE_META_KEY );
 		}
 
-		if( ! $event->setFormat( $eventFormat ) ) {
+		if( !empty( $eventFormat) && !$event->setFormat( $eventFormat ) ) {
 			delete_post_meta( $post_id, self::EVENT_FORMAT_META_KEY );
 		}
 		
-		if( ! $event->setScoreType( $scoreType ) ) {
+		if( !empty( $scoreType) && !$event->setScoreType( $scoreType ) ) {
 			delete_post_meta( $post_id, self::SCORE_TYPE_META_KEY );
 		}
 
 		$event->setSignupBy( $signupBy );
 		$event->setStartDate( $startDate );
-		$event->setEndDate( $endDate );
-		$this->log->error_log( $event, "$loc - Tennis Event:" );
+		$event->setEndDate( $endDate );		
 		$event->save();
 	}
 
@@ -1185,7 +1233,7 @@ class TennisEventCpt {
 
 	/**
 	 * Delete all references to the given parent post id
-	 * @param $parent_id The id of the parent post (i.e. event custom post)
+	 * @param int $parent_id The id of the parent post (i.e. event custom post)
 	 */
 	private function deleteParentReferences( $parent_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -1258,10 +1306,93 @@ class TennisEventCpt {
 	}
 	
 	/**
+	 * Get the date value from date string
+	 * @param string $testDate
+	 * @return mixed Datetime object if successful; Error object otherwise
+	 */
+	public function getDateValue( string $testDate ) {
+		$loc =__CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc: $testDate");
+
+		$result = new WP_Error('unknown error');
+
+		$test = DateTime::createFromFormat( '!Y/m/d', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y/n/j|', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-d|', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j|', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( 'd-m-Y|', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( 'd/m/Y|', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( 'm-d-Y|', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( 'm/d/Y|', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ATOM, $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ISO8601, $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::W3C, $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::RFC822, $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::RFC3339, $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::RSS, $testDate );
+		if( false === $test ) {
+			$mess = implode(';',DateTime::getLastErrors()['errors']);
+			$result = new WP_Error( $mess );
+		}
+		else {
+			$result = $test;
+		}
+
+        return $result;
+	}
+		
+	/**
+	 * Test if a date in string form is valid
+	 * @param string $testDate
+	 * @return bool True if date is valid; false otherwise
+	 */
+	public function isDateValid( string $testDate ) {
+		$result = false;
+		if( empty( $testDate ) ) return $result;
+		//DateTimeInterface::ATOM
+		//DateTimeInterface::ISO8601
+		//DateTimeInterface::W3C
+
+		$test = DateTime::createFromFormat( '!Y/m/d', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( '!Y/n/j', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( '!Y-n-j', $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ATOM, $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ISO8601, $testDate );
+		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::W3C, $testDate );
+		
+		if(false !== $test) {
+			$result = true;
+		}
+
+        return $result;
+	}
+
+	private function getDateStr( DateTime $date ) {
+		static $datetimeformat = "Y-m-d H:i:s";
+		static $dateformat = "!Y-m-d";
+		static $storageformat = "Y-m-d";
+
+		return $date->format( $storageformat );
+	}
+	
+	/**
 	 * Detect if we are creating a new Tennis Event
 	 */
 	private function isNewEvent() {
 		global $pagenow;
 		return $pagenow === 'post-new.php';
+	}
+
+	private function addNotice() {
+		add_action( 'admin_notices', array($this,'sample_admin_notice__success') );
+	}
+	
+	public function sample_admin_notice__success() {
+		?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php _e( 'Done!', 'sample-text-domain' ); ?></p>
+		</div>
+		<?php
 	}
 } //end class
