@@ -23,9 +23,9 @@ class BaseLoggerEx {
         if( $this->writelog ) {
             if( is_object( $something ) || is_array( $something ) ) {
                 if( ! empty( $label ) ) error_log($label);
-                error_log( print_r( $something, true) );
+                error_log( print_r( $something, true ) );
             }
-            else if(is_string( $something ) ) {
+            else if(is_string( $something ) || is_numeric( $something ) ) {
                 $label = empty( $label ) ? "" : $label . ":";
                 error_log( "$label $something" );
             }
@@ -39,7 +39,7 @@ class BaseLoggerEx {
     public function error_apache( string $message ) {
         if( $this->writelog ) {
             $stderr = fopen('php://stderr', 'w'); 
-            fwrite($stderr,$Message); 
+            fwrite($stderr,$message); 
             fclose($stderr); 
         }
     }
