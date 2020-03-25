@@ -458,7 +458,8 @@ class Event extends AbstractData
 
 	/**
 	 * Set the date by which players must signup for this event
-	 * @param $signup The sign up deadline in YYYY/mm/dd format
+	 * @param string $signup The sign up deadline in YYYY/mm/dd format
+	 * @return bool True if successful, false otherwise
 	 */
 	public function setSignupBy( string $signup ) {
 		$result = false;
@@ -489,7 +490,7 @@ class Event extends AbstractData
 	 * Get the date by which players must signup for this event
 	 */
 	public function getSignupBy_Str() {
-		if( !isset( $this->signup_by ) ) return null;
+		if( !isset( $this->signup_by ) ) return '';
 		else return $this->signup_by->format( self::$datetimeformat );
 	}
 
@@ -498,7 +499,7 @@ class Event extends AbstractData
 	 * in ISO 8601 format
 	 */
 	public function getSignupBy_ISO() {
-		if( !isset( $this->signup_by ) ) return null;
+		if( !isset( $this->signup_by ) ) return '';
 		else return $this->signup_by->format( DateTime::ISO8601 );
 	}
 
@@ -984,17 +985,17 @@ class Event extends AbstractData
 	 * An Event can have zero or more external references associated with it.
 	 * How these are usesd is up to the developer. 
 	 * For example, a custom post type in WordPress
-	 * @param $extRef the external reference to be added to this event
-	 * @return True if successful; false otherwise
+	 * @param string $extRef the external reference to be added to this event
+	 * @return bool True if successful; false otherwise
 	 */
-	public function addExternalRef( $extRef ) {
+	public function addExternalRef( string $extRef ) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
-		$this->log->error_log($loc);
+		$this->log->error_log( $extRef, "$loc: External Reference Value");
 
 		$result = false;
-		if( isset( $extRef ) && !empty( $extRef ) ) {
+		if( !empty( $extRef ) ) {
 			$found = false;
-			foreach( $this->getExternalRefs() as $er ) {
+			foreach( $this->getExternalRefs( true ) as $er ) {
 				if( $extRef === $er ) {
 					$found = true;
 					break;
@@ -1010,15 +1011,15 @@ class Event extends AbstractData
 
 	/**
 	 * Remove the external reference
-	 * @param $extRef The external reference to be removed	 
+	 * @param string $extRef The external reference to be removed	 
 	 * @return True if successful; false otherwise
 	 */
-	public function removeExternalRef( $extRef ) {
+	public function removeExternalRef( string $extRef ) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
-		$this->log->error_log($loc);
+		$this->log->error_log("$loc: extRef='{$extRef}'");
 
 		$result = false;
-		if( isset( $extRef ) ) {
+		if( !empty( $extRef ) ) {
 			$i=0;
 			foreach( $this->getExternalRefs() as $er ) {
 				if( $extRef === $er ) {
@@ -1041,7 +1042,10 @@ class Event extends AbstractData
 		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$this->log->error_log($loc);
 		
-		if( !isset( $this->external_refs ) || $force ) $this->fetchExternalRefs();
+		if( !isset( $this->external_refs ) 
+		   || (0 === count( $this->external_refs))  || $force ) {
+			$this->fetchExternalRefs();
+		}
 		return $this->external_refs;
 	}
 
@@ -1132,6 +1136,7 @@ class Event extends AbstractData
 	 * Fetch the external references to this event from the database
 	 */
 	private function fetchExternalRefs() {	
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->external_refs = EventExternalRefRelations::fetchExternalRefs( $this->getID() );
 	}
 	

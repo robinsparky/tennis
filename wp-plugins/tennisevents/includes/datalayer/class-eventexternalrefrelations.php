@@ -17,8 +17,8 @@ class EventExternalRefRelations {
 	/**
 	 * Remove a relationship between an Event and an external reference
 	 */
-	static function remove(int $eventId, $extRef ):int {
-		$loc = __CLASS__ . __FUNCTION__;
+	static function remove(int $eventId, string $extRef ):int {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$result = 0;
 		global $wpdb;
 		if( isset($extRef) && isset($eventId) ) {
@@ -37,11 +37,13 @@ class EventExternalRefRelations {
 	/**
 	 * Create a relationship between an Event and external reference
 	 */
-	static function add( int $eventId, $extRef ):int {
-		$loc = __CLASS__ . __FUNCTION__;
+	static function add( int $eventId, string $extRef ):int {
+		$loc = __CLASS__ . '::' .  __FUNCTION__;
 
 		$result = 0;
 		global $wpdb;
+		
+		if( !is_numeric( $extRef ) && !is_string( $extRef )  ) return $result;
 		
 		$query = "SELECT IFNULL(count(*),0) FROM {$wpdb->prefix}tennis_external_event
 				  WHERE event_ID=%d and external_ID='%s';";
@@ -67,17 +69,22 @@ class EventExternalRefRelations {
 	 * Fetch all external references for a given event id
 	 */
 	public static function fetchExternalRefs( int $event_ID ) {
-		$loc = __CLASS__ . __FUNCTION__;
+		$loc = __CLASS__ .'::' .  __FUNCTION__;
 
-		$result = 0;
 		global $wpdb;
+
+		$result = array();
 		
 		$query = "SELECT external_ID FROM {$wpdb->prefix}tennis_external_event
 				  WHERE event_ID=%d;";
 		$safe = $wpdb->prepare( $query, $event_ID );
-		$rows = $wpdb->get_results( $safe );
-		error_log("$loc: For event '$event_ID' the number external refs found=$wpdb->rows_affected");
-		return $rows;
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
+		$found = count( $rows );
+		error_log("$loc: Event_ID='$event_ID' and the number external refs found={$found}");
+
+		$result = array_map( function( $row ) { return $row['external_ID']; }, $rows );
+
+		return $result;
 	}
 	
 } //end of class
