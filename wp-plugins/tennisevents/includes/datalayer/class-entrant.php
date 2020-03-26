@@ -251,7 +251,11 @@ class Entrant extends AbstractData
      * Get the name of this Draw
      */
     public function getName() {
-        return $this->name;
+		if( isset( $this->name) && false !== strpos( '&#39',$this->name)) {
+			$this->name = str_replace(['\&#39;','&#39;'],"'",$this->name);
+			$this->setDirty();
+		}
+        return str_replace(["\'",'\&#39;','&#39;'],"'",$this->name);
 	}
 	
     /**

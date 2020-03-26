@@ -212,9 +212,11 @@ class Bracket extends AbstractData
 	public function addToSignup ( string $name, int $seed = null ) {
 		$result = false;
 		if( isset( $name ) ) {
-			$found = false;
+            $found = false;
+            //Escape the single quote because that is how it is in the db
+            $test = strtolower(trim(str_replace(["\'","'"],['',''],$name)));
 			foreach( $this->getSignup() as $d ) {
-				if( $name === $d->getName() ) {
+				if( $test === strtolower(trim(str_replace(["\'","'"],['',''],$d->getName()))) ) {
 					$found = true;
 				}
 			}
@@ -234,9 +236,13 @@ class Bracket extends AbstractData
 	 */
 	public function removeFromSignup( string $name ) {
 		$result = false;
-		$temp = array();
+        $temp = array();
+        //Need to replace single apostrophe with escaped apostrophe
+        // because this is how it comes back from the db        
+        $test = strtolower(trim(str_replace(["\'","'"],["",""],$name)));
+
 		for( $i = 0; $i < count( $this->getSignup( true ) ); $i++) {
-			if( $name === $this->signup[$i]->getName() ) {
+			if( $test === strtolower(trim(str_replace(["\'","'"],["",""],$this->signup[$i]->getName()))) ) {
 				$this->entrantsToBeDeleted[] = $this->signup[$i]->getPosition();
 				$result = $this->setDirty();
 			}

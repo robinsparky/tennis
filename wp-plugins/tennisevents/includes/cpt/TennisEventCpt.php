@@ -1141,7 +1141,7 @@ class TennisEventCpt {
 			$compareStart = $test;
 		}
 
-		//Validate End Dates
+		//Validate End Date
 		$test = $this->getDateValue( $endDate );
 		if( is_wp_error( $test ) ) {
 			$this->log->error_log("$loc: Error in end date: " . $test->get_error_message());

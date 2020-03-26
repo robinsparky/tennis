@@ -225,7 +225,7 @@ EOT;
         foreach( $this->signup as $entrant ) {
             $pos = $entrant->getPosition();
             $name = $entrant->getName();
-            $nameId = str_replace( ' ', '_', $name );
+            $nameId = str_replace( [' ',"\'","'"], ['_','',''], $entrant->getName() );
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
             if( $numPrelimMatches > 0 ) {
@@ -344,7 +344,7 @@ EOT;
         $fromPos = $data["currentPos"];
         $toPos   = round($data["newPos"]);
 
-        $mess    =  __('Move Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
+        $mess    =  __("Move Entrant fromt '{$fromPos}' to '{$toPos}' succeeded.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event = Event::get( $this->eventId );
             $bracket = $event->getBracket( $this->bracketName );
@@ -372,13 +372,13 @@ EOT;
         $this->bracketName = $data["bracketName"];
         $fromPos = $data["position"];
         $seed    = $data["seed"];
-        $oldName = $data["name"]; 
-        $newName = $data["newName"];
+        $oldName = sanitize_text_field($data["name"]); 
+        $newName = sanitize_text_field($data["newName"]);
 
         $this->log->error_log($data, "$loc: data...");
         $this->log->error_log("$loc: newName='$newName'");
 
-        $mess    =  __('Update Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
+        $mess    =  __("Update Entrant from '{$oldName}' to '{$newName}'  succeeded.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
             $bracket = $event->getBracket( $this->bracketName );
@@ -419,9 +419,9 @@ EOT;
 
         $this->eventId = $data["eventId"];
         $this->bracketName = $data["bracketName"];
-        $name = $data["name"]; 
+        $name = sanitize_text_field($data["name"]); 
 
-        $mess  =  __('Delete Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
+        $mess  =  __("Delete Entrant '{$name}' succeeded.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
             $bracket = $event->getBracket( $this->bracketName );
@@ -452,13 +452,15 @@ EOT;
         $this->bracketName = $data["bracketName"];
         $fromPos = $data["position"];
         $seed    = $data["seed"];
-        $name    = $data["name"]; 
+        $name    = sanitize_text_field($data["name"]); 
 
-        $mess    =  __('Add Entrant succeeded.', TennisEvents::TEXT_DOMAIN );
+        $mess    =  __("Add Entrant '{$name}' succeeded.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
             $bracket = $event->getBracket( $this->bracketName );
-            $bracket->addToSignup( $name, $seed );
+            if( false === $bracket->addToSignup( $name, $seed ) ) {
+                $mess =  __("Add Entrant '{$name}' failed.", TennisEvents::TEXT_DOMAIN );
+            }
             $event->save();
             $this->signup = $bracket->getSignup( true );
         }

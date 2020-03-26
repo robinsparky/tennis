@@ -262,18 +262,35 @@
             console.log('Delete fired!');
             entrantId = $(this).parent("li.entrantSignup").attr("id");
             console.log("entrantId=%s", entrantId);
+            name = $(this).parent("li.entrantSignup").children("input.entrantName").val();
+            console.log("name is '%s'", name);
             signupData = signupDataMask;
-            signupData.name = entrantId.replace(/_/g, ' ');
+            signupData.name = name; //entrantId.replace(/_/g, ' ');
             signupData.task="delete";
 
             signupData.clubId = $('.signupContainer').attr("data-clubid");
             signupData.eventId = $('.signupContainer').attr("data-eventid");
             signupData.bracketName = $('.signupContainer').attr("data-bracketname");
             
-            $(this).parent("li.entrantSignup").hide();
+            $(this).parent("li.entrantSignup").remove();
 
             ajaxFun( signupData );
         });
+
+        function isDuplicate( name ) {
+            console.log("isDuplicate(%s)", name);
+            $find = findEntrant( name );
+            return $find.length > 0;
+        }
+
+        function findEntrant( name ) {
+            console.log("findEntrant(%s)", name);
+            test = name.trim().replace(/ /g, '_').replace(/'/g,"");
+            console.log("test=#li%s",test);
+            $found = $('li#' + test);
+            return $found;
+        }
+
 
         //Add an entrant
         $('#addEntrant').on('click', function(e) {
@@ -281,6 +298,10 @@
             let name = prompt("Entrant's name: ", "");
             if( null === name) return;
             if( name.length < minNameLength ) return;
+            if( isDuplicate(name)) {
+                alert( name + " already exists");
+                return;
+            }
 
             let pos = $('.eventSignup').children().length + 1;
             signupData = signupDataMask;
@@ -292,7 +313,7 @@
             signupData.eventId = $('.signupContainer').attr("data-eventid");
             signupData.bracketName = $('.signupContainer').attr("data-bracketname");
 
-            liNode = $('<li>',{ id: name.replace(/ /g, '_')
+            liNode = $('<li>',{ id: name.replace(/ /g, '_').replace(/'/g,"")
                             ,class:"entrantSignup sortable-container ui-state-default"
                             });
             posDiv = $('<div>', {class: "entrantPosition ui-sortable-handle"
