@@ -649,16 +649,14 @@ class TournamentDirector
      */
     public function schedulePreliminaryRounds( string $bracketName, $randomizeDraw = false ) {
 
-        switch( $this->getEvent()->getEventType() ) {
-            case EventType::TOURNAMENT:
-                $this->initializeEliminationRounds( $bracketName, $randomizeDraw );
-                break;
-            case EventType::LEAGUE:
-            case EventType::LADDER:
-            case EventType::ROUND_ROBIN:
-                $this->initializeRoundRobin( $bracketName, $randomizeDraw );
-                break;
+        switch( $this->getEvent()->getFormat() ) {
+            case Format::SINGLE_ELIM:
+                return $this->initializeEliminationRounds( $bracketName, $randomizeDraw );
+            case Format::POINTS:
+            case Format::GAMES:
+                return $this->initializeRoundRobin( $bracketName, true );
         }
+        return 0;
     }
 
     /**
@@ -918,7 +916,7 @@ class TournamentDirector
         $mainbracket = null;
         $loserbracket = null;
         $chairUmpire = null;
-        $minplayers = self::MINIMUM_ENTRANTS;
+        $minplayers =  3; //self::MINIMUM_ENTRANTS;
         $bracket = $this->getBracket( $bracketName );
 
         
@@ -975,20 +973,61 @@ class TournamentDirector
         $this->log->error_log( "$loc: number of rounds={$this->numRounds}; number of matches={$numMatches}; matches per round=$numMatchesPerRound" );
         
         //Heavy lifting done here!
-        $contentants = array_map( function( $e ) { return $e->getName(); }, $entrants);
+        //1. Get contestants
+        $contestants = array_map( function( $e ) { return $e->getName(); }, $entrants);
 
-        $matches = $this->getCombinations( $contentants );
-        if( $randomizeDraw ) $matches = shuffle( $matches );
+        //2. Get combinations in groups of 2
+        $matches = $this->getCombinations( $contestants );
+
+        //3. Shuffle the matches
+        if( $randomizeDraw ) shuffle( $matches );
+        $matchesCreated = count( $matches );
+        if( $matchesCreated !== $numMatches ) {
+            throw new InvalidTournamentException(__e("Calculated number of matches differs from actual created.",TennisEvents::TEXT_DOMAIN ));
+        }
+
         $this->log->error_log( $matches, "$loc: Matches");
-        $rounds = range(1,$this->numRounds);
+
+        //4. Fill out the matches by round array 
+        //   ensuring that players do not play more than once in a round
         $matchesByRound = array();
-        for( $r=1; $r <= $this->numRounds; $r++ ) {
-            for( $m=1; $m <= $numMatchesPerRound; $m++ ) {
-                $matchesByRound[$r][$m] = array_shift( $matches );
+        $r=$m=1;
+        $matchesByRound[$r] = array();
+        $ctr = 0;
+        while( 0 < count( $matches ) ) {
+            $ct = count( $matches );
+            if( ++$ctr > $matchesCreated ) {
+                throw new InvalidTournamentException("Counter = {$ctr} exeeds size of 'matches' = {$matchesCreated}");
+            }
+            $this->log->error_log("$loc: {$ctr}. while count of matches={$ct}");
+
+            $match = $this->nextRRMatch( $matchesByRound[$r], $matches );
+            if( !empty( $match ) ) {
+                $matchesByRound[$r][$m++] = $match;
+            }
+            elseif( !empty( $matches ) ) {
+                ++$r;
+                $m=1;
+                $matchesByRound[$r] = array();
             }
         }
 
-        $this->log->error_count( $matchesByRound, "$loc: Matches By Round" );
+        $genRounds = $r;        
+        $this->log->error_log( "$loc: number of rounds genterated={$genRounds}");
+        $this->log->error_log( $matchesByRound, "$loc: Matches By Round" );
+
+        for( $r = 1; $r <= $genRounds; $r++ ) {
+            $matches = $matchesByRound[$r];
+            $m = 1;
+            foreach( $matches as $mtch ) {
+                $players = array_values( $mtch );
+                $home = $bracket->getNamedEntrant( $players[0] );
+                $visitor = $bracket->getNamedEntrant( $players[1] );
+                $match = new Match( $this->getEvent()->getID(), $bracket->getBracketNumber(), $r, $m++ );
+                $match->setHomeEntrant( $home );
+                $match->setVisitorEntrant( $visitor );
+            }
+        }
 
         //$matchesCreated = $bracket->numMatches();
         //$this->save();
@@ -996,6 +1035,41 @@ class TournamentDirector
         $this->log->error_log("<<<<<<<<<<<<<<<<<<<<<<<$loc<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 
         return $matchesCreated;
+    }
+
+    private function nextRRMatch( array $scheduled, array &$remainingMatches ) : array {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $result = array();
+        
+        // $this->log->error_log($scheduled, "$loc - Scheduled Start");
+        // $this->log->error_log($remainingMatches,"$loc - Remaining Start");
+
+        $offset = 0;
+        foreach($remainingMatches as $remain ) {
+            $found = 0;
+            foreach( $scheduled as $m ) {
+                $schedPlayers = array_values( $m );
+                if( in_array($schedPlayers[0], $remain)  || in_array($schedPlayers[1], $remain)) {
+                    $found += 1;
+                }
+            }
+            if( $found === 0 ) {
+                $result = $remain;
+                break;
+            }                
+            ++$offset;
+        }
+
+        if( !empty( $result ) ) {
+            $extracted = array_splice( $remainingMatches, $offset, 1 );
+        }
+
+        // $this->log->error_log($scheduled, "$loc - Scheduled at End");
+        // $this->log->error_log($result, "$loc - Result Selected");
+        // $this->log->error_log($remainingMatches, "$loc - Remaining at End");
+
+        return $result;
     }
 
     private function getCombinations( $set, int $num=2 ) {
