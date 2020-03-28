@@ -154,7 +154,32 @@ table.bracketdraw td {
 td:nth-child(even) { vertical-align: bottom;} */
 /* tr.drawRow:nth-child(odd)	{ background-color:rgb(176,224,230); }
 tr.drawRow:nth-child(even) { background-color:#fff; } */
+/*
+ * Round Robin styling
+*/
 
+table.bracketrobin {
+    width: 50%;
+    border-collapse: collapse;
+    border: 1px solid purple !important;
+    font-size: 1rem;
+    margin: 0 auto 0 auto;
+}
+
+table.bracketrobin th {
+    border: 1px solid black;
+    border-right: 3px solid black;
+    text-align: center;
+    vertical-align: middle;
+}
+
+table.bracketrobin td {
+    border: 1px solid black;
+    border-bottom: 3px solid black;
+    border-right: 3px solid black;
+    text-align: center;
+    vertical-align: middle;
+}
 .tennistablescores {
     border-collapse: collapse;
     border: none !important;

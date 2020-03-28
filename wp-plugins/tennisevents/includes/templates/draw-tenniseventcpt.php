@@ -3,14 +3,6 @@
 	<?php //appointment_aside_meta_content();
 		$mode = isset($_GET['manage']) ? $_GET['manage'] : "";
 		$bracketName = isset($_GET['bracket']) ? $_GET['bracket'] : '';
-		switch( $mode ) {
-			case "signup":
-				ManageSignup::register();
-			break;
-			case "draw":
-				ManageDraw::register();
-			break;
-		}
 		//the_title('<h2>','</h2>'); 
 	?>
 		<div class="event-content-body">
@@ -30,7 +22,6 @@
 				 if( $event->isRoot() ) {
 				   wp_die( __("Root Tennis Event not expected here!", TennisEvents::TEXT_DOMAIN ) );
 				} 
-			
 				// call editor content of post/page	s
 				wp_link_pages( );
 				?>
@@ -43,7 +34,14 @@
 					echo "<div class='link-container'><button class='link-to-draw' onClick={$onClick}>Draw</button></div>";
 				}
 				elseif( $mode === "draw" ) {
-					echo do_shortcode("[manage_draw by=match eventid={$event->getID()}, bracketname={$bracketName}]");
+					switch( $event->getFormat() ) {
+						case Format::SINGLE_ELIM:
+							echo do_shortcode("[manage_draw by=match eventid={$event->getID()}, bracketname={$bracketName}]");
+						break;
+						case Format::POINTS:
+							echo do_shortcode("[manage_roundrobin eventid={$event->getID()}, bracketname={$bracketName}]");
+						break;
+					}
 					$drawUrl = get_permalink() . "?manage=signup&bracket=" . $bracketName;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
 					echo "<div class='link-container'><button class='link-to-draw' onClick={$onClick}>Signup</button></div>";

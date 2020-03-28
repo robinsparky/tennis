@@ -161,6 +161,7 @@ class TennisEvents {
 		TennisEventCpt::register();
 		ManageSignup::register();
 		ManageDraw::register();
+		ManageRoundRobin::register();
 		$this->log->error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
 	}
 	

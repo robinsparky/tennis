@@ -915,7 +915,6 @@ class TournamentDirector
         //Get or create the requested bracket
         $mainbracket = null;
         $loserbracket = null;
-        $chairUmpire = null;
         $minplayers =  3; //self::MINIMUM_ENTRANTS;
         $bracket = $this->getBracket( $bracketName );
 
@@ -945,46 +944,27 @@ class TournamentDirector
         $this->removeMatches( $bracketName );
         $this->save();
 
-        $this->numRounds = $bracketSignupSize * ( $bracketSignupSize - 1 ) / 2;
-        $this->numToEliminate = 0; //$bracketSignupSize - pow( 2, $this->numRounds ) / 2;
+        //$this->numRounds = $bracketSignupSize * ( $bracketSignupSize - 1 ) / 2;
+        $this->numToEliminate = 0;
 
-        $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
-        
-        if( $randomizeDraw ) shuffle( $unseeded );
-        else usort( $unseeded, array( 'TournamentDirector', 'sortByPositionAsc' ) );
-
-        $seeded = array_filter( array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ) );
-        usort( $seeded, array( 'TournamentDirector', 'sortBySeedAsc') );
-
-        // $numInvolved = 2 * $this->numToEliminate;
-        // $remainder   = $numInvolved > 0 ? $bracketSignupSize - $numInvolved : 0;
-
-        // if($numInvolved > $remainder ) {
-        //     $seedByes    =  min( count( $seeded ) , $remainder );
-        //     $unseedByes  = $remainder - $seedByes;
-        // }
-        // else {
-        //     $seedByes = min( count( $seeded ), $numInvolved );
-        //     $unseedByes = $numInvolved - $seedByes;
-        // }
-        //$totalByes = $seedByes + $unseedByes;
-        $numMatches = $bracketSignupSize * ( $bracketSignupSize - 1 );
-        $numMatchesPerRound = $numMatches / $this->numRounds;
-        $this->log->error_log( "$loc: number of rounds={$this->numRounds}; number of matches={$numMatches}; matches per round=$numMatchesPerRound" );
         
         //Heavy lifting done here!
         //1. Get contestants
         $contestants = array_map( function( $e ) { return $e->getName(); }, $entrants);
 
         //2. Get combinations in groups of 2
+        // NOTE: (n choose k) = n!/k!(n-k)! where in this case k=2
+        $numMatches = $bracketSignupSize * ( $bracketSignupSize - 1 ) / 2;
+        $this->log->error_log( "$loc: Calculated number of matches={$numMatches}" );
         $matches = $this->getCombinations( $contestants );
+        $matchesCreated = count( $matches );
+        if( $matchesCreated !== $numMatches ) {
+            $this->log->error_log($matches, "$loc: Faux Matches");
+            throw new InvalidTournamentException(__("Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.",TennisEvents::TEXT_DOMAIN ));
+        }
 
         //3. Shuffle the matches
         if( $randomizeDraw ) shuffle( $matches );
-        $matchesCreated = count( $matches );
-        if( $matchesCreated !== $numMatches ) {
-            throw new InvalidTournamentException(__e("Calculated number of matches differs from actual created.",TennisEvents::TEXT_DOMAIN ));
-        }
 
         $this->log->error_log( $matches, "$loc: Matches");
 
@@ -996,10 +976,8 @@ class TournamentDirector
         $ctr = 0;
         while( 0 < count( $matches ) ) {
             $ct = count( $matches );
-            if( ++$ctr > $matchesCreated ) {
-                throw new InvalidTournamentException("Counter = {$ctr} exeeds size of 'matches' = {$matchesCreated}");
-            }
-            $this->log->error_log("$loc: {$ctr}. while count of matches={$ct}");
+            ++$ctr;
+            $this->log->error_log("$loc: {$ctr}. 'while' count of matches={$ct}");
 
             $match = $this->nextRRMatch( $matchesByRound[$r], $matches );
             if( !empty( $match ) ) {
@@ -1012,8 +990,9 @@ class TournamentDirector
             }
         }
 
-        $genRounds = $r;        
-        $this->log->error_log( "$loc: number of rounds genterated={$genRounds}");
+        $genRounds = $r;
+        $this->numRounds = $r;        
+        $this->log->error_log( "$loc: Generated number of rounds={$genRounds}");
         $this->log->error_log( $matchesByRound, "$loc: Matches By Round" );
 
         for( $r = 1; $r <= $genRounds; $r++ ) {
@@ -1026,11 +1005,17 @@ class TournamentDirector
                 $match = new Match( $this->getEvent()->getID(), $bracket->getBracketNumber(), $r, $m++ );
                 $match->setHomeEntrant( $home );
                 $match->setVisitorEntrant( $visitor );
+                $match->setMatchType(  $this->matchType );
+                $bracket->addMatch( $match );
             }
         }
 
-        //$matchesCreated = $bracket->numMatches();
-        //$this->save();
+        $matchesCreated = $bracket->numMatches();
+        if( $matchesCreated !== $numMatches ) {
+            $this->log->error_log( "Actual number of real matches {$matchesCreated} differs from original created {$numMatches}.");
+            throw new InvalidTournamentException( __e("Actual number of real matches {$matchesCreated} differs from original created {$numMatches}.",TennisEvents::TEXT_DOMAIN ));
+        }
+        $this->save();
 
         $this->log->error_log("<<<<<<<<<<<<<<<<<<<<<<<$loc<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 
@@ -1081,7 +1066,6 @@ class TournamentDirector
         $combs = $combinatorics->combinations($set, $num);
         return $combs;
     }
-
 
     /**
      * Sort Draw by seeding in descending order
