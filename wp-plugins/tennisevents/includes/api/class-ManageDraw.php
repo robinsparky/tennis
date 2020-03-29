@@ -167,7 +167,7 @@ class ManageDraw
                         return '<h3>Insufficent privileges</h3>';
                     }
                     return $this->renderBracketByMatch( $td, $bracket );
-                case 'entrant':     
+                case 'entrant':  //read-only version
                     wp_dequeue_script( 'manage_matches' );
                     return $this->renderBracketByEntrant( $td, $bracket );
                 default:
@@ -658,10 +658,11 @@ class ManageDraw
         $bracketName = $data["bracketName"];
         try {            
             $event = Event::get( $this->eventId );
+            $evtName = $event->getName();
             $td = new TournamentDirector( $event );
             $td->removeMatches( $bracketName );
-            $numMatches = $event->save();
-            $mess =  __("Removed {$numMatches} matches for this event/bracket.", TennisEvents::TEXT_DOMAIN );
+            $numAffected = $event->save();
+            $mess =  __("Removed all matches for {$evtName} - {$bracketName} Bracket.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -675,7 +676,7 @@ class ManageDraw
      * Renders rounds and matches for the given brackete
      * @param $td The tournament director for this bracket
      * @param $bracket The bracket
-     * @return HTML for table-based page showing the draw
+     * @return string Table-based HTML showing the draw
      */
     private function renderBracketByMatch( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -686,10 +687,6 @@ class ManageDraw
 
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
-        // if( !$bracket->isApproved() ) {
-        //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
-        // }
-
         $umpire = $td->getChairUmpire();
 
         $loadedMatches = $bracket->getMatchHierarchy( true );
@@ -717,7 +714,7 @@ class ManageDraw
 
         $begin = <<<EOT
 <table id="%s" class="bracketdraw" data-eventid="%d" data-bracketname="%s">
-<caption>%s: %s Bracket</caption>
+<caption>%s&#58;&nbsp;%s&nbsp;Bracket</caption>
 <thead><tr>
 EOT;
         $out = sprintf( $begin, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName );
@@ -974,7 +971,7 @@ EOT;
      * Renders draw showing entrants for the given bracket
      * @param $td The tournament director for this bracket
      * @param $bracket The bracket
-     * @return HTML for table-based page showing the draw
+     * @return string Table-based HTML showing the draw without ability to modify
      */
     private function renderBracketByEntrant( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -993,7 +990,7 @@ EOT;
         $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
 
         if( count( $loadedMatches ) === 0 ) {
-            $out = '<h3>' . "{$tournamentName} - {$bracketName} Bracket" . '</h3>';
+            $out = '<h3>' . "{$tournamentName}&#58;&nbsp;{$bracketName} Bracket" . '</h3>';
             $out .= "<div>". __("No matches scheduled yet", TennisEvents::TEXT_DOMAIN ) . "</div>";
             return $out;
         }
@@ -1007,7 +1004,7 @@ EOT;
         wp_enqueue_style( 'manage_draw_css' );      
 
         $umpire = $td->getChairUmpire();
-        $gen = new DrawTemplateGenerator("$tournamentName - $bracketName Bracket", $signupSize, $eventId, $bracketName  );
+        $gen = new DrawTemplateGenerator("{$tournamentName}&#58;&nbsp;{$bracketName} Bracket", $signupSize, $eventId, $bracketName  );
         
         $template = $gen->generateTable();
         

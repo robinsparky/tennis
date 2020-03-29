@@ -142,15 +142,7 @@ class ManageRoundRobin
         }
 
         if( !is_null( $bracket ) ) {
-            if( !is_user_logged_in() ) {
-                return '<h3>You must be logged in</h3>';
-            }
-            //$user = wp_get_current_user();
-            if ( !current_user_can( 'manage_options' ) ) {
-                return '<h3>Insufficent privileges</h3>';
-            }
             return $this->renderBracketByMatch( $td, $bracket );
-
         }
         else {
             return  __("No such Bracket $bracketName", TennisEvents::TEXT_DOMAIN );
@@ -636,10 +628,11 @@ class ManageRoundRobin
         $bracketName = $data["bracketName"];
         try {            
             $event = Event::get( $this->eventId );
+            $evtName = $event->getName();
             $td = new TournamentDirector( $event );
             $td->removeMatches( $bracketName );
-            $numMatches = $event->save();
-            $mess =  __("Removed {$numMatches} matches for this event/bracket.", TennisEvents::TEXT_DOMAIN );
+            $numAffected = $event->save();
+            $mess =  __("Removed all matches for {$evtName} - {$bracketName} Bracket.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -659,15 +652,10 @@ class ManageRoundRobin
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
         
-	    // Start output buffering so get_template_part doesn't output to the page
-        ob_start();
 		$startFuncTime = microtime( true );
-
-        $winnerClass = "matchwinner";
 
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
-        $eventId = $this->eventId;
         // if( !$bracket->isApproved() ) {
         //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
         // }
@@ -696,8 +684,14 @@ class ManageRoundRobin
         wp_localize_script( 'manage_rr', 'tennis_draw_obj', $jsData );        
         wp_enqueue_style( 'manage_rr_css' ); 
         
-        // Get template file output
-        $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin.php';
+	    // Start output buffering we don't output to the page
+        ob_start();
+        // Get template file
+        $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly.php';
+        //$user = wp_get_current_user();
+        if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+            $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin.php';
+        }
         require( $path ); 
         // Save output and stop output buffering
         $output = ob_get_clean();

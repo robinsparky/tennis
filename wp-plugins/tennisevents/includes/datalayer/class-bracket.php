@@ -951,8 +951,42 @@ class Bracket extends AbstractData
     }
 
     /*----------------------------------------- Private Functions --------------------------------*/
-
+    /**
+     * Load the bracket's matches in a matrix
+     * Checks underlying event's Format to determine method of loading.
+     * @return array Array of matches organized as [round][match num]
+     */
     private function loadBracketMatches() {
+
+        $format = $this->getEvent()->getFormat();
+        switch( $format ) {
+            case Format::SINGLE_ELIM:
+                return $this->loadSingleElimination();
+            break;
+            case Format::POINTS:
+            case Format::GAMES:
+            case Format::OPEN:
+                return $this->loadRoundRobin();
+            break;
+        }
+    }
+
+    private function loadRoundRobin() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($loc);
+        
+        $eventSize = $this->signupSize();
+        $numExpectedMatches = $eventSize * ($eventSize - 1) / 1;
+        $loadedMatches = $this->getMatchHierarchy( true );
+
+        return $loadedMatches;
+        
+    }
+
+    /**
+     * Loads matches for single elimination format
+     */
+    private function loadSingleElimination() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log($loc);
         
@@ -1009,8 +1043,8 @@ class Bracket extends AbstractData
 
     /**
      * Given a match number calculate what the match number in the next round should be.
-     * @param $m Match number
-     * @return Number of the next match
+     * @param int $m Match number
+     * @return int Number of the next match
      */
     private function getNextMatchPointer( int $m ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;

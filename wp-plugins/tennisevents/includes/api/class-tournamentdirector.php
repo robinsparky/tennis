@@ -187,6 +187,52 @@ class TournamentDirector
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log("$loc($bracketName)");
 
+        $format = $this->getEvent()->getFormat( $bracketName );
+        switch( $format ) {
+            case Format::SINGLE_ELIM:
+                return $this->advanceSingleElimination( $bracketName );
+            break;
+            case Format::POINTS:
+            case Format::GAMES:
+            case Format::OPEN:
+                return $this->advanceRoundRobin( $bracketName );
+            break;
+        }
+    }
+
+    /**
+     * Advance completed matches. 
+     * What does mean for a Round Robin format as all rounds and matches are set.
+     * @param string $bracketName name of the bracket
+     * @return int 0
+     */
+    private function advanceRoundRobin( $bracketName ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc($bracketName)");
+
+        $bracket = $this->getBracket( $bracketName );
+
+        if( is_null( $bracket ) ) {
+            throw new InvalidTournamentException( __( "Invalid bracket name $bracketNname.", TennisEvents::TEXT_DOMAIN) );
+        }
+
+        if( !$bracket->isApproved() ) {
+            throw new InvalidTournamentException( __( "Bracket has not been approved.", TennisEvents::TEXT_DOMAIN) );        
+        }
+
+        return 0;
+    }
+
+    /**
+     * Advance completed matches to their respective next rounds
+     *  in a single elimination event
+     * @param string $bracketName name of the bracket
+     * @return int Number of entrants advanced
+     */
+    private function advanceSingleElimination( $bracketName ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc($bracketName)");
+
         $bracket = $this->getBracket( $bracketName );
 
         if( is_null( $bracket ) ) {
@@ -959,7 +1005,7 @@ class TournamentDirector
         $matches = $this->getCombinations( $contestants );
         $matchesCreated = count( $matches );
         if( $matchesCreated !== $numMatches ) {
-            $this->log->error_log($matches, "$loc: Faux Matches");
+            $this->log->error_log($matches, "$loc: Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.");
             throw new InvalidTournamentException(__("Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.",TennisEvents::TEXT_DOMAIN ));
         }
 

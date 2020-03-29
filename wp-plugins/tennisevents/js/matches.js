@@ -267,12 +267,16 @@
             let visitor = parent.children('.visitorentrant').text().replace("2. ","").replace(/\(.*\)/,'');
             let status = parent.children('.matchstatus').text();
             let comments = parent.children('.matchcomments').text();
-            let re = /\((\d+)\,(\d+)\,(\d+)\,(\d+)\)/
-            let found = title.match(re);
-            let eventId = found[1];
-            let bracketNum = found[2];
-            let roundNum = found[3];
-            let matchNum = found[4];
+            // let re = /\((\d+)\,(\d+)\,(\d+)\,(\d+)\)/
+            // let found = title.match(re);
+            // let eventId = found[1];
+            // let bracketNum = found[2];
+            // let roundNum = found[3];
+            // let matchNum = found[4];
+            let eventId = parent.attr('data-eventid');
+            let bracketNum = parent.attr('data-bracketnum');
+            let roundNum = parent.attr('data-roundnum');
+            let matchNum = parent.attr('data-matchnum');
 
             //NOTE: these jquery objects should always have non-empty arrays of equal length
             let $homeGames = parent.find('input[name=homeGames]');
@@ -304,6 +308,7 @@
                         , "matchstartdate": matchStartDate
                         , "matchstarttime": matchStartTime
                         , "score": scores };
+            console.log("getMatchData....");
             console.log(data);
             return data;
         }
@@ -546,8 +551,8 @@
             console.log("Approve draw fired!");
 
             $(this).prop('disabled', true);
-            let eventId = $('.bracketdraw').attr('data-eventid');
-            let bracketName = $('.bracketdraw').attr('data-bracketname');
+            let eventId = tennis_draw_obj.eventId;   //$('.bracketdraw').attr('data-eventid');
+            let bracketName = tennis_draw_obj.bracketName; //$('.bracketdraw').attr('data-bracketname');
 
             $(this).prop('disabled', true);
             ajaxFun( {"task": "approve", "eventId": eventId, "bracketName": bracketName } );

@@ -47,20 +47,6 @@
     data-bracketnum="<?php echo $bracketNum;?>" 
     data-roundnum="<?php echo $roundNum;?>" 
     data-matchnum="<?php echo $matchNum?>" >
-<div class="menu-icon">
-<div class="bar1"></div>
-<div class="bar2"></div>
-<div class="bar3"></div>
- <ul class="matchaction unapproved">
-  <li><a class="changehome">Replace Home</a></li>
-  <li><a class="changevisitor">Replace Visitor</a><li></ul>
- <ul class="matchaction approved">
-  <li><a class="recordscore">Enter Score</a></li>
-  <li><a class="defaulthome">Default Home</a></li>
-  <li><a class="defaultvisitor">Default Visitor</a></li>
-  <li><a class="setmatchstart">Start Date &amp; Time</a></li>
-  <li><a class="setcomments">Comment Match</a></li></ul>
-</div>
 <div class="matchinfo matchtitle"><?php echo $title; ?></div>
 <div class="matchinfo matchstatus"><?php echo $status; ?></div>
 <div class="matchinfo matchstart"><?php echo $startDate;?> &nbsp; <?php echo $startTime; ?></div>
@@ -79,12 +65,6 @@
 </tbody><tfooter></tfooter>
 </table>
 <div class='bracketDrawButtons'>
-<?php 
-    if( count( $loadedMatches ) > 1 ) {
-    if( !$bracket->isApproved() ) { ?>
-        <button class="button" type="button" id="approveDraw">Approve</button>
-    <?php } ?>
-    <button class="button" type="button" id="removePrelim">Reset</button><br/>
-<?php } ?>
+
 </div>
 <div id="tennis-event-message"></div>
