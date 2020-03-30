@@ -31,7 +31,7 @@
 					echo do_shortcode("[manage_signup club=1 eventid={$event->getID()}, bracketname={$bracketName}]");
 					$drawUrl = get_permalink() . "?manage=draw&bracket=" . $bracketName;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					echo "<div class='link-container'><button class='link-to-draw' onClick={$onClick}>Draw</button></div>";
+					echo "<div class='link-container'><button class='button link-to-draw' onClick={$onClick}>Draw</button></div>";
 				}
 				elseif( $mode === "draw" ) {
 					switch( $event->getFormat() ) {
@@ -44,7 +44,7 @@
 					}
 					$drawUrl = get_permalink() . "?manage=signup&bracket=" . $bracketName;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					echo "<div class='link-container'><button class='link-to-draw' onClick={$onClick}>Signup</button></div>";
+					echo "<div class='link-container'><button class='button link-to-draw' onClick={$onClick}>Signup</button></div>";
 				}
 				//the_content( __('Read More', TennisEvents::TEXT_DOMAIN ) );
 				?>

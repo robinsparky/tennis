@@ -53,7 +53,7 @@ class ManageDraw
         wp_register_script( 'manage_matches', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
         
         $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
-        wp_register_style( 'manage_draw_css', $cssurl );
+        wp_enqueue_style( 'tennis_css', $cssurl );
     }
     
     public function registerHandlers() {
@@ -710,7 +710,6 @@ class ManageDraw
         $jsData["matches"] = $arrData;
         wp_enqueue_script( 'manage_matches' );         
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
-        wp_enqueue_style( 'manage_draw_css' );      
 
         $begin = <<<EOT
 <table id="%s" class="bracketdraw" data-eventid="%d" data-bracketname="%s">
@@ -749,7 +748,7 @@ EOT;
 <div class="matchinfo matchstart">%s &nbsp; %s</div>
 <input type='date' class='changematchstart' name='matchStartDate' value='%s'>
 <input type='time' class='changematchstart' name='matchStartTime' value='%s'>
-<div class="changematchstart"><button class='savematchstart'>Save</button> <button class='cancelmatchstart'>Cancel</button></div>
+<div class="changematchstart"><button class='button savematchstart'>Save</button> <button class='button cancelmatchstart'>Cancel</button></div>
 <div class="matchinfo matchcomments">%s</div>
 <div class="homeentrant %s">%s</div>
 <div class="matchscore">%s</div>
@@ -999,9 +998,9 @@ EOT;
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
 
-        wp_enqueue_script( 'manage_draw' );         
-        wp_localize_script( 'manage_draw', 'tennis_draw_obj', $jsData );        
-        wp_enqueue_style( 'manage_draw_css' );      
+        // wp_enqueue_script( 'manage_draw' );         
+        // wp_localize_script( 'manage_draw', 'tennis_draw_obj', $jsData );     
+        wp_deregister_script( 'manage_draw' );   
 
         $umpire = $td->getChairUmpire();
         $gen = new DrawTemplateGenerator("{$tournamentName}&#58;&nbsp;{$bracketName} Bracket", $signupSize, $eventId, $bracketName  );

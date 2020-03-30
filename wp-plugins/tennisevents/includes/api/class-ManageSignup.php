@@ -72,7 +72,7 @@ class ManageSignup
         $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
         $this->log->error_log("$loc: $jsurl");
         wp_register_script( 'manage_signup', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
-        wp_register_style( 'manage_signup_css', $cssurl );
+        wp_enqueue_style( 'tennis_css', $cssurl );
 
         //wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $this->get_ajax_data() );
     }
@@ -195,7 +195,6 @@ class ManageSignup
         $jsData["numPreliminary"] = $numPrelimMatches;
         $jsData["isBracketApproved"] = $isApproved ? 1:0;
         wp_enqueue_script( 'manage_signup' );   
-        wp_enqueue_style( 'manage_signup_css');    
         wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $jsData );
         
         //Signup
@@ -238,9 +237,9 @@ EOT;
         }
         $out .= '</ul>' . PHP_EOL;
 
-        if( $numPrelimMatches < 1 ) {
+        if( $numPrelimMatches < 1 && is_user_logged_in() && current_user_can( 'manage_options' )  ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="createPrelim">Initialize Draw</button>' . PHP_EOL;
         }
         // elseif( $numPrelimMatches < 1 && $bracketName === Bracket::CONSOLATION ) {
         //     $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;   

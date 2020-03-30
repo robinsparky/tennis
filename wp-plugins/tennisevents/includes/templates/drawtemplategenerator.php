@@ -108,7 +108,7 @@ class DrawTemplateGenerator
         $numRows = pow( 2, $numRounds );
 
         $template = "<table class='bracketdraw' data-numrounds='$numRounds' data-eventid='$this->eventId' data-bracketname='$this->bracketName'>" . PHP_EOL;
-        $template .= "<caption>$this->name</caption>" . PHP_EOL;
+        $template .= "<caption>{$this->name}</caption>" . PHP_EOL;
         $template .= "<thead><tr>" . PHP_EOL;
 
 
@@ -143,7 +143,7 @@ class DrawTemplateGenerator
                     ++$m;
                 }
                 if(  $this->includeMatrix[$row][$col] == 1 ) {
-                    $template .= "<td rowspan='$rowspan' class='drawPlayer' data-round='$col' data-entrantNum='$row'>M($col,$m) </td>";
+                    $template .= "<td rowspan='$rowspan' class='item-player drawPlayer' data-eventid='$this->eventId' data-bracketnum='$this->bracketName' data-round='$col' data-matchnum='$m' data-entrantnum='$row'>M($col,$m) </td>";
                 }
             }
 
