@@ -153,8 +153,9 @@ class Set extends AbstractData
     }
 
     /**
-     * Set how the match ended
-     * @param $early 0 - not early; 1 - home defaulted; 2 - visitor defaulted
+     * Set how the match ended possibly early via retired, no show, etc.
+     * This function just records who defauted: home or visitor
+     * @param int $early 0 - not early; 1 - home defaulted; 2 - visitor defaulted
      */
     public function setEarlyEnd( int $early ) {
         switch( $early ) {
@@ -170,6 +171,10 @@ class Set extends AbstractData
         return $result;
     }
 
+    /**
+     * Did match end early due to withdrawal no no show
+     * @return int 0 means not early end; 1 means home defaulted; 2 means visitor defaulted
+     */
     public function earlyEnd():int {
         return isset( $this->early_end ) ? $this->early_end : 0;
     }
