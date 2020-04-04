@@ -2,12 +2,20 @@
 <?php
 get_header();
 ?>
-<!-- Blog Section Right Sidebar -->
-<div class="page-builder">
+<!-- Page Content ---->
+<div class="page-content">	
+<?php
+
+// Sidebar Alt 
+//get_template_part( 'templates/sidebars/sidebar', 'alt' ); 
+
+// Sidebar Left
+//get_template_part( 'templates/sidebars/sidebar', 'left' );
+
+?>
 	<div class="container">
-		<div class="row">
+		<section class="tennis-events-draw">
 			<!-- Blog Area -->
-			<div class="<?php //appointment_post_layout_class(); ?>" >
 			<?php
                 if( have_posts() )
                 {
@@ -20,15 +28,12 @@ get_header();
 			<?php } 
 				comments_template('',true);  
 			} ?>	
-		</div>
-			<!-- /Blog Area -->		
-			<!--Sidebar Area-->
-			<div class="col-md-4">
-			<?php get_sidebar(); ?>	
-			</div>
-			<!--Sidebar Area-->
-		</div>
+		</section>
 	</div>
-</div>
-<!-- /Blog Section Right Sidebar -->
+</div> <!-- /Container -->
+
+<?php // Sidebar Right
+//get_template_part( 'templates/sidebars/sidebar', 'right' );
+?>
+</div> <!-- /Page content -->
 <?php get_footer(); ?>
