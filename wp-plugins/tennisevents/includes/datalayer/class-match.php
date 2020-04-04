@@ -655,6 +655,15 @@ class Match extends AbstractData
         return isset( $this->comments ) ? $this->comments : '';
     }
 
+    public function getEarlyEnd() : int {
+        foreach( $this->getSets() as $set ) {
+            if( $set->earlyEnd() > 0 ) {
+                return $set->earlyEnd();
+            }
+        }
+        return 0;
+    }
+
     
     /**
      * Set a score for a given Set of tennis.
@@ -1016,6 +1025,7 @@ class Match extends AbstractData
                ,"roundNumber"=>$this->getRoundNumber()
                ,"matchNumber"=>$this->getMatchNumber()
                ,"matchType" => $this->match_type
+               ,"isBye"     => $this->isBye()
                ,"homeEntrant"=>$homeName
                ,"visitorEntrant"=>$visitorName
                ];
