@@ -158,7 +158,7 @@ class ManageDraw
         if( !is_null( $bracket ) ) {
             switch($by) {
                 case 'match':
-                    wp_dequeue_script( 'manage_draw' );
+                    wp_deregister_script( 'manage_draw' );
                     if( !is_user_logged_in() ) {
                         return '<h3>You must be logged in</h3>';
                     }
@@ -168,7 +168,7 @@ class ManageDraw
                     }
                     return $this->renderBracketByMatch( $td, $bracket );
                 case 'entrant':  //read-only version
-                    wp_dequeue_script( 'manage_matches' );
+                    wp_deregister_script( 'manage_matches' );
                     return $this->renderBracketByEntrant( $td, $bracket );
                 default:
                     return  __("Whoops!", TennisEvents::TEXT_DOMAIN );
@@ -375,14 +375,17 @@ class ManageDraw
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
+
             $bracket = $td->getBracket( $bracketName );
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
             }
+
             $match = $bracket->getMatch( $roundNum, $matchNum );
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
+
             $chairUmpire = $td->getChairUmpire();
             $scores = $data["score"]; //$this->parseScores( $strScore );
             if( is_string( $scores ) ) {
@@ -392,7 +395,7 @@ class ManageDraw
                 $match->save();
                 $data['score'] = '';
                 $data['status'] = $chairUmpire->matchStatus( $match );
-                $mess          = __("Score reset.", TennisEvents::TEXT_DOMAIN );
+                $mess = __("Score reset.", TennisEvents::TEXT_DOMAIN );
             }
             else {
                 //Set the score for this match 
@@ -407,7 +410,7 @@ class ManageDraw
                 }
                 //Advance the bracket
                 $data['advanced'] = $td->advance( $bracketName );
-                $newScore = $chairUmpire->tableGetScores( $match );
+                $newScore = $chairUmpire->tableDisplayScores( $match );
                 $data['score'] = $newScore;
                 $data['status'] = $chairUmpire->matchStatus( $match );
                 $winner = $chairUmpire->matchWinner( $match );
@@ -501,14 +504,17 @@ class ManageDraw
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
+
             $bracket = $td->getBracket( $bracketName );
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
             }
+
             $match = $bracket->getMatch( $roundNum, $matchNum );
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
+
             $chairUmpire = $td->getChairUmpire();
             switch( $player ) {
                 case "home":
@@ -712,7 +718,7 @@ class ManageDraw
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
 
         $begin = <<<EOT
-<table id="%s" class="bracketdraw" data-eventid="%d" data-bracketname="%s">
+<table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
 <caption>%s&#58;&nbsp;%s&nbsp;Bracket</caption>
 <thead><tr>
 EOT;
@@ -733,26 +739,31 @@ EOT;
 <div class="bar1"></div>
 <div class="bar2"></div>
 <div class="bar3"></div>
- <ul class="matchaction unapproved">
-  <li><a class="changehome">Replace Home</a></li>
-  <li><a class="changevisitor">Replace Visitor</a><li></ul>
- <ul class="matchaction approved">
-  <li><a class="recordscore">Enter Score</a></li>
-  <li><a class="defaulthome">Default Home</a></li>
-  <li><a class="defaultvisitor">Default Visitor</a></li>
-  <li><a class="setmatchstart">Start Date &amp; Time</a></li>
-  <li><a class="setcomments">Comment Match</a></li></ul>
+<div class="bar4"></div>
+<div class="bar5"></div>
+<ul class="matchaction unapproved">
+ <li><a class="changehome">Replace Home</a></li>
+ <li><a class="changevisitor">Replace Visitor</a><li></ul>
+<ul class="matchaction approved">
+ <li><a class="recordscore">Enter Score</a></li>
+ <li><a class="defaulthome">Default Home</a></li>
+ <li><a class="defaultvisitor">Default Visitor</a></li>
+ <li><a class="setmatchstart">Start Date &amp; Time</a></li>
+ <li><a class="setcomments">Comment Match</a></li></ul>
 </div>
-<div class="matchinfo matchtitle">%s</div>
+<div class="matchinfo matchtitle">%s <span class="matchcomments">%s</span></div>
 <div class="matchinfo matchstatus">%s</div>
 <div class="matchinfo matchstart">%s &nbsp; %s</div>
+<div class="changematchstart">
 <input type='date' class='changematchstart' name='matchStartDate' value='%s'>
 <input type='time' class='changematchstart' name='matchStartTime' value='%s'>
-<div class="changematchstart"><button class='button savematchstart'>Save</button> <button class='button cancelmatchstart'>Cancel</button></div>
-<div class="matchinfo matchcomments">%s</div>
-<div class="homeentrant %s">%s</div>
-<div class="matchscore">%s</div>
-<div class="visitorentrant %s">%s</div>
+<button class='button savematchstart'>Save</button> <button class='button cancelmatchstart'>Cancel</button></div>
+<div class="homeentrant %s">%s %s</div>
+<div class="matchscore"><!-- Display Scores -->
+%s</div>
+<div class="matchscore"><!-- Manage Scores -->
+%s</div>
+<div class="visitorentrant %s">%s %s</div>
 </td>
 EOT;
 
@@ -786,7 +797,7 @@ EOT;
                 $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
 
                 $visitor = $match->getVisitorEntrant();
-                $vname   = 'tba';
+                $vname   = $match->isBye() ? '' : 'tba';
                 $vseed   = '';
                 if( isset( $visitor ) ) {
                     $vname   = $visitor->getName();
@@ -796,23 +807,43 @@ EOT;
                 $vname = empty($vseed) ? $vname : $vname . "($vseed)";
                 $cmts = $match->getComments();
                 $cmts = isset( $cmts ) ? $cmts : '';
-                $score   = $umpire->tableGetScores( $match );                        
-                $status  = $umpire->matchStatus( $match );
+                if( $match->isBye() ) {
+                    $displayscores = "<span></span>";
+                    $modifyscores  = "<span></span>";
+                }
+                else {
+                    $displayscores = $umpire->tableDisplayScores( $match );
+                    $modifyscores  = $umpire->tableModifyScores( $match );
+                }
+                $generalstatus  = $umpire->matchStatus( $match );
+                $visitorstatus = '';
+                $vistorstatus = '';
+                switch( $match->getEarlyEnd() ){
+                    case 1:
+                        $homestatus = $generalstatus;
+                        $generalstatus = '';
+                    break;
+                    case 2:
+                        $visitorstatus = $generalstatus;
+                        $generalstatus = '';
+                    break;
+                }
                 $startDate = $match->getMatchDate_Str();
                 $startTime = $match->getMatchTime_Str();
                 $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum
                                , $match->toString()
-                               , $status
-                               , $startDate
-                               , $startTime
-                               , $startDate
-                               , $startTime
                                , $cmts 
+                               , $generalstatus
+                               , $startDate
+                               , $startTime
+                               , $startDate
+                               , $startTime
                                , $homeWinner
-                               , $hname
-                               , $score
+                               , $hname, $homestatus
+                               , $displayscores
+                               , $modifyscores
                                , $visitorWinner
-                               , $vname );
+                               , $vname, $visitorstatus );
 
                 $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
                 foreach( $futureMatches as $futureMatch ) {
@@ -832,8 +863,8 @@ EOT;
                     $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
                     $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
     
-                    $visitor = $futureMatch->getVisitorEntrant();
-                    $vname   = 'tba';
+                    $visitor = $futureMatch->getVisitorEntrant();      
+                    $vname   = $futureMatch->isBye() ? '' : 'tba';
                     $vseed   = '';
                     if( isset( $visitor ) ) {
                         $vname   = $visitor->getName();
@@ -845,23 +876,38 @@ EOT;
                     $cmts = isset( $cmts ) ? $cmts : '';
 
                     $startDate = $futureMatch->getMatchDate_Str();
-                    $startTime = $futureMatch->getMatchTime_Str();
+                    $startTime = $futureMatch->getMatchTime_Str(); 
+                    
+                    $displayscores = $umpire->tableDisplayScores( $futureMatch );
+                    $modifyscores = $umpire->tableModifyScores( $futureMatch );  
 
-                    $score   = $umpire->tableGetScores( $futureMatch );                        
-                    $status  = $umpire->matchStatus( $futureMatch );
+                    $generalstatus  = $umpire->matchStatus( $futureMatch );
+                    $homestatus = '';
+                    $visitorstatus = '';
+                    switch( $futureMatch->getEarlyEnd() ){
+                        case 1:
+                            $homestatus = $generalstatus;
+                            $generalstatus = '';
+                        break;
+                        case 2:
+                            $visitorstatus = $generalstatus;
+                            $generalstatus = '';
+                        break;
+                    }
                     $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum
-                                   , $futureMatch->toString()  
-                                   , $status
+                                   , $futureMatch->toString() 
+                                   , $cmts       
+                                   , $generalstatus
                                    , $startDate
                                    , $startTime  
                                    , $startDate
-                                   , $startTime 
-                                   , $cmts             
+                                   , $startTime        
                                    , $homeWinner
-                                   , $hname
-                                   , $score
+                                   , $hname, $homestatus
+                                   , $displayscores
+                                   , $modifyscores
                                    , $visitorWinner
-                                   , $vname);
+                                   , $vname, $visitorstatus);
                 }     
             }
             catch( RuntimeException $ex ) {
@@ -998,9 +1044,8 @@ EOT;
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
 
-        // wp_enqueue_script( 'manage_draw' );         
-        // wp_localize_script( 'manage_draw', 'tennis_draw_obj', $jsData );     
-        wp_deregister_script( 'manage_draw' );   
+        wp_enqueue_script( 'manage_draw' );         
+        wp_localize_script( 'manage_draw', 'tennis_draw_obj', $jsData );      
 
         $umpire = $td->getChairUmpire();
         $gen = new DrawTemplateGenerator("{$tournamentName}&#58;&nbsp;{$bracketName} Bracket", $signupSize, $eventId, $bracketName  );
