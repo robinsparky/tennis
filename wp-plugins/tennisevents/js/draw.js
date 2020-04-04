@@ -81,6 +81,7 @@
         }
 
         function applyResults( data ) {
+            console.log( "applyResults" );
             data = data || [];
             console.log(data);
             let numRounds = $('.bracketdraw').attr('data-numrounds');
@@ -105,46 +106,87 @@
                     let pos = index + 1;
                     if ( pos % 2 == 0) {
                         //Even Number
-                        name = match.visitorEntrant;
-                        contents = name;
-                        if( name === match.winner ) {
-                            contents += formatScores( match.scores );
-                        }
-                    } else {
-                        //Odd Number
+                        //$(this).text('');
+                        $contents = formatContent( match.visitorEntrant, match );
+                        $(this).append($contents);
+                    } else {    
+                        //Odd Number s/b home entrant
                         match = matches.pop();
-                        name = match.homeEntrant;
-                        contents = name;
-                        if( name === match.winner ) {
-                            contents += formatScores( match.scores );
-                        }
+                        //$(this).text('');
+                        $contents = formatContent( match.homeEntrant, match );
+                        $score = formatScore( match );
+                        $(this).append($contents);
+                        $(this).append($score);
+                    } 
+                    if( match.matchNumber % 2 == 0 ) {
+                        $(this).addClass('match-color-even');
+                        //$(this).css("border-bottom","1px solid red");
                     }
-                    $(this).html(contents);
+                    else {
+                        $(this).addClass('match-color-odd');
+                    }
                 });
             }
         }
 
-        function formatScores( scores ) {
-            ret = '';
-            if( typeof scores === 'string' ) {
-                ret = '<div class="drawscores">' + scores + '</div>';
+        function formatContent( name, match ) {
+            $ret = $('<div>');
+            if( name === match.winner && !match.isBye ) {
+                $name = $('<span>',{class: 'matchwinner'}).text(name);
             }
-            return ret;
+            else {
+                $name = $('<span>').text(name);
+            }
+            // console.log($name);
+            $ret.append($name);
+            return $ret;
         }
 
-        function formatScore( sets ) {
-            ulNode = $('ul', {class: 'drawScoreContainer'});
-            winnerNode = $('li' ,{class: 'drawScore'});
-            loserNode  = $('li', {class: 'drawScore'});
-            sets.each( function( set ) {
-                set.homeWins;
-                
-                liNode = $('<li>',{ id: name.replace(/ /g, '_')
-                ,class:"entrantSignup sortable-container ui-state-default"
-                });
-            });
+        function formatScore( match ) {
+            console.log( "formatScore.................");
+            console.log( match.sets );
+            $container = $('<div>', {class: 'tennis-score-container'});
 
-            return html;
+            if( match.scores === '' ) {
+                $container.append("<!-- NO SCORES YET -->");
+                return $container;
+            } 
+            $container.css("width","50%").css("margin","0 auto");
+            $container.css("border","1px solid blue");
+            //Home scores first
+            $homeWinsContainer = $('<div>',{class: 'home-score-container'});
+            for( set of match.sets ) {
+                console.log("Home Set: %d", set.setNumber);
+                $homeWins = $('<span>',{ id: set.setNumber
+                                    , class: "home-wins"
+                                    , text: set.homeWins
+                                    });
+                if(set.homeTieBreakPoints > 0 ) {
+                    $homeWins.append("<sup>" + set.homeTieBreakPoints + "</sup>");
+                }
+
+                // console.log("homeWins: %d", set.homeWins);
+                // console.log($homeWins);
+                $homeWinsContainer.append($homeWins);
+            };
+    
+            //Visitor scores
+            $visitorWinsContainer = $('<div>',{class: 'visitor-score-container'});
+            for( set of match.sets ) {
+                $visitorWins = $('<span>',{ id: set.setNumber
+                                        , class: "visitor-wins"
+                                        , text: set.visitorWins
+                                });
+                if(set.visitorTieBreakPoints > 0 ) {
+                    $visitorWins.append( "<sup>" + set.visitorTieBreakPoints + "</sup>");
+                } 
+                $visitorWinsContainer.append($visitorWins);
+            };
+
+            $container.append( $homeWinsContainer );
+            $container.append( $visitorWinsContainer );
+            console.log( $container );
+            return $container;
         }
 
         //Load up the entrants into the draw
