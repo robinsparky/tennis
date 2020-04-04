@@ -101,28 +101,6 @@ class ManageSignup
 	public function signupManagementShortcode( $atts, $content = null )  {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
-        
-        // if( !is_user_logged_in() ) {
-        //     return "User is not logged in!";
-        // }
-
-        // $currentuser = wp_get_current_user();
-        
-        // if ( !$currentuser->exists() ) {
-        //     return 'No such user';
-        // }
-
-        // $user_id = (int) $currentuser->ID;
-        
-        // if( 0 == $user_id ) {
-        //     return "User 0 is not logged in!";
-        // }
-
-        // $ok = false;
-
-        // if( current_user_can( 'manage_options' ) ) $ok = true;
- 
-        // if( !$ok ) return '';
 
         //The following was setting user_id to 0
         $my_shorts = shortcode_atts( array(
@@ -201,9 +179,8 @@ class ManageSignup
         $out = '';
         $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
         $out .= 'data-clubid="' . $this->clubId . '" data-bracketname="' . $bracketName . '">' . PHP_EOL;
-        $out .= "<h3>$clubName</h3>" . PHP_EOL;        
-        $out .= "<h4>{$eventName}&#58;&nbsp;{$bracketName}&nbsp;Bracket</h4>" . PHP_EOL;
-        $out .= '<ul class="eventSignup">' . PHP_EOL;
+        $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;{$bracketName}&nbsp;Bracket</h3>" . PHP_EOL;
+        $out .= '<ul class="eventSignup tennis-event-signup">' . PHP_EOL;
         
         $templr = <<<EOT
 <li id="%s" class="entrantSignupReadOnly">
