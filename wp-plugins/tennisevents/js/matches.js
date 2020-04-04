@@ -291,13 +291,8 @@
             let matchStartTime  = $matchStartTime.val();
 
             let scores = [];
-            for( let i = 1; i <= tennis_draw_obj.numSets; i++ ) {
-                if( i == tennis_draw_obj.numSets) {
-                    scores.push({"setNum":i,"homeGames": $homeGames[i-1].value,"visitorGames": $visitorGames[i-1].value,"homeTieBreaker": $homeTB.val(), "visitorTieBreaker": $visitorTB.val()});
-                }
-                else {
-                    scores.push({"setNum":i, "homeGames": $homeGames[i-1].value, "visitorGames": $visitorGames[i-1].value, "homeTieBreaker": 0, "visitorTieBreaker": 0});
-                }
+            for( let i = 1; i <= tennis_draw_obj.numSets; i++ ) {                    
+                scores.push({"setNum":i,"homeGames": $homeGames[i-1].value,"visitorGames": $visitorGames[i-1].value,"homeTieBreaker": $homeTB[i-1].value, "visitorTieBreaker": $visitorTB[i-1].value});
             }
 
             let data = {"eventid": eventId, "bracketnum": bracketNum, "roundnum": roundNum, "matchnum": matchNum
@@ -314,25 +309,36 @@
         }
 
         /* -------------------- Menu Visibility ------------------------------ */
+        function hideMenu( event ) {
+            console.log('hide menu....');
+            $('.matchaction.approved').hide();
+            $('.matchaction.unapproved').hide();
+        }
+
         //Click on the menu icon to open the menu
         $('.menu-icon').on('click', function ( event ) {
             console.log('show menu....');
             console.log( this );
             console.log( event.target );
+            console.log( event );
             if( tennis_draw_obj.isBracketApproved + 0 > 0) {
-                if( $(event.target).hasClass('.menu-icon') ) {
-                    $(event.target).children('.matchaction.approved').show();
-                }
-                else {
-                    $(event.target).parents('.menu-icon').find('.matchaction.approved').show();
+                if( $(event.target).hasClass('menu-icon')
+                    || $(event.target).hasClass('bar1')
+                    || $(event.target).hasClass('bar2')
+                    || $(event.target).hasClass('bar3')
+                    || $(event.target).hasClass('bar4')
+                    || $(event.target).hasClass('bar5') ) {
+                    $(this).children('.matchaction.approved').show();
                 }
             } 
             else {
-                if( $(event.target ).hasClass('.menu-icon') ) {
-                    $(event.target).children('.matchaction.unapproved').show();
-                }
-                else {
-                    $(event.target).parents('.menu-icon').find('.matchaction.unapproved').show();
+                if( $(event.target ).hasClass('menu-icon') 
+                || $(event.target).hasClass('bar1')
+                || $(event.target).hasClass('bar2')
+                || $(event.target).hasClass('bar3')
+                || $(event.target).hasClass('bar4')
+                || $(event.target).hasClass('bar5') ) {
+                    $(this).children('.matchaction.unapproved').show();
                 }
             }
             event.preventDefault();
@@ -342,9 +348,9 @@
         $('body').on('click', function( event ) {
             if( !$(event.target).hasClass('menu-icon') 
              && !$(event.target).parents().hasClass('menu-icon')
-             && !$(event.target).hasClass('tablematchscores')) {
+             && !$(event.target).hasClass('changematchscores')) {
                 $('.matchaction').hide();
-                $('table.tablematchscores').hide();
+                $('changematchscores').hide();
             }
         });
         
@@ -354,6 +360,7 @@
         $('.changehome').on('click', function (event) {
             console.log("change home");
             console.log(this);
+            hideMenu( event );
             let matchdata = getMatchData(this);
             let home = prompt("Please enter name of home entrant", matchdata.home);
             if( null == home ) {
@@ -373,6 +380,7 @@
         //Default the home entrant/player
         $('.defaulthome').on('click', function (event) {
             console.log("default home");
+            hideMenu( event );
             
             if( !matchIsReady(this)) {
                 alert('Match is not ready for scoring.')
@@ -383,6 +391,7 @@
             if( null == comments ) {
                 return;
             }
+
             let eventId = tennis_draw_obj.eventId;            
             let bracketName = tennis_draw_obj.bracketName;
             ajaxFun( {"task": "defaultentrant"
@@ -401,6 +410,7 @@
         $('.changevisitor').on('click', function (event) {
             console.log("change visitor");
             console.log(this);
+            hideMenu( event );
             let matchdata = getMatchData(this);
             let visitor = prompt("Please enter name visitor entrant", matchdata.visitor);
             if( null == visitor ) {
@@ -421,7 +431,9 @@
         //Default the visitor entrant/player
         $('.defaultvisitor').on('click', function (event) {
             console.log("default visitor");
-            
+            console.log(this);
+            hideMenu( event );
+
             if( !matchIsReady(this)) {
                 alert('Match is not read for scoring.')
                 return;
@@ -442,12 +454,12 @@
                     , "bracketName": bracketName
                     , "player": 'visitor'
                     , "comments": comments } );
-
         });
 
         //Record the match scores
         $('.recordscore').on('click', function(event) {
             console.log("record score");
+            console.log(this);
             if( !matchIsReady(this)) {
                 alert('Match is not ready for scoring.')
                 return;
@@ -456,6 +468,7 @@
             $parent.find('.showmatchscores').hide();
             $parent.find('.changematchscores').fadeIn( 500 );
 
+            hideMenu( event );
         });
 
         //Cancel the changing of match scores
@@ -491,6 +504,7 @@
         $('.setmatchstart').on('click', function (event) {
             console.log("match start");
             console.log(this);
+            hideMenu( event );
             let $parent = $(this).parents('.item-player');
             $parent.find('.matchstart').hide();
             $parent.find('.changematchstart').fadeIn( 500 );
@@ -527,10 +541,15 @@
         $('.setcomments').on('click', function (event) {
             console.log("set comments");
             console.log(this);
+            hideMenu( event );
             let matchdata = getMatchData(this);
             let comments = prompt("Please enter comments", matchdata.comments);
             if( null == comments ) {
                 return;
+            }
+
+            if( comments == 'remove') {
+                comments = '';
             }
 
             let eventId = tennis_draw_obj.eventId;            
