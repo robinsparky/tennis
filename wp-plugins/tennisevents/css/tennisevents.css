@@ -8,10 +8,6 @@ datalist#emaildata {
     display: none;
 }
 
-.xlc-error {
-    color: red;
-}
-
 .sbc-container {
     display: block;
     display: flex;
@@ -73,11 +69,14 @@ datalist#emaildata {
     color: purple;
 }
 
-.leaf-events {
+/*-------------------------------------------
+  Tennis Event styling
+---------------------------------------------*/
+.tennis-leaf-events {
     margin:  0 0 0 3rem;
 }
 
-.eventmeta {
+.tennis-event-meta {
     text-decoration: none;
     list-style: none;
     flex: 1 1 auto;
@@ -85,14 +84,19 @@ datalist#emaildata {
     height: auto;
     margin: 0 0 1rem 0;
 }
-.eventmeta-detail {
+.tennis-event-meta-detail {
     font-size: small;
 }
-.eventmeta-detail:nth-of-type(1) {
+.tennis-event-meta-detail:nth-of-type(1) {
     font-weight: bold !important;
 }
 
-.eventbrackets {
+.tennis-events-container {
+    width: 70%;
+    float: right;
+}
+
+.tennis-event-brackets {
     text-decoration: none;
     list-style: none;
     flex: 1 1 auto;
@@ -101,63 +105,72 @@ datalist#emaildata {
     margin: 0 2rem 2rem 0;
     clear: both;
 }
-.eventbrackets li {
+.tennis-event-brackets li {
     float: left;
 }
-.eventbrackets li a {
+.tennis-event-brackets li a {
     font-size: small;
     margin: 0 2em 0 0;
 }
 
-hr.event-divider {
-  border: 5px solid blue;
+hr.root-event-divider {
+  border: 3px solid blue;
   border-radius: 3px;
 }
 
-hr.leaf-divider {
+hr.leaf-event-divider {
     border-top: 1px dotted red;
 }
 
 /*------------------------------------------------------------------------------------
- * Match Draw Styling
+ * Elimination Draw Styling
  *-----------------------------------------------------------------------------------*/
  :root {
     --fieldsize: 4;
     --rounds: 2;
     --drawHeight: 300px;
-    --entryHeight: 25px;
+    --entryHeight: 50px;
     --roundWidth: calc(100% / (var(--rounds)+1));
  }
  
-table.bracketdraw {
-    width: 100%;
+ /* Manage draw */
+table.managedraw {
+    width: 70%;
     border-collapse: collapse;
-    border: 1px solid purple !important;
+    border: 2px solid blue !important;
     font-size: 1rem;
+    margin: 0 auto;
 }
 
-table.bracketdraw th {
-    border: 1px solid black;
-    border-right: 3px solid black;
+table.managedraw th {
+    border: 2px solid blue;
     text-align: center;
     vertical-align: middle;
 }
 
-table.bracketdraw td {
-    border: 1px solid black;
-    border-bottom: 3px solid black;
-    border-right: 3px solid black;
-    text-align: center;
-    vertical-align: middle;
+table.managedraw tr {
+    border: none;
 }
+
+
+table.managedraw td {
+    border-top: none;
+    border-left: none;
+    border-right: 1px solid blue;
+    border-bottom: 1px solid blue;
+}
+
+
+
 /* td:nth-child(odd) { vertical-align: top;}
 td:nth-child(even) { vertical-align: bottom;} */
 /* tr.drawRow:nth-child(odd)	{ background-color:rgb(176,224,230); }
 tr.drawRow:nth-child(even) { background-color:#fff; } */
-/*
- * Round Robin styling
-*/
 
+
+/*-------------------------------------------------------
+ * Round Robin styling
+--------------------------------------------------------*/
 table.bracketrobin {
     width: 50%;
     border-collapse: collapse;
@@ -180,14 +193,56 @@ table.bracketrobin td {
     text-align: center;
     vertical-align: middle;
 }
-.tennistablescores {
+
+.item-player {
+    text-align: center;
+    background-color: inherit;
+    min-height: 50px;
+    vertical-align: middle;
+}
+
+/*---------------------------------------------------
+ Match score styling
+----------------------------------------------------*/
+.matchscore {
+    width: 50%;
+    margin: 0 auto;
+}
+
+table.tennis-display-scores {
+    border-collapse: collapse;
+    border: none;
+    width: 90%;
+    margin: 0 auto;
+}
+
+table.tennis-display-scores tr {
+    border: none;
+}
+
+table.tennis-display-scores td {
+    padding: 0 !important;
+    border: none;
+    padding-top: 5px;
+    min-width: 2rem;
+    min-height: 3rem;
+}
+
+table.tennis-modify-scores {
     border-collapse: collapse;
     border: none !important;
-    margin: 5px 0px 0px 0px;
+    width: 90%;
+    margin: 0 auto;
 }
-.tennistablescores td {
+table.tennis-modify-scores th {
     padding: 0 !important;
-    border: none !important;
+    margin: 0 auto;
+    border: 1pt solid blue;
+    font-size: small;
+}
+
+table.tennis-modify-scores td {
+    padding: 0 !important;
 }
 
 .matchinfo {
@@ -199,28 +254,55 @@ table.bracketrobin td {
     text-decoration: underline;
 }
 
-.matchstart::before{
-    content: "Start:";
-    background-color: yellow;
-    color: red;
-    font-weight: bold;
-}
-
 .matchwinner {
-    font-style: italic;
     text-decoration: underline; 
     text-decoration-style: double;
-    text-decoration-color: red;
+    text-decoration-color: green;
 }
 
 .homeentrant {
     color: rgb(0,0,139);
+    font-size: small;
+    width: 60%;
+    margin: 0 auto;
 }
 
 .visitorentrant {
     color: green;
+    font-size: small;
+    width: 60%;
+    margin: 0 auto;
 }
 
+.matchstatus {
+    color: red;
+}
+
+span.matchcomments {
+    font-style: italic;
+    color: red;
+}
+
+.matchstart {
+    clear: left;
+}
+
+.matchstart::before{
+    content: "Start:";
+    font-weight: bold;
+}
+
+.match-color-even {
+    background-color: white;
+}
+
+.match-color-odd {
+    background-color: lightblue;
+}
+
+.match-border {
+    border-bottom: 2px solid black;
+}
 .tennis-error {
     color: red;
 }
@@ -245,39 +327,36 @@ table.bracketrobin td {
     border-radius: 8px;
 }
 
+/*-------------------------------------------------------------------
+ Menu styling
+----------------------------------------------------------------------*/
 .menu-icon {
     display: block;
     cursor: pointer;
     position: relative;
     /*left: 80%;*/
 }
-  
-.bar1 {
-   /* background: radial-gradient(circle, blue, white);*/
-    background-image: url(../img/menu.png);
-    width: 50px;
-    height: 50px;
-    background-color: #1a1a1a;
-    background-color: white;
-    margin: 3px 0;
-    transition: 0.4s;
-    display: block;
-    position: relative;
-    left: 80%;
-}
-/*
-.bar1, .bar2, .bar3 {
+
+.bar1, .bar3, .bar5 {
     width: 20px;
     height: 2px;
     background-color: #1a1a1a;
-    background-color: white;
-    margin: 3px 0;
+    margin: 0 0;
     transition: 0.4s;
     display: block;
     position: relative;
     left: 80%;
 }
-*/
+.bar2, .bar4 {
+    width: 20px;
+    height: 2px;
+    background-color: white;
+    margin: 0 0;
+    transition: 0.4s;
+    display: block;
+    position: relative;
+    left: 80%;
+}
 
 .matchaction {
     display: none;
