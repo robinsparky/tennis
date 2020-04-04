@@ -1,11 +1,10 @@
-<div id="post-<?php the_ID(); ?>" <?php //post_class('blog-lg-area-left'); ?>>
-	<div class="event-content">						
+<div id="post-<?php the_ID(); ?>"> <!--post -->
 	<?php //appointment_aside_meta_content();
 		$mode = isset($_GET['manage']) ? $_GET['manage'] : "";
 		$bracketName = isset($_GET['bracket']) ? $_GET['bracket'] : '';
 		//the_title('<h2>','</h2>'); 
 	?>
-		<div class="event-content-body">
+		<div class="tennis-event-content">
 			<?php 
 				 $eventCPTId = get_the_ID(); 
 				 $event = null;
@@ -25,13 +24,13 @@
 				// call editor content of post/page	s
 				wp_link_pages( );
 				?>
-				<div class="eventsignup">
+				<div class="tennis-event-schedule">
 				<?php
 				if( $mode === "signup" ) {
-					echo do_shortcode("[manage_signup club=1 eventid={$event->getID()}, bracketname={$bracketName}]");
+					echo do_shortcode("[manage_signup eventid={$event->getID()}, bracketname={$bracketName}]");
 					$drawUrl = get_permalink() . "?manage=draw&bracket=" . $bracketName;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					echo "<div class='link-container'><button class='button link-to-draw' onClick={$onClick}>Draw</button></div>";
+					echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Draw</button></div>";
 				}
 				elseif( $mode === "draw" ) {
 					switch( $event->getFormat() ) {
@@ -44,11 +43,10 @@
 					}
 					$drawUrl = get_permalink() . "?manage=signup&bracket=" . $bracketName;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					echo "<div class='link-container'><button class='button link-to-draw' onClick={$onClick}>Signup</button></div>";
+					echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Signup</button></div>";
 				}
 				//the_content( __('Read More', TennisEvents::TEXT_DOMAIN ) );
 				?>
-				</div>
-		</div>
-	 </div>
-</div>
+				</div> <!-- /event schedule -->
+		</div> <!-- /event-content-body -->
+</div> <!-- /post -->
