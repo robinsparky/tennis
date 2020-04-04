@@ -127,7 +127,7 @@ class DrawTemplateGenerator
         $template .= "<tbody>" . PHP_EOL;
 
         $this->includeMatrix = $this->generateIncludeMatrix();
-        $this->log->error_log("$loc: include:");
+        //$this->log->error_log($this->includeMatrix, "$loc: include:");
         //print_r($include);
         //$this->printTable($this->includeMatrix);
 
@@ -135,7 +135,7 @@ class DrawTemplateGenerator
         $prev_m = 1;
 
         for( $row = 1; $row <= $numRows; $row++ ) {
-            $template .= "<tr id='row$row' class='drawRow'>";
+            $template .= "<tr id='row$row' class='drawrow'>";
 
             for( $col = 1; $col <= $numCols; $col++ ) {
                 $rowspan = pow( 2, $col - 1 );
@@ -206,8 +206,8 @@ class DrawTemplateGenerator
     public function roundOf( int $r ) : int {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        // $result = $this->size;
-        // if( $r <= 1 ) return $result;
+        $result = $this->size;
+        if( $r <= 1 ) return $result;
 
         $exp = self::calculateExponent( $this->size );
         $result = pow( 2, $exp ) / pow( 2, $r - 1 );
