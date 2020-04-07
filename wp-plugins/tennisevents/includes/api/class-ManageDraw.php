@@ -151,21 +151,14 @@ class ManageDraw
             return __($mess, TennisEvents::TEXT_DOMAIN );
         }
         
-        if( !is_user_logged_in() ) {
-            $by = 'entrant';
-        }
+        // if( !is_user_logged_in() ) {
+        //     $by = 'entrant';
+        // }
 
         if( !is_null( $bracket ) ) {
             switch($by) {
                 case 'match':
                     wp_deregister_script( 'manage_draw' );
-                    if( !is_user_logged_in() ) {
-                        return '<h3>You must be logged in</h3>';
-                    }
-                    //$user = wp_get_current_user();
-                    if ( !current_user_can( 'manage_options' ) ) {
-                        return '<h3>Insufficent privileges</h3>';
-                    }
                     return $this->renderBracketByMatch( $td, $bracket );
                 case 'entrant':  //read-only version
                     wp_deregister_script( 'manage_matches' );
@@ -249,6 +242,10 @@ class ManageDraw
                 break;
             case 'setmatchstart':
                 $mess = $this->setMatchStart( $data );
+                $returnData = $data;
+                break;
+            case 'advance':
+                $mess = $this->advanceMatches( $data );
                 $returnData = $data;
                 break;
             default:
@@ -408,10 +405,9 @@ class ManageDraw
                                                 , $score["visitorTieBreaker"] );
                     if( $chairUmpire->isLocked( $match ) ) break;
                 }
-                //Advance the bracket
-                $data['advanced'] = $td->advance( $bracketName );
-                $newScore = $chairUmpire->tableDisplayScores( $match );
-                $data['score'] = $newScore;
+                $data['advanced'] = 0; //$td->advance( $bracketName );
+                $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
+                $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
                 $data['status'] = $chairUmpire->matchStatus( $match );
                 $winner = $chairUmpire->matchWinner( $match );
                 $data['winner'] = '';
@@ -481,6 +477,39 @@ class ManageDraw
         }
 
         return $result;
+    }
+    
+    /**
+     * Adavance the matches in this bracket.
+     * @param array A reference to an array of identifying data and the in progress or final score for a match
+     * @return string A message describing success or failure
+     */
+    private function advanceMatches( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        //$strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
+        try {            
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket '{$bracketName}'", TennisEvents::TEXT_DOMAIN) );
+            }
+            
+            $advanced = $td->advance( $bracketName );
+            $data['advanced'] = $advanced;
+            $mess = __("{$advanced} Matches advanced.", TennisEvents::TEXT_DOMAIN );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $data['advanced'] = 0;
+        }
+        return $mess;
     }
     
     /**
@@ -733,7 +762,7 @@ EOT;
 
         $out .= "<tbody>" . PHP_EOL;
 
-        $templ = <<<EOT
+        $templw = <<<EOT
 <td class="item-player" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d">
 <div class="menu-icon">
 <div class="bar1"></div>
@@ -758,18 +787,45 @@ EOT;
 <input type='date' class='changematchstart' name='matchStartDate' value='%s'>
 <input type='time' class='changematchstart' name='matchStartTime' value='%s'>
 <button class='button savematchstart'>Save</button> <button class='button cancelmatchstart'>Cancel</button></div>
-<div class="homeentrant %s">%s %s</div>
-<div class="matchscore"><!-- Display Scores -->
+<div class="homeentrant %s">%s</div>
+<hr class="entrant-divider">
+<div class="displaymatchscores"><!-- Display Scores -->
 %s</div>
-<div class="matchscore"><!-- Manage Scores -->
+<div class="modifymatchscores tennis-modify-scores"><!-- Modify Scores -->
 %s</div>
-<div class="visitorentrant %s">%s %s</div>
+<div class='modifymatchscores save-cancel-buttons'>
+<button class='savematchscores modifymatchscores'>Save</button>
+<button class='cancelmatchscores modifymatchscores'>Cancel</button></div>
+<div class="visitorentrant %s">%s</div>
 </td>
 EOT;
 
-        $rowEnder = "</tr>" . PHP_EOL;
-        // $this->log->error_log( $preliminaryRound,"$loc: Preliminary Round" );
+$templr = <<<EOT
+<td class="item-player" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d">
+<div class="matchinfo matchtitle">%s <span class="matchcomments">%s</span></div>
+<div class="matchinfo matchstatus">%s</div>
+<div class="matchinfo matchstart">%s &nbsp; %s</div>
+<div class="changematchstart">
+<input type='date' class='changematchstart' name='matchStartDate' value='%s'>
+<input type='time' class='changematchstart' name='matchStartTime' value='%s'>
+<button class='button savematchstart'>Save</button> <button class='button cancelmatchstart'>Cancel</button></div>
+<div class="homeentrant %s">%s</div>
+<hr class="entrant-divider">
+<div class="displaymatchscores"><!-- Display Scores -->
+%s</div>
+<div class="modifymatchscores"><!-- Modify Scores -->
+%s</div>
+<div class="visitorentrant %s">%s</div>
+</td>
+EOT;
 
+        $templ = $templw;
+        //$user = wp_get_current_user();
+        if( !is_user_logged_in() || !current_user_can( 'manage_options' ) ) {
+            $templ = $templr;
+        }
+
+        $rowEnder = "</tr>" . PHP_EOL;
         //rows
         $row = 0;
         foreach( $preliminaryRound as $match ) {
@@ -815,19 +871,9 @@ EOT;
                     $displayscores = $umpire->tableDisplayScores( $match );
                     $modifyscores  = $umpire->tableModifyScores( $match );
                 }
+
                 $generalstatus  = $umpire->matchStatus( $match );
-                $visitorstatus = '';
-                $vistorstatus = '';
-                switch( $match->getEarlyEnd() ){
-                    case 1:
-                        $homestatus = $generalstatus;
-                        $generalstatus = '';
-                    break;
-                    case 2:
-                        $visitorstatus = $generalstatus;
-                        $generalstatus = '';
-                    break;
-                }
+
                 $startDate = $match->getMatchDate_Str();
                 $startTime = $match->getMatchTime_Str();
                 $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum
@@ -839,11 +885,11 @@ EOT;
                                , $startDate
                                , $startTime
                                , $homeWinner
-                               , $hname, $homestatus
+                               , $hname
                                , $displayscores
                                , $modifyscores
                                , $visitorWinner
-                               , $vname, $visitorstatus );
+                               , $vname );
 
                 $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
                 foreach( $futureMatches as $futureMatch ) {
@@ -882,18 +928,6 @@ EOT;
                     $modifyscores = $umpire->tableModifyScores( $futureMatch );  
 
                     $generalstatus  = $umpire->matchStatus( $futureMatch );
-                    $homestatus = '';
-                    $visitorstatus = '';
-                    switch( $futureMatch->getEarlyEnd() ){
-                        case 1:
-                            $homestatus = $generalstatus;
-                            $generalstatus = '';
-                        break;
-                        case 2:
-                            $visitorstatus = $generalstatus;
-                            $generalstatus = '';
-                        break;
-                    }
                     $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum
                                    , $futureMatch->toString() 
                                    , $cmts       
@@ -903,11 +937,11 @@ EOT;
                                    , $startDate
                                    , $startTime        
                                    , $homeWinner
-                                   , $hname, $homestatus
+                                   , $hname
                                    , $displayscores
                                    , $modifyscores
                                    , $visitorWinner
-                                   , $vname, $visitorstatus);
+                                   , $vname);
                 }     
             }
             catch( RuntimeException $ex ) {
@@ -926,7 +960,8 @@ EOT;
             if( !$bracket->isApproved() ) {
                 $out .= '<button class="button" type="button" id="approveDraw">Approve</button>' . PHP_EOL;
             }
-            $out .= '<button class="button" type="button" id="removePrelim">Reset</button><br/>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="removePrelim">Reset Bracket</button><br/>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="advanceMatches">Advance Matches</button><br/>' . PHP_EOL;
         }
 
         $out .= "</div>";

@@ -218,21 +218,19 @@ class RegulationMatchUmpire extends ChairUmpire
         if( $match->isBye() ) $status = ChairUmpire::BYE;
         if( $match->isWaiting() ) $status = ChairUmpire::WAITING;
 
-        if( strlen( $status ) === 0 ) {
-            $sets = $match->getSets();
+        if( empty( $status ) ) {
             $status = self::NOTSTARTED;
-            foreach( $sets as $set ) {
-                $setnum = $set->getSetNumber();
-                $status = self::INPROGRESS;
-                if( $set->earlyEnd() > 0 ) {
-                    $cmts = $set->getComments();
-                    $who = 1 === $set->earlyEnd() ? Match::HOME : Match::VISITOR;
-                    $status = sprintf("%s %s:%s", self::EARLYEND, $who, $cmts );
-                    break;
-                }                
-            }
-            if( $status === self::INPROGRESS && !is_null( $this->matchWinner( $match ) ) ) {
+            extract( $this->getWinnerBasedOnScore( $match ) );
+
+            if( $setInProgress > 0 ) $status = ChairUmpire::INPROGRESS;
+
+            if( !empty( $andTheWinnerIs ) ) {
                 $status = ChairUmpire::COMPLETED;
+            }
+            
+            if( $earlyEnd > 0 ) {
+                $who = 1 === $earlyEnd ? Match::HOME : Match::VISITOR;
+                $status = sprintf("%s %s:%s", ChairUmpire::EARLYEND, $who, $comments );
             }
         }
 
@@ -251,83 +249,116 @@ class RegulationMatchUmpire extends ChairUmpire
         $title = $match->toString();
         $this->log->error_log("$loc($title)");
 
-        $andTheWinnerIs = null;
+        if( $match->isBye() ) {
+            //Should always be the home entrant
+            return $match->getHomeEntrant(); //Early return
+        }
+        elseif( $match->isWaiting() ) {
+            return null; //Early return; s/b null because match is waiting for entrant
+        }
+            
+        extract( $this->getWinnerBasedOnScore( $match ) );
+
+        if($earlyEnd === 0 && ( 0 < $setInProgress && $setInProgress <= $this->MaxSets ) ) {
+            $this->log->error_log("$loc($title): set number {$setInProgress} is in progress");
+            //TODO: Should I set all scores in sets > in progress to zero?
+            //return $andTheWinnerIs; //early return s/b null
+        }
+        
+        return $andTheWinnerIs;
+    }
+
+    /**
+     * Find the winner based on the score. Also detects early end due to defaults.
+     * @param Match $match 
+     * @return array Array containing winner, set in progress and early end flag
+     */
+    private function getWinnerBasedOnScore( $match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $title = $match->toString();
+        $this->log->error_log("$loc($title)");
+        
+        //NOTE: It is imperative that sets be in ascending order of set number
+        $sets = $match->getSets();
+        $numSets = count( $sets );
+        $this->log->error_log("$loc($title) has $numSets sets");
+
         $home = $match->getHomeEntrant();
         $homeSetsWon = 0;
         $visitor = $match->getVisitorEntrant();
         $visitorSetsWon = 0;
-        $finished = false;
 
-        if( $match->isBye() ) {
-            $andTheWinnerIs = $home;
-        }
-        elseif( !$match->isWaiting() ) {
-            //NOTE: It is imperative that sets be in ascending order of set number
-            $sets = $match->getSets();
-            $numSets = count( $sets );
-            $this->log->error_log("$loc($title) has $numSets sets");
+        $andTheWinnerIs = null;
+        $earlyEnd = 0;
+        $setInProgress = 0;
+        $cmts = '';
 
-            foreach( $sets as $set ) {
-                $this->log->error_log("$loc($title): set number={$set->getSetNumber()}");
-                if( 1 === $set->earlyEnd() ) {
-                    //Home defaulted
-                    $andTheWinnerIs = $visitor;
-                    $finished = true;
-                    break;
+        foreach( $sets as $set ) {
+            $this->log->error_log("$loc($title): set number={$set->getSetNumber()}");
+            $earlyEnd = $set->earlyEnd();
+            if( 1 === $earlyEnd ) {
+                //Home defaulted
+                $andTheWinnerIs = $visitor;
+                $cmts = $set->getComments();
+                break;
+            }
+            elseif( 2 === $earlyEnd ) {
+                //Visitor defaulted
+                $andTheWinnerIs = $home;
+                $cmts = $set->getComments();
+                break;
+            }
+            else {
+                $homeW = $set->getHomeWins();
+                $homeTB = $set->getHomeTieBreaker();
+                $visitorW = $set->getVisitorWins();
+                $visitorTB = $set->getVisitorTieBreaker();
+
+                $this->log->error_log( sprintf( "%s(%s): home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
+                                        , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
+                
+                if( !in_array($homeW, array($this->GamesPerSet, $this->GamesPerSet + 1))
+                &&  !in_array($visitorW, array($this->GamesPerSet, $this->GamesPerSet + 1) )) {
+                    $setInProgress = $set->getSetNumber();
+                    break; //not done yet
                 }
-                elseif( 2 === $set->earlyEnd() ) {
-                    //Visitor defaulted
-                    $andTheWinnerIs = $home;
-                    $finished = true;
-                    break;
+                if( ($homeW - $visitorW >= 2) ) {
+                    ++$homeSetsWon;
                 }
-                else {
-                    $homeW = $set->getHomeWins();
-                    $homeTB = $set->getHomeTieBreaker();
-                    $visitorW = $set->getVisitorWins();
-                    $visitorTB = $set->getVisitorTieBreaker();
-
-                    $this->log->error_log( sprintf( "%s(%s): home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
-                                         , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
-                    
-                    if( !in_array($homeW, array($this->GamesPerSet, $this->GamesPerSet + 1))
-                    &&  !in_array($visitorW, array($this->GamesPerSet, $this->GamesPerSet + 1) )) {
-                        break; //not done yet
-                    }
-                    if( ($homeW - $visitorW >= 2) ) {
+                elseif( ($visitorW - $homeW >= 2) ) {
+                    ++$visitorSetsWon;
+                }
+                else { //Tie breaker
+                    if( ($homeTB - $visitorTB >= 2) && $homeTB >= $this->TieBreakerMinimum ) {
                         ++$homeSetsWon;
                     }
-                    elseif( ($visitorW - $homeW >= 2) ) {
+                    elseif( ($visitorTB - $homeTB >= 2)  && $visitorTB >= $this->TieBreakerMinimum ) {
                         ++$visitorSetsWon;
                     }
-                    else { //Tie breaker
-                        if( ($homeTB - $visitorTB >= 2) && $homeTB >= $this->TieBreakerMinimum ) {
-                            ++$homeSetsWon;
-                        }
-                        elseif( ($visitorTB - $homeTB >= 2)  && $visitorTB >= $this->TieBreakerMinimum ) {
-                            ++$visitorSetsWon;
-                        }
-                        else { //match not finished yet
-                            $this->log->error_log("$loc($title): set number={$set->getSetNumber()} not finished tie breaker yet");
-                            break;
-                        }
+                    else { //match not finished yet
+                        $setInProgress = $set->getSetNumber();
+                        $this->log->error_log("$loc($title): set number {$set->getSetNumber()} not finished tie breaker yet");
+                        break;
                     }
                 }
-            } //foreach
-        } //Not is waiting
-        else {
-            $this->log->error_log("$loc($title) is waiting.");
-        }
+            }
+        } //foreach
 
-        //Best 3 of 5 or 2 of 3
-        if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
-                $andTheWinnerIs = $home;
-        }
-        elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
-            $andTheWinnerIs = $visitor;
+        if( !$earlyEnd && $setInProgress === 0 ) {
+            //Did not end early but there is no set in progress ... so must be done playing
+            //Best 3 of 5 or 2 of 3
+            if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
+                    $andTheWinnerIs = $home;
+            }
+            elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
+                $andTheWinnerIs = $visitor;
+            }
         }
         
-        return $andTheWinnerIs;
+        $winnerName = empty( $andTheWinnerIs) ? 'unknown' : $andTheWinnerIs->getName();
+        $this->log->error_log("$loc($title): The winner is '{$winnerName}' with sets won: home={$homeSetsWon} and visitor={$visitorSetsWon}");
+
+        return ["andTheWinnerIs"=>$andTheWinnerIs, "setInProgress"=>$setInProgress, "earlyEnd"=>$earlyEnd, "comments"=>$cmts];
     }
 
     /**
@@ -435,19 +466,18 @@ class RegulationMatchUmpire extends ChairUmpire
         $mess = sprintf( "%s(%s) called", $loc, $match->toString() );
         $this->log->error_log( $mess );
 
-        $scoreClass = "tennis-modify-scores";
         $arrScores = $this->getScores( $match );
         $setNums = range( 1, $this->getMaxSets() );
 
         //Start the table and place the header row
-        $tableScores = '<table class="' . $scoreClass . ' changematchscores">';
-        $tableScores .= '<thead class="changematchscores"><tr>';
+        $tableScores = '<table class="modifymatchscores tennis-modify-scores">';
+        $tableScores .= '<thead class="modifymatchscores"><tr>';
         foreach( $setNums as $setNum ) {
             $tableScores .= "<th colspan='2'>$setNum</th>";
         }
         $tableScores .= "</tr><tr>";        
         foreach( $setNums as $setNum ) {
-            $tableScores .= "<th>Games</th><th>Tie Break</th>";
+            $tableScores .= "<th>Games</th><th>TB</th>";
         }
         $tableScores .= "</tr></thead><tbody>";
 
@@ -470,16 +500,16 @@ class RegulationMatchUmpire extends ChairUmpire
                 $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
                 $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
             } 
-            $homeScores .= sprintf("<td><input type='number' class='changematchscores' name='homeGames' value='%d' min='%d' max='%d'></td>"
+            $homeScores .= sprintf("<td><input type='number' class='modifymatchscores' name='homeGames' value='%d' min='%d' max='%d'></td>"
                                     , $scores[0] 
                                     , 1, $this->GamesPerSet + 1 );
-            $homeScores .= sprintf("<td><input class='changematchscores' type='number' name='homeTieBreak' value='%d'></td>"
+            $homeScores .= sprintf("<td><input class='modifymatchscores' type='number' name='homeTieBreak' value='%d'></td>"
                                       , $scores[2]);
             
-            $visitorScores .= sprintf("<td><input type='number' class='changematchscores' name='visitorGames' value='%d' min='%d' max='%d'></td>"
+            $visitorScores .= sprintf("<td><input type='number' class='modifymatchscores' name='visitorGames' value='%d' min='%d' max='%d'></td>"
                                     , $scores[1] 
                                     , 1, $this->GamesPerSet + 1 );                   
-            $visitorScores .= sprintf("<td><input class='changematchscores' type='number' name='visitorTieBreak' value='%d'></td>"
+            $visitorScores .= sprintf("<td><input class='modifymatchscores' type='number' name='visitorTieBreak' value='%d'></td>"
                                       , $scores[3]);
         }
         $homeScores .= "</tr>";
@@ -487,7 +517,6 @@ class RegulationMatchUmpire extends ChairUmpire
         $tableScores .= $homeScores;
         $tableScores .= $visitorScores;
         $tableScores .= "</tbody></table>";
-        $tableScores .= "<div class='changematchscores'><button class='savematchscores'>Save</button> <button class='cancelmatchscores'>Cancel</button></div>";
 
         return $tableScores;
 

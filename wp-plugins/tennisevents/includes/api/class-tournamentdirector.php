@@ -251,7 +251,6 @@ class TournamentDirector
         $numAdvanced = 0;
         foreach( $matches as $match ) {  
             $title = $match->title();
-            $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextMatchNumber() );
             
             //We don't advance the last match of the bracket
             if( $lastRound === $match->getRoundNumber() ) {
@@ -259,6 +258,7 @@ class TournamentDirector
                 break;
             }
 
+            $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextMatchNumber() );
             if( is_null( $nextMatch ) ) {
                 //When the bracket is approved all matches from preliminary to the end of the 
                 // tournament are generated. So we should not have the case where a next match
@@ -269,22 +269,7 @@ class TournamentDirector
             }
 
             if( $umpire->isLocked( $match ) || $match->isBye() ) {
-
-                
                 $winner = $umpire->matchWinner( $match );
-                //Match is may be locked because of early retirement/default
-                $status = $umpire->matchStatus( $match );
-                if( strpos( $status, 'Retired') !== false ) {
-                    if( strpos( $status, 'visitor' ) !== false ) {
-                        $winner = $match->getHomeEntrant();
-                    }
-                    elseif( strpos( $status, 'home') !== false ) {
-                        $winner = $match->getHomeEntrant();
-                    }
-                    else {
-                        $winner = null;
-                    }
-                }
 
                 if( is_null( $winner ) ) {
                     $mess = "Match $title is locked but cannot determine winner.";
@@ -304,6 +289,8 @@ class TournamentDirector
                     else {
                         $nextMatch->setVisitorEntrant( $winner );
                     }
+                    $nextMatch->save();
+                    $bracket->setDirty();
                     $nextMatch->setIsBye( false );
                     ++$numAdvanced;                    
                     $this->log->error_log( sprintf( "%s --> %d. Advanced winner %s of match %s to next match %s"
@@ -312,11 +299,11 @@ class TournamentDirector
                 else {
                     $this->log->error_log( sprintf( "%s. Did NOT advance winner %s of match %s to next match %s because it is NOT waiting."
                                                   , $loc, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
-
                 }                
             }
         } //foreach
 
+        //TODO: Fix the top-down save operation
         $this->save();
         return $numAdvanced;
     }

@@ -137,7 +137,7 @@ hr.leaf-event-divider {
 table.managedraw {
     width: 70%;
     border-collapse: collapse;
-    border: 2px solid blue !important;
+    border: none;
     font-size: 1rem;
     margin: 0 auto;
 }
@@ -154,12 +154,11 @@ table.managedraw tr {
 
 
 table.managedraw td {
-    border-top: none;
-    border-left: none;
     border-right: 1px solid blue;
-    border-bottom: 1px solid blue;
+    border-left: none;
+    border-top: none;
+    border-bottom: none;
 }
-
 
 
 /* td:nth-child(odd) { vertical-align: top;}
@@ -197,14 +196,21 @@ table.bracketrobin td {
 .item-player {
     text-align: center;
     background-color: inherit;
-    min-height: 50px;
     vertical-align: middle;
+}
+
+hr.entrant-divider {
+    border-top: 1px solid blue;
 }
 
 /*---------------------------------------------------
  Match score styling
 ----------------------------------------------------*/
-.matchscore {
+.displaymatchscores {
+    width: 50%;
+    margin: 0 auto;
+}
+.modifymatchscores {
     width: 50%;
     margin: 0 auto;
 }
@@ -229,6 +235,7 @@ table.tennis-display-scores td {
 }
 
 table.tennis-modify-scores {
+    display: none;
     border-collapse: collapse;
     border: none !important;
     width: 90%;
@@ -243,6 +250,7 @@ table.tennis-modify-scores th {
 
 table.tennis-modify-scores td {
     padding: 0 !important;
+    min-width: 10%;
 }
 
 .matchinfo {
@@ -283,10 +291,6 @@ span.matchcomments {
     color: red;
 }
 
-.matchstart {
-    clear: left;
-}
-
 .matchstart::before{
     content: "Start:";
     font-weight: bold;
@@ -304,6 +308,11 @@ span.matchcomments {
     border-bottom: 2px solid black;
 }
 .tennis-error {
+    color: red;
+}
+
+.tennis-message {
+    font-size: small;
     color: red;
 }
 
@@ -387,6 +396,7 @@ span.matchcomments {
     left: 0px;
 }
 
+/*
 .tablematchscores {
     display: table;
     position: absolute;
@@ -397,11 +407,12 @@ span.matchcomments {
     background-color: white; 
 }
 
-.changematchscores {
+*/
+.modifymatchscores {
     display: none;
 }
 
-input.changematchscores {
+input.modifymatchscores {
     background: rgba(255,255,255,0.5);
     width: 80%;
     box-sizing: border-box; 

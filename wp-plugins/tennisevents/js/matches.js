@@ -101,6 +101,9 @@
                     case 'setcomments':
                         updateComments( data );
                         break;
+                    case 'advance':     
+                        advanceMatches( data );
+                        break;
                     default:
                         console.log("Unknown task from server: '%s'", task);
                         break;
@@ -113,18 +116,21 @@
                         $('#approveDraw').prop('diabled', false );
                         $('#createPrelim').prop('disabled', true );
                         $('#removePrelim').prop('disabled', false );
+                        $('#advanceMatches').prop('disabled', false );
                         window.location.reload(); 
                         break;
                     case 'reset':
                         $('#approveDraw').prop('diabled', true );
                         $('#createPrelim').prop('disabled', false );
                         $('#removePrelim').prop('disabled', true );
+                        $('#advanceMatches').prop('disabled', true );
                         window.location.reload(); 
                         break;
                     case 'approve': 
                         $('#approveDraw').prop('diabled', true );
                         $('#createPrelim').prop('disabled', true );
                         $('#removePrelim').prop('disabled', true );
+                        $('#advanceMatches').prop('disabled', false );
                         window.location.reload();
                         break;
                 }
@@ -151,10 +157,27 @@
                     case 'setmatchstart':
                         updateMatchStart( data );
                         break;
+                    case 'advance':   
+                        advanceMatches( data ); 
+                        break;
                     default:
                         console.log("Unknown task from server: '%s'", task);
                         break;
                 }
+            }
+        }
+
+        function advanceMatches( data ) {
+            console.log( 'advanceMatches' );
+            console.log( data );
+            $('#advanceMatches').prop('disabled', false );
+            let advanced = data.advanced || data;
+            if( 0 < advanced ) {                  
+                alert(advanced + " matches advanced. Reloading...");
+                window.location.reload();
+            }
+            else {
+                alert("No matches were advanced");
             }
         }
 
@@ -164,7 +187,7 @@
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.matchstart').text(data.matchstartdate + " " + data.matchstarttime);
             $matchEl.children('.matchstart').fadeIn( 500 );
-            $matchEl.children('.changematchstart').hide( 500 );
+            $matchEl.children('.changematchstart').hide();
         }
 
         function updateHome( data ) {
@@ -181,12 +204,17 @@
 
         function updateScore( data ) {
             console.log('updateScore');
+            console.log( data );
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
-            console.log( "Score table: %s; status=%s", data.score, data.status );
-            $matchEl.children('.matchscore').empty();
-            $matchEl.children('.matchscore').append( data.score );
-            $matchEl.children('.showmatchscores').fadeIn( 500 );
-            $matchEl.children('.changematchscores').hide( 500 );
+            console.log( 'matchEL:');
+            console.log( $matchEl );
+            console.log( "Score table: %s; status=%s", data.displayscores, data.status );
+            $matchEl.children('.displaymatchscores').empty();
+            $matchEl.children('.displaymatchscores').append( data.displayscores );
+            $matchEl.children('.modifymatchscores.tennis-modify-scores').empty();
+            $matchEl.children('.modifymatchscores.tennis-modify-scores').append( data.modifyscores );
+            $matchEl.children('.displaymatchscores').fadeIn( 1000 );
+            $matchEl.children('.modifymatchscores').hide();
             $matchEl.children('.matchstatus').text(data.status);
             switch( data.winner ) {
                 case 'home':
@@ -200,20 +228,22 @@
                     $matchEl.children('.visitorentrant').removeClass(winnerclass)
                     break;
             }
-            if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
-                alert("Reloading");
-                window.location.reload();
-            }
+
+
+            // if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
+            //     alert("Reloading");
+            //     window.location.reload();
+            // }
         }
 
         function updateStatus( data ) {
             console.log('updateStatus');
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.matchstatus').text(data.status);
-            if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
-                alert("Reloading");
-                window.location.reload();
-            }
+            // if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
+            //     alert("Reloading");
+            //     window.location.reload();
+            // }
         }
 
         function updateComments( data ) {
@@ -232,7 +262,7 @@
             return $matchElem;
         }
 
-        //Determin if match is locked by looling at the stats description
+        //Determine if match is locked by looling at the status description
         //TODO: Need to make this a numeric chack
         function matchIsLocked( obj ) {
             let $parent = $(obj).parents('.item-player');
@@ -262,33 +292,32 @@
             let parent = $(obj).parents('.item-player');
             if( parent.length == 0) return {};
 
-            let title = parent.children('.matchtitle').text();
-            let home = parent.children('.homeentrant').text().replace("1. ","").replace(/\(.*\)/,'');
-            let visitor = parent.children('.visitorentrant').text().replace("2. ","").replace(/\(.*\)/,'');
-            let status = parent.children('.matchstatus').text();
-            let comments = parent.children('.matchcomments').text();
+            // let title = parent.children('.matchtitle').text();
             // let re = /\((\d+)\,(\d+)\,(\d+)\,(\d+)\)/
             // let found = title.match(re);
             // let eventId = found[1];
             // let bracketNum = found[2];
             // let roundNum = found[3];
             // let matchNum = found[4];
+            let home = parent.children('.homeentrant').text().replace("1. ","").replace(/\(.*\)/,'');
+            let visitor = parent.children('.visitorentrant').text().replace("2. ","").replace(/\(.*\)/,'');
+            let status = parent.children('.matchstatus').text();
+            let comments = parent.children('.matchcomments').text();
             let eventId = parent.attr('data-eventid');
             let bracketNum = parent.attr('data-bracketnum');
             let roundNum = parent.attr('data-roundnum');
             let matchNum = parent.attr('data-matchnum');
+
+            let $matchStartDate = parent.find('input[name=matchStartDate]');
+            let matchStartDate  = $matchStartDate.val();
+            let $matchStartTime = parent.find('input[name=matchStartTime]');
+            let matchStartTime  = $matchStartTime.val();
 
             //NOTE: these jquery objects should always have non-empty arrays of equal length
             let $homeGames = parent.find('input[name=homeGames]');
             let $homeTB    = parent.find('input[name=homeTieBreak]');
             let $visitorGames = parent.find('input[name=visitorGames]');
             let $visitorTB    = parent.find('input[name=visitorTieBreak]');
-
-            
-            let $matchStartDate = parent.find('input[name=matchStartDate]');
-            let matchStartDate  = $matchStartDate.val();
-            let $matchStartTime = parent.find('input[name=matchStartTime]');
-            let matchStartTime  = $matchStartTime.val();
 
             let scores = [];
             for( let i = 1; i <= tennis_draw_obj.numSets; i++ ) {                    
@@ -348,9 +377,10 @@
         $('body').on('click', function( event ) {
             if( !$(event.target).hasClass('menu-icon') 
              && !$(event.target).parents().hasClass('menu-icon')
-             && !$(event.target).hasClass('changematchscores')) {
+             && !$(event.target).hasClass('modifymatchscores')) {
                 $('.matchaction').hide();
-                $('changematchscores').hide();
+                $('modifymatchscores').hide();
+                $('modifymatchscores').children().hide();
             }
         });
         
@@ -459,25 +489,37 @@
         //Record the match scores
         $('.recordscore').on('click', function(event) {
             console.log("record score");
-            console.log(this);
+            //console.log(this);
+            hideMenu( event );
             if( !matchIsReady(this)) {
                 alert('Match is not ready for scoring.')
                 return;
             }
-            let $parent = $(this).parents('.item-player');
-            $parent.find('.showmatchscores').hide();
-            $parent.find('.changematchscores').fadeIn( 500 );
-
-            hideMenu( event );
+            showModifyScores( this );
         });
+
+        function showModifyScores( obj ) {
+            let $parent = $(obj).parents('.item-player');
+            $parent.find('.displaymatchscores').hide();
+            $parent.find('.modifymatchscores').fadeIn( 1000 );
+        }
+
+        function hideModifyScores( obj ) {
+            if( obj ) {
+                let $parent = $(obj).parents('.item-player');
+                $parent.find('.modifymatchscores').hide();
+                $parent.find('.displaymatchscores').fadeIn( 1000 );
+            }
+            else {
+                $('.modifymatchscores').hide();
+                $('.displaymatchscores').show();
+            }
+        }
 
         //Cancel the changing of match scores
         $('.cancelmatchscores').on('click', function( event ) {
             console.log("cancel scores");
-            
-            let $parent = $(this).parents('.item-player');
-            $parent.find('.changematchscores').hide();
-            $parent.find('.showmatchscores').fadeIn( 500 );
+            hideModifyScores( this );
         });
 
         //Save the recorded match score
@@ -485,8 +527,10 @@
             console.log("save scores");
             let matchdata = getMatchData(this);
             let $parent = $(this).parents('.item-player');
-            $parent.find('.showmatchscores').hide();
-            $parent.find('.changematchscores').fadeOut( 500 );
+            $tohide = $parent.find('.modifymatchscores')
+            $tohide.hide();
+            $tohide.children().hide();
+            $parent.find('.displaymatchscores').html('<span class="tennis-message">one moment...</span>').show();
 
             let eventId = tennis_draw_obj.eventId;            
             let bracketName = tennis_draw_obj.bracketName;
@@ -572,9 +616,17 @@
             $(this).prop('disabled', true);
             let eventId = tennis_draw_obj.eventId;   //$('.bracketdraw').attr('data-eventid');
             let bracketName = tennis_draw_obj.bracketName; //$('.bracketdraw').attr('data-bracketname');
+            ajaxFun( {"task": "approve", "eventId": eventId, "bracketName": bracketName } );
+        });
+
+        //Advance draw
+        $('#advanceMatches').on('click', function ( event ) {
+            console.log( ' advanceMatches fired!');
 
             $(this).prop('disabled', true);
-            ajaxFun( {"task": "approve", "eventId": eventId, "bracketName": bracketName } );
+            let eventId = tennis_draw_obj.eventId;   //$('.bracketdraw').attr('data-eventid');
+            let bracketName = tennis_draw_obj.bracketName; //$('.bracketdraw').attr('data-bracketname');
+            ajaxFun( {"task": "advance", "eventId": eventId, "bracketName": bracketName } );
         });
 
         //Remove preliminary rounds
@@ -590,7 +642,6 @@
             ajaxFun( {"task": "reset", "eventId": eventId, "bracketName": bracketName} );
         });
 
-        $('.changematchscores').hide();
-        $('.showmatchscores').show();  
+        hideModifyScores();
     });
 })(jQuery);
