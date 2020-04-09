@@ -96,6 +96,7 @@
                         updateVisitor( data );
                         break;
                     case 'recordscore':
+                        updateMatchdate( data );
                         updateScore( data );
                         break;
                     case 'setcomments':
@@ -146,6 +147,7 @@
                         updateVisitor( data );
                         break;
                     case 'savescore':
+                        updateMatchDate( data );
                         updateScore( data );
                         break;
                     case 'setcomments':
@@ -155,7 +157,7 @@
                         updateStatus( data );
                         break;
                     case 'setmatchstart':
-                        updateMatchStart( data );
+                        updateMatchDate( data );
                         break;
                     case 'advance':   
                         advanceMatches( data ); 
@@ -181,11 +183,12 @@
             }
         }
 
-        function updateMatchStart( data ) {
-            console.log('updateMatchStart');
+        function updateMatchDate( data ) {
+            console.log('updateMatchDate');
             
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
-            $matchEl.children('.matchstart').text(data.matchstartdate + " " + data.matchstarttime);
+            $matchEl.children('.matchstart').text(data.matchdate + " " + data.matchtime);
+            if( data.matchdate || data.matchtime ) $matchEl.css('before','Started: ');
             $matchEl.children('.matchstart').fadeIn( 500 );
             $matchEl.children('.changematchstart').hide();
         }
@@ -229,7 +232,6 @@
                     break;
             }
 
-
             // if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
             //     alert("Reloading");
             //     window.location.reload();
@@ -263,7 +265,7 @@
         }
 
         //Determine if match is locked by looling at the status description
-        //TODO: Need to make this a numeric chack
+        //TODO: Need to make this a numeric check
         function matchIsLocked( obj ) {
             let $parent = $(obj).parents('.item-player');
             if( $parent.children('.matchstatus').text().startsWith('Complete')
@@ -308,10 +310,10 @@
             let roundNum = parent.attr('data-roundnum');
             let matchNum = parent.attr('data-matchnum');
 
-            let $matchStartDate = parent.find('input[name=matchStartDate]');
-            let matchStartDate  = $matchStartDate.val();
-            let $matchStartTime = parent.find('input[name=matchStartTime]');
-            let matchStartTime  = $matchStartTime.val();
+            let $matchDate = parent.find('input[name=matchStartDate]');
+            let matchDate  = $matchDate.val();
+            let $matchTime = parent.find('input[name=matchStartTime]');
+            let matchTime  = $matchTime.val();
 
             //NOTE: these jquery objects should always have non-empty arrays of equal length
             let $homeGames = parent.find('input[name=homeGames]');
@@ -329,8 +331,8 @@
                         , "visitor": visitor
                         , "status": status
                         , "comments": comments
-                        , "matchstartdate": matchStartDate
-                        , "matchstarttime": matchStartTime
+                        , "matchdate": matchDate
+                        , "matchtime": matchTime
                         , "score": scores };
             console.log("getMatchData....");
             console.log(data);
@@ -488,19 +490,30 @@
 
         //Record the match scores
         $('.recordscore').on('click', function(event) {
-            console.log("record score");
+            console.log("record score click");
             //console.log(this);
             hideMenu( event );
             if( !matchIsReady(this)) {
                 alert('Match is not ready for scoring.')
                 return;
             }
+
+            $parent = $(this).parents('.item-player');
+            // let top = Math.max(0, (($(window).height() - $parent.outerHeight()) / 2) + $(window).scrollTop()) + "px";
+            // let left = Math.max(0, (($(window).width() - $parent.outerWidth()) / 2) + $(window).scrollLeft()) + "px";
+
+            let top = $parent.offset().top + ($parent.outerHeight( true ) / 4);
+            let left = $parent.offset().left - 50;
+            let pos = {top: top, left: left, position: 'absolute', 'z-index': 999};
+            //console.log(pos);
+            $parent.find('div.modifymatchscores.tennis-modify-scores').css(pos);
+            $parent.find('div.modifymatchscores.tennis-modify-scores').draggable();
             showModifyScores( this );
         });
 
         function showModifyScores( obj ) {
             let $parent = $(obj).parents('.item-player');
-            $parent.find('.displaymatchscores').hide();
+            //$parent.find('.displaymatchscores').hide();
             $parent.find('.modifymatchscores').fadeIn( 1000 );
         }
 
@@ -517,13 +530,14 @@
         }
 
         //Cancel the changing of match scores
-        $('.cancelmatchscores').on('click', function( event ) {
+        $('.modifymatchscores.tennis-modify-scores').on('click','.cancelmatchscores', function( event ) {
             console.log("cancel scores");
+            console.log( event.target );
             hideModifyScores( this );
         });
 
         //Save the recorded match score
-        $('.savematchscores').on('click', function (event) {
+        $('.modifymatchscores.tennis-modify-scores').on('click','.savematchscores', function (event) {
             console.log("save scores");
             let matchdata = getMatchData(this);
             let $parent = $(this).parents('.item-player');
@@ -577,8 +591,8 @@
                     , "roundNum": matchdata.roundnum
                     , "matchNum": matchdata.matchnum
                     , "bracketName": bracketName
-                    , "matchstartdate": matchdata.matchstartdate
-                    , "matchstarttime": matchdata.matchstarttime } );
+                    , "matchdate": matchdata.matchdate || ''
+                    , "matchtime": matchdata.matchtime || 0  } );
         });
 
         //Capture comments regarding the match
@@ -609,6 +623,7 @@
         });
         
         /* ------------------------Button Actions -------------------------------------- */
+
         //Approve draw
         $('#approveDraw').on('click', function( event ) {
             console.log("Approve draw fired!");

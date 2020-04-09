@@ -217,10 +217,12 @@ class RegulationMatchUmpire extends ChairUmpire
         $status = '';
         if( $match->isBye() ) $status = ChairUmpire::BYE;
         if( $match->isWaiting() ) $status = ChairUmpire::WAITING;
+        //NOTE: It is imperative that sets be in ascending order of set number
+        $sets = $match->getSets();
 
         if( empty( $status ) ) {
             $status = self::NOTSTARTED;
-            extract( $this->getWinnerBasedOnScore( $match ) );
+            extract( $this->getWinnerBasedOnScore( $sets ) );
 
             if( $setInProgress > 0 ) $status = ChairUmpire::INPROGRESS;
 
@@ -249,6 +251,11 @@ class RegulationMatchUmpire extends ChairUmpire
         $title = $match->toString();
         $this->log->error_log("$loc($title)");
 
+        //NOTE: It is imperative that sets be in ascending order of set number
+        $sets = $match->getSets();
+        $numSets = count( $sets );
+        $this->log->error_log("$loc($title) has $numSets sets");
+
         if( $match->isBye() ) {
             //Should always be the home entrant
             return $match->getHomeEntrant(); //Early return
@@ -257,55 +264,102 @@ class RegulationMatchUmpire extends ChairUmpire
             return null; //Early return; s/b null because match is waiting for entrant
         }
             
-        extract( $this->getWinnerBasedOnScore( $match ) );
-
-        if($earlyEnd === 0 && ( 0 < $setInProgress && $setInProgress <= $this->MaxSets ) ) {
-            $this->log->error_log("$loc($title): set number {$setInProgress} is in progress");
-            //TODO: Should I set all scores in sets > in progress to zero?
-            //return $andTheWinnerIs; //early return s/b null
+        extract( $this->getWinnerBasedOnScore( $sets ) );
+        if( !empty( $andTheWinnerIs ) ) {
+            switch( $andTheWinnerIs ) {
+                case 'home':
+                    $andTheWinnerIs = $match->getHomeEntrant();
+                    break;
+                case 'visitor':
+                    $andTheWinnerIs = $match->getVisitorEntrant();
+                    break;
+                default:
+                    $andTheWinnerIs = null;
+            }
         }
-        
+        else {
+            $andTheWinnerIs = null;
+        }
+
         return $andTheWinnerIs;
     }
 
     /**
-     * Find the winner based on the score. Also detects early end due to defaults.
-     * @param Match $match 
-     * @return array Array containing winner, set in progress and early end flag
+     * This function removes sets that were kept after the final set or set in progress
+     * @param object Match
+     * @return int The number of sets removed from the match
      */
-    private function getWinnerBasedOnScore( $match ) {
+    public function trimSets( &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $title = $match->toString();
         $this->log->error_log("$loc($title)");
-        
+
         //NOTE: It is imperative that sets be in ascending order of set number
         $sets = $match->getSets();
         $numSets = count( $sets );
         $this->log->error_log("$loc($title) has $numSets sets");
 
-        $home = $match->getHomeEntrant();
+        extract( $this->getWinnerBasedOnScore( $sets ) );
+        
+        $this->log->error_log("$loc($title): set number {$setInProgress} is in progress");
+        $this->log->error_log("$loc($title): final set number {$finalSet}");
+
+        $cutoff = max( $setInProgress, $finalSet );
+        if( $cutoff > 0 ) {
+            //Remove all extraneous sets
+            $numRemoved = 0;
+            for( $setNum = $cutoff + 1; $setNum <= $this->MaxSets; $setNum++ ) {
+                $match->removeSet( $setNum );
+                ++$numRemoved;
+            }
+            if( $numRemoved > 0 ) {
+                $this->log->error_log("$loc($title): removed {$numRemoved} extraneous sets");
+            }
+        }
+        return $numRemoved;
+    }
+
+    /**
+     * Find the winner based on the score. Also detects early end due to defaults.
+     * @param array $sets of Set objects
+     * @return array Array containing:
+     *               pointer to winner (either 'home', 'visitor' or '')
+     *               set number in progress (set still in progress if match started but not finished)
+     *               final set number (set in which the match finished)
+     *               early end flag
+     *               set level comments
+     */
+    private function getWinnerBasedOnScore( $sets ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc");
+    
+
         $homeSetsWon = 0;
-        $visitor = $match->getVisitorEntrant();
         $visitorSetsWon = 0;
 
-        $andTheWinnerIs = null;
+        $home = 'home';
+        $visitor = 'visitor';
+        $andTheWinnerIs = '';
         $earlyEnd = 0;
         $setInProgress = 0;
+        $finalSet = 0;
         $cmts = '';
 
         foreach( $sets as $set ) {
-            $this->log->error_log("$loc($title): set number={$set->getSetNumber()}");
+            $this->log->error_log("$loc: set number={$set->getSetNumber()}");
             $earlyEnd = $set->earlyEnd();
             if( 1 === $earlyEnd ) {
                 //Home defaulted
                 $andTheWinnerIs = $visitor;
                 $cmts = $set->getComments();
+                $finalSet = $set->getSetNumber();
                 break;
             }
             elseif( 2 === $earlyEnd ) {
                 //Visitor defaulted
                 $andTheWinnerIs = $home;
                 $cmts = $set->getComments();
+                $finalSet = $set->getSetNumber();
                 break;
             }
             else {
@@ -341,24 +395,28 @@ class RegulationMatchUmpire extends ChairUmpire
                         break;
                     }
                 }
+                //Best 3 of 5 or 2 of 3 happened yet?
+                if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
+                    $andTheWinnerIs = 'home';
+                    $finalSet = $set->getSetNumber();
+                    break;
+                }
+                elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
+                    $andTheWinnerIs = 'visitor';
+                    $finalSet = $set->getSetNumber();
+                    break;
+                }
             }
         } //foreach
-
-        if( !$earlyEnd && $setInProgress === 0 ) {
-            //Did not end early but there is no set in progress ... so must be done playing
-            //Best 3 of 5 or 2 of 3
-            if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
-                    $andTheWinnerIs = $home;
-            }
-            elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
-                $andTheWinnerIs = $visitor;
-            }
-        }
         
-        $winnerName = empty( $andTheWinnerIs) ? 'unknown' : $andTheWinnerIs->getName();
-        $this->log->error_log("$loc($title): The winner is '{$winnerName}' with sets won: home={$homeSetsWon} and visitor={$visitorSetsWon}");
+        $winnerName = empty( $andTheWinnerIs) ? 'unknown' : $andTheWinnerIs;
+        $this->log->error_log("$loc: The winner is '{$winnerName}' with sets won: home={$homeSetsWon} and visitor={$visitorSetsWon}");
 
-        return ["andTheWinnerIs"=>$andTheWinnerIs, "setInProgress"=>$setInProgress, "earlyEnd"=>$earlyEnd, "comments"=>$cmts];
+        return [ "andTheWinnerIs" => $andTheWinnerIs
+               , "setInProgress"  => $setInProgress
+               , "finalSet"       => $finalSet
+               , "earlyEnd"       => $earlyEnd
+               , "comments"       => $cmts];
     }
 
     /**
@@ -468,16 +526,25 @@ class RegulationMatchUmpire extends ChairUmpire
 
         $arrScores = $this->getScores( $match );
         $setNums = range( 1, $this->getMaxSets() );
+        
+        $saveCancel =<<<EOT
+<div class='modifymatchscores save-cancel-buttons'>
+<button class='savematchscores modifymatchscores'>Save</button>
+<button class='cancelmatchscores modifymatchscores'>Cancel</button></div>
+EOT;
 
+        $gameHdr = __("Games",TennisEvents::TEXT_DOMAIN);
+        $tbHdr   = __("T.B.", TennisEvents::TEXT_DOMAIN);
         //Start the table and place the header row
-        $tableScores = '<table class="modifymatchscores tennis-modify-scores">';
+        $tableScores = '<table class="modifymatchscores tennis-modify-scores ui-sortable-handle">';
+        $tableScores .= '<caption>' . $match->toString() . '</caption>';
         $tableScores .= '<thead class="modifymatchscores"><tr>';
         foreach( $setNums as $setNum ) {
             $tableScores .= "<th colspan='2'>$setNum</th>";
         }
         $tableScores .= "</tr><tr>";        
         foreach( $setNums as $setNum ) {
-            $tableScores .= "<th>Games</th><th>TB</th>";
+            $tableScores .= "<th>{$gameHdr}</th><th>{$tbHdr}</th>";
         }
         $tableScores .= "</tr></thead><tbody>";
 
@@ -502,14 +569,14 @@ class RegulationMatchUmpire extends ChairUmpire
             } 
             $homeScores .= sprintf("<td><input type='number' class='modifymatchscores' name='homeGames' value='%d' min='%d' max='%d'></td>"
                                     , $scores[0] 
-                                    , 1, $this->GamesPerSet + 1 );
-            $homeScores .= sprintf("<td><input class='modifymatchscores' type='number' name='homeTieBreak' value='%d'></td>"
+                                    , 0, $this->GamesPerSet + 1 );
+            $homeScores .= sprintf("<td><input class='modifymatchscores' type='number' name='homeTieBreak' value='%d' min='0' max='7'></td>"
                                       , $scores[2]);
             
             $visitorScores .= sprintf("<td><input type='number' class='modifymatchscores' name='visitorGames' value='%d' min='%d' max='%d'></td>"
                                     , $scores[1] 
-                                    , 1, $this->GamesPerSet + 1 );                   
-            $visitorScores .= sprintf("<td><input class='modifymatchscores' type='number' name='visitorTieBreak' value='%d'></td>"
+                                    , 0, $this->GamesPerSet + 1 );                   
+            $visitorScores .= sprintf("<td><input class='modifymatchscores' type='number' name='visitorTieBreak' value='%d' min='0' max='7'></td>"
                                       , $scores[3]);
         }
         $homeScores .= "</tr>";
@@ -517,6 +584,8 @@ class RegulationMatchUmpire extends ChairUmpire
         $tableScores .= $homeScores;
         $tableScores .= $visitorScores;
         $tableScores .= "</tbody></table>";
+        $tableScores .= $saveCancel;
+
 
         return $tableScores;
 
@@ -543,6 +612,7 @@ class RegulationMatchUmpire extends ChairUmpire
             //If set does not exist yet then fake it
             if( !array_key_exists( $setNum, $arrScores ) ) {
                 $arrScores[$setNum] = [0,0,0,0];
+                //continue;
             }
             $scores = $arrScores[ $setNum ];
             $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"

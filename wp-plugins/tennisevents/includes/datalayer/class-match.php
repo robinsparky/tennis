@@ -26,9 +26,9 @@ class Match extends AbstractData
 	private static $datetimeformat = "Y-m-d H:i:s";
     private static $indateformat = "!Y-m-d";
     private static $outdateformat = "Y-m-d";
-    private static $intimeformat = "H:i";
-    private static $intimeformat2 = "H:i:u";
-    private static $outtimeformat = "H:i";
+    private static $intimeformat = "g:i";
+    private static $intimeformat2 = "g:i:u";
+    private static $outtimeformat = "g:i a";
     
     private $match_type; 
     private $bracket;

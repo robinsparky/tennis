@@ -1,8 +1,3 @@
-caption {
-    display: table-caption;
-    text-align: center;
-    font-size: 150%;
-}
 
 datalist#emaildata {
     display: none;
@@ -133,6 +128,8 @@ hr.leaf-event-divider {
     --roundWidth: calc(100% / (var(--rounds)+1));
  }
  
+
+ 
  /* Manage draw */
 table.managedraw {
     width: 70%;
@@ -142,8 +139,16 @@ table.managedraw {
     margin: 0 auto;
 }
 
+table.managedraw  > caption {
+    display: table-caption;
+    text-align: center;
+    font-size: 150%;
+    font-weight: bold;
+}
+
 table.managedraw th {
-    border: 2px solid blue;
+    border: none;
+    border-bottom: 2px solid blue;
     text-align: center;
     vertical-align: middle;
 }
@@ -157,7 +162,7 @@ table.managedraw td {
     border-right: 1px solid blue;
     border-left: none;
     border-top: none;
-    border-bottom: none;
+    border-bottom: 1px solid blue;
 }
 
 
@@ -210,9 +215,14 @@ hr.entrant-divider {
     width: 50%;
     margin: 0 auto;
 }
+/* 
 .modifymatchscores {
     width: 50%;
     margin: 0 auto;
+} */
+
+div.displaymatchscores > span {
+    font-size: smaller;
 }
 
 table.tennis-display-scores {
@@ -236,23 +246,58 @@ table.tennis-display-scores td {
 
 table.tennis-modify-scores {
     display: none;
+    background-color: lightblue;
     border-collapse: collapse;
-    border: none !important;
-    width: 90%;
-    margin: 0 auto;
+    border: 1px solid blue;
+    box-shadow: 10px 10px gray;
 }
+
+table.tennis-modify-scores caption {
+    display: table-caption;
+    text-align: center;
+    font-weight: bold;
+    background-color: lightblue;
+}
+
 table.tennis-modify-scores th {
-    padding: 0 !important;
-    margin: 0 auto;
+    margin: 0;
     border: 1pt solid blue;
     font-size: small;
+    padding: 0;
 }
 
-table.tennis-modify-scores td {
-    padding: 0 !important;
-    min-width: 10%;
+table.tennis-modify-scores td:nth-child(odd) {
+    padding: 1px 2px 1px 2px !important;
+    border: 1pt solid blue;
 }
 
+table.tennis-modify-scores td:nth-child(even) {
+    padding: 1px 1px 1px 1px !important;
+    border: 1pt solid blue;
+}
+
+input.modifymatchscores {
+    background: rgba(255,255,255,0.5);
+    box-sizing: border-box; 
+    width: 100%;
+}
+
+div.tennis-modify-scores {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin: 0 0;
+    width: 300px;
+}
+
+div.modifymatchscores.save-cancel-buttons {
+    margin: 2px auto;
+    width: 50%;
+}
+
+/*-------------------------------------------------------
+ * Match props styling such as title, start, entrants
+ -------------------------------------------------------*/
 .matchinfo {
     color: blue;
     font-size: 80%;
@@ -283,17 +328,12 @@ table.tennis-modify-scores td {
 }
 
 .matchstatus {
-    color: red;
+    font-size: 100%;
 }
 
-span.matchcomments {
+.matchcomments {
     font-style: italic;
     color: red;
-}
-
-.matchstart::before{
-    content: "Start:";
-    font-weight: bold;
 }
 
 .match-color-even {
@@ -307,6 +347,10 @@ span.matchcomments {
 .match-border {
     border-bottom: 2px solid black;
 }
+
+/*---------------------------------------------------------
+ Miscellaneous such as message styling
+----------------------------------------------------------*/
 .tennis-error {
     color: red;
 }
@@ -337,7 +381,7 @@ span.matchcomments {
 }
 
 /*-------------------------------------------------------------------
- Menu styling
+ Match Menu styling
 ----------------------------------------------------------------------*/
 .menu-icon {
     display: block;
@@ -412,12 +456,6 @@ span.matchcomments {
     display: none;
 }
 
-input.modifymatchscores {
-    background: rgba(255,255,255,0.5);
-    width: 80%;
-    box-sizing: border-box; 
-}
-
 button.savematchscores {
     width: 40%;
     background-color: blue;
@@ -452,12 +490,14 @@ button.cancelmatchscores {
 
 input.changematchstart {
     background: rgba(255,255,255,0.5);
-    width: 100%;
+    width: 50%;
+    display: block;
     box-sizing: border-box; 
+    margin: 0 auto;
 }
 
 button.savematchstart {
-    width: 40%;
+    width: 25%;
     background-color: blue;
     border: none;
     color: white;
@@ -471,7 +511,7 @@ button.savematchstart {
 }
 
 button.cancelmatchstart {
-    width: 40%;
+    width: 25%;
     background-color: blue;
     border: none;
     color: white;
@@ -581,6 +621,11 @@ a.entrantDelete:link, a.entrantDelete:visited {
     box-sizing: border-box;
     border-radius: 8px;
     text-transform: none;
+  }
+
+  div.bracketDrawButtons {
+      margin: 0 auto;
+      width: 30%;
   }
 
 .bracketDrawButtons .button {
