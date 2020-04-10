@@ -176,7 +176,7 @@ tr.drawRow:nth-child(even) { background-color:#fff; } */
  * Round Robin styling
 --------------------------------------------------------*/
 table.bracketrobin {
-    width: 50%;
+    width: 25%;
     border-collapse: collapse;
     border: 1px solid purple !important;
     font-size: 1rem;

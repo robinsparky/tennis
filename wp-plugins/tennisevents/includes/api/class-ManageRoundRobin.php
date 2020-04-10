@@ -375,11 +375,28 @@ class ManageRoundRobin
                                                 , $score["visitorTieBreaker"] );
                     if( $chairUmpire->isLocked( $match ) ) break;
                 }
-                //Advance the bracket
-                $data['advanced'] = $td->advance( $bracketName );
-                $newScore = $chairUmpire->tableGetScores( $match );
-                $data['score'] = $newScore;
-                $data['status'] = $chairUmpire->matchStatus( $match );
+
+                if( empty($match->getMatchDate_Str()) ) {
+                    $match->setMatchDate_Str( date("Y-m-d") );
+                    $match->setMatchTime_Str( date("g:i:s") );
+                }
+
+                $numTrimmed = $chairUmpire->trimSets( $match );
+                $data['setsTrimmed'] = $numTrimmed;
+                $match->save();
+
+                $statusObj = $chairUmpire->matchStatusEx( $match );
+                $data['majorStatus'] = $statusObj->getMajorStatus();
+                $data['minorStatus'] = $statusObj->getMinorStatus();
+                $data['status'] = $statusObj->toString();
+
+                $data['matchdate'] = $match->getMatchDate_Str();
+                $data['matchtime'] = $match->getMatchTime_Str();
+
+                $data['advanced'] = 0; //$td->advance( $bracketName );
+                $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
+                $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
+
                 $winner = $chairUmpire->matchWinner( $match );
                 $data['winner'] = '';
                 if( !is_null( $winner ) ) {
