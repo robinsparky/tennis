@@ -386,7 +386,7 @@ class ManageDraw
                 $match->removeSets();
                 $match->save();
                 $data['score'] = '';
-                $data['status'] = $chairUmpire->matchStatus( $match );
+                //$data['status'] = $chairUmpire->matchStatus( $match );
                 $mess = __("Score reset.", TennisEvents::TEXT_DOMAIN );
             }
             else {
@@ -398,22 +398,29 @@ class ManageDraw
                                                 , $score["homeTieBreaker"]
                                                 , $score["visitorGames"]
                                                 , $score["visitorTieBreaker"] );
-                    if( $chairUmpire->isLocked( $match ) ) break;
                 }
-                $numTrimmed = $chairUmpire->trimSets( $match );
+
+
                 if( empty($match->getMatchDate_Str()) ) {
-                    $timestamp = time();
                     $match->setMatchDate_Str( date("Y-m-d") );
                     $match->setMatchTime_Str( date("g:i:s") );
-                    $match->save();
                 }
+
+                $numTrimmed = $chairUmpire->trimSets( $match );
+                $data['setsTrimmed'] = $numTrimmed;
+                $match->save();
+
+                $statusObj = $chairUmpire->matchStatusEx( $match );
+                $data['majorStatus'] = $statusObj->getMajorStatus();
+                $data['minorStatus'] = $statusObj->getMinorStatus();
+                $data['status'] = $statusObj->toString();
+
                 $data['matchdate'] = $match->getMatchDate_Str();
                 $data['matchtime'] = $match->getMatchTime_Str();
-                $data['setsTrimmed'] = $numTrimmed;
+
                 $data['advanced'] = 0; //$td->advance( $bracketName );
                 $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
                 $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
-                $data['status'] = $chairUmpire->matchStatus( $match );
                 $winner = $chairUmpire->matchWinner( $match );
                 $data['winner'] = '';
                 if( !is_null( $winner ) ) {
@@ -768,7 +775,7 @@ EOT;
         $out .= "<tbody>" . PHP_EOL;
 
         $templ = <<<EOT
-<td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d">
+<td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d"  data-majorstatus="%d"  data-minorstatus="%d">
 <div class="menu-icon">
 <div class="bar1"></div>
 <div class="bar2"></div>
@@ -848,12 +855,16 @@ EOT;
                     $modifyscores  = $umpire->tableModifyScores( $match );
                 }
 
-                $generalstatus  = $umpire->matchStatus( $match );
+                //$generalstatus  = $umpire->matchStatus( $match );
+                $statusObj = $umpire->matchStatusEx( $match );
+                $majorStatus = $statusObj->getMajorStatus();
+                $minorStatus = $statusObj->getMinorStatus();
+                $generalstatus = $statusObj->toString();
 
                 $startDate = $match->getMatchDate_Str();
                 $startTime = $match->getMatchTime_Str();
 
-                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum
+                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
                                , $match->toString()
                                , $generalstatus
                                , $cmts 
@@ -904,8 +915,12 @@ EOT;
                     $displayscores = $umpire->tableDisplayScores( $futureMatch );
                     $modifyscores = $umpire->tableModifyScores( $futureMatch );  
 
-                    $generalstatus  = $umpire->matchStatus( $futureMatch );
-                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum
+                    $statusObj = $umpire->matchStatusEx( $futureMatch );
+                    $majorStatus = $statusObj->getMajorStatus();
+                    $minorStatus = $statusObj->getMinorStatus();
+                    $generalstatus = $statusObj->toString();
+
+                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
                                    , $futureMatch->toString() 
                                    , $generalstatus
                                    , $cmts       
@@ -1005,7 +1020,7 @@ EOT;
         $out .= "<tbody>" . PHP_EOL;
 
         $templ = <<<EOT
-<td class="item-player" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d">
+<td class="item-player" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d" data-majorstatus="%d" data-minorstatus="%d">
 <div class="matchinfo matchtitle">%s&nbsp;<span class="matchinfo matchstatus">%s</span></div>
 <div class="matchcomments">%s</div>
 <div class="matchinfo matchstart">%s &nbsp; %s</div>
@@ -1061,7 +1076,10 @@ EOT;
                     $displayscores = $umpire->strGetScores( $match );
                 }
 
-                $generalstatus  = $umpire->matchStatus( $match );
+                $statusObj = $umpire->matchStatusEx( $match );
+                $majorStatus = $statusObj->getMajorStatus();
+                $minorStatus = $statusObj->getMinorStatus();
+                $generalstatus = $statusObj->toString();
 
                 $startDate = $match->getMatchDate_Str();
                 $startTime = $match->getMatchTime_Str();
@@ -1069,7 +1087,7 @@ EOT;
                     $startDate = "Started: " . $startDate;
                 }
 
-                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum
+                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
                                , $match->toString()
                                , $generalstatus
                                , $cmts 
@@ -1117,10 +1135,14 @@ EOT;
                         $startDate = "Started: " . $startDate;
                     }
                     
-                    $displayscores = $umpire->strGetScores( $futureMatch );  
+                    $displayscores = $umpire->strGetScores( $futureMatch );
 
-                    $generalstatus  = $umpire->matchStatus( $futureMatch );
-                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum
+                    $statusObj = $umpire->matchStatusEx( $futurematch );
+                    $majorStatus = $statusObj->getMajorStatus();
+                    $minorStatus = $statusObj->getMinorStatus();
+                    $generalstatus = $statusObj->toString(); 
+
+                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
                                    , $futureMatch->toString() 
                                    , $generalstatus
                                    , $cmts       

@@ -208,8 +208,8 @@ class RegulationMatchUmpire extends ChairUmpire
     
     /**
      * Get status of the Match
-     * @param $match Match whose status is calculated
-     * @return Status of the given match
+     * @param object Match $match Match whose status is calculated
+     * @return string Status of the given match
      */
 	public function matchStatus( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -221,7 +221,7 @@ class RegulationMatchUmpire extends ChairUmpire
         $sets = $match->getSets();
 
         if( empty( $status ) ) {
-            $status = self::NOTSTARTED;
+            $status = ChairUmpire::NOTSTARTED;
             extract( $this->getWinnerBasedOnScore( $sets ) );
 
             if( $setInProgress > 0 ) $status = ChairUmpire::INPROGRESS;
@@ -240,6 +240,44 @@ class RegulationMatchUmpire extends ChairUmpire
 
         return $status;
     }
+    
+    /**
+     * Get status of the Match
+     * @param object Match $match Match whose status is calculated
+     * @return object MatchStatus of the given match
+     */
+	public function matchStatusEx( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $status = new MatchStatus();
+        if( $match->isBye() ) $status->setMajor(MatchStatus::Bye);
+        if( $match->isWaiting() ) $status->setMajor(MatchStatus::Waiting);
+        //NOTE: It is imperative that sets be in ascending order of set number
+        $sets = $match->getSets();
+
+        if( !$status->isSet() ) {
+            $status->setMajor(MatchStatus::NotStarted);
+            extract( $this->getWinnerBasedOnScore( $sets ) );
+
+            if( $setInProgress > 0 ) $status->setMajor(MatchStatus::InProgress);
+
+            if( !empty( $andTheWinnerIs ) ) {
+                $status->setMajor(MatchStatus::Completed);
+            }
+            
+            if( $earlyEnd > 0 ) {
+                $status->setMajor(MatchStatus::Retired);
+                $status->setExplanation($comments);
+                // $who = 1 === $earlyEnd ? Match::HOME : Match::VISITOR;
+                // $status = sprintf("%s %s:%s", ChairUmpire::EARLYEND, $who, $comments );
+            }
+        }
+
+        $this->log->error_log(sprintf("%s(%s) is returning status=%s", $loc, $match->toString(), $status->toString()));
+
+        return $status;
+    }
+
 
     /**
      * Determine the winner of the given Match
@@ -451,7 +489,7 @@ class RegulationMatchUmpire extends ChairUmpire
 
     /**
      * Determines if the visitor entrant was winner
-     * @return True if visitor won false otherwise
+     * @return bool True if visitor won false otherwise
      */
     public function winnerIsVisitor(  Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -468,7 +506,7 @@ class RegulationMatchUmpire extends ChairUmpire
 
     /**
      * Determines if the home entrant was winner
-     * @return True if home won false otherwise
+     * @return bool True if home won false otherwise
      */
     public function winnerIsHome(  Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -686,14 +724,15 @@ EOT;
 
     /**
      * A match is locked if it has been completed or if there was a default/early retirement
-     * @return true or false
+     * @return bool true if locked, false otherwise
      */
     public function isLocked( Match $match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $locked = false;
-        $status = $this->matchStatus( $match );
-        if($status === ChairUmpire::COMPLETED || ( strpos( $status, ChairUmpire::EARLYEND ) !== false ) ) {
+        $status = $this->matchStatusEx( $match );
+        if($status->getMajorStatus() === MatchStatus::Completed 
+        || $status->getMajorStatus() === MatchStatus::Retired ) {
             $locked = true;
         }
 

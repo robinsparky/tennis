@@ -8,6 +8,7 @@
         var longtimeout = 60000;
         var shorttimeout = 5000;
         var winnerclass = 'matchwinner';
+        var MajorStatus = {NotStarted: 1, InProgress: 2, Completed: 3, Bye: 4, Waiting: 5, Cancelled: 6, Retired: 7 };
 
         let ajaxFun = function( matchData ) {
             console.log('Draw Management: ajaxFun');
@@ -231,6 +232,7 @@
                     $matchEl.children('.visitorentrant').removeClass(winnerclass)
                     break;
             }
+            updateStatus(data);
 
             // if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
             //     alert("Reloading");
@@ -240,8 +242,10 @@
 
         function updateStatus( data ) {
             console.log('updateStatus');
+            console.log(data);
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
-            $matchEl.children('.matchstatus').text(data.status);
+            $matchEl.attr({'data-majorstatus': data.majorStatus, 'data-minorstatus': data.minorStatus});
+            $matchEl.find('.matchinfo.matchstatus').text(data.status);
             // if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
             //     alert("Reloading");
             //     window.location.reload();
@@ -264,43 +268,24 @@
             return $matchElem;
         }
 
-        //Determine if match is locked by looling at the status description
-        //TODO: Need to make this a numeric check
-        function matchIsLocked( obj ) {
-            let $parent = $(obj).parents('.item-player');
-            if( $parent.children('.matchstatus').text().startsWith('Complete')
-             || $parent.children('.matchstatus').text().startsWith('Retire')
-             || $parent.children('.matchstatus').text().startsWith('Bye')
-             || $parent.children('.matchstatus').text().startsWith('Waiting')) {
-                 return true;
-             }
-             return false;
-        }
-
-        //Determine if a match is ready for scoring by looking at status description
-        //TODO: Need to make this a numeric chack
-        function matchIsReady( obj ) {
-            let $parent = $(obj).parents('.item-player');
-            if( $parent.children('.matchstatus').text().startsWith('Not started')
-              || $parent.children('.matchstatus').text().startsWith('In progress')) {
-                  return true;
+        //Determine if a match is ready for scoring by checking status
+        function matchIsReady( el ) {
+            let $parent = $(el).parents('.item-player');
+            let majorStatus = $parent.attr('data-majorstatus');
+            if( majorStatus 
+                && (majorStatus == MajorStatus.NotStarted 
+                ||  majorStatus == MajorStatus.InProgress)) {
+                return true;
             }
             return false;
         }
         
         //Get all match data from the element/obj
-        //Assumes that obj is descendant of .item-player
-        function getMatchData( obj ) {
-            let parent = $(obj).parents('.item-player');
+        //Assumes that el is descendant of .item-player
+        function getMatchData( el ) {
+            let parent = $(el).parents('.item-player');
             if( parent.length == 0) return {};
 
-            // let title = parent.children('.matchtitle').text();
-            // let re = /\((\d+)\,(\d+)\,(\d+)\,(\d+)\)/
-            // let found = title.match(re);
-            // let eventId = found[1];
-            // let bracketNum = found[2];
-            // let roundNum = found[3];
-            // let matchNum = found[4];
             let home = parent.children('.homeentrant').text().replace("1. ","").replace(/\(.*\)/,'');
             let visitor = parent.children('.visitorentrant').text().replace("2. ","").replace(/\(.*\)/,'');
             let status = parent.children('.matchstatus').text();
@@ -634,13 +619,13 @@
             ajaxFun( {"task": "approve", "eventId": eventId, "bracketName": bracketName } );
         });
 
-        //Advance draw
+        //Advance draws
         $('#advanceMatches').on('click', function ( event ) {
-            console.log( ' advanceMatches fired!');
+            console.log( 'advanceMatches fired!');
 
             $(this).prop('disabled', true);
-            let eventId = tennis_draw_obj.eventId;   //$('.bracketdraw').attr('data-eventid');
-            let bracketName = tennis_draw_obj.bracketName; //$('.bracketdraw').attr('data-bracketname');
+            let eventId = tennis_draw_obj.eventId; 
+            let bracketName = tennis_draw_obj.bracketName;
             ajaxFun( {"task": "advance", "eventId": eventId, "bracketName": bracketName } );
         });
 
