@@ -17,10 +17,10 @@
     $winner  = $umpire->matchWinner( $match );
     $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
 
-    $homeWinner = $visitorWinner = '';
+    $homeWinner = '';
     $home    = $match->getHomeEntrant();
     $hname   = !is_null( $home ) ? $home->getName() : 'tba';
-    if( $hname === $winner ) $homeWinner = $winnerClass;
+    if( $umpire->winnerIsHome( $match ) ) $homeWinner = $winnerClass;
     
     $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
     $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
@@ -28,9 +28,10 @@
     $visitor = $match->getVisitorEntrant();
     $vname   = 'tba';
     $vseed   = '';
+    $visitorWinner = '';
     if( isset( $visitor ) ) {
         $vname   = $visitor->getName();
-        if( $vname === $winner ) $visitorWinner = $winnerClass;
+        if( $umpire->winnerIsVisitor( $match ) ) $visitorWinner = $winnerClass;
         $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
     }
     $vname = empty($vseed) ? $vname : $vname . "($vseed)";
@@ -51,30 +52,24 @@
         $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
     }
 ?>
-
 <tr>
 <td class="item-player" data-eventid="<?php echo $eventId;?>" 
-    data-bracketnum="<?php echo $bracketNum;?>" 
-    data-roundnum="<?php echo $roundNum;?>" 
-    data-matchnum="<?php echo $matchNum?>" 
-    data-majorstatus="<?php echo $majorStatus?>" 
-    data-minorstatus="<?php echo $minorStatus?>" >
+ data-bracketnum="<?php echo $bracketNum;?>" 
+ data-roundnum="<?php echo $roundNum;?>" 
+ data-matchnum="<?php echo $matchNum?>" 
+ data-majorstatus="<?php echo $majorStatus?>" 
+ data-minorstatus="<?php echo $minorStatus?>" >
 <div class="matchinfo matchtitle"><?php echo $title; ?>&nbsp;<span class="matchinfo matchstatus"><?php echo $status; ?></span></div>
-
 <div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $startDate;?>&nbsp;<?php echo $startTime; ?></div>
 <div class="matchinfo matchcomments"><?php echo $cmts; ?></div>
 <div class="homeentrant <?php echo $homeWinner; ?>"><?php echo $hname; ?></div>
 <div class="displaymatchscores"><!-- Display Scores Container -->
 <?php echo $displayscores; ?></div>
-<div class="visitorentrant <?php echo $homeWinner; ?>"><?php echo $vname; ?></div>
+<div class="visitorentrant <?php echo $visitorWinner; ?>"><?php echo $vname; ?></div>
 </td>
 </tr>
 <?php } //end matches ?>
-
 <?php } //end rounds ?>
-</tbody><tfooter></tfooter>
+</tbody>
 </table>
-<div class='bracketDrawButtons'>
-
-</div>
 <div id="tennis-event-message"></div>

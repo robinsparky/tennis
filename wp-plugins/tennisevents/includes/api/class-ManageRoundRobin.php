@@ -396,6 +396,10 @@ class ManageRoundRobin
                 $data['advanced'] = 0; //$td->advance( $bracketName );
                 $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
                 $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
+                
+                $summaryTable = $td->getEntrantSummary( $bracket );
+                //$this->log->error_log($summaryTable, "$loc - entrant summary");
+                $data["entrantSummary"] = $summaryTable;
 
                 $winner = $chairUmpire->matchWinner( $match );
                 $data['winner'] = '';
@@ -684,6 +688,7 @@ class ManageRoundRobin
         // $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );
         $numMatches = $bracket->numMatches();
+        $matchesByEntrant = $bracket->matchesByEntrant();
 
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: num matches:$numMatches; number rounds=$numRounds; signup size=$signupSize");
@@ -702,13 +707,18 @@ class ManageRoundRobin
         
 	    // Start output buffering we don't output to the page
         ob_start();
+        //Render the point summary
+        $path = TE()->getPluginPath() . '\includes\templates\pointscore-template.php';
+        require( $path );
+
         // Get template file
         $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly.php';
         //$user = wp_get_current_user();
         if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
             $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin.php';
         }
-        require( $path ); 
+        require( $path );
+
         // Save output and stop output buffering
         $output = ob_get_clean();
 

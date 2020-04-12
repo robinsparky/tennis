@@ -7,7 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 $dir = plugin_dir_path( __DIR__ );
 include_once($dir . '/gw-support.php' );
 
-
 class RegulationMatchUmpire extends ChairUmpire
 {
 	//This class's singleton
@@ -161,138 +160,14 @@ class RegulationMatchUmpire extends ChairUmpire
     }
 
     /**
-     * Default the home player/team for this Match
-     * @param $match The match being played
-     * @param $cmts  Any comments explaining the default.
-     * @return true if successful, false otherwise
-     */
-	public function defaultHome( Match &$match, string $cmts ) {
-        return $this->defaultEntrant( $match, Match::HOME, $cmts );
-    }	
-
-    /**
-     * Default the visitor player/team for this Match
-     * @param $match The match being played
-     * @param $cmts  Any comments explaining the default.
-     */
-    public function defaultVisitor( Match &$match, string $cmts ) {
-        return $this->defaultEntrant( $match, Match::VISITOR, $cmts );
-    }
-    
-    /**
-     * Default the entrant (player/team) for this Match
-     * @param $match The match being played
-     * @param string @entrantType either visitor or home
-     * @param $cmts  Any comments explaining the default.
-     */
-    public function defaultEntrant( Match &$match, string $entrantType, string $cmts ) {
-        $sets = $match->getSets();
-        $size = count( $sets );
-        $early = $entrantType === Match::HOME ? 1 : 2;
-        if( $size > 0 ) {
-            $sets[$size - 1]->setEarlyEnd( $early );
-            $sets[$size - 1]->setComments( $cmts );
-            $match->setDirty();
-        }
-        else {
-            $set = new Set();
-            $set->setSetNumber( 1 );
-            $match->addSet( $set );
-            $set->setEarlyEnd( $early );
-            $set->setComments( $cmts );
-            $match->setDirty();
-        }
-        $result = $match->save();
-        return $result > 0;
-    }
-    
-    /**
-     * Get status of the Match
-     * @param object Match $match Match whose status is calculated
-     * @return string Status of the given match
-     */
-	public function matchStatus( Match &$match ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-
-        $status = '';
-        if( $match->isBye() ) $status = ChairUmpire::BYE;
-        if( $match->isWaiting() ) $status = ChairUmpire::WAITING;
-        //NOTE: It is imperative that sets be in ascending order of set number
-        $sets = $match->getSets();
-
-        if( empty( $status ) ) {
-            $status = ChairUmpire::NOTSTARTED;
-            extract( $this->getWinnerBasedOnScore( $sets ) );
-
-            if( $setInProgress > 0 ) $status = ChairUmpire::INPROGRESS;
-
-            if( !empty( $andTheWinnerIs ) ) {
-                $status = ChairUmpire::COMPLETED;
-            }
-            
-            if( $earlyEnd > 0 ) {
-                $who = 1 === $earlyEnd ? Match::HOME : Match::VISITOR;
-                $status = sprintf("%s %s:%s", ChairUmpire::EARLYEND, $who, $comments );
-            }
-        }
-
-        $this->log->error_log( sprintf( "%s(%s) is returning status=%s", $loc, $match->toString(), $status ) );
-
-        return $status;
-    }
-    
-    /**
-     * Get status of the Match
-     * @param object Match $match Match whose status is calculated
-     * @return object MatchStatus of the given match
-     */
-	public function matchStatusEx( Match &$match ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-
-        $status = new MatchStatus();
-        if( $match->isBye() ) $status->setMajor(MatchStatus::Bye);
-        if( $match->isWaiting() ) $status->setMajor(MatchStatus::Waiting);
-        //NOTE: It is imperative that sets be in ascending order of set number
-        $sets = $match->getSets();
-
-        if( !$status->isSet() ) {
-            $status->setMajor(MatchStatus::NotStarted);
-            extract( $this->getWinnerBasedOnScore( $sets ) );
-
-            if( $setInProgress > 0 ) $status->setMajor(MatchStatus::InProgress);
-
-            if( !empty( $andTheWinnerIs ) ) {
-                $status->setMajor(MatchStatus::Completed);
-            }
-            
-            if( $earlyEnd > 0 ) {
-                $status->setMajor(MatchStatus::Retired);
-                $status->setExplanation($comments);
-                // $who = 1 === $earlyEnd ? Match::HOME : Match::VISITOR;
-                // $status = sprintf("%s %s:%s", ChairUmpire::EARLYEND, $who, $comments );
-            }
-        }
-
-        $this->log->error_log(sprintf("%s(%s) is returning status=%s", $loc, $match->toString(), $status->toString()));
-
-        return $status;
-    }
-
-
-    /**
      * Determine the winner of the given Match
-     * @param Match Reference to a $match object
-     * @return Entrant who won or null if not completed yet
+     * @param object Match Reference to a $match object
+     * @return object Entrant who won or null if not completed yet
      */
     public function matchWinner( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $title = $match->toString();
         $this->log->error_log("$loc($title)");
-
-        //NOTE: It is imperative that sets be in ascending order of set number
-        $sets = $match->getSets();
-        $numSets = count( $sets );
-        $this->log->error_log("$loc($title) has $numSets sets");
 
         if( $match->isBye() ) {
             //Should always be the home entrant
@@ -302,7 +177,7 @@ class RegulationMatchUmpire extends ChairUmpire
             return null; //Early return; s/b null because match is waiting for entrant
         }
             
-        extract( $this->getWinnerBasedOnScore( $sets ) );
+        extract( $this->getMatchSummary( $match ) );
         if( !empty( $andTheWinnerIs ) ) {
             switch( $andTheWinnerIs ) {
                 case 'home':
@@ -332,12 +207,7 @@ class RegulationMatchUmpire extends ChairUmpire
         $title = $match->toString();
         $this->log->error_log("$loc($title)");
 
-        //NOTE: It is imperative that sets be in ascending order of set number
-        $sets = $match->getSets();
-        $numSets = count( $sets );
-        $this->log->error_log("$loc($title) has $numSets sets");
-
-        extract( $this->getWinnerBasedOnScore( $sets ) );
+        extract( $this->getMatchSummary( $match ) );
         
         $this->log->error_log("$loc($title): set number {$setInProgress} is in progress");
         $this->log->error_log("$loc($title): final set number {$finalSet}");
@@ -358,111 +228,11 @@ class RegulationMatchUmpire extends ChairUmpire
     }
 
     /**
-     * Find the winner based on the score. Also detects early end due to defaults.
-     * @param array $sets of Set objects
-     * @return array Array containing:
-     *               pointer to winner (either 'home', 'visitor' or '')
-     *               set number in progress (set still in progress if match started but not finished)
-     *               final set number (set in which the match finished)
-     *               early end flag
-     *               set level comments
-     */
-    private function getWinnerBasedOnScore( $sets ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-        $this->log->error_log("$loc");
-    
-
-        $homeSetsWon = 0;
-        $visitorSetsWon = 0;
-
-        $home = 'home';
-        $visitor = 'visitor';
-        $andTheWinnerIs = '';
-        $earlyEnd = 0;
-        $setInProgress = 0;
-        $finalSet = 0;
-        $cmts = '';
-
-        foreach( $sets as $set ) {
-            $this->log->error_log("$loc: set number={$set->getSetNumber()}");
-            $earlyEnd = $set->earlyEnd();
-            if( 1 === $earlyEnd ) {
-                //Home defaulted
-                $andTheWinnerIs = $visitor;
-                $cmts = $set->getComments();
-                $finalSet = $set->getSetNumber();
-                break;
-            }
-            elseif( 2 === $earlyEnd ) {
-                //Visitor defaulted
-                $andTheWinnerIs = $home;
-                $cmts = $set->getComments();
-                $finalSet = $set->getSetNumber();
-                break;
-            }
-            else {
-                $homeW = $set->getHomeWins();
-                $homeTB = $set->getHomeTieBreaker();
-                $visitorW = $set->getVisitorWins();
-                $visitorTB = $set->getVisitorTieBreaker();
-
-                $this->log->error_log( sprintf( "%s(%s): home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
-                                        , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
-                
-                if( !in_array($homeW, array($this->GamesPerSet, $this->GamesPerSet + 1))
-                &&  !in_array($visitorW, array($this->GamesPerSet, $this->GamesPerSet + 1) )) {
-                    $setInProgress = $set->getSetNumber();
-                    break; //not done yet
-                }
-                if( ($homeW - $visitorW >= 2) ) {
-                    ++$homeSetsWon;
-                }
-                elseif( ($visitorW - $homeW >= 2) ) {
-                    ++$visitorSetsWon;
-                }
-                else { //Tie breaker
-                    if( ($homeTB - $visitorTB >= 2) && $homeTB >= $this->TieBreakerMinimum ) {
-                        ++$homeSetsWon;
-                    }
-                    elseif( ($visitorTB - $homeTB >= 2)  && $visitorTB >= $this->TieBreakerMinimum ) {
-                        ++$visitorSetsWon;
-                    }
-                    else { //match not finished yet
-                        $setInProgress = $set->getSetNumber();
-                        $this->log->error_log("$loc($title): set number {$set->getSetNumber()} not finished tie breaker yet");
-                        break;
-                    }
-                }
-                //Best 3 of 5 or 2 of 3 happened yet?
-                if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
-                    $andTheWinnerIs = 'home';
-                    $finalSet = $set->getSetNumber();
-                    break;
-                }
-                elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
-                    $andTheWinnerIs = 'visitor';
-                    $finalSet = $set->getSetNumber();
-                    break;
-                }
-            }
-        } //foreach
-        
-        $winnerName = empty( $andTheWinnerIs) ? 'unknown' : $andTheWinnerIs;
-        $this->log->error_log("$loc: The winner is '{$winnerName}' with sets won: home={$homeSetsWon} and visitor={$visitorSetsWon}");
-
-        return [ "andTheWinnerIs" => $andTheWinnerIs
-               , "setInProgress"  => $setInProgress
-               , "finalSet"       => $finalSet
-               , "earlyEnd"       => $earlyEnd
-               , "comments"       => $cmts];
-    }
-
-    /**
      * Return the score by set of the given Match
-     * @param $match
+     * @param object Match $match
      * @return array of scores
      */
-	public function getScores( Match &$match ) {
+	public function getScores( Match &$match, bool $winnerFirst = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
@@ -477,7 +247,7 @@ class RegulationMatchUmpire extends ChairUmpire
                            , $loc, $set->toString()
                            , $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
             $this->log->error_log( $mess );
-            if( $this->winnerIsVisitor( $match ) ) {
+            if( $this->winnerIsVisitor( $match ) && $winnerFirst ) {
                 $scores[$setnum] = array( $set->getVisitorWins(), $set->getHomeWins(), $set->getVisitorTieBreaker(), $set->getHomeTieBreaker() );
             }
             else {
@@ -488,42 +258,8 @@ class RegulationMatchUmpire extends ChairUmpire
     }
 
     /**
-     * Determines if the visitor entrant was winner
-     * @return bool True if visitor won false otherwise
-     */
-    public function winnerIsVisitor(  Match &$match ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-
-        $visitor = $match->getVisitorEntrant();
-        if( is_null( $visitor ) ) return false;
-
-        $vname = $visitor->getName();
-        $winner = $this->matchWinner( $match );
-        $wname = is_null( $winner ) ? 'no winner yet' : $winner->getName();
-        $this->log->error_log("$loc: visitor name=$vname; winner name=$wname");
-        return ($vname === $wname);
-    }
-
-    /**
-     * Determines if the home entrant was winner
-     * @return bool True if home won false otherwise
-     */
-    public function winnerIsHome(  Match &$match ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-
-        $home = $match->getHomeEntrant();
-        if( is_null( $home ) ) return false;
-
-        $hname = $home->getName();
-        $winner = $this->matchWinner( $match );
-        $wname = is_null( $winner ) ? 'no winner yet' : $winner->getName();
-        $this->log->error_log("$loc: home name=$hname; winner name=$wname");
-        return ($hname === $wname);
-    }
-    
-    /**
-     * Return the score by set of the given Match as a string
-     * @param $match
+     * Return the score by set as a string
+     * @param object Match $match
      * @return string representation of the scores
      */
 	public function strGetScores( Match &$match ) {
@@ -556,6 +292,12 @@ class RegulationMatchUmpire extends ChairUmpire
         return $strScores;
     }
 
+    /**
+     * Provides HTML for modifying scores.
+     * Includes games and tie break points by set.
+     * @param object Match $match
+     * @return string HTML markup for table with save and cancel buttons
+     */
     public function tableModifyScores( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
@@ -629,6 +371,11 @@ EOT;
 
     }
 
+    /**
+     * Provides HTML for displaying scores as a table.
+     * @param object Match $match
+     * @return string HTML markup for table
+     */
     public function tableDisplayScores( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
@@ -680,7 +427,11 @@ EOT;
 
     }
     
-    
+    /**
+     * Provides the HTML markup for displaying scores in list format
+     * @param object Match $match
+     * @return string HTML markup showing scores in a list <ul>...</ul>
+     */
     public function listGetScores( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
@@ -721,22 +472,125 @@ EOT;
         return $listScores;
 
     }
-
+    
     /**
-     * A match is locked if it has been completed or if there was a default/early retirement
-     * @return bool true if locked, false otherwise
+     * Find the winner based on the score. Also detects early end due to defaults.
+     * NOTE: This function forces a read of all sets for match from the db
+     * @param object Match $match
+     * @return array Array containing:
+     *               indicator of winner (either 'home', 'visitor' or '')
+     *               set number in progress (set still in progress if match started but not finished)
+     *               final set number (set in which the match finished)
+     *               early end flag
+     *               set level comments
+     *               home sets won
+     *               home games won
+     *               visitor sets won
+     *               visitor games won
      */
-    public function isLocked( Match $match ) {
+    public function getMatchSummary(Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        //$this->log->error_log("$loc");
+        
+        //NOTE: It is imperative that sets be in ascending order of set number
+        $sets = $match->getSets( true );
+        $numSets = count( $sets );
+    
+        $home = 'home';
+        $visitor = 'visitor';
+        $andTheWinnerIs = '';
+        $earlyEnd = 0;
+        $setInProgress = 0;
+        $finalSet = 0;
+        $homeSetsWon = 0;
+        $visitorSetsWon = 0;
+        $homeGamesWon = 0;
+        $visitorGamesWon = 0;
+        $cmts = '';
 
-        $locked = false;
-        $status = $this->matchStatusEx( $match );
-        if($status->getMajorStatus() === MatchStatus::Completed 
-        || $status->getMajorStatus() === MatchStatus::Retired ) {
-            $locked = true;
-        }
+        foreach( $sets as $set ) {
+            //$this->log->error_log("$loc: set number={$set->getSetNumber()}");
+            $earlyEnd = $set->earlyEnd();
+            if( 1 === $earlyEnd ) {
+                //Home defaulted
+                $andTheWinnerIs = $visitor;
+                $cmts = $set->getComments();
+                $finalSet = $set->getSetNumber();
+                break;
+            }
+            elseif( 2 === $earlyEnd ) {
+                //Visitor defaulted
+                $andTheWinnerIs = $home;
+                $cmts = $set->getComments();
+                $finalSet = $set->getSetNumber();
+                break;
+            }
+            else {
+                $homeW = $set->getHomeWins();
+                $homeGamesWon += $homeW;
+                $homeTB = $set->getHomeTieBreaker();
+                $visitorW = $set->getVisitorWins();
+                $visitorGamesWon += $visitorW;
+                $visitorTB = $set->getVisitorTieBreaker();
 
-        return $locked;
+                // $this->log->error_log( sprintf( "%s(%s): home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
+                //                         , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
+                
+                if( !in_array($homeW, array($this->GamesPerSet, $this->GamesPerSet + 1))
+                &&  !in_array($visitorW, array($this->GamesPerSet, $this->GamesPerSet + 1) )) {
+                    $setInProgress = $set->getSetNumber();
+                    break; //not done yet
+                }
+                if( ($homeW - $visitorW >= 2) ) {
+                    ++$homeSetsWon;
+                }
+                elseif( ($visitorW - $homeW >= 2) ) {
+                    ++$visitorSetsWon;
+                }
+                else { //Tie breaker
+                    if( ($homeTB - $visitorTB >= 2) && $homeTB >= $this->TieBreakerMinimum ) {
+                        ++$homeSetsWon;
+                    }
+                    elseif( ($visitorTB - $homeTB >= 2)  && $visitorTB >= $this->TieBreakerMinimum ) {
+                        ++$visitorSetsWon;
+                    }
+                    else { //match not finished yet
+                        $setInProgress = $set->getSetNumber();
+                        //$this->log->error_log("$loc($title): set number {$set->getSetNumber()} not finished tie breaker yet");
+                        break;
+                    }
+                }
+                //Best 3 of 5 or 2 of 3 happened yet?
+                if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
+                    $andTheWinnerIs = 'home';
+                    $finalSet = $set->getSetNumber();
+                    break;
+                }
+                elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
+                    $andTheWinnerIs = 'visitor';
+                    $finalSet = $set->getSetNumber();
+                    break;
+                }
+            }
+        } //foreach
+        
+        // $winnerName = empty( $andTheWinnerIs) ? 'unknown' : $andTheWinnerIs;
+        // $this->log->error_log("$loc: The winner is '{$winnerName}' with sets won: home={$homeSetsWon} and visitor={$visitorSetsWon}");
+
+        $result = [  "matchId" => $match->toString()
+                    , "andTheWinnerIs" => $andTheWinnerIs
+                    , "setInProgress"  => $setInProgress
+                    , "finalSet"       => $finalSet
+                    , "homeSetsWon"    => $homeSetsWon
+                    , "homeGamesWon"   => $homeGamesWon
+                    , "visitorSetsWon" => $visitorSetsWon
+                    , "visitorGamesWon" => $visitorGamesWon
+                    , "earlyEnd"       => $earlyEnd
+                    , "comments"       => $cmts ];
+
+        $this->log->error_log($result, "$loc: Match Summary");
+
+        return $result;
     }
 
 } //end of class

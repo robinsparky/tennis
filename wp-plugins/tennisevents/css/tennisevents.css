@@ -1,68 +1,11 @@
 
-datalist#emaildata {
-    display: none;
-}
-
-.sbc-container {
-    display: block;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    text-align: center;
-    text-decoration: none;
-}
-
-.sbc-item {
-    text-decoration: none;
-    list-style: none;
-    flex: 1 1 auto;
-    width: auto;
-    height: auto;
-    margin: 0 0 2rem 0;
-    font-size: 1em !important;
-}
-
-.sbc-container img {
-    width: 350px;
-    margin: 0 0 0 0 !important;
-}
-
-.sbc-item>a:link {
-    /* Applies to unvisited links of class mainNav */
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 1em !important;
-    background-color: inherit;
-    color: purple;
-}
-
-.sbc-item>a:visited {
-    /* Applies to visited links of class mainNav */
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 1em !important;
-    background-color: inherit;
-    color: purple;
-}
-
-.sbc-item>a:hover {
-    /* Applies to links under the pointer of class mainNav */
-    text-decoration: underline;
-    font-weight: bold;
-    font-size: 1em !important;
-    background-color: inherit;
-    color: purple;
-}
-
-.sbc-item>a:active {
-    /* Applies to activated links of class mainNav */
-    text-decoration: underline;
-    font-weight: bold;
-    font-size: 1em !important;
-    background-color: inherit;
-    color: purple;
-}
+:root {
+    --fieldsize: 4;
+    --rounds: 2;
+    --drawHeight: 300px;
+    --entryHeight: 50px;
+    --roundWidth: calc(100% / (var(--rounds)+1));
+ }
 
 /*-------------------------------------------
   Tennis Event styling
@@ -120,15 +63,6 @@ hr.leaf-event-divider {
 /*------------------------------------------------------------------------------------
  * Elimination Draw Styling
  *-----------------------------------------------------------------------------------*/
- :root {
-    --fieldsize: 4;
-    --rounds: 2;
-    --drawHeight: 300px;
-    --entryHeight: 50px;
-    --roundWidth: calc(100% / (var(--rounds)+1));
- }
- 
-
  
  /* Manage draw */
 table.managedraw {
@@ -176,26 +110,49 @@ tr.drawRow:nth-child(even) { background-color:#fff; } */
  * Round Robin styling
 --------------------------------------------------------*/
 table.bracketrobin {
-    width: 25%;
+    width: 20%;
     border-collapse: collapse;
-    border: 1px solid purple !important;
+    border: none;
     font-size: 1rem;
-    margin: 0 auto 0 auto;
+    margin: 0 0 0 60%;
+}
+
+table.bracketrobin  > caption {
+    display: table-caption;
+    text-align: center;
+    font-size: 150%;
+    font-weight: bold;
 }
 
 table.bracketrobin th {
-    border: 1px solid black;
-    border-right: 3px solid black;
+    border: none;
     text-align: center;
     vertical-align: middle;
 }
 
+table.bracketrobin tr {
+    border: none;
+}
+
 table.bracketrobin td {
-    border: 1px solid black;
-    border-bottom: 3px solid black;
-    border-right: 3px solid black;
+    border: 1px solid blue;
     text-align: center;
     vertical-align: middle;
+}
+
+table.tennis-point-summary {
+    position: sticky;
+    position: -webkit-sticky; /* Safari */
+    top: 30%;
+    left: 5%;
+    border: 3px solid blue;
+}
+
+table.tennis-point-summary  > caption {
+    display: table-caption;
+    text-align: center;
+    font-size: 100%;
+    font-weight: bold;
 }
 
 .item-player {
@@ -440,18 +397,6 @@ div.modifymatchscores.save-cancel-buttons {
     left: 0px;
 }
 
-/*
-.tablematchscores {
-    display: table;
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    width: 300px;
-    border-collapse: collapse;
-    background-color: white; 
-}
-
-*/
 .modifymatchscores {
     display: none;
 }
@@ -673,82 +618,19 @@ a.entrantDelete:link, a.entrantDelete:visited {
     background-color: yellow;
 }
 
-
-/*
-.item-player {
-    background-color: inherit;
-    height: 50px;
-    vertical-align: middle;
-}
-
-.item-player > p:first-child {
-    float:left;
-    width: 60%;
-}
-.item-player > p:last-child {
-    float: right;
-    width: 40%;
-}
-.item-player > p:nth-child(n) {
-    line-height: 1.6;
-    margin-top: 10%;
-}
-
-
-.draw {
-    box-sizing: border-box;
-    background-color: pink;
-    border: 2px dashed green;
-    height: calc(var(--entryHeight) * var(--fieldsize));
-}
-
-.roundof2 {
-    width: var(--roundWidth);
-    float: left;
-}
-.roundof2:first-child() {
-    border-left: 2px solid black;
-    margin-top: calc(var(--entryHeight) * 0.5 );
-}
-.roundof2:not(:first-child) {
-    border-left: 2px solid black;
-    margin-top: calc(var(--entryHeight) * 2 );
-}
-
-.roundof4:nth-child(n) {
-    border-right: 2px solid black;
-}
-
-.roundof4 {
-    width: var(--roundWidth);
-    float: left;
-}
-
-
-.item-score {
-    text-align: center;
-}
-*/
-
-
 /*------------------------------------------------------------------------------------
                           iPhone 2 3 4 4s
 -------------------------------------------------------------------------------------------------------------*/
 
 @media only screen and (min-width: 320px) and (max-width: 480px) and (orientation: portrait) {
-    /*.sbc-item img {
-        width: 100px;
-    }*/
-    .sbc-item a h3 {
+    .bracketdraw  {
         font-size: small !important;
     }
 }
 
 @media only screen and (min-width: 320px) and (max-width: 480px) and (orientation: landscape) {
-    /*.sbc-item img {
-        width: 100px;
-    }*/
-    .sbc-item a h3 {
+ 
+    .bracketdraw {
         font-size: small !important;
     }
 }
@@ -763,7 +645,7 @@ a.entrantDelete:link, a.entrantDelete:visited {
 @media only screen and (min-width: 375px) and (max-width: 667px) and (orientation: portrait),
 only screen and (min-width: 414px) and (max-width: 736px) and (orientation: portrait),
 only screen and (min-width: 380px) and (max-width: 640px) and (orientation: portrait) {
-    .sbc-item img {
+    .bracketdraw img {
         width: 150px;
     }
 }
@@ -771,7 +653,7 @@ only screen and (min-width: 380px) and (max-width: 640px) and (orientation: port
 @media only screen and (min-width: 375px) and (max-width: 667px) and (orientation: landscape),
 only screen and (min-width: 414px) and (max-width: 736px) and (orientation: landscape),
 only screen and (min-width: 380px) and (max-width: 640px) and (orientation: landscape) {
-    .sbc-item img {
+    .breacketdraw img {
         width: 200px;
     }
 }

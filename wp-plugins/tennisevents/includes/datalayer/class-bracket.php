@@ -538,49 +538,43 @@ class Bracket extends AbstractData
 		$wpdb->query( "commit;" );  
 		error_log( "$loc: $result rows affected." );
         return $result;
-	}
-
-    /**
-     * Determine the size of the signup
-     * For the main draw, this is the actual signup for the event
-     * For Losers or Consolation draw, the signup is one-half of the event signup
-     * TODO: Remove this function
-     */
-    public function signupSize1( $umpire = null ) {
-        $size = 0;
-        if( self::WINNERS === $this->getName() ) {
-            $size =  $this->getEvent()->signupSize();
-        }
-        elseif( self::LOSERS === $this->getName() ) {
-            //TODO:needs investigation
-        }
-        elseif( self::CONSOLATION === $this->getName() ) {
-            //$signup = $this->getSignup( $umpire );
-            $signup = $this->entrantsByMatchCount( 2 );
-            $size = count( $signup );
-        }
-        return $size;
     }
+    
+    public function matchesByEntrant() {
+		global $wpdb;
+        $loc = __CLASS__ . '::' .  __FUNCTION__;
 
-    /**
-     * Get this bracket's signup
-     * TODO: Remove this function
-     */
-    public function getSignup1( $umpire = null ) {
         $result = array();
-        if( self::WINNERS === $this->getName() ) {
-            $result = $this->getEvent()->getSignup();
-        }
-        elseif( self::LOSERS === $this->getName() ) {
-        }
-        elseif( self::CONSOLATION === $this->getName() ) {
-            //s/b losers from first or second (if had bye in first and not seeded) round of Winners bracket
-            //$result = $this->getEarlyLosers( $umpire );
-            $result = $this->entrantsByMatchCount( 2 );
+
+        $sql = <<<EOS
+select ent.name, ent.position as 'position', ent.seed, me.is_visitor, m.round_num as 'round_number', m.match_num as 'match_number'
+    from wp_tennis_event e
+    inner join wp_tennis_bracket b on b.event_ID = e.ID
+    inner join wp_tennis_match m on m.event_ID = b.event_ID and m.bracket_num = b.bracket_num
+    inner join wp_tennis_match_entrant me on me.match_event_ID = m.event_ID and me.match_bracket_num = m.bracket_num and me.match_round_num = m.round_num and me.match_num = m.match_num
+    inner join wp_tennis_entrant ent on ent.position = me.entrant_position and ent.event_ID = me.match_event_ID and ent.bracket_num = me.match_bracket_num
+    where e.ID=%d and b.bracket_num=%d and ent.position=%d
+    order by ent.position, m.round_num, m.match_num;
+EOS;
+
+        foreach( $this->getSignup() as $player ) {
+            $safe = $wpdb->prepare( $sql, $this->getEventId(), $this->getBracketNumber(), $player->getPosition() );
+            $rows = $wpdb->get_results( $safe, ARRAY_A );
+            //$this->log->error_log($rows, "$loc: rows for {$player->getName()}");
+
+            $matches=[];
+            foreach( $rows as $row ) {
+                $r = (int) $row["round_number"];
+                $m = (int) $row["match_number"];
+                $match = Match::get($this->getEventId(), $this->getBracketNumber(), $r, $m );
+                if( is_null( $match ) ) continue;
+                $matches[] = $match;
+            }
+            $result[$player->getName()] = array( $player, $matches );
         }
         return $result;
     }
-    
+
     /**
      * Hack to fudge fact that sigups are not by bracket
      * TODO: Remove this function
@@ -948,6 +942,20 @@ class Bracket extends AbstractData
         $exp = TournamentDirector::calculateExponent( $bracketSignupSize );
         $result = pow( 2, $exp ) / pow( 2, $r - 1 );
         return $result;        
+    }
+
+    public function getNumberOfRounds() : int {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $rounds = array_keys( $this->getMatchHierarchy() );
+        $this->log->error_log( $rounds, "$loc - keys for match hier");
+        $numRounds = array_reduce( $rounds, function( $carry, $round ) {
+                                        if( $round > $carry ) $carry = $round;
+                                        return $carry;
+                                    }
+                            , 0 );
+        $this->log->error_log("$loc - num rounds={$numRounds}");
+        return $numRounds;
     }
 
     /*----------------------------------------- Private Functions --------------------------------*/

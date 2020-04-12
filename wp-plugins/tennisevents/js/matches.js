@@ -232,12 +232,8 @@
                     $matchEl.children('.visitorentrant').removeClass(winnerclass)
                     break;
             }
+            updateEntrantSummary( data );
             updateStatus(data);
-
-            // if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
-            //     alert("Reloading");
-            //     window.location.reload();
-            // }
         }
 
         function updateStatus( data ) {
@@ -250,6 +246,23 @@
             //     alert("Reloading");
             //     window.location.reload();
             // }
+        }
+
+        function updateEntrantSummary( data ) {
+            console.log('updateEntrantSummary');
+            if( data.entrantSummary) {
+                console.log(data.entrantSummary);
+                $parent = $('table.tennis-point-summary');
+                    for( entrant of data.entrantSummary ) {
+                        console.log(entrant);
+                        $entRow = $parent.find("tr.entrant-match-summary[data-entrant='" + entrant.position + "']");
+                        n1 = $entRow.children('td.entrant-name').text();
+                        console.log("entrant %s compares with html %s", entrant.name, n1);
+                        $entRow.children('td.points').each( function(i, el) { $(el).text(entrant.totalPoints)});
+                        $entRow.children('td.games').each( function(i, el) { $(el).text(entrant.totalGames)});
+                        $entRow.children('td.matcheswon').each( function(i, el) { r=i+1; $(el).text(entrant[r]); });
+                }
+            }
         }
 
         function updateComments( data ) {

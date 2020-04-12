@@ -143,7 +143,7 @@ class Match extends AbstractData
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		error_log( sprintf("Match::get(%d,%d,%d,%d) returned %d rows.",$pks, $wpdb->num_rows ) );
+		//error_log( sprintf("Match::get(%d,%d,%d,%d) returned %d rows.",$pks[0],$pks[1],$pks[2],$pks[3], $wpdb->num_rows ) );
 
 		if( count($rows) === 1 ) {
 			$obj = new Match( ...$pks );

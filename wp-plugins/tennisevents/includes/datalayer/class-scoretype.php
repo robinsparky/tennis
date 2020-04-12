@@ -90,4 +90,11 @@ class ScoreType {
     public function isValid( $possible ) {
         return in_array( $possible, $this->allowedTypes() );
     }
+
+    public function getScoreTypeMask( string $key ): int {
+        if( $this->isValid($key) ) {
+            return $this->ScoreTypes[$key];
+        }
+        return 0;
+    }
 }

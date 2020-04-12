@@ -222,7 +222,6 @@ class Event extends AbstractData
 				break;
 			case EventType::LEAGUE:
 			case EventType::LADDER:
-			case EventType::ROUND_ROBIN:
 				$this->event_type = $eventType;
 				$this->format = Format::GAMES;
 				break;

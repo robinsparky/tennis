@@ -132,20 +132,31 @@ class TournamentDirector
      * @see ScoreType class
      * @return object ChairUmpire subclass
      */
-    public function getChairUmpire( int $scoretype = 0 ) : ChairUmpire {
-        if( ($scoretype & ScoreType::NoAd) && ($scoretype & ScoreType::TieBreakAt3) ) {
-            $chairUmpire = Fast4Umpire::getInstance();
-        }
-        elseif( $scoretype & ScoreType::TieBreakDecider ) {
-            $chairUmpire = MatchTieBreakUmpire::getInstance();
-        }
-        elseif( !($scoretype & ScoreType::TieBreakDecider) && ($scoretype & ScoreType::TieBreak12Pt) ) {
-            $chairUmpire = ProSetUmpire::getInstance();
-        }
-        else {
-            $chairUmpire = RegulationMatchUmpire::getInstance();
-            if($scoretype & ScoreType::TieBreakAt3 ) {
-                $chairUmpire->setMaxSets( 3 );
+    public function getChairUmpire( ) : ChairUmpire {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        
+        $chairUmpire = null;
+        if( empty( $this->getEvent() ) ) return $chairUmpire;
+
+        if( $this->getEvent()->isLeaf() ) {
+            $format = $this->getEvent()->getFormat();
+            $eventscoretype = $this->getEvent()->getScoreType();
+            $scoretype = ScoreType::get_instance()->getScoreTypeMask( $eventscoretype );
+
+            if( ($scoretype & ScoreType::NoAd) && ($scoretype & ScoreType::TieBreakAt3) ) {
+                $chairUmpire = Fast4Umpire::getInstance();
+            }
+            elseif( $scoretype & ScoreType::TieBreakDecider ) {
+                $chairUmpire = MatchTieBreakUmpire::getInstance();
+            }
+            elseif( !($scoretype & ScoreType::TieBreakDecider) && ($scoretype & ScoreType::TieBreak12Pt) ) {
+                $chairUmpire = ProSetUmpire::getInstance();
+            }
+            else {
+                $chairUmpire = RegulationMatchUmpire::getInstance();
+                if($scoretype & ScoreType::TieBreakAt3 ) {
+                    $chairUmpire->setMaxSets( 3 );
+                }
             }
         }
         return $chairUmpire;
@@ -394,10 +405,79 @@ class TournamentDirector
      * @return int Total number of rounds in the bracket
      */
     public function totalRounds( string $bracketName = Bracket::WINNERS ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
         $bracket = $this->getBracket( $bracketName );
-        $this->numRounds = self::calculateExponent( $bracket->signupSize() );
+        switch($this->getEvent()->getFormat()) {
+            case Format::SINGLE_ELIM:
+            case Format::DOUBLE_ELIM:
+                $this->numRounds = self::calculateExponent( $bracket->signupSize() );
+            break;
+            case Format::POINTS:
+            case Format::GAMES:
+                $this->numRounds = $bracket->getNumberOfRounds();
+                break;
+            default:
+                $this->numRounds = 0;
+        }
+
         return $this->numRounds;
     }
+    
+    /**
+     * Get summary of entrant match wins by round as well as total points and total games
+     * @param object Bracket $bracket
+     * @return array entrant summary
+     */
+    public function getEntrantSummary( Bracket $bracket ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $summary = [];
+        $chairUmpire = $this->getChairUmpire();
+        $matchesByEntrant = $bracket->matchesByEntrant();
+        $numRounds = $bracket->getNumberOfRounds();
+        foreach( $matchesByEntrant as $matchInfo) {
+            $entrant = $matchInfo[0];
+            $matches = $matchInfo[1];
+            $totalGames = 0;
+            $totalPoints = 0;
+            $totalSetsWon = 0;
+            $entrantSummary=[];
+            $entrantSummary["position"] = $entrant->getPosition();
+            $entrantSummary["name"] = $entrant->getName();
+            for( $r = 1; $r <= $numRounds; $r++ ) {
+                $totalMatchesWon = 0;
+                $entrantSummary[$r] = 0;
+                foreach( $matches as $match ) {
+                    if( $r != $match->getRoundNumber() ) continue;
+                    extract( $chairUmpire->getMatchSummary( $match ) );
+                    if( $entrant->getName() === $chairUmpire->getHomePlayer( $match ) ) {
+                        $totalGames += $homeGamesWon;
+                        $totalSetsWon += $homeSetsWon;
+                        if( $andTheWinnerIs === 'home') {
+                            ++$totalMatchesWon;
+                            $totalPoints += $totalMatchesWon * 2;
+                        }
+                    }
+                    elseif( $entrant->getName() === $chairUmpire->getVisitorPlayer( $match ) ) {
+                        $totalGames += $visitorGamesWon;
+                        $totalSetsWon += $visitorSetsWon;
+                        if( $andTheWinnerIs === 'visitor') {
+                            ++$totalMatchesWon;
+                            $totalPoints += $totalMatchesWon * 2;
+                        }
+                    }
+                } //matches
+                $entrantSummary[$r] += $totalMatchesWon;
+            } //rounds
+            $entrantSummary["totalPoints"] = $totalPoints;
+            $entrantSummary["totalGames"] = $totalGames;
+            $summary[] = $entrantSummary;
+        } //matchesByEntrant
+
+        return $summary;
+    }
+
 
     /**
      * Get ths signup for this tournament sorted by position in the draw
@@ -684,6 +764,7 @@ class TournamentDirector
 
         switch( $this->getEvent()->getFormat() ) {
             case Format::SINGLE_ELIM:
+            case Format::DOUBLE_ELIM:
                 return $this->initializeEliminationRounds( $bracketName, $randomizeDraw );
             case Format::POINTS:
             case Format::GAMES:
@@ -1010,9 +1091,10 @@ class TournamentDirector
         while( 0 < count( $matches ) ) {
             $ct = count( $matches );
             ++$ctr;
-            $this->log->error_log("$loc: {$ctr}. 'while' count of matches={$ct}");
+            $this->log->error_log("$loc: {$ctr}. while count of matches={$ct} for round={$r}");
 
             $match = $this->nextRRMatch( $matchesByRound[$r], $matches );
+
             if( !empty( $match ) ) {
                 $matchesByRound[$r][$m++] = $match;
             }
@@ -1021,6 +1103,7 @@ class TournamentDirector
                 $m=1;
                 $matchesByRound[$r] = array();
             }
+            $this->log->error_log($matchesByRound[$r], "$loc - Matches scheduled for round {$r}");
         }
 
         $genRounds = $r;
@@ -1060,8 +1143,8 @@ class TournamentDirector
 
         $result = array();
         
-        // $this->log->error_log($scheduled, "$loc - Scheduled Start");
-        // $this->log->error_log($remainingMatches,"$loc - Remaining Start");
+        // $this->log->error_log($scheduled, "$loc - Scheduled");
+        // $this->log->error_log($remainingMatches,"$loc - Remaining at Start");
 
         $offset = 0;
         foreach($remainingMatches as $remain ) {
@@ -1081,9 +1164,10 @@ class TournamentDirector
 
         if( !empty( $result ) ) {
             $extracted = array_splice( $remainingMatches, $offset, 1 );
+            //$this->log->error_log($extracted, "$loc - extracted from remaining at offset={$offset}");
         }
 
-        // $this->log->error_log($scheduled, "$loc - Scheduled at End");
+        //$this->log->error_log($scheduled, "$loc - Scheduled at End");
         // $this->log->error_log($result, "$loc - Result Selected");
         // $this->log->error_log($remainingMatches, "$loc - Remaining at End");
 

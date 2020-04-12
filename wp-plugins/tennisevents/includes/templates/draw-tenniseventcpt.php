@@ -1,9 +1,10 @@
-<div id="post-<?php the_ID(); ?>"> <!--post -->
-	<?php //appointment_aside_meta_content();
+<div id="post-<?php the_ID(); ?>"> <!-- post -->
+	<?php
 		$mode = isset($_GET['manage']) ? $_GET['manage'] : "";
 		$bracketName = isset($_GET['bracket']) ? $_GET['bracket'] : '';
 		//the_title('<h2>','</h2>'); 
 	?>
+		<!-- tennis event content -->
 		<div class="tennis-event-content">
 			<?php 
 				 $eventCPTId = get_the_ID(); 
@@ -22,8 +23,9 @@
 				   wp_die( __("Root Tennis Event not expected here!", TennisEvents::TEXT_DOMAIN ) );
 				} 
 				// call editor content of post/page	s
-				wp_link_pages( );
+				//wp_link_pages( );
 				?>
+				<!-- tennis event schedule -->
 				<div class="tennis-event-schedule">
 				<?php
 				if( $mode === "signup" ) {
@@ -47,6 +49,7 @@
 				}
 				//the_content( __('Read More', TennisEvents::TEXT_DOMAIN ) );
 				?>
-				</div> <!-- /event schedule -->
-		</div> <!-- /event-content-body -->
+				</div> <!-- /tennis event schedule -->
+		</div> <!-- /event event content -->
 </div> <!-- /post -->
+

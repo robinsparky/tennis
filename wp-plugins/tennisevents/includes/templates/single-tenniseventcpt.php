@@ -2,8 +2,9 @@
 <?php
 get_header();
 ?>
-<!-- Page Content ---->
-<div class="page-content">	
+<!-- Page Content 
+<div class="page-content">
+	---->	
 <?php
 
 // Sidebar Alt 
@@ -35,5 +36,5 @@ get_header();
 <?php // Sidebar Right
 //get_template_part( 'templates/sidebars/sidebar', 'right' );
 ?>
-</div> <!-- /Page content -->
+<!-- </div> /Page content -->
 <?php get_footer(); ?>

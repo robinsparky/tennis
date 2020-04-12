@@ -1137,7 +1137,7 @@ EOT;
                     
                     $displayscores = $umpire->strGetScores( $futureMatch );
 
-                    $statusObj = $umpire->matchStatusEx( $futurematch );
+                    $statusObj = $umpire->matchStatusEx( $futureMatch );
                     $majorStatus = $statusObj->getMajorStatus();
                     $minorStatus = $statusObj->getMinorStatus();
                     $generalstatus = $statusObj->toString(); 
