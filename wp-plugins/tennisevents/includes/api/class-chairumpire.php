@@ -25,35 +25,96 @@ abstract class ChairUmpire
 	public const EARLYEND   = "Retired";
 	public const BYE        = "Bye";
 	public const WAITING    = "Waiting";
-	public const CANCELLED  = "Cancelled";
+    public const CANCELLED  = "Cancelled";
 	
     //General Tennis Scoring Rules
     protected $MaxSets = 3;
     protected $GamesPerSet = 6;
-	protected $TieBreakerMinimum = 7;
+    protected $TieBreakerMinimum = 7;
+    protected $TieBreakDecider = false;
+    protected $NoTieBreakerFinalSet = false;
+
+    //Mask of scoring rules
+    protected $scoreTypeMask = 0;
 	
 	protected $log;
 
 	abstract public function recordScores(Match &$match, int $set, int ...$scores );
 	abstract public function getScores( Match &$match );
     abstract public function matchWinner( Match &$match );
+    abstract public function getMatchSummary( Match &$match );
 	// abstract public function matchStatus( Match &$match );
 	// abstract public function defaultHome( Match &$match, string $cmts );
 	// abstract public function defaultVisitor( Match &$match, string $cmts );
-	abstract public function setMaxSets( int $max = 3 );
-    abstract public function getMatchSummary( Match &$match );
-	
+    
+    /**
+     * Return a ChairUmpire based on the type of event
+     * But only leaf events can have a ChairUmpire
+     * @param string $scoretype which is a title of a score type such as 'Fast4' or 'Regulation'
+     * @return object ChairUmpire ... one of several different possibilities
+     */
+    public static function getUmpire( string $strScoreType ) : ChairUmpire {
+
+        $chairUmpire = null;
+
+        $scoretype = ScoreType::get_instance()->getScoreTypeMask( $strScoreType );
+
+        if( ($scoretype & ScoreType::NoAd) && ($scoretype & ScoreType::TieBreakAt4All) ) {
+            //Fast4
+            $chairUmpire = Fast4Umpire::getInstance();
+        }
+        elseif( $scoretype & ScoreType::TieBreakDecider ) {
+            //Match Tie Break (instead of 3rd set)
+            $chairUmpire = MatchTieBreakUmpire::getInstance();
+        }
+        elseif( $scoretype & ScoreType::OneSet ) {
+            //Pro Set
+            $chairUmpire = ProSetUmpire::getInstance();
+        }
+        else {
+            //Regulation
+            $chairUmpire = RegulationMatchUmpire::getInstance();
+        }
+        $chairUmpire->setScoreTypeMask( $scoretype );
+
+        return $chairUmpire;
+    }
+
+    /**
+     * Ctor
+     */
 	public function __construct( $logger = false ) {
 		$this->log = new BaseLogger( $logger );
-	}
+    }
+    
+    /**
+     * Set the score type mask and apply it to parse out match parameters
+     */
+    public function setScoreTypeMask( int $mask ) {
+        $this->scoreTypeMask = $mask;
+        $this->applyMask();
+    }
 
+    /**
+     * Get the score type mask
+     */
+    public function getScoreTypeMask() : int {
+        return $this->scoreTypeMask;
+    }
+
+    /**
+     * Get the name of the home entrant
+     */
 	public function getHomePlayer( Match &$match ):string {
 		if( isset( $match ) ) {
 			return $match->getHomeEntrant()->getName();
 		}
 		else return '';
 	}
-	
+    
+    /**
+     * Get the name of the visitor entrant
+     */
 	public function getVisitorPlayer( Match &$match ):string {
 		if( isset( $match ) ) {
 			return $match->getVisitorEntrant()->getName();
@@ -61,9 +122,41 @@ abstract class ChairUmpire
 		else return '';
 	}
 
+    /**
+     * Get the maximum number of sets in a match
+     */
 	public function getMaxSets() {
 		return $this->MaxSets;
-	}
+    }
+    
+    /**
+     * Get the number of games in a set
+     */
+	public function getGamesPerSet() {
+		return $this->GamesPerSet;
+    }
+    
+    /**
+     * Get the minimum tie breaker score
+     */
+    public function getTieBreakMinScore() {
+        return $this->TieBreakerMinimum;
+    }
+
+    /**
+     * Is the final set a tie break decider?
+     */
+    public function getTieBreakDecider() {
+        return $this->TieBreakDecider;
+    }
+
+    /**
+     * Is a tie break used to settle the final set? 
+     * i.e. Does the winner have to win the final set by 2 games.
+     */
+    public function getNoTieBreakerFinalSet() {
+        return $this->NoTieBreakerFinalSet;
+    }
 	
     /**
      * Default the home player/team for this Match
@@ -87,7 +180,7 @@ abstract class ChairUmpire
     /**
      * Default the entrant (player/team) for this Match
      * @param object Match $match The match being played
-     * @param string @entrantType either visitor or home
+     * @param string @entrantType either 'visitor' or 'home'
      * @param string $cmts  Any comments explaining the default.
      */
     public function defaultEntrant( Match &$match, string $entrantType, string $cmts ) {
@@ -212,21 +305,309 @@ abstract class ChairUmpire
     }
     
     /**
-     * A match is locked if it has been completed or if there was a default/early retirement
-     * In other words, it must have a winner
+     * A match is locked if it has a winner
      * @return bool true if locked, false otherwise
      */
-    public function isLocked( Match $match ) {
+    public function isLocked( Match $match, Entrant &$entrant = null ) {
+        $entrant = $this->matchWinner( $match );
+        return is_null( $entrant ) ? false : true; 
+    }
+    
+    /**
+     * Return the score by set as a string
+     * @param object Match $match
+     * @return string representation of the scores
+     */
+	public function strGetScores( Match &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        $locked = false;
-        $status = $this->matchStatusEx( $match );
-        if($status->getMajorStatus() === MatchStatus::Completed 
-        || $status->getMajorStatus() === MatchStatus::Retired ) {
-            $locked = true;
+        $mess = sprintf( "%s(%s) called", $loc,$match->toString() );
+        $this->log->error_log( $mess );
+
+        $arrScores = $this->getScores( $match );
+        if( count( $arrScores) === 0 ) return '';
+
+        $strScores = '';
+        $sep = ',';
+        $setNums = range( 1, $this->getMaxSets() );
+        foreach( $setNums as $setNum ) {
+            if( $setNum === $this->MaxSets ) $sep = '';
+            if( array_key_exists( $setNum, $arrScores ) ) {
+                $scores = $arrScores[ $setNum ];
+                // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                //                 , $loc, $match->toString(), $setNum
+                //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
+                if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                    $strScores .= sprintf("%d(%d)-%d(%d)%s ", $scores[0], $scores[2], $scores[1], $scores[3], $sep);
+                } 
+                else {
+                    $strScores .= sprintf("%d-%d%s ", $scores[0], $scores[1], $sep);
+                }
+            }
+        }
+        return $strScores;
+    }
+
+    /**
+     * Provides HTML for modifying scores.
+     * Includes games and tie break points by set.
+     * @param object Match $match
+     * @return string HTML markup for table with save and cancel buttons
+     */
+    public function tableModifyScores( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) called", $loc, $match->toString() );
+        $this->log->error_log( $mess );
+
+        $arrScores = $this->getScores( $match );
+        $setNums = range( 1, $this->getMaxSets() );
+        
+        $saveCancel =<<<EOT
+<div class='modifymatchscores save-cancel-buttons'>
+<button class='savematchscores modifymatchscores'>Save</button>
+<button class='cancelmatchscores modifymatchscores'>Cancel</button></div>
+EOT;
+
+        $gameHdr = __("Games",TennisEvents::TEXT_DOMAIN);
+        $tbHdr   = __("T.B.", TennisEvents::TEXT_DOMAIN);
+        //Start the table and place the header row
+        $tableScores = '<table class="modifymatchscores tennis-modify-scores ui-sortable-handle">';
+        $tableScores .= '<caption>' . $match->toString() . '</caption>';
+        $tableScores .= '<thead class="modifymatchscores"><tr>';
+        foreach( $setNums as $setNum ) {
+            $tableScores .= "<th colspan='2'>$setNum</th>";
+        }
+        $tableScores .= "</tr><tr>";        
+        foreach( $setNums as $setNum ) {
+            $tableScores .= "<th>{$gameHdr}</th><th>{$tbHdr}</th>";
+        }
+        $tableScores .= "</tr></thead><tbody>";
+
+        //Now put the actual scores into the table
+        $homeScores  = "<tr>";
+        $visitorScores = "<tr>";
+        foreach( $setNums as $setNum ) {
+            //If set does not exist yet then fake it
+            if( !array_key_exists( $setNum, $arrScores ) ) {
+                $arrScores[$setNum] = [0,0,0,0];
+            }
+            $scores = $arrScores[ $setNum ];
+            $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                            , $loc, $match->toString(), $setNum
+                            , $scores[0], $scores[1], $scores[2], $scores[3] );
+            $this->log->error_log($mess);
+
+            $homeTBScores = $visitorTBScores = '';
+            if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
+                $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
+            } 
+            $homeScores .= sprintf("<td><input type='number' class='modifymatchscores' name='homeGames' value='%d' min='%d' max='%d'></td>"
+                                    , $scores[0] 
+                                    , 0, $this->GamesPerSet + 1 );
+            $homeScores .= sprintf("<td><input class='modifymatchscores' type='number' name='homeTieBreak' value='%d' min='0' max='7'></td>"
+                                      , $scores[2]);
+            
+            $visitorScores .= sprintf("<td><input type='number' class='modifymatchscores' name='visitorGames' value='%d' min='%d' max='%d'></td>"
+                                    , $scores[1] 
+                                    , 0, $this->GamesPerSet + 1 );                   
+            $visitorScores .= sprintf("<td><input class='modifymatchscores' type='number' name='visitorTieBreak' value='%d' min='0' max='7'></td>"
+                                      , $scores[3]);
+        }
+        $homeScores .= "</tr>";
+        $visitorScores .= "</tr>";
+        $tableScores .= $homeScores;
+        $tableScores .= $visitorScores;
+        $tableScores .= "</tbody></table>";
+        $tableScores .= $saveCancel;
+
+
+        return $tableScores;
+
+    }
+
+    /**
+     * Provides HTML for displaying scores as a table.
+     * @param object Match $match
+     * @return string HTML markup for table
+     */
+    public function tableDisplayScores( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) called", $loc, $match->toString() );
+        $this->log->error_log( $mess );
+
+        $scoreClass = "tennis-display-scores";
+        $arrScores = $this->getScores( $match );
+        $setNums = range( 1, $this->getMaxSets() );
+
+        //Start the table and place the header row
+        $tableScores = '<table class="' . $scoreClass . '">';
+        $tableScores .= "<tbody>";
+
+        //Now put the actual scores into the table
+        $homeScores  = "<tr>";
+        $visitorScores = "<tr>";
+        foreach( $setNums as $setNum ) {
+            //If set does not exist yet then fake it
+            if( !array_key_exists( $setNum, $arrScores ) ) {
+                $arrScores[$setNum] = [0,0,0,0];
+                //continue;
+            }
+            $scores = $arrScores[ $setNum ];
+            $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                            , $loc, $match->toString(), $setNum
+                            , $scores[0], $scores[1], $scores[2], $scores[3] );
+            $this->log->error_log($mess);
+
+            $homeTBScores = $visitorTBScores = '';
+            if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
+                $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
+            } 
+            $homeScores .= sprintf("<td><span class='showmatchscores'>%d %s</span></td>"
+                                    , $scores[0]
+                                    , $homeTBScores );
+            
+            $visitorScores .= sprintf("<td><span class='showmatchscores'>%d %s</span></td>"
+                                    , $scores[1]
+                                    , $visitorTBScores);                   
+        }
+        $homeScores .= "</tr>";
+        $visitorScores .= "</tr>";
+        $tableScores .= $homeScores;
+        $tableScores .= $visitorScores;
+        $tableScores .= "</tbody></table>";
+        return $tableScores;
+
+    }
+    
+    /**
+     * Provides the HTML markup for displaying scores in list format
+     * @param object Match $match
+     * @return string HTML markup showing scores in a list <ul>...</ul>
+     */
+    public function listGetScores( Match &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) called", $loc, $match->toString() );
+        $this->log->error_log( $mess );
+
+        $scoreClass = "tennislistscores";
+        $arrScores = $this->getScores( $match );
+        if( count( $arrScores) === 0 ) return '<ul class="' . $scoreClass . '"></ul>';
+
+        $listScores = '<ul class="' . $scoreClass . '">';
+        $homeScores  = "<li>";
+        $visitorScores = "<li>";
+        $setNums = range( 1, $this->getMaxSets() );
+        foreach( $setNums as $setNum ) {
+            if( $setNum === $this->MaxSets ) $sep = '';
+            if( array_key_exists( $setNum, $arrScores ) ) {
+                $scores = $arrScores[ $setNum ];
+                // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                //                 , $loc, $match->toString(), $setNum
+                //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
+                if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                    $homeScores .= sprintf("<span>%d<sub>%d</sup></span>", $scores[0]);
+                    $visitorScores .= sprintf("<span>%d<sub>%d</sup></span>", $scores[1], $scores[3]);
+                } 
+                else {
+                    $homeScores .= sprintf("<span>%d</span>", $scores[0]);
+                    $visitorScores .= sprintf("<span>%d</span>", $scores[1]);
+                }
+            }
+        }
+        $homeScores .= "</li>";
+        $visitorScores .= "</li>";
+        $listScores .= $homeScores;
+        $listScores .= $visitorScores;
+        $listScores .= "</ul>";
+
+        return $listScores;
+
+    }
+    
+    /**
+     * This function removes sets that were kept after the final set or set in progress
+     * @param object Match
+     * @return int The number of sets removed from the match
+     */
+    public function trimSets( &$match ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $title = $match->toString();
+        $this->log->error_log("$loc($title)");
+
+        extract( $this->getMatchSummary( $match ) );
+        
+        $this->log->error_log("$loc($title): set number {$setInProgress} is in progress");
+        $this->log->error_log("$loc($title): final set number {$finalSet}");
+
+        $cutoff = max( $setInProgress, $finalSet );
+        if( $cutoff > 0 ) {
+            //Remove all extraneous sets
+            $numRemoved = 0;
+            for( $setNum = $cutoff + 1; $setNum <= $this->MaxSets; $setNum++ ) {
+                $match->removeSet( $setNum );
+                ++$numRemoved;
+            }
+            if( $numRemoved > 0 ) {
+                $this->log->error_log("$loc($title): removed {$numRemoved} extraneous sets");
+            }
+        }
+        return $numRemoved;
+    }    
+    
+    /**
+     * Apply the rules mask to set up match parameters.
+     */
+    protected function applyMask() {
+        //Number of sets
+        if( $this->scoreTypeMask & ScoreType::OneSet ) {
+            $this->MaxSets = 1;
+        }
+        elseif($this->scoreTypeMask & ScoreType::Best2Of3 ) {
+            $this->MaxSets = 3;
+        }
+        elseif($this->scoreTypeMask & ScoreType::Best3Of5 ) {
+            $this->MaxSets = 5;
         }
 
-        return $locked;
+        //Number of games per set
+        if( $this->scoreTypeMask & ScoreType::TieBreakAt3All ) {
+            $this->GamesPerSet = 4; //Fast 4
+        }
+        elseif( $this->scoreTypeMask & ScoreType::TieBreakAt6All ) {
+            $this->GamesPerSet = 6;
+        }
+        elseif( $this->scoreTypeMask & ScoreType::TieBreakAt8All ) {
+            $this->GamesPerSet = 8;
+        }
+        elseif( $this->scoreTypeMask & ScoreType::TieBreakAt10All ) {
+            $this->GamesPerSet = 10;
+        }
+
+        //Tie breaker score
+        if( $this->scoreTypeMask & ScoreType::TieBreak7Pt ) {
+            $this->TieBreakerMinimum = 7;
+        }
+        elseif( $this->scoreTypeMask & ScoreType::TieBreak10Pt ) {
+            $this->TieBreakerMinimum = 10;
+        }
+        elseif( $this->scoreTypeMask & ScoreType::TieBreak12Pt ) {
+            $this->TieBreakerMinimum = 12;
+        }
+
+        //No tie breaker in the final set .. must win by at least 2 games
+        if( $this->scoreTypeMask & ScoreType::NoTieBreakFinalSet ) {
+            $this->NoTieBreakerFinalSet = true;
+        }
+
+        //Final set is a tie breaker
+        if( $this->scoreTypeMask & ScoreType::TieBreakDecider ) {
+            $this->TieBreakDecider = true;
+        }
     }
     
 }

@@ -553,11 +553,15 @@ register_deactivation_hook ( __FILE__, array( 'TennisEvents', 'on_deactivate' ) 
 register_uninstall_hook ( __FILE__, array( 'TennisEvents', 'on_uninstall' ) );
 add_action(	'plugins_loaded', array ( $tennisEvents, 'plugin_setup' ) );
 
+$dir = plugin_dir_path( __DIR__ );
+include_once(__DIR__ . '/includes/gw-support.php' );
+
+
 function tl_save_error() {
     update_option( 'plugin_error',  ob_get_contents() );
 }
 
-add_action( 'activated_plugin', 'tl_save_error' );
+//add_action( 'activated_plugin', 'tl_save_error' );
 
 /* Then to display the error message: */
-error_log( "Extra chars='" . get_option( 'plugin_error' ) ."'" );
+//error_log( "Extra chars='" . get_option( 'plugin_error' ) ."'" );

@@ -6,13 +6,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $p2Dir = plugin_dir_path( plugin_dir_path( __DIR__ ) );
-require_once( $p2Dir . 'tennisevents.php' );
+//require_once( $p2Dir . 'tennisevents.php' );
 require_once( 'api-exceptions.php' );
 
 /** 
  * Responsible for putting together the necessary Events and schedule for a Tournament
- * Calculates the inital rounds of tournament
- * Composes several data level functions for Events, Brackets
+ * Calculates the inital rounds of tournament; encapsulates the event and scoring of matches
+ * Responsible for determining the ultimate champion in any contest.
+ * Composes several data level functions for Events, Brackets, Matches
  * @class  TournamentDirector
  * @package Tennis Events
  * @version 1.0.0
@@ -137,28 +138,11 @@ class TournamentDirector
         
         $chairUmpire = null;
         if( empty( $this->getEvent() ) ) return $chairUmpire;
-
-        if( $this->getEvent()->isLeaf() ) {
-            $format = $this->getEvent()->getFormat();
-            $eventscoretype = $this->getEvent()->getScoreType();
-            $scoretype = ScoreType::get_instance()->getScoreTypeMask( $eventscoretype );
-
-            if( ($scoretype & ScoreType::NoAd) && ($scoretype & ScoreType::TieBreakAt3) ) {
-                $chairUmpire = Fast4Umpire::getInstance();
-            }
-            elseif( $scoretype & ScoreType::TieBreakDecider ) {
-                $chairUmpire = MatchTieBreakUmpire::getInstance();
-            }
-            elseif( !($scoretype & ScoreType::TieBreakDecider) && ($scoretype & ScoreType::TieBreak12Pt) ) {
-                $chairUmpire = ProSetUmpire::getInstance();
-            }
-            else {
-                $chairUmpire = RegulationMatchUmpire::getInstance();
-                if($scoretype & ScoreType::TieBreakAt3 ) {
-                    $chairUmpire->setMaxSets( 3 );
-                }
-            }
-        }
+        
+        $format = $this->getEvent()->getFormat();
+        $scoretype = $this->getEvent()->getScoreType();
+        $chairUmpire = ChairUmpire::getUmpire( $scoretype );
+        
         return $chairUmpire;
     }
 
@@ -279,8 +263,9 @@ class TournamentDirector
                 throw new InvalidTournamentException( $mess );
             }
 
-            if( $umpire->isLocked( $match ) || $match->isBye() ) {
-                $winner = $umpire->matchWinner( $match );
+            $winner = null;
+            if( $umpire->isLocked( $match, $winner ) ) {
+                //$winner = $umpire->matchWinner( $match );
 
                 if( is_null( $winner ) ) {
                     $mess = "Match $title is locked but cannot determine winner.";
@@ -423,13 +408,94 @@ class TournamentDirector
 
         return $this->numRounds;
     }
+
+    /**
+     * This function produces an array of statistics for the given bracket
+     * @param Bracket The bracket for which summary is required
+     * @return array matches completed and total matches played by round
+     *               total matches completed and played for the bracket
+     *               Bracket champion if all matches have been played
+     */
+    public function getBracketSummary( Bracket $bracket ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        
+        $umpire = $this->getChairUmpire();
+        $numRounds = $bracket->getNumberOfRounds();
+        $summary=[];
+        $completed = 0;
+        $total = 0;
+        $summary["byRound"] = array();
+        $matchesByRound = $bracket->getMatchHierarchy();
+        $lastMatchNum = 0;
+        $allMatchesCompleted = true;
+        for($r = 1; $r <= $numRounds; $r++ ) {
+            $completedByRound = $totalByRound = 0;
+            foreach( $matchesByRound[$r] as $match ) {
+                ++$totalByRound;
+                $lastMatchNum = $match->getMatchNumber();
+                if( !empty( $umpire->matchWinner( $match ) ) ) {
+                    ++$completedByRound;
+                }
+                if( $allMatchesCompleted && !$umpire->isLocked( $match ) ) $allMatchesCompleted = false;
+            }
+            $summary["byRound"][$r] = $completedByRound . ' of ' . $totalByRound;
+            $total += $totalByRound;
+            $completed += $completedByRound;
+        }
+
+        $summary["completedMatches"] = $completed;
+        $summary["totalMatches"] = $total;
+        $summary["champion"] = '';
+        //Determine Champion
+        if( $total === $completed ) {
+            switch( $this->getEvent()->getFormat() ) {
+                case Format::SINGLE_ELIM:
+                case Format::DOUBLE_ELIM:
+                    $champion = $umpire->matchWinner( $matchesByRound[$numRounds][$lastMatchNum] );
+                    $champion = is_null( $champion ) ? 'Could not determine the champion!' : $champion->getName();
+                    $summary["champion"] = $champion;
+                break;
+                case Format::POINTS:
+                    if( $allMatchesCompleted ) { //only find champion if all matches have been completed
+                        $entrantSummary = $this->getEntrantSummary( $bracket );
+                        $champion = '';
+                        $maxPoints = 0;
+                        foreach( $entrantSummary as $player ) {
+                            if( $player["totalPoints"] > $maxPoints ) {
+                                $maxPoints = $player["totalPoints"];
+                                $champion = $player["name"];
+                            }
+                        }
+                    }
+                break;
+                case Format::POINTS2:
+                    if( $allMatchesCompleted ) { //only find champion if all matches have been completed
+                        $entrantSummary = $this->getEntrantSummary( $bracket, 2 );
+                        $champion = '';
+                        $maxPoints = 0;
+                        foreach( $entrantSummary as $player ) {
+                            if( $player["totalPoints"] > $maxPoints ) {
+                                $maxPoints = $player["totalPoints"];
+                                $champion = $player["name"];
+                            }
+                        }
+                    }
+                break;
+                default:
+                break;
+            }
+            $summary["champion"] = $champion;
+        }
+        return $summary;
+    }
     
     /**
      * Get summary of entrant match wins by round as well as total points and total games
      * @param object Bracket $bracket
-     * @return array entrant summary
+     * @return array entrant summary: name, position, points, games and sets
+     *                                and matches won per round
      */
-    public function getEntrantSummary( Bracket $bracket ) {
+    public function getEntrantSummary( Bracket $bracket, int $pointsForWin = 1 ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $summary = [];
@@ -456,7 +522,7 @@ class TournamentDirector
                         $totalSetsWon += $homeSetsWon;
                         if( $andTheWinnerIs === 'home') {
                             ++$totalMatchesWon;
-                            $totalPoints += $totalMatchesWon * 2;
+                            $totalPoints += $totalMatchesWon * $pointsForWin;
                         }
                     }
                     elseif( $entrant->getName() === $chairUmpire->getVisitorPlayer( $match ) ) {
@@ -464,7 +530,7 @@ class TournamentDirector
                         $totalSetsWon += $visitorSetsWon;
                         if( $andTheWinnerIs === 'visitor') {
                             ++$totalMatchesWon;
-                            $totalPoints += $totalMatchesWon * 2;
+                            $totalPoints += $totalMatchesWon * $pointsForWin;
                         }
                     }
                 } //matches
@@ -472,6 +538,7 @@ class TournamentDirector
             } //rounds
             $entrantSummary["totalPoints"] = $totalPoints;
             $entrantSummary["totalGames"] = $totalGames;
+            $entrantSummary["totalSets"] = $totalSetsWon;
             $summary[] = $entrantSummary;
         } //matchesByEntrant
 

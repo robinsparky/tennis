@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$dir = plugin_dir_path( __DIR__ );
-include_once($dir . '/gw-support.php' );
+// $dir = plugin_dir_path( __DIR__ );
+// include_once($dir . '/gw-support.php' );
 
 
 /**
@@ -45,19 +45,5 @@ class MatchTieBreakUmpire extends ChairUmpire
 		}
 
 	}
-    
-	public function setMaxSets( int $max = 5 ) {
-		switch( $max ) {
-			case 3:
-			case 5:
-				$this->MaxSets = $max;
-				$result = true;
-				break;
-			default:
-			$result = false;
-		}
-		return $result;
-	}
-
     
 }

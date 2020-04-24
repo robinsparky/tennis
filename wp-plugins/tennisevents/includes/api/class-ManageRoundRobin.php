@@ -366,6 +366,7 @@ class ManageRoundRobin
             }
             else {
                 //Set the score for this match 
+                $winner = null;
                 foreach( $scores as $score ) {
                     $chairUmpire->recordScores( $match
                                                 , $score["setNum"]
@@ -373,7 +374,7 @@ class ManageRoundRobin
                                                 , $score["homeTieBreaker"]
                                                 , $score["visitorGames"]
                                                 , $score["visitorTieBreaker"] );
-                    if( $chairUmpire->isLocked( $match ) ) break;
+                    if( $chairUmpire->isLocked( $match, $winner ) ) break;
                 }
 
                 if( empty($match->getMatchDate_Str()) ) {
@@ -397,11 +398,13 @@ class ManageRoundRobin
                 $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
                 $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
                 
-                $summaryTable = $td->getEntrantSummary( $bracket );
+                $pointsPerWin = 1;
+                if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+                $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
                 //$this->log->error_log($summaryTable, "$loc - entrant summary");
                 $data["entrantSummary"] = $summaryTable;
 
-                $winner = $chairUmpire->matchWinner( $match );
+                //$winner = $chairUmpire->matchWinner( $match );
                 $data['winner'] = '';
                 if( !is_null( $winner ) ) {
                     if( $chairUmpire->winnerIsVisitor( $match ) ) {
@@ -688,7 +691,8 @@ class ManageRoundRobin
         // $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );
         $numMatches = $bracket->numMatches();
-        $matchesByEntrant = $bracket->matchesByEntrant();
+        $pointsPerWin = 1;
+        if( $td->getEvent()->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
 
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: num matches:$numMatches; number rounds=$numRounds; signup size=$signupSize");
@@ -708,7 +712,7 @@ class ManageRoundRobin
 	    // Start output buffering we don't output to the page
         ob_start();
         //Render the point summary
-        $path = TE()->getPluginPath() . '\includes\templates\pointscore-template.php';
+        $path = TE()->getPluginPath() . '\includes\templates\summaryscore-template.php';
         require( $path );
 
         // Get template file

@@ -400,7 +400,6 @@ class ManageDraw
                                                 , $score["visitorTieBreaker"] );
                 }
 
-
                 if( empty($match->getMatchDate_Str()) ) {
                     $match->setMatchDate_Str( date("Y-m-d") );
                     $match->setMatchTime_Str( date("g:i:s") );
@@ -421,6 +420,7 @@ class ManageDraw
                 $data['advanced'] = 0; //$td->advance( $bracketName );
                 $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
                 $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
+                
                 $winner = $chairUmpire->matchWinner( $match );
                 $data['winner'] = '';
                 if( !is_null( $winner ) ) {

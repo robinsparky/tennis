@@ -30,30 +30,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ScoreType {
 
     public const NoAd             = 1; //Can win game by one point
-    public const LetsNotPlayed    = 2; //Keep playing if a let occurs
-    public const TieBreak6Pt      = 4; //6 point tie breaker
-    public const TieBreak8Pt      = 8; //8 point tie breaker
-    public const TieBreak10Pt     = 16; //10 point tie breaker
-    public const TieBreak12Pt     = 32; //12 point tie breaker
-    public const TieBreakAt3      = 64; //tie break at 3 all
-    public const TieBreakAt6      = 128; //tie break at 6 all
-    public const TieBreakAt8      = 256; //tie break at 8 all
-    public const TieBreakAt10     = 512; //tie break at 10 all
-    public const TieBreakDecider  = 1024; //Match is decided by tie breaker instead of final set
+    public const TieBreak7Pt      = 2; //7 point tie breaker
+    public const TieBreak10Pt     = 4; //10 point tie breaker
+    public const TieBreak12Pt     = 8; //12 point tie breaker
+    public const Best2Of3         = 16; //Specifies that match is best 2 of 3 sets
+    public const TieBreakAt3All   = 32; //tie break at 3 all because first to win 4 games wins the set
+    public const TieBreakAt6All   = 64; //tie break at 6 all
+    public const TieBreakAt8All   = 128; //tie break at 8 all
+    public const TieBreakAt10All  = 256; //tie break at 10 all
+    public const TieBreakDecider  = 512; //Match is decided by tie breaker instead of final set
+    public const NoTieBreakFinalSet = 1024; //Final set must be won by 2 games; ie no tie breaker
+    public const Best3Of5         = 2048; //Best 3 of 5 sets
+    public const OneSet           = 4096; //Only 1 set played
 
-    public const REGULATION      = 'Regulation';
-    public const NO_AD           = "No Ad";
-    public const PRO_SET8        = "Pro Set 8 Games";
-    public const PRO_SET10       = "Pro Set 10 Games";
-    public const MATCH_TIE_BREAK = "Match Tie Break";
-    public const FAST4           = "Fast4";
+    public const REGULATION      = 'Regulation'; //Best 2 of 3 sets with 7pt tie breaker at 6 all
+    public const ATPMAJOR        = 'Major'; //Best 3 of 5 sets with 7pt tie breaker at 6 all
+    public const PRO_SET8        = "Pro Set 8 Games"; //Best of 8 games with 7 pt tie break at 8 all
+    public const PRO_SET10       = "Pro Set 10 Games"; //Best of 10 games with 7pt tie break at 10 all
+    public const MATCH_TIE_BREAK = "Match Tie Break"; //Best 2 of 3 sets, but 3rd set is 10pt tie breaker. e.g. Laver Cup
+    public const FAST4           = "Fast4"; //No ad scoring, lets ignored, 7pt tie breaker at 3 all
 
-    public $ScoreTypes = array( self::REGULATION      => self::TieBreakAt6 & self::TieBreak6Pt,
-                                self::NO_AD           => self::TieBreakAt3 & self::TieBreak6Pt,
-                                self::PRO_SET8        => self::TieBreakAt8 & self::TieBreak12Pt,
-                                self::PRO_SET10       => self::TieBreakAt10 & self::TieBreak12Pt,
-                                self::MATCH_TIE_BREAK => self::TieBreakDecider & self::TieBreak10Pt, 
-                                self::FAST4           => self::NoAd & self::LetsNotPlayed & self::TieBreakAt3 );
+    public $ScoreTypes = array( self::REGULATION      => self::Best2Of3 & self::TieBreakAt6All & self::TieBreak7Pt,
+                                self::ATPMAJOR        => self::Best3Of5 & self::TieBreakAt6All & self::TieBreak7Pt,
+                                self::FAST4           => self::Best2Of3 & self::NoAd & self::TieBreakAt3All & self::TieBreak7Pt,
+                                self::PRO_SET8        => self::OneSet & self::TieBreakAt8All & self::TieBreak7Pt,
+                                self::PRO_SET10       => self::OneSet & self::TieBreakAt10All & self::TieBreak7Pt,
+                                self::MATCH_TIE_BREAK => self::Best2Of3 & self::TieBreakDecider & self::TieBreakAt6All & self::TieBreak10Pt, 
+                            );
                                
 
 	//This class's singleton
