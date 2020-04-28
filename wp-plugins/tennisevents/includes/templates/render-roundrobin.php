@@ -8,19 +8,36 @@
 <tr><th>Round <?php echo $roundnum; ?></th></tr></thead>
 <tbody>
 <?php foreach( $matches as $match ) { 
+    $begin = microtime( true );
+
     $title = $match->toString();
+    $this->log->error_log("render-RoundRobin: {$title}");
+
     $eventId = $match->getBracket()->getEvent()->getID();
     $bracketNum = $match->getBracket()->getBracketNumber();
     $roundNum = $match->getRoundNumber();
     $matchNum = $match->getMatchNumber();
-
-    $winner  = $umpire->matchWinner( $match );
-    $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
-
+    
+    extract( $umpire->getMatchSummary( $match ) );
+    
+    $home    = $match->getHomeEntrant();
     $homeWinner = '';
+    $visitor = $match->getVisitorEntrant();
+    $visitorWinner = '';
+    if( $andTheWinnerIs === 'home') {
+        $winner = $home->getName();
+        $homeWinner = $winnerClass;
+    }
+    elseif( $andTheWinnerIs === 'visitor' ) {
+        $winner = $visitor->getName();
+        $visitorWinner = $winnerClass;
+    }
+    else {
+        $winner = 'no winner yet';
+    }
+
     $home    = $match->getHomeEntrant();
     $hname   = !is_null( $home ) ? $home->getName() : 'tba';
-    if( $umpire->winnerIsHome( $match ) ) $homeWinner = $winnerClass;
     
     $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
     $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
@@ -28,10 +45,8 @@
     $visitor = $match->getVisitorEntrant();
     $vname   = 'tba';
     $vseed   = '';
-    $visitorWinner = '';
     if( isset( $visitor ) ) {
         $vname   = $visitor->getName();
-        if( $umpire->winnerIsVisitor( $match ) ) $visitorWinner = $winnerClass;
         $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
     }
     $vname = empty($vseed) ? $vname : $vname . "($vseed)";
@@ -53,6 +68,7 @@
     if( !empty($startDate) > 0 ) {
         $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
     }
+    $this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobin Elapsed time", micro_time_elapsed( $begin ), $title));
 ?>
 <tr>
 <td class="item-player" data-eventid="<?php echo $eventId;?>" 
@@ -78,7 +94,7 @@
   <li><a class="setcomments">Comment Match</a></li></ul>
 </div>
 <div class="matchinfo matchtitle"><?php echo $title; ?>&nbsp;<span class="matchinfo matchstatus"><?php echo $status; ?></span></div>
-<div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $startDate;?> &nbsp; <?php echo $startTime; ?></div>
+<div class="matchinfo matchstart"><?php echo $startedMess; ?> &nbsp; <?php echo $startDate;?> &nbsp; <?php echo $startTime; ?></div>
 <div class="changematchstart">
 <input type='date' class='changematchstart' name='matchStartDate' value='<?php echo $startDate;?>'>
 <input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTime;?>'>

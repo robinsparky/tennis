@@ -124,6 +124,7 @@ class ManageRoundRobin
                 }
             }
         }
+        unset( $evts );
 
         if( !$found ) {
             $mess = sprintf("No such event=%d for the club '%s'", $eventId, $club->getName() );
@@ -675,6 +676,7 @@ class ManageRoundRobin
     private function renderBracketByMatch( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
+        gw_print_mem();
         
 		$startFuncTime = microtime( true );
 
@@ -686,13 +688,23 @@ class ManageRoundRobin
 
         $umpire = $td->getChairUmpire();
 
-        $loadedMatches = $bracket->getMatchHierarchy( true );
-        // $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
-        // $numPreliminaryMatches = count( $preliminaryRound );
-        $numRounds = $td->totalRounds( $bracketName );
-        $numMatches = $bracket->numMatches();
+        $loadedMatches = $bracket->getMatchHierarchy();
+        $numRounds = 0;
+        $numMatches = 0;
+        foreach( $loadedMatches as $r => $m ) {
+            if( $r > $numRounds ) $numRounds = $r;
+            foreach( $m as $match ) {
+                ++$numMatches;
+            }
+        }
+
+        // $numRounds = $td->totalRounds( $bracketName );
+        // $numMatches = $bracket->getNumberOfMatches();
+
         $pointsPerWin = 1;
         if( $td->getEvent()->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+        $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
+        $bracketSummary = $td->getBracketSummary( $bracket ); //NOTE: calls $bracket->getMatchHierarchy();
 
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: num matches:$numMatches; number rounds=$numRounds; signup size=$signupSize");
@@ -726,6 +738,7 @@ class ManageRoundRobin
         // Save output and stop output buffering
         $output = ob_get_clean();
 
+        gw_print_mem();
         $this->log->error_log( sprintf("%0.6f",micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
         return $output;
     }
@@ -734,7 +747,7 @@ class ManageRoundRobin
      * Get the Draw's match data as array
      * Needed in order to serialize for json
      */
-    private function getMatchesAsArray(TournamentDirector $td,  Bracket $bracket ) {
+    private function getMatchesAsArray( TournamentDirector $td,  Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 
@@ -744,7 +757,24 @@ class ManageRoundRobin
         $arrMatches = [];
         foreach( $matches as $match ) {
             $arrMatch = $match->toArray();
-            $winner = $chairUmpire->matchWinner( $match );
+            extract( $chairUmpire->getMatchSummary( $match ) );
+            
+            if( !empty( $andTheWinnerIs ) ) {
+                switch( $andTheWinnerIs ) {
+                    case 'home':
+                        $winner = $match->getHomeEntrant();
+                        break;
+                    case 'visitor':
+                        $winner = $match->getVisitorEntrant();
+                        break;
+                    default:
+                        $winner = null;
+                }
+            }
+            else {
+                $winner = null;
+            }
+            //$winner = $chairUmpire->matchWinner( $match );
             $status = $chairUmpire->matchStatus( $match );
             $strScores = $chairUmpire->strGetScores( $match );
             $arrMatch["scores"] = $strScores;

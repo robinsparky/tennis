@@ -195,19 +195,116 @@ function time_elapsed( $start ) {
 
 function micro_time_elapsed( $start ) {
 	$ret = 0.0;
-	if( isset($start) ) {
+	if( isset( $start ) ) {
 		$now = microtime(true);
 		$ret = $now - $start ;
 	}
 	return $ret;
 }
 
+function gw_print_mem()
+{
+   /* Currently used memory */
+   $mem_usage = memory_get_usage();
+   
+   /* Peak memory usage */
+   $mem_peak = memory_get_peak_usage();
+   
+	/* Get the memory limit in bytes. */
+	$mem_limit = gw_get_memory_limit();
+
+   error_log( 'Current usage:' . round($mem_usage / 1024) . 'KB of memory.' );
+   error_log( 'Peak usage: ' . round($mem_peak / 1024) . 'KB of memory.' );
+   error_log( 'Memory Limit: ' . round($mem_limit / 1048576) . 'MB.');
+}
+
+function gw_generateCallTrace()
+{
+    $e = new Exception();
+    $trace = explode("\n", $e->getTraceAsString());
+    // reverse array to make steps line up chronologically
+    $trace = array_reverse($trace);
+    array_shift($trace); // remove {main}
+    array_pop($trace); // remove call to this method
+    $length = count($trace);
+    $result = array();
+   
+    for ($i = 0; $i < $length; $i++)
+    {
+        $result[] = ($i + 1)  . ')' . substr($trace[$i], strpos($trace[$i], ' ')); // replace '#someNum' with '$i)', set the right ordering
+    }
+   
+    return "\t" . implode("\n\t", $result);
+}
+
+
+function gw_shortCallTrace()
+{
+    $trace = debug_backtrace();
+    array_shift($trace); // remove {main}
+    array_pop($trace); // remove call to this method
+    $length = count($trace);
+    $result = array();
+   
+    for ($i = 0; $i < $length; $i++)
+    {
+		$funName = array_key_exists("function", $trace[$i]) ? $trace[$i]['function'] : '?function?';
+		$fileName = array_key_exists("file", $trace[$i]) ? $trace[$i]['file'] : 'unknown';
+		$lineNum = array_key_exists( "line", $trace[$i]) ? $trace[$i]['line'] : '?';
+		$className = array_key_exists("class", $trace[$i]) ? $trace[$i]['class'] : '';
+		$obj = array_key_exists("object", $trace[$i]) ? $trace[$i]['object'] : '';
+		$callType = array_key_exists("type", $trace[$i]) ? $trace[$i]['type'] : '.';
+		$name = '';
+		if( empty( $className ) && empty( $objName ) ) {
+			$name = $fileName;
+		}
+		elseif( empty( $objName ) ) {
+			$name = $className;
+		}
+		else {
+			$name = ($obj);
+		}
+		$result[] = '\t' . ($i + 1)  . ')' . $name . $callType . $funName . '(' . $lineNum . ')';
+    }
+   
+    return implode("\n\t", $result);
+}
+
+/* Parse the memory_limit variable from the php.ini file. */
+function gw_get_memory_limit()
+{
+   $limit_string = ini_get('memory_limit');
+   $unit = strtolower(mb_substr($limit_string, -1 ));
+   $bytes = intval(mb_substr($limit_string, 0, -1), 10);
+   
+   switch ($unit)
+   {
+      case 'k':
+         $bytes *= 1024;
+         break 1;
+      
+      case 'm':
+         $bytes *= 1048576;
+         break 1;
+      
+      case 'g':
+         $bytes *= 1073741824;
+         break 1;
+      
+      default:
+         break 1;
+   }
+   
+   return $bytes;
+}
+
+
 class GW_Debug {
 
 	private function __construct() {
 	}
 	
-	public static function debug($obj,$label='') {
+	public static function debug( $obj, $label='' ) {
 		global $wp_version;
 		global $wp_db_version;
 		global $wp;

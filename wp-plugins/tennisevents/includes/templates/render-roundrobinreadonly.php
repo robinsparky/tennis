@@ -4,42 +4,55 @@
 <?php 
     $winnerClass = "matchwinner";
     foreach( $loadedMatches as $roundnum => $matches ) {
+        $this->log->error_log("render-RoundRobinReadOnly: round number {$roundnum}" . PHP_EOL)
 ?>
 <tr><th>Round <?php echo $roundnum; ?></th></tr></thead>
 <tbody>
 <?php foreach( $matches as $match ) { 
+    $begin = microtime( true );
     $title = $match->toString();
-    $eventId = $match->getBracket()->getEvent()->getID();
-    $bracketNum = $match->getBracket()->getBracketNumber();
+    $this->log->error_log("render-RoundRobinReadOnly: {$title}");
+    
+    $eventId = $bracket->getEvent()->getID();
+    $bracketNum = $bracket->getBracketNumber();
     $roundNum = $match->getRoundNumber();
     $matchNum = $match->getMatchNumber();
 
-    $winner  = $umpire->matchWinner( $match );
-    $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
+    extract( $umpire->getMatchSummary( $match ) );
 
-    $homeWinner = '';
     $home    = $match->getHomeEntrant();
+    $homeWinner = '';
+    $visitorWinner = '';
+    $visitor = $match->getVisitorEntrant();
+    if( $andTheWinnerIs === 'home') {
+        $winner = $home->getName();
+        $homeWinner = $winnerClass;
+    }
+    elseif( $andTheWinnerIs === 'visitor' ) {
+        $winner = $visitor->getName();
+        $visitorWinner = $winnerClass;
+    }
+    else {
+        $winner = 'no winner yet';
+    }
+
     $hname   = !is_null( $home ) ? $home->getName() : 'tba';
-    if( $umpire->winnerIsHome( $match ) ) $homeWinner = $winnerClass;
     
     $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
     $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
 
-    $visitor = $match->getVisitorEntrant();
     $vname   = 'tba';
     $vseed   = '';
-    $visitorWinner = '';
     if( isset( $visitor ) ) {
         $vname   = $visitor->getName();
-        if( $umpire->winnerIsVisitor( $match ) ) $visitorWinner = $winnerClass;
         $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
     }
     $vname = empty($vseed) ? $vname : $vname . "($vseed)";
+    
     $cmts = $match->getComments();
     $cmts = isset( $cmts ) ? $cmts : '';
     $displayscores = $umpire->tableDisplayScores( $match );   
 
-    //$status  = $umpire->matchStatus( $match );
     $statusObj = $umpire->matchStatusEx( $match );
     $majorStatus = $statusObj->getMajorStatus();
     $minorStatus = $statusObj->getMinorStatus();
@@ -51,6 +64,7 @@
     if( strlen( $startDate ) > 0 ) {
         $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
     }
+    $this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobinReadOnly Elapsed time", micro_time_elapsed( $begin ), $title));
 ?>
 <tr>
 <td class="item-player" data-eventid="<?php echo $eventId;?>" 

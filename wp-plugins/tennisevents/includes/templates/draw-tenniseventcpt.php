@@ -16,11 +16,11 @@
 				 else {
 					 $event = $events;
 				 }
-				 if( is_null( $event ) ) {
+				 if( empty( $event ) ) {
 					 wp_die( __("Could not find associated event!", TennisEvents::TEXT_DOMAIN ) );
 				 }
 				 if( $event->isRoot() ) {
-				   wp_die( __("Root Tennis Event not expected here!", TennisEvents::TEXT_DOMAIN ) );
+				   wp_die( __("Root Tennis Event is not expected here!", TennisEvents::TEXT_DOMAIN ) );
 				} 
 				// call editor content of post/page	s
 				//wp_link_pages( );
@@ -40,6 +40,7 @@
 							echo do_shortcode("[manage_draw by=match eventid={$event->getID()}, bracketname={$bracketName}]");
 						break;
 						case Format::POINTS:
+						case Format::POINTS2:
 							echo do_shortcode("[manage_roundrobin eventid={$event->getID()}, bracketname={$bracketName}]");
 						break;
 					}

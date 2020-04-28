@@ -11,8 +11,6 @@ endfor //rounds in table head
 <th>Points</th><th>Games</th></tr></thead>
 <tbody>
     <?php
-    if( !isset( $pointsPerWin ) ) $pointsPerWin = 1;
-    $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
     $ctr = 0;
     foreach($summaryTable as $entrantSummary ) :
     ?>
@@ -34,11 +32,9 @@ endfor //rounds in table head
     ?>
 </tbody>
 <tfooter>
-<?php  $bracketSummary = $td->getBracketSummary( $bracket ); 
-?>
 <td colspan="2"><span><?php echo $bracketSummary["completedMatches"] . " of " . $bracketSummary["totalMatches"]; echo ' Matches Completed';?></span></td>
 <?php
-for($r =1; $r<=$numRounds; $r++) : ?>
+for($r = 1; $r<=$numRounds; $r++) : ?>
 <td><?php echo $bracketSummary["byRound"][$r]; ?></td>
 <?php endfor; ?>
 <td colspan="2"><span><?php if( !empty($bracketSummary["champion"]) ) echo "Champion: " . $bracketSummary["champion"];?></span></td>

@@ -7,6 +7,7 @@ get_header();
 	---->	
 <?php
 
+$startFuncTime = microtime( true );
 // Sidebar Alt 
 //get_template_part( 'templates/sidebars/sidebar', 'alt' ); 
 
@@ -14,7 +15,7 @@ get_header();
 //get_template_part( 'templates/sidebars/sidebar', 'left' );
 
 ?>
-	<div class="container">
+<div class="container">
 		<section class="tennis-events-draw">
 			<!-- Blog Area -->
 			<?php
@@ -30,11 +31,13 @@ get_header();
 				comments_template('',true);  
 			} ?>	
 		</section>
-	</div>
 </div> <!-- /Container -->
 
 <?php // Sidebar Right
 //get_template_part( 'templates/sidebars/sidebar', 'right' );
 ?>
 <!-- </div> /Page content -->
-<?php get_footer(); ?>
+<?php 		
+echo sprintf("Elapsed time: %0.6f", micro_time_elapsed( $startFuncTime ));
+
+get_footer(); ?>

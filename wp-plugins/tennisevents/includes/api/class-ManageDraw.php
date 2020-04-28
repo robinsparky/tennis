@@ -740,7 +740,7 @@ class ManageDraw
         $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
         $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );
-        $numMatches = $bracket->numMatches();
+        $numMatches = $bracket->getNumberOfMatches();
 
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: num matches:$numMatches; number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
@@ -985,7 +985,7 @@ EOT;
         $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
         $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );
-        $numMatches = $bracket->numMatches();
+        $numMatches = $bracket->getNumberOfMatches();
 
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: num matches:$numMatches; number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");

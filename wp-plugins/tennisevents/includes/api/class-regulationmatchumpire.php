@@ -194,9 +194,13 @@ class RegulationMatchUmpire extends ChairUmpire
      *               visitor sets won
      *               visitor games won
      */
-    public function getMatchSummary(Match &$match ) {
+    public function getMatchSummary( Match &$match ) {
+        $startTime = microtime( true );
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        //$this->log->error_log("$loc");
+
+        $title = $match->toString();
+        $this->log->error_log("$loc($title)");
+        $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
         
         //NOTE: It is imperative that sets be in ascending order of set number
         $sets = $match->getSets( true );
@@ -294,7 +298,8 @@ class RegulationMatchUmpire extends ChairUmpire
                     , "earlyEnd"       => $earlyEnd
                     , "comments"       => $cmts ];
 
-        $this->log->error_log($result, "$loc: Match Summary");
+        error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", micro_time_elapsed( $startTime )));
+        $this->log->error_log($result, "$loc: Match Summary Result");
 
         return $result;
     }

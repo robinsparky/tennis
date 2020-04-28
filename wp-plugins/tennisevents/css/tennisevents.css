@@ -144,7 +144,7 @@ table.tennis-point-summary {
     position: sticky;
     position: -webkit-sticky; /* Safari */
     top: 30%;
-    left: 5%;
+    left: 0%;
     border: 3px solid blue;
 }
 

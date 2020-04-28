@@ -72,6 +72,10 @@ class Event extends AbstractData
 	 * Or all child Events of a specific parent Events
      */
     public static function find( ...$fk_criteria ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;		
+		$calledBy = debug_backtrace()[1]['function'];
+		error_log("{$loc} ... called by {$calledBy}");
+
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$joinTable = "{$wpdb->prefix}tennis_club_event";
@@ -127,9 +131,9 @@ class Event extends AbstractData
 	/**
 	 * Fetches one or more Events from the db with the given external reference
 	 * @param $extReference Alphanumeric up to 100 chars
-	 * @return Event with matching external reference.
-	 *         Or and array of events with matching reference
-	 *         Null if not found
+	 * @return Event  matching external reference.
+	 *         Or an array of events matching reference
+	 *         Or Null if not found
 	 */
 	static public function getEventByExtRef( $extReference ) {
 		global $wpdb;
@@ -152,11 +156,44 @@ class Event extends AbstractData
 		}
 		return $result;
 	}
+	
+	/**
+	 * Fetches one or more Event ids from the db with the given external reference
+	 * @param $extReference Alphanumeric up to 100 chars
+	 * @return int Event ID matching external reference.
+	 *         Or an array of event ids matching reference
+	 *         Or 0 if not found
+	 */
+	static public function getEventIdByExtRef( $extReference ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'tennis_external_event';		
+		$sql = "SELECT `event_ID`
+				FROM $table WHERE `external_ID`='%s'";
+		$safe = $wpdb->prepare( $sql, $extReference );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
+		error_log( sprintf("Event::getEventIdByExtRef(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
+		
+		$result = 0;
+		if( count( $rows ) > 1) {
+			$result = array();
+			foreach( $rows as $row ) {
+				$result[] = $row['event_ID'];
+			}
+		}
+		elseif( count( $rows ) === 1 ) {
+			$result = $rows[0]['event_ID'];
+		}
+		return $result;
+	}
 
 	/**
 	 * Get instance of a Event using it's primary key: ID
 	 */
     static public function get( int ...$pks ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;		
+		$calledBy = debug_backtrace()[1]['function'];
+		error_log("{$loc} ... called by {$calledBy}");
+		
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
@@ -211,7 +248,16 @@ class Event extends AbstractData
 
 	/******************************* Instance Methods **************************************/
 	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
 		parent::__construct( true );
+
+        // static $numEvents= 0;
+		// ++$numEvents;
+		// $calledBy = debug_backtrace()[1]['function'];		
+		// error_log("{$loc} ... {$numEvents} ... called by {$calledBy}");
+		// error_log( gw_shortCallTrace() );
+		
 		$this->isnew = true;
 		$this->name = $name;
 
@@ -229,8 +275,10 @@ class Event extends AbstractData
 	}
 	
     public function __destruct() {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log("$loc ... ");
+		static $numEvents = 0;
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		++$numEvents;
+		error_log("{$loc} ... {$numEvents}");
 		
 		$this->parent = null;
 			if(isset($this->childEvents)) {

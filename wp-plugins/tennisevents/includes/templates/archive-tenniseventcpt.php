@@ -130,10 +130,11 @@ $clubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : 
 	</div> <!-- /Container -->
 
 <?php // Sidebar Right
- get_template_part( 'templates/sidebars/sidebar', 'right' );
+ //get_template_part( 'templates/sidebars/sidebar', 'right' );
 ?>
 </div> <!-- /Page content -->
 
 <?php 
+echo "FOOTER*****************************";
 get_footer(); 
 ?>

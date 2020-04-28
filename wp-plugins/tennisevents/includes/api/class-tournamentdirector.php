@@ -65,6 +65,7 @@ class TournamentDirector
     public function __construct( Event $evt ) {
         $this->log = new BaseLogger( true );
         $this->event = $evt;
+        $this->getAllDescendants();
         
         $this->matchType = $this->event->getMatchType();
         switch( $this->matchType ) {
@@ -92,6 +93,23 @@ class TournamentDirector
 
     public function __destruct() {
         $this->event = null;
+    }
+
+    private function getAllDescendants() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $numBrackets = 0;
+        $numMatches = 0;
+        $numSets = 0;
+        foreach( $this->event->getBrackets( true ) as $bracket ) {
+            ++$numBrackets;
+            foreach( $bracket->getMatches( true ) as $match ) {
+                ++$numMatches;
+                foreach( $match->getSets( true ) as $set ) {
+                    ++$numSets;
+                }
+            }
+        }
+        $this->log->error_log("{$loc} loaded {$numBrackets} brackets; {$numMatches} matches; {$numSets} sets");
     }
 
     /**
@@ -418,14 +436,30 @@ class TournamentDirector
      */
     public function getBracketSummary( Bracket $bracket ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc<<<<<<<<<<<<<<<<<<<<<<<<<<");
+        $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+        
+        if( !$bracket->hasEvent() ) {
+            throw new InvalidBracketException("Bracket's event is missing");
+        }
         
         $umpire = $this->getChairUmpire();
-        $numRounds = $bracket->getNumberOfRounds();
+        $matchesByRound = $bracket->getMatchHierarchy();
+        
+        $numRounds = 0;
+        $numMatches = 0;
+        foreach( $matchesByRound as $r => $matches ) {
+            if( $r > $numRounds ) $numRounds = $r;
+            foreach( $matches as $match ) {
+                ++$numMatches;
+            }
+        }
+
+        //$numRounds = $bracket->getNumberOfRounds();
         $summary=[];
         $completed = 0;
         $total = 0;
         $summary["byRound"] = array();
-        $matchesByRound = $bracket->getMatchHierarchy();
         $lastMatchNum = 0;
         $allMatchesCompleted = true;
         for($r = 1; $r <= $numRounds; $r++ ) {
@@ -486,6 +520,9 @@ class TournamentDirector
             }
             $summary["champion"] = $champion;
         }
+        unset( $matchesByRound );
+        unset( $entrantSummary );
+        $this->log->error_log("$loc>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         return $summary;
     }
     
@@ -497,6 +534,12 @@ class TournamentDirector
      */
     public function getEntrantSummary( Bracket $bracket, int $pointsForWin = 1 ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc<<<<<<<<<<<<<<<<<<<<<<<<<<");
+        $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+
+        if( !$bracket->hasEvent() ) {
+            throw new InvalidBracketException("Bracket's event is missing");
+        }
 
         $summary = [];
         $chairUmpire = $this->getChairUmpire();
@@ -542,6 +585,10 @@ class TournamentDirector
             $summary[] = $entrantSummary;
         } //matchesByEntrant
 
+        unset( $matchesByEntrant );
+        unset( $matchInfo );
+        unset( $matches );
+        $this->log->error_log("$loc>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         return $summary;
     }
 
@@ -939,7 +986,7 @@ class TournamentDirector
             throw new InvalidTournamentException( __( "Did not schedule all players into initial rounds." ) );
         }
 
-        $matchesCreated += $bracket->numMatches();
+        $matchesCreated += $bracket->getNumberOfMatches();
         $this->save();
 
         $this->log->error_log("<<<<<<<<<<<<<<<<<<<<<<<$loc<<<<<<<<<<<<<<<<<<<<<<<<<<<");

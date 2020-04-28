@@ -84,8 +84,11 @@ class Bracket extends AbstractData
 	 * Get instance of a Bracket using it's primary key (event_ID, bracket_num)
 	 */
     static public function get( int ... $pks ) {
+        $loc = __CLASS__ . '::' .  __FUNCTION__;	
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
+        
         global $wpdb;
-        $loc = __CLASS__ . '::' .  __FUNCTION__;
 
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select event_ID, bracket_num, is_approved, name from $table where event_ID=%d and bracket_num=%d";
@@ -107,9 +110,12 @@ class Bracket extends AbstractData
         parent::__construct( true );
     }
 
+    
 	public function __destruct() {
+        static $numBrackets = 0;
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("$loc ... ");
+        ++$numBrackets;
+        $this->log->error_log("{$loc} ... {$numBrackets}");
 
 		if( isset( $this->matches ) ) {
 			foreach($this->matches as &$match) {
@@ -198,6 +204,10 @@ class Bracket extends AbstractData
     public function getEvent( $force = false ) {
         if( !isset( $this->event ) || $force ) $this->fetchEvent();
         return $this->event;
+    }
+
+    public function hasEvent() {
+        return isset( $this->event );
     }
 
 
@@ -539,78 +549,27 @@ class Bracket extends AbstractData
 		error_log( "$loc: $result rows affected." );
         return $result;
     }
-    
+
     public function matchesByEntrant() {
-		global $wpdb;
         $loc = __CLASS__ . '::' .  __FUNCTION__;
+        $this->log->error_log("{$loc}");
 
         $result = array();
-
-        $sql = <<<EOS
-select ent.name, ent.position as 'position', ent.seed, me.is_visitor, m.round_num as 'round_number', m.match_num as 'match_number'
-    from wp_tennis_event e
-    inner join wp_tennis_bracket b on b.event_ID = e.ID
-    inner join wp_tennis_match m on m.event_ID = b.event_ID and m.bracket_num = b.bracket_num
-    inner join wp_tennis_match_entrant me on me.match_event_ID = m.event_ID and me.match_bracket_num = m.bracket_num and me.match_round_num = m.round_num and me.match_num = m.match_num
-    inner join wp_tennis_entrant ent on ent.position = me.entrant_position and ent.event_ID = me.match_event_ID and ent.bracket_num = me.match_bracket_num
-    where e.ID=%d and b.bracket_num=%d and ent.position=%d
-    order by ent.position, m.round_num, m.match_num;
-EOS;
-
+        
         foreach( $this->getSignup() as $player ) {
-            $safe = $wpdb->prepare( $sql, $this->getEventId(), $this->getBracketNumber(), $player->getPosition() );
-            $rows = $wpdb->get_results( $safe, ARRAY_A );
-            //$this->log->error_log($rows, "$loc: rows for {$player->getName()}");
-
-            $matches=[];
-            foreach( $rows as $row ) {
-                $r = (int) $row["round_number"];
-                $m = (int) $row["match_number"];
-                $match = Match::get($this->getEventId(), $this->getBracketNumber(), $r, $m );
-                if( is_null( $match ) ) continue;
-                $matches[] = $match;
+            $matches = array();
+            $playerName = $player->getName();
+            foreach( $this->getMatches() as $match ) {
+                if( $playerName === $match->getHomeEntrant()->getName()) {
+                    $matches[] = $match;
+                }
+                elseif( $playerName === $match->getVisitorEntrant()->getName() ) {
+                    $matches[] = $match;
+                }
             }
-            $result[$player->getName()] = array( $player, $matches );
-        }
-        return $result;
-    }
-
-    /**
-     * Hack to fudge fact that sigups are not by bracket
-     * TODO: Remove this function
-     */
-    private function entrantsByMatchCount( int $numberMatches = 99 ) {
-		global $wpdb;
-        $loc = __CLASS__ . '::' .  __FUNCTION__;
-
-        $result = array();
-
-        $sql = "select ent.position as position, count(*) as numMatches
-        from wp_tennis_event e
-        inner join wp_tennis_bracket b on b.event_ID = e.ID
-        inner join wp_tennis_match m on m.event_ID = b.event_ID and m.bracket_num = b.bracket_num
-        left join wp_tennis_match_entrant me on me.match_event_ID = m.event_ID and me.match_bracket_num = m.bracket_num and me.match_round_num = m.round_num and me.match_num = m.match_num
-        left join wp_tennis_entrant ent on ent.position = me.entrant_position and ent.event_ID = me.match_event_ID
-        where m.is_bye = 0 and ent.name is not null
-        and b.name = '%s'
-        and e.ID = %d
-        and ent.seed < 1
-        group by  ent.position
-        having numMatches <= %d";
-
-        $safe = $wpdb->prepare( $sql, self::WINNERS, $this->getEventId(), $numberMatches );
-        $rows = $wpdb->get_results( $safe, ARRAY_A );
-
-        $this->log->error_log($rows, "$loc");
-
-        foreach( $rows as $row ) {
-            $position = (int) $row["position"];
-            $entrant = Entrant::get($this->getEventId(), $position );
-            if( is_null( $entrant ) ) continue;
-            $result[] = $entrant;
+            $result[$playerName] = array( $player, $matches );
         }
 
-        $this->log->error_log($result, "$loc");
         return $result;
     }
 
@@ -733,7 +692,9 @@ EOS;
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log($loc);
 
-        if( !isset( $this->matches ) || (is_array($this->matches) && (0 === count($this->matches))) || $force ) $this->fetchMatches();
+        if( !isset( $this->matches ) 
+            || (is_array($this->matches) && (0 === count($this->matches))) 
+            || $force ) $this->fetchMatches();
         foreach( $this->matches as $match ) {
             $match->setBracket( $this );
         }
@@ -782,6 +743,13 @@ EOS;
      * Get the total number of matches in this bracket
      */
     public function numMatches():int {
+        return $this->getNumberOfMatches();
+    }
+    
+    /**
+     * Get the total number of matches in this bracket
+     */
+    public function getNumberOfMatches():int {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         return count( $this->getMatches() );
 	}
@@ -910,22 +878,6 @@ EOS;
         return $this->setDirty();
     }
 
-
-    /**
-     * Get the 2-dimensional array of matches for this bracket
-     * @return array of matches by round number, match number
-     */
-    public function getMatchHierarchy( $force = false ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-        $this->log->error_log($loc);
-
-        //if hierarchy not loaded yet then load from db
-        if( count( $this->matchHierarchy ) < 1 ) {
-            $this->matchHierarchy = $this->loadMatchHierarchy();
-        }
-        return $this->matchHierarchy;
-    }
-
     /**
      * Get the round of number.
      * If it is the first round, then round of is number who signed up
@@ -957,6 +909,26 @@ EOS;
         $this->log->error_log("$loc - num rounds={$numRounds}");
         return $numRounds;
     }
+    
+    /**
+     * Load the matches from db into 
+     * a 2-dimensional array[round number][match number]
+     * @return array of matches by round and match number
+     */
+    public function getMatchHierarchy( $force = false) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($loc);
+
+        if( !$force && !empty( $this->matchHierarchy ) ) return $this->matchHierarchy;
+
+        $matches = $this->getMatches( $force );
+        $this->matchHierarchy = [];
+        foreach($matches as $match ) {
+            $this->matchHierarchy[$match->getRoundNumber()][$match->getMatchNumber()] = $match;
+        }
+
+        return $this->matchHierarchy;
+    }
 
     /*----------------------------------------- Private Functions --------------------------------*/
     /**
@@ -972,23 +944,12 @@ EOS;
                 return $this->loadSingleElimination();
             break;
             case Format::POINTS:
+            case Format::POINTS2:
             case Format::GAMES:
             case Format::OPEN:
-                return $this->loadRoundRobin();
+                return $this->getMatchHierarchy( true );
             break;
         }
-    }
-
-    private function loadRoundRobin() {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-        $this->log->error_log($loc);
-        
-        $eventSize = $this->signupSize();
-        $numExpectedMatches = $eventSize * ($eventSize - 1) / 1;
-        $loadedMatches = $this->getMatchHierarchy( true );
-
-        return $loadedMatches;
-        
     }
 
     /**
@@ -1067,26 +1028,6 @@ EOS;
         $prevMatchCount = $prevMatchNumber / 2;
         $nm = $prevMatchCount + 1;
         return $nm;
-    }
-    
-    /**
-     * Load the matches from db into 
-     * a 2-dimensional array[round number][match number]
-     * @return array of matches by round and match number
-     */
-    private function loadMatchHierarchy() {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-        $this->log->error_log($loc);
-
-        $loadedMatches = array();
-
-        //force loading existing matches from db
-        $matches = $this->getMatches( true );
-        foreach($matches as $match ) {
-            $loadedMatches[$match->getRoundNumber()][$match->getMatchNumber()] = $match;
-        }
-
-        return $loadedMatches;
     }
 
     /**

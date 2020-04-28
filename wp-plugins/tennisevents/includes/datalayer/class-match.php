@@ -75,6 +75,9 @@ class Match extends AbstractData
      */
     public static function find( ...$fk_criteria ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
+
         $args = print_r( $fk_criteria, true );
         error_log("$loc: args=$args");
 
@@ -133,6 +136,10 @@ class Match extends AbstractData
 	 * Get instance of a Match using primary key: event_id, bracket_num, round_num, match_num
 	 */
     static public function get( int ...$pks ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;		
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
+        
 		global $wpdb;
         $table = $wpdb->prefix . self::$tablename;
         $obj = NULL;
@@ -337,6 +344,7 @@ class Match extends AbstractData
 	/*************** Instance Methods ****************/
 	public function __construct( int $eventId, int $bracket = 1, int $round = 0, int $match = 0 ) {
         parent::__construct( true );
+
         $this->isnew = true;
         $this->event_ID = $eventId;
         $this->bracket_num = $bracket;
@@ -345,8 +353,10 @@ class Match extends AbstractData
     }
 
     public function __destruct() {
+        static $numMatches = 0;
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc ... ");
+        ++$numMatches;
+        $this->log->error_log("{$loc} ... {$numMatches}");
 
         unset( $this->event );
 
@@ -535,7 +545,7 @@ class Match extends AbstractData
 
     public function setMatchDate_TS( int $timestamp ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log("$loc:{$this->toString()}($timestamp)");
+        //$this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
         if( !isset( $this->match_date ) ) $this->match_date = new DateTime();
         $this->match_date->setTimeStamp( $timestamp );
@@ -594,7 +604,7 @@ class Match extends AbstractData
 
     public function setMatchTime( int $hour, int $minutes ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log("$loc($hour,$minutes)");
+        //$this->log->error_log("$loc($hour,$minutes)");
         if( !isset( $this->match_time ) ) {
             $this->match_time = new DateTime();
         }

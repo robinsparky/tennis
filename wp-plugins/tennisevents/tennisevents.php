@@ -561,7 +561,7 @@ function tl_save_error() {
     update_option( 'plugin_error',  ob_get_contents() );
 }
 
-//add_action( 'activated_plugin', 'tl_save_error' );
+add_action( 'activated_plugin', 'tl_save_error' );
 
 /* Then to display the error message: */
-//error_log( "Extra chars='" . get_option( 'plugin_error' ) ."'" );
+error_log( "Extra chars='" . get_option( 'plugin_error' ) ."'" );
