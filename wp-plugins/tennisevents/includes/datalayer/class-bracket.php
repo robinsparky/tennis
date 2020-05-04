@@ -818,7 +818,7 @@ class Bracket extends AbstractData
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $num = 0;
-        $this->getMatches( true );
+        $this->getMatches();
         foreach( $this->matches as &$match ) {
             $this->matchesToBeDeleted[] = $match;
             $match = null;
@@ -965,7 +965,7 @@ class Bracket extends AbstractData
         $numRounds = TournamentDirector::calculateExponent( $eventSize );
         $numToEliminate = $eventSize - pow( 2, $numRounds ) / 2;
         $numExpectedMatches = pow( 2, $numRounds );
-        $this->getMatches( true );
+        $this->getMatches();
 
         //First round (i.e. preliminary matches) should be present
         // Just need to set their next pointers

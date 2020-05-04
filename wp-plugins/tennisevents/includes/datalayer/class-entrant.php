@@ -81,6 +81,8 @@ class Entrant extends AbstractData
      */
     public static function find(...$fk_criteria) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -180,6 +182,8 @@ class Entrant extends AbstractData
 	 */
     static public function get( int ...$pks ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -218,7 +222,7 @@ class Entrant extends AbstractData
 
 	/*************** Instance Methods ****************/
 	public function __construct( int $eventID=null, int $bracket=null, string $pname=null,int $seed=null ) {
-		parent::__construct ( false );
+		parent::__construct ( true );
 		$this->isnew = TRUE;
 		$this->event_ID = $eventID;
 		$this->bracket_num = $bracket;
@@ -228,6 +232,9 @@ class Entrant extends AbstractData
 	}
 
 	public function __destruct() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc");
+
 		//destroy players
 		if( isset( $this->players ) ) {
 			foreach( $this->players as &$player ) {

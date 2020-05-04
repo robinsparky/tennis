@@ -11,9 +11,11 @@ require_once( 'api-exceptions.php' );
 
 /** 
  * Responsible for putting together the necessary Events and schedule for a Tournament
- * Calculates the inital rounds of tournament; encapsulates the event and scoring of matches
+ * Calculates the inital rounds of tournament; encapsulates the event, its brackets and scoring of matches
  * Responsible for determining the ultimate champion in any contest.
- * Composes several data level functions for Events, Brackets, Matches
+ * Composes several data level functions for Events, Brackets, Matches as it caches all of these from the db.
+ * Other components or functions should expect to get any data re an event's brackets, matches or sets from the
+ * Tournament Director.
  * @class  TournamentDirector
  * @package Tennis Events
  * @version 1.0.0
@@ -95,6 +97,12 @@ class TournamentDirector
         $this->event = null;
     }
 
+    /**
+     * Retrieve all descendants from the db.
+     * For the encapsulated event this includes all brackets, their matches and their sets.
+     * This is to ensure that the TournamentDirector is caching all of the relevant data of a given event.
+     * This should be ths source of all of this data without need to go to the db.
+     */
     private function getAllDescendants() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $numBrackets = 0;
@@ -107,6 +115,8 @@ class TournamentDirector
                 foreach( $match->getSets( true ) as $set ) {
                     ++$numSets;
                 }
+                $match->getHomeEntrant();
+                $match->getVisitorEntrant();
             }
         }
         $this->log->error_log("{$loc} loaded {$numBrackets} brackets; {$numMatches} matches; {$numSets} sets");
@@ -238,7 +248,7 @@ class TournamentDirector
 
     /**
      * Advance completed matches to their respective next rounds
-     *  in a single elimination event
+     * in a single elimination event
      * @param string $bracketName name of the bracket
      * @return int Number of entrants advanced
      */
@@ -256,7 +266,7 @@ class TournamentDirector
             throw new InvalidTournamentException( __( "Bracket has not been approved.", TennisEvents::TEXT_DOMAIN) );        
         }
 
-        $matches = $bracket->getMatches( true );
+        $matches = $bracket->getMatches();
         $umpire = $this->getChairUmpire();
         $lastRound = self::calculateExponent( $this->signupSize() );
         $champRound  = $lastRound + 1;
@@ -341,6 +351,8 @@ class TournamentDirector
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc -> called ...");
 
+        //TODO: This should spiral down thru all brackets, matches and sets.
+        //      Needs to be tested and fixed.
         return $this->event->save();
     }
 

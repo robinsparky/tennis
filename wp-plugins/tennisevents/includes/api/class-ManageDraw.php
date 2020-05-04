@@ -736,7 +736,7 @@ class ManageDraw
         $bracketName    = $bracket->getName();
         $umpire = $td->getChairUmpire();
 
-        $loadedMatches = $bracket->getMatchHierarchy( true );
+        $loadedMatches = $bracket->getMatchHierarchy( );
         $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
         $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );
@@ -1263,7 +1263,7 @@ EOT;
         $bracketName    = $bracket->getName();
         $eventId = $td->getEvent()->getID();
 
-        $loadedMatches = $bracket->getMatches( true );
+        $loadedMatches = $bracket->getMatches();
         $preliminaryRound = $bracket->getMatchesByRound( 1 );                
         $numPreliminaryMatches = count( $preliminaryRound );
         $numRounds = $td->totalRounds( $bracketName );

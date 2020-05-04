@@ -52,6 +52,10 @@ class Set extends AbstractData
      * Find all Sets belonging to a specific Match;
      */
     public static function find( ...$fk_criteria ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
+        
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
         $col = array();
@@ -91,6 +95,10 @@ class Set extends AbstractData
      * @param $pks Primary key identifying a Set: event_ID,round_num,match_num,set_num
 	 */
     static public function get( int ...$pks ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
+
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
         $obj = NULL;
@@ -121,6 +129,8 @@ class Set extends AbstractData
     /*************** Instance Methods ****************/
 
     public function __destruct() {
+        $loc=__CLASS__ . '->' . __FUNCTION__;
+        $this->log->error_log($loc);
         $this->match = null;
     }
     
