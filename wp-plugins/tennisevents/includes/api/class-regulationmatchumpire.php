@@ -203,7 +203,7 @@ class RegulationMatchUmpire extends ChairUmpire
         $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
         
         //NOTE: It is imperative that sets be in ascending order of set number
-        $sets = $match->getSets( true );
+        $sets = $match->getSets( );
         $numSets = count( $sets );
     
         $home = 'home';
@@ -270,15 +270,19 @@ class RegulationMatchUmpire extends ChairUmpire
                         break;
                     }
                 }
+
+                $setInProgress = $set->getSetNumber();
                 //Best 3 of 5 or 2 of 3 happened yet?
                 if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
                     $andTheWinnerIs = 'home';
                     $finalSet = $set->getSetNumber();
+                    $setInProgress = 0;
                     break;
                 }
                 elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
                     $andTheWinnerIs = 'visitor';
                     $finalSet = $set->getSetNumber();
+                    $setInProgress = 0;
                     break;
                 }
             }
