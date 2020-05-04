@@ -163,13 +163,13 @@ class Match extends AbstractData
     /**
      * Move a match from its current spot to the target match number.
      * If successful, the change is cacaded to the dependent tables (such as Set and EntrantMatch tables)
-     * @param $eventId The event id of this match
-     * @param $bracket The bracket within the event
-     * @param $round The round number of this match
-     * @param $fromMatchNum The match's current number (i.e. place in the lineup)
-     * @param $toMatchNum The intended place for this match
-     * @param $cmts Comments, if any, associated with the move
-     * @return The rows affected by this cascading update
+     * @param int $eventId The event id of this match
+     * @param int $bracket The bracket within the event
+     * @param int $round The round number of this match
+     * @param int $fromMatchNum The match's current number (i.e. place in the lineup)
+     * @param int $toMatchNum The intended place for this match
+     * @param string $cmts Comments, if any, associated with the move
+     * @return int The rows affected by this cascading update
      */
     static public function move( int $eventId, int $bracket, int $round, int $fromMatchNum, int $toMatchNum, string $cmts = null ) {
 		global $wpdb;
