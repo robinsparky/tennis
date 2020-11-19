@@ -1,22 +1,27 @@
 	
 <?php
+/*
+ * Template Name: Tennis Event Template
+ * description: Template to display Tennis Event custom post types 
+ */
+$startFuncTime = microtime( true );
 get_header();
 ?>
-<!-- Page Content 
-<div class="page-content">
-	---->	
-<?php
 
-$startFuncTime = microtime( true );
-// Sidebar Alt 
-//get_template_part( 'templates/sidebars/sidebar', 'alt' ); 
+<div class="main-tennis-content">
 
-// Sidebar Left
-//get_template_part( 'templates/sidebars/sidebar', 'left' );
+	<?php
+		// Sidebar Alt 
+		//get_template_part( 'templates/sidebars/sidebar', 'alt' );
 
-?>
-<div class="container">
-		<section class="tennis-events-draw">
+		// Sidebar Left
+		//get_template_part( 'templates/sidebars/sidebar', 'left' );
+	?>
+
+	<!-- Main Container -->
+	<div class="main-tennis-container">
+		<!-- Tennis Events Draw -->
+		<article class="tennis-events-draw">
 			<!-- Blog Area -->
 			<?php
                 if( have_posts() )
@@ -30,14 +35,15 @@ $startFuncTime = microtime( true );
 			<?php } 
 				comments_template('',true);  
 			} ?>	
-		</section>
-</div> <!-- /Container -->
+		</article>
+		<!-- /Tennis Events Draw -->
+	</div> <!-- /main-container -->
+</div> <!-- /main-content -->
 
 <?php // Sidebar Right
-//get_template_part( 'templates/sidebars/sidebar', 'right' );
+	//get_template_part( 'templates/sidebars/sidebar', 'right' );
 ?>
-<!-- </div> /Page content -->
-<?php 		
-echo sprintf("Elapsed time: %0.6f", micro_time_elapsed( $startFuncTime ));
-
-get_footer(); ?>
+<?php 
+get_footer(); 
+echo sprintf("Elapsed time: %0.6f", commonlib\micro_time_elapsed( $startFuncTime ));
+?>

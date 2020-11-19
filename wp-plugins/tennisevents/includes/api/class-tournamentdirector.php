@@ -32,10 +32,6 @@ class TournamentDirector
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
     public const MAXIMUM_ENTRANTS = 256; //maximum for an elimination tournament
 
-    //private const CHALLENGERS = "challengers";
-    private const BYES = "byes";
-    private const AUTO = "auto";
-
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
     //private $hasChallengerRound = false; //Is a challenger round required
@@ -94,7 +90,7 @@ class TournamentDirector
     }
 
     public function __destruct() {
-        $this->event = null;
+        unset( $this->event );
     }
 
     /**
@@ -102,23 +98,25 @@ class TournamentDirector
      * For the encapsulated event this includes all brackets, their matches and their sets.
      * This is to ensure that the TournamentDirector is caching all of the relevant data of a given event.
      * This should be ths source of all of this data without need to go to the db.
+     * @param Event $event; The event for which all brackets, matches and sets are to be retrieved
      */
-    private function getAllDescendants() {
+    private function getAllDescendants( Event $event = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $numBrackets = 0;
         $numMatches = 0;
         $numSets = 0;
-        foreach( $this->event->getBrackets( true ) as $bracket ) {
+        if( empty( $event ) ) $event = $this->event;
+        foreach( $event->getBrackets( true ) as $bracket ) {
             ++$numBrackets;
             foreach( $bracket->getMatches( true ) as $match ) {
                 ++$numMatches;
                 foreach( $match->getSets( true ) as $set ) {
                     ++$numSets;
-                }
+                } //sets
                 $match->getHomeEntrant();
                 $match->getVisitorEntrant();
-            }
-        }
+            } //matches
+        } //brackets
         $this->log->error_log("{$loc} loaded {$numBrackets} brackets; {$numMatches} matches; {$numSets} sets");
     }
 
@@ -195,7 +193,7 @@ class TournamentDirector
             throw new InvalidBracketException( __("No such bracket: $bracketName.", TennisEvents::TEXT_DOMAIN) );
         }
 
-        $matchHierarchy = $bracket->approve( $this );
+        $matchHierarchy = $bracket->approve();
         $this->save();
 
         return $matchHierarchy;
@@ -216,6 +214,7 @@ class TournamentDirector
                 return $this->advanceSingleElimination( $bracketName );
             break;
             case Format::POINTS:
+            case Format::POINTS2:
             case Format::GAMES:
             case Format::OPEN:
                 return $this->advanceRoundRobin( $bracketName );
@@ -225,7 +224,7 @@ class TournamentDirector
 
     /**
      * Advance completed matches. 
-     * What does mean for a Round Robin format as all rounds and matches are set.
+     * What does this mean for a Round Robin format as all rounds and matches are set.
      * @param string $bracketName name of the bracket
      * @return int 0
      */
@@ -327,7 +326,6 @@ class TournamentDirector
             }
         } //foreach
 
-        //TODO: Fix the top-down save operation
         $this->save();
         return $numAdvanced;
     }
@@ -427,8 +425,10 @@ class TournamentDirector
             case Format::SINGLE_ELIM:
             case Format::DOUBLE_ELIM:
                 $this->numRounds = self::calculateExponent( $bracket->signupSize() );
+                //$this->numRounds = $bracket->getNumberOfRounds();
             break;
             case Format::POINTS:
+            case Format::POINTS2:
             case Format::GAMES:
                 $this->numRounds = $bracket->getNumberOfRounds();
                 break;

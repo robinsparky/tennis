@@ -676,7 +676,7 @@ class ManageRoundRobin
     private function renderBracketByMatch( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
-        gw_print_mem();
+        commonlib\gw_print_mem();
         
 		$startFuncTime = microtime( true );
 
@@ -738,8 +738,8 @@ class ManageRoundRobin
         // Save output and stop output buffering
         $output = ob_get_clean();
 
-        gw_print_mem();
-        $this->log->error_log( sprintf("%0.6f",micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        \commonlib\gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",\commonlib\micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
         return $output;
     }
 

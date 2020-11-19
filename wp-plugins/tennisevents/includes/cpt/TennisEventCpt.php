@@ -144,8 +144,8 @@ class TennisEventCpt {
 		$newColumns['taxonomy-tenniseventcategory'] = __('Category', TennisEvents::TEXT_DOMAIN );
 		$newColumns['event_type'] = __('Event Type', TennisEvents::TEXT_DOMAIN );
 		$newColumns['parent_event'] = __('Parent', TennisEvents::TEXT_DOMAIN );
-		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN );
 		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN );
+		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN );
 		$newColumns['score_type'] = __('Score Type', TennisEvents::TEXT_DOMAIN );
 		$newColumns['signup_by_date'] = __('Signup By', TennisEvents::TEXT_DOMAIN );
 		$newColumns['start_date'] = __('Start Date', TennisEvents::TEXT_DOMAIN );
@@ -272,7 +272,7 @@ class TennisEventCpt {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log( $loc );
 		
-			//hierarchical
+		//hierarchical
 		$labels = array( 'name' => 'Tennis Event Categories'
 						, 'singular_name' => 'Tennis Event Category'
 						, 'search_items' => 'Tennis Event Search Category'

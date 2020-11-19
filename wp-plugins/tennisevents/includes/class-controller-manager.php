@@ -62,7 +62,7 @@ class TennisControllerManager
 	private function includes() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log( "$loc ++++++++++++++++++++++++++++++++++");
-		include_once('gw-support.php');
+		include_once('commonlib/support.php');
 		// include_once('controllers/class-controller-clubs.php');
 		// include_once('controllers/class-controller-courts.php');
 		// include_once('controllers/class-controller-events.php');

@@ -31,7 +31,7 @@
 
 .tennis-events-container {
     width: 70%;
-    float: right;
+    /*float: right;*/
 }
 
 .tennis-event-brackets {
@@ -52,7 +52,7 @@
 }
 
 hr.root-event-divider {
-  border: 3px solid blue;
+  border: 3px solid black;
   border-radius: 3px;
 }
 
@@ -69,7 +69,7 @@ table.managedraw {
     width: 70%;
     border-collapse: collapse;
     border: none;
-    font-size: 1rem;
+    /*font-size: 1rem;*/
     margin: 0 auto;
 }
 
@@ -82,7 +82,7 @@ table.managedraw  > caption {
 
 table.managedraw th {
     border: none;
-    border-bottom: 2px solid blue;
+    border-bottom: 2px solid black;
     text-align: center;
     vertical-align: middle;
 }
@@ -93,10 +93,10 @@ table.managedraw tr {
 
 
 table.managedraw td {
-    border-right: 1px solid blue;
+    border-right: 1px solid black;
     border-left: none;
     border-top: none;
-    border-bottom: 1px solid blue;
+    border-bottom: 1px solid black;
 }
 
 
@@ -113,7 +113,7 @@ table.bracketrobin {
     width: 20%;
     border-collapse: collapse;
     border: none;
-    font-size: 1rem;
+    /*font-size: 1rem;*/
     margin: 0 0 0 60%;
 }
 
@@ -135,7 +135,7 @@ table.bracketrobin tr {
 }
 
 table.bracketrobin td {
-    border: 1px solid blue;
+    border: 1px solid black;
     text-align: center;
     vertical-align: middle;
 }
@@ -145,7 +145,10 @@ table.tennis-point-summary {
     position: -webkit-sticky; /* Safari */
     top: 30%;
     left: 0%;
-    border: 3px solid blue;
+    border: 3px solid black;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 50%;
 }
 
 table.tennis-point-summary  > caption {
@@ -162,7 +165,7 @@ table.tennis-point-summary  > caption {
 }
 
 hr.entrant-divider {
-    border-top: 1px solid blue;
+    border-top: 1px solid black;
 }
 
 /*---------------------------------------------------
@@ -203,40 +206,47 @@ table.tennis-display-scores td {
 
 table.tennis-modify-scores {
     display: none;
-    background-color: lightblue;
+    background-color: gray;
     border-collapse: collapse;
-    border: 1px solid blue;
+    border: 1px solid black;
     box-shadow: 10px 10px gray;
+    color: white;
 }
 
 table.tennis-modify-scores caption {
     display: table-caption;
     text-align: center;
     font-weight: bold;
-    background-color: lightblue;
+    background-color: gray;
+    color: white;
 }
 
 table.tennis-modify-scores th {
     margin: 0;
-    border: 1pt solid blue;
+    border: 1pt solid black;
     font-size: small;
     padding: 0;
 }
 
 table.tennis-modify-scores td:nth-child(odd) {
     padding: 1px 2px 1px 2px !important;
-    border: 1pt solid blue;
+    border: 1pt solid black;
+    color: white;
 }
 
 table.tennis-modify-scores td:nth-child(even) {
     padding: 1px 1px 1px 1px !important;
-    border: 1pt solid blue;
+    border: 1pt solid black;
+    color: white;
 }
 
 input.modifymatchscores {
-    background: rgba(255,255,255,0.5);
+    background: gray;
     box-sizing: border-box; 
     width: 100%;
+    color: white;
+    padding: 1px 0 0 1px;
+    width: 3em;
 }
 
 div.tennis-modify-scores {
@@ -256,8 +266,8 @@ div.modifymatchscores.save-cancel-buttons {
  * Match props styling such as title, start, entrants
  -------------------------------------------------------*/
 .matchinfo {
-    color: blue;
-    font-size: 80%;
+    color: black;
+    font-size: 100%;
 }
 
 .matchtitle {
@@ -298,7 +308,7 @@ div.modifymatchscores.save-cancel-buttons {
 }
 
 .match-color-odd {
-    background-color: lightblue;
+    background-color: gray;
 }
 
 .match-border {
@@ -318,7 +328,7 @@ div.modifymatchscores.save-cancel-buttons {
 }
 
 #tennis-event-message {
-    border: 1px blue solid;
+    border: 1px black solid;
     display: none;
     position: absolute;
     background-color: white;
@@ -370,14 +380,14 @@ div.modifymatchscores.save-cancel-buttons {
 
 .matchaction {
     display: none;
-    background-color: blue;
+    background-color: black;
     border: 1px solid white;
     list-style-type: none;
     width: 60%;
     position: absolute;
     top: 100%;
     left: 20%;
-    font-size: .6rem !important;
+    font-size: 1rem !important;
     padding-left: 2px;
     opacity: 0.70;
 }
@@ -403,7 +413,7 @@ div.modifymatchscores.save-cancel-buttons {
 
 button.savematchscores {
     width: 40%;
-    background-color: blue;
+    background-color: black;
     border: none;
     color: white;
     text-align: center;
@@ -413,11 +423,12 @@ button.savematchscores {
     box-sizing: border-box;
     border-radius: 8px;
     text-transform: none;
+    padding: 0 0 0 0;
 }
 
 button.cancelmatchscores {
     width: 40%;
-    background-color: blue;
+    background-color: black;
     border: none;
     color: white;
     text-align: center;
@@ -427,6 +438,7 @@ button.cancelmatchscores {
     box-sizing: border-box;
     border-radius: 8px;
     text-transform: none;
+    padding: 0 0 0 0;
 }
 
 .changematchstart {
@@ -443,7 +455,7 @@ input.changematchstart {
 
 button.savematchstart {
     width: 25%;
-    background-color: blue;
+    background-color: black;
     border: none;
     color: white;
     text-align: center;
@@ -457,7 +469,7 @@ button.savematchstart {
 
 button.cancelmatchstart {
     width: 25%;
-    background-color: blue;
+    background-color: black;
     border: none;
     color: white;
     text-align: center;
@@ -483,7 +495,7 @@ button.cancelmatchstart {
 
 .entrantPosition {
     background-color: white;
-    color: blue;
+    color: black;
     width: 5%;
     display: inline-block;
 }
@@ -496,7 +508,7 @@ div.entrantName {
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;
-    border: 2px solid blue;
+    border: 2px solid black;
     border-radius: 8px;
 }
 
@@ -508,7 +520,7 @@ div.entrantSeed {
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;
-    border: 2px solid blue;
+    border: 2px solid black;
     border-radius: 8px;
 }
 
@@ -520,7 +532,7 @@ input[type=text].entrantName {
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;
-    border: 2px solid blue;
+    border: 2px solid black;
     border-radius: 8px;
 }
 
@@ -532,12 +544,12 @@ input[type=number].entrantSeed {
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;
-    border: 2px solid blue;
+    border: 2px solid black;
     border-radius: 8px;
 }
 
 a.entrantDelete:link, a.entrantDelete:visited {
-    background-color: blue;
+    background-color: black;
     color: white;
     padding: 14px 25px;
     text-align: center;
@@ -554,7 +566,7 @@ a.entrantDelete:link, a.entrantDelete:visited {
 
 /*Buttons*/
 .signupContainer .button {
-    background-color: blue;
+    background-color: black;
     border: none;
     color: white;
     padding: 15px 32px;
@@ -574,7 +586,7 @@ a.entrantDelete:link, a.entrantDelete:visited {
   }
 
 .bracketDrawButtons .button {
-    background-color: blue;
+    background-color: black;
     border: none;
     color: white;
     padding: 15px 32px;
@@ -593,7 +605,7 @@ a.entrantDelete:link, a.entrantDelete:visited {
   }
 
   button.link-to-draw {
-    background-color: blue;
+    background-color: black;
     border: none;
     color: white;
     padding: 15px 32px;

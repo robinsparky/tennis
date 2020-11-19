@@ -1,4 +1,5 @@
 <?php
+use \commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

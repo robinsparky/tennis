@@ -1,0 +1,2 @@
+robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tenniscommonlib C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\includes\\commonlib  /MIR
+robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tenniscommonlib C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennismembership\\includes\\commonlib  /MIR

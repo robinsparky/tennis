@@ -1,6 +1,6 @@
 <?php
 use cpt\TennisEventCpt;
-use api\BaseLoggerEx;
+use commonlib\BaseLogger;
 
 /**
  * Installation related functions and actions.
@@ -51,7 +51,7 @@ class TE_Install {
 	} // end getInstance
 	
 	private function __construct()	{
-		$this->log = new BaseLoggerEx( true );
+		$this->log = new BaseLogger( true );
 
 		global $wpdb;
 		$this->dbTableNames = array("club"					=> $wpdb->prefix . "tennis_club"

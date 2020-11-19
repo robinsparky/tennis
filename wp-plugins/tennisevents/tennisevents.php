@@ -8,7 +8,7 @@
 	Author URI: grayware.ca
 */
 use api\CustomMenu;
-use api\BaseLoggerEx;
+use commonlib\BaseLogger;
 use cpt\TennisEventCpt;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -64,7 +64,7 @@ class TennisEvents {
 	 * @since 1.0
 	 * @static
 	 * @see TE()
-	 * @return $_instance --Main instance.
+	 * @return TennisEvents $_instance --singleton instance.
 	 */
 	public static function get_instance() {
 		if ( is_null( TennisEvents::$_instance ) ) {
@@ -95,7 +95,7 @@ class TennisEvents {
 
 	public function plugin_setup() {
 		$this->includes();
-		$this->log = new BaseLoggerEx( true );//Must come after includes
+		$this->log = new BaseLogger( true );//Must come after includes
 		$this->setup();
 	}
 	
@@ -545,7 +545,7 @@ function TE() {
 }
 
 include_once( 'autoloader.php' );
-include_once( 'includes/gw-support.php' );
+require_once( 'includes/commonlib/support.php' );
 
 // Register activation/deactivation hooks
 register_activation_hook( __FILE__, array( 'TennisEvents', 'on_activate' ) );
@@ -553,15 +553,15 @@ register_deactivation_hook ( __FILE__, array( 'TennisEvents', 'on_deactivate' ) 
 register_uninstall_hook ( __FILE__, array( 'TennisEvents', 'on_uninstall' ) );
 add_action(	'plugins_loaded', array ( $tennisEvents, 'plugin_setup' ) );
 
-$dir = plugin_dir_path( __DIR__ );
-include_once(__DIR__ . '/includes/gw-support.php' );
-
+// $dir = plugin_dir_path( __DIR__ );
+// include_once(__DIR__ . '/includes/commonlib/support.php' );
 
 function tl_save_error() {
     update_option( 'plugin_error',  ob_get_contents() );
 }
 
-add_action( 'activated_plugin', 'tl_save_error' );
+//add_action( 'activated_plugin', 'tl_save_error' );
 
 /* Then to display the error message: */
-error_log( "Extra chars='" . get_option( 'plugin_error' ) ."'" );
+//error_log( "Extra chars='" . get_option( 'plugin_error' ) ."'" );
+//gc_enable();

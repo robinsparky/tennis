@@ -1,6 +1,6 @@
 <?php
 use templates\DrawTemplateGenerator;
-use api\BaseLoggerEx;
+use commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -36,7 +36,7 @@ class ManageDraw
 	/*************** Instance Methods ****************/
 	public function __construct( ) {
 	    $this->errobj = new WP_Error();	
-        $this->log = new BaseLoggerEx( true );
+        $this->log = new BaseLogger( true );
     }
 
 
@@ -959,7 +959,7 @@ EOT;
         $out .= "</div>";
 
         $out .= '<div id="tennis-event-message"></div>';
-		$this->log->error_log( sprintf("%0.6f",micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+		$this->log->error_log( sprintf("%0.6f",\commonlib\micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
         return $out;
     }
     
@@ -1168,7 +1168,7 @@ EOT;
         $out .= "</table>";	
 
         $out .= '<div id="tennis-event-message"></div>';
-		$this->log->error_log( sprintf("%0.6f",micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+		$this->log->error_log( sprintf("%0.6f",commonlib\micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
         return $out;
     }
 

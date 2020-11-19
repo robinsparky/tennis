@@ -4,9 +4,15 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Deploy Plugin",
+            "label": "Deploy Tennis Events Plugin",
             "type": "shell",
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents C:\\webserver\\htdocs\\tennisadmin\\wp-content\\plugins\\tennisevents /MIR",
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy Tennis Members Plugin",
+            "type": "shell",
+            "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennismembers C:\\webserver\\htdocs\\tennisadmin\\wp-content\\plugins\\tennismembers /MIR",
             "problemMatcher": []
         },
         {
@@ -20,12 +26,24 @@
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\tennisadmin *.xml"
         },
         {
-            "label": "Deploy WP-CLI Config",
+            "label": "Deploy Common Library",
+            "type": "shell",
+            "command": ".\\wp-plugins\\DeployCommonLib.sh", 
+            "windows": {
+                "command": ".\\wp-plugins\\DeployCommonLib.cmd"
+            },
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy Tennis Events WP-CLI Config",
             "type": "shell",
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\includes\\commandline\\ C:\\webserver\\htdocs\\tennisadmin *.yml"
         },
         {
-            "label": "Deploy Signup Data",
+            "label": "Deploy Tennis Events Signup Data",
             "type": "shell",
             "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\ C:\\webserver\\htdocs\\tennisadmin *.xml"
         },

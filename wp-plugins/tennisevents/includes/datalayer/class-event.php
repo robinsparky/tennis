@@ -414,6 +414,7 @@ class Event extends AbstractData
 				case MatchType::MENS_DOUBLES:
 				case MatchType::WOMENS_SINGLES:
 				case MatchType::WOMENS_DOUBLES:
+				case MatchType::MIXED_DOUBLES:
 					$this->match_type = $matchType;
 					$result = $this->setDirty();
 					break;
