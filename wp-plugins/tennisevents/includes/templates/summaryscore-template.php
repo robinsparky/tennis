@@ -1,4 +1,4 @@
-<table class="tennis-point-summary">
+<table class="tennis-score-summary">
 <caption>Summary of <?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?> Bracket</caption>
 <thead><tr><th>&#x23;</th><th>Entrant</th>
 <?php 
@@ -31,10 +31,10 @@ endfor //rounds in table head
         endforeach //entrant
     ?>
 <tfoot id="tennis-summary-foot">
-<td colspan="2"><span><?php echo $bracketSummary["completedMatches"] . " of " . $bracketSummary["totalMatches"]; echo ' Matches Completed';?></span></td>
+<td colspan="2" id="bracket-summary"><span><?php echo $bracketSummary["completedMatches"] . " of " . $bracketSummary["totalMatches"]; echo ' Matches Completed';?></span></td>
 <?php
 for($r = 1; $r<=$numRounds; $r++) : ?>
-<td><?php echo $bracketSummary["byRound"][$r]; ?></td>
+<td id="summary-by-round-<?php echo $r; ?>" data-bracketsummary="<?php echo $bracketSummary["byRound"][$r];?>"><?php echo $bracketSummary["byRound"][$r]; ?></td>
 <?php endfor; ?>
 <td colspan="2"><span><?php if( !empty($bracketSummary["champion"]) ) echo "Champion: " . $bracketSummary["champion"];?></span></td>
 </tfoot></table>

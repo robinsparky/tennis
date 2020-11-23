@@ -162,6 +162,15 @@ class TennisEvents {
 		ManageSignup::register();
 		ManageDraw::register();
 		ManageRoundRobin::register();
+
+		//Test for ImageMagick
+		// $image = new Imagick();
+		// $image->newImage(1, 1, new ImagickPixel('#ffffff'));
+		// $image->setImageFormat('png');
+		// $pngData = $image->getImagesBlob();
+		// $magicmess = strpos($pngData, "\x89PNG\r\n\x1a\n") === 0 ? 'ImageMagick Ok' : 'ImageMagick Failed';
+		// $this->log->error_log("$loc: $magicmess"); 
+
 		$this->log->error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
 	}
 	

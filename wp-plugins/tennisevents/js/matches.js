@@ -232,7 +232,6 @@
                     $matchEl.children('.visitorentrant').removeClass(winnerclass)
                     break;
             }
-            updateEntrantSummary( data );
             updateStatus(data);
         }
 
@@ -242,6 +241,9 @@
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.attr({'data-majorstatus': data.majorStatus, 'data-minorstatus': data.minorStatus});
             $matchEl.find('.matchinfo.matchstatus').text(data.status);
+            
+            updateEntrantSummary( data );
+            
             // if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
             //     alert("Reloading");
             //     window.location.reload();
@@ -249,19 +251,34 @@
         }
 
         function updateEntrantSummary( data ) {
-            console.log('updateEntrantSummary');
-            if( data.entrantSummary) {
-                console.log(data.entrantSummary);
-                $parent = $('table.tennis-point-summary');
-                    for( entrant of data.entrantSummary ) {
-                        console.log(entrant);
-                        $entRow = $parent.find("tr.entrant-match-summary[data-entrant='" + entrant.position + "']");
-                        n1 = $entRow.children('td.entrant-name').text();
-                        console.log("entrant %s compares with html %s", entrant.name, n1);
-                        $entRow.children('td.points').each( function(i, el) { $(el).text(entrant.totalPoints)});
-                        $entRow.children('td.games').each( function(i, el) { $(el).text(entrant.totalGames)});
-                        $entRow.children('td.matcheswon').each( function(i, el) { r=i+1; $(el).text(entrant[r]); });
+            if( data.entrantSummary ) {
+                console.log('updateEntrantSummary');
+                //console.log(data.entrantSummary);
+                $parent = $('table.tennis-score-summary');
+                for( entrant of data.entrantSummary ) {
+                    //console.log(entrant);
+                    $entRow = $parent.find("tr.entrant-match-summary[data-entrant='" + entrant.position + "']");
+                    //console.log($entRow);
+                    n1 = $entRow.children('td.entrant-name').text();
+                    console.log("entrant '%s' compares with html: '%s'", entrant.name, n1);
+                    $entRow.children('td.points').each( function(i, el) { $(el).text(entrant.totalPoints)});
+                    $entRow.children('td.games').each( function(i, el) { $(el).text(entrant.totalGames)});
+                    $entRow.children('td.matcheswon').each( function(i, el) { r=i+1; $(el).text(entrant[r]); });
                 }
+            }
+            if( data.bracketSummary ) {
+                console.log("Bracket Summary")
+                //console.log(data.bracketSummary);
+                let $parent = $('table.tennis-score-summary');
+                let $summaryFooter = $parent.find('#tennis-summary-foot');
+                let object = data.bracketSummary["byRound"];
+                for (prop in object) {
+                    //console.log(`${prop}: ${object[prop]}`);
+                    $summaryFooter.find("#summary-by-round-" + prop).text(object[prop]);
+                }
+                $summaryFooter.find('#bracket-summary').empty()
+                mycontent = `${data.bracketSummary['completedMatches']} of ${data.bracketSummary['totalMatches']} Matches Completed`;
+                $summaryFooter.find('#bracket-summary').text(mycontent)
             }
         }
 

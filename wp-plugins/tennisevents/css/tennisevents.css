@@ -140,7 +140,7 @@ table.bracketrobin td {
     vertical-align: middle;
 }
 
-table.tennis-point-summary {
+table.tennis-score-summary {
     position: sticky;
     position: -webkit-sticky; /* Safari */
     top: 30%;
@@ -151,7 +151,7 @@ table.tennis-point-summary {
     width: 50%;
 }
 
-table.tennis-point-summary  > caption {
+table.tennis-score-summary  > caption {
     display: table-caption;
     text-align: center;
     font-size: 100%;

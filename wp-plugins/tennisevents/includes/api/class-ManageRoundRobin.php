@@ -404,6 +404,7 @@ class ManageRoundRobin
                 $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
                 //$this->log->error_log($summaryTable, "$loc - entrant summary");
                 $data["entrantSummary"] = $summaryTable;
+                $data["bracketSummary"] = $td->getBracketSummary( $bracket );
 
                 //$winner = $chairUmpire->matchWinner( $match );
                 $data['winner'] = '';
@@ -522,6 +523,12 @@ class ManageRoundRobin
                     break;
             }
             $data['status'] = $status;
+            
+            $pointsPerWin = 1;
+            if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+            $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
+            $data["entrantSummary"] = $summaryTable;
+            $data["bracketSummary"] = $td->getBracketSummary( $bracket );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -723,7 +730,7 @@ class ManageRoundRobin
         
 	    // Start output buffering we don't output to the page
         ob_start();
-        //Render the point summary
+        //Render the score summary
         $path = TE()->getPluginPath() . '\includes\templates\summaryscore-template.php';
         require( $path );
 

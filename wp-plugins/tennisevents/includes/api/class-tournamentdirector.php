@@ -484,7 +484,7 @@ class TournamentDirector
                 }
                 if( $allMatchesCompleted && !$umpire->isLocked( $match ) ) $allMatchesCompleted = false;
             }
-            $summary["byRound"][$r] = $completedByRound . ' of ' . $totalByRound;
+            $summary["byRound"][$r] = $completedByRound . '/' . $totalByRound;
             $total += $totalByRound;
             $completed += $completedByRound;
         }
