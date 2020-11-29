@@ -1,179 +1,186 @@
-
 :root {
-    --fieldsize: 4;
-    --rounds: 2;
-    --drawHeight: 300px;
-    --entryHeight: 50px;
-    --roundWidth: calc(100% / (var(--rounds)+1));
- }
+  --fieldsize: 4;
+  --rounds: 2;
+  --drawHeight: 300px;
+  --entryHeight: 50px;
+  --roundWidth: calc(100% / (var(--rounds)+1));
+}
 
 /*-------------------------------------------
   Tennis Event styling
 ---------------------------------------------*/
 .tennis-leaf-events {
-    margin:  0 0 0 3rem;
+  margin: 7% 0 0 3rem;
+  border-top: dashed black 2px;
 }
 
 .tennis-event-meta {
-    text-decoration: none;
-    list-style: none;
-    flex: 1 1 auto;
-    width: auto;
-    height: auto;
-    margin: 0 0 1rem 0;
+  text-decoration: none;
+  list-style: none;
+  flex: 1 1 auto;
+  width: auto;
+  height: auto;
+  margin: 0 0 1rem 0;
 }
 .tennis-event-meta-detail {
-    font-size: small;
+  font-size: small;
 }
 .tennis-event-meta-detail:nth-of-type(1) {
-    font-weight: bold !important;
+  font-weight: bold !important;
 }
 
 .tennis-events-container {
-    width: 70%;
-    /*float: right;*/
+  width: 70%;
+  /*float: right;*/
 }
 
 .tennis-event-brackets {
-    text-decoration: none;
-    list-style: none;
-    flex: 1 1 auto;
-    width: auto;
-    height: auto;
-    margin: 0 2rem 2rem 0;
-    clear: both;
+  text-decoration: none;
+  list-style: none;
+  flex: 1 1 auto;
+  width: auto;
+  height: auto;
+  margin: 0 2rem 2rem 0;
+  clear: both;
 }
+
 .tennis-event-brackets li {
-    float: left;
+  float: left;
 }
+
 .tennis-event-brackets li a {
-    font-size: small;
-    margin: 0 2em 0 0;
+  font-size: large;
+  text-decoration: double;
+  margin: 0 2em 0 0;
+  color: black;
+}
+.tennis-event-brackets li a:hover {
+  color: red;
 }
 
 hr.root-event-divider {
   border: 3px solid black;
   border-radius: 3px;
+  height: 3px;
 }
 
 hr.leaf-event-divider {
-    border-top: 1px dotted red;
+  border-top: 3px dotted red;
 }
-
+.tennis-event-spacer {
+  height: 10px;
+}
 /*------------------------------------------------------------------------------------
  * Elimination Draw Styling
  *-----------------------------------------------------------------------------------*/
- 
- /* Manage draw */
+
+/* Manage draw */
 table.managedraw {
-    width: 70%;
-    border-collapse: collapse;
-    border: none;
-    /*font-size: 1rem;*/
-    margin: 0 auto;
+  width: 70%;
+  border-collapse: collapse;
+  border: none;
+  /*font-size: 1rem;*/
+  margin: 0 auto;
 }
 
-table.managedraw  > caption {
-    display: table-caption;
-    text-align: center;
-    font-size: 150%;
-    font-weight: bold;
+table.managedraw > caption {
+  display: table-caption;
+  text-align: center;
+  font-size: 150%;
+  font-weight: bold;
 }
 
 table.managedraw th {
-    border: none;
-    border-bottom: 2px solid black;
-    text-align: center;
-    vertical-align: middle;
+  border: none;
+  border-bottom: 2px solid black;
+  text-align: center;
+  vertical-align: middle;
 }
 
 table.managedraw tr {
-    border: none;
+  border: none;
 }
-
 
 table.managedraw td {
-    border-right: 1px solid black;
-    border-left: none;
-    border-top: none;
-    border-bottom: 1px solid black;
+  border-right: 1px solid black;
+  border-left: none;
+  border-top: none;
+  border-bottom: 1px solid black;
 }
-
 
 /* td:nth-child(odd) { vertical-align: top;}
 td:nth-child(even) { vertical-align: bottom;} */
 /* tr.drawRow:nth-child(odd)	{ background-color:rgb(176,224,230); }
 tr.drawRow:nth-child(even) { background-color:#fff; } */
 
-
 /*-------------------------------------------------------
  * Round Robin styling
 --------------------------------------------------------*/
 table.bracketrobin {
-    width: 20%;
-    border-collapse: collapse;
-    border: none;
-    /*font-size: 1rem;*/
-    margin: 0 0 0 60%;
+  width: 20%;
+  border-collapse: collapse;
+  border: none;
+  /*font-size: 1rem;*/
+  margin: 0 0 0 60%;
 }
 
-table.bracketrobin  > caption {
-    display: table-caption;
-    text-align: center;
-    font-size: 150%;
-    font-weight: bold;
+table.bracketrobin > caption {
+  display: table-caption;
+  text-align: center;
+  font-size: 150%;
+  font-weight: bold;
 }
 
 table.bracketrobin th {
-    border: none;
-    text-align: center;
-    vertical-align: middle;
+  border: none;
+  text-align: center;
+  vertical-align: middle;
 }
 
 table.bracketrobin tr {
-    border: none;
+  border: none;
 }
 
 table.bracketrobin td {
-    border: 1px solid black;
-    text-align: center;
-    vertical-align: middle;
+  border: 1px solid black;
+  text-align: center;
+  vertical-align: middle;
 }
 
 table.tennis-score-summary {
-    position: sticky;
-    position: -webkit-sticky; /* Safari */
-    top: 30%;
-    left: 0%;
-    border: 3px solid black;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    width: 50%;
+  position: sticky;
+  position: -webkit-sticky; /* Safari */
+  top: 30%;
+  left: 0%;
+  border: 3px solid black;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  width: 50%;
 }
 
-table.tennis-score-summary  > caption {
-    display: table-caption;
-    text-align: center;
-    font-size: 100%;
-    font-weight: bold;
+table.tennis-score-summary > caption {
+  display: table-caption;
+  text-align: center;
+  font-size: 100%;
+  font-weight: bold;
 }
 
 .item-player {
-    text-align: center;
-    background-color: inherit;
-    vertical-align: middle;
+  text-align: center;
+  background-color: inherit;
+  vertical-align: middle;
 }
 
 hr.entrant-divider {
-    border-top: 1px solid black;
+  border-top: 1px solid black;
 }
 
 /*---------------------------------------------------
  Match score styling
 ----------------------------------------------------*/
 .displaymatchscores {
-    width: 50%;
-    margin: 0 auto;
+  width: 50%;
+  margin: 0 auto;
 }
 /* 
 .modifymatchscores {
@@ -182,452 +189,461 @@ hr.entrant-divider {
 } */
 
 div.displaymatchscores > span {
-    font-size: smaller;
+  font-size: smaller;
 }
 
 table.tennis-display-scores {
-    border-collapse: collapse;
-    border: none;
-    width: 90%;
-    margin: 0 auto;
+  border-collapse: collapse;
+  border: none;
+  width: 90%;
+  margin: 0 auto;
 }
 
 table.tennis-display-scores tr {
-    border: none;
+  border: none;
 }
 
 table.tennis-display-scores td {
-    padding: 0 !important;
-    border: none;
-    padding-top: 5px;
-    min-width: 2rem;
-    min-height: 3rem;
+  padding: 0 !important;
+  border: none;
+  padding-top: 5px;
+  min-width: 2rem;
+  min-height: 3rem;
 }
 
 table.tennis-modify-scores {
-    display: none;
-    background-color: gray;
-    border-collapse: collapse;
-    border: 1px solid black;
-    box-shadow: 10px 10px gray;
-    color: white;
+  display: none;
+  background-color: gray;
+  border-collapse: collapse;
+  border: 1px solid black;
+  box-shadow: 10px 10px gray;
+  color: white;
 }
 
 table.tennis-modify-scores caption {
-    display: table-caption;
-    text-align: center;
-    font-weight: bold;
-    background-color: gray;
-    color: white;
+  display: table-caption;
+  text-align: center;
+  font-weight: bold;
+  background-color: gray;
+  color: white;
 }
 
 table.tennis-modify-scores th {
-    margin: 0;
-    border: 1pt solid black;
-    font-size: small;
-    padding: 0;
+  margin: 0;
+  border: 1pt solid black;
+  font-size: small;
+  padding: 0;
 }
 
 table.tennis-modify-scores td:nth-child(odd) {
-    padding: 1px 2px 1px 2px !important;
-    border: 1pt solid black;
-    color: white;
+  padding: 1px 2px 1px 2px !important;
+  border: 1pt solid black;
+  color: white;
 }
 
 table.tennis-modify-scores td:nth-child(even) {
-    padding: 1px 1px 1px 1px !important;
-    border: 1pt solid black;
-    color: white;
+  padding: 1px 1px 1px 1px !important;
+  border: 1pt solid black;
+  color: white;
 }
 
 input.modifymatchscores {
-    background: gray;
-    box-sizing: border-box; 
-    width: 100%;
-    color: white;
-    padding: 1px 0 0 1px;
-    width: 3em;
+  background: gray;
+  box-sizing: border-box;
+  width: 100%;
+  color: white;
+  padding: 1px 0 0 1px;
+  width: 3em;
 }
 
 div.tennis-modify-scores {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    margin: 0 0;
-    width: 300px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0 0;
+  width: 300px;
 }
 
 div.modifymatchscores.save-cancel-buttons {
-    margin: 2px auto;
-    width: 50%;
+  margin: 2px auto;
+  width: 50%;
 }
 
 /*-------------------------------------------------------
  * Match props styling such as title, start, entrants
  -------------------------------------------------------*/
 .matchinfo {
-    color: black;
-    font-size: 100%;
+  color: black;
+  font-size: 100%;
 }
 
 .matchtitle {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .matchwinner {
-    text-decoration: underline; 
-    text-decoration-style: double;
-    text-decoration-color: green;
+  text-decoration: underline;
+  text-decoration-style: double;
+  text-decoration-color: green;
 }
 
 .homeentrant {
-    color: rgb(0,0,139);
-    font-size: small;
-    width: 60%;
-    margin: 0 auto;
+  color: rgb(0, 0, 139);
+  font-size: small;
+  width: 60%;
+  margin: 0 auto;
 }
 
 .visitorentrant {
-    color: green;
-    font-size: small;
-    width: 60%;
-    margin: 0 auto;
+  color: green;
+  font-size: small;
+  width: 60%;
+  margin: 0 auto;
 }
 
 .matchstatus {
-    font-size: 100%;
+  font-size: 100%;
 }
 
 .matchcomments {
-    font-style: italic;
-    color: red;
+  font-style: italic;
+  color: red;
 }
 
 .match-color-even {
-    background-color: white;
+  background-color: white;
 }
 
 .match-color-odd {
-    background-color: gray;
+  background-color: gray;
 }
 
 .match-border {
-    border-bottom: 2px solid black;
+  border-bottom: 2px solid black;
 }
 
 /*---------------------------------------------------------
  Miscellaneous such as message styling
 ----------------------------------------------------------*/
 .tennis-error {
-    color: red;
+  color: red;
 }
 
 .tennis-message {
-    font-size: small;
-    color: red;
+  font-size: small;
+  color: red;
 }
 
 #tennis-event-message {
-    border: 1px black solid;
-    display: none;
-    position: absolute;
-    background-color: white;
-    top: 50%;
-    left: 50%;
-    -webkit-transform: translateX(-50%);
-    -moz-transform: translateX(-50%);
-    -ms-transform: translateX(-50%);
-    -o-transform: translateX(-50%);
-    transform: translateX(-50%); 
-    margin-right: auto;
-    margin-left: auto;
-    width: 300px;
-    height: 150px;
-    text-align:center;
-    border-radius: 8px;
+  border: 1px black solid;
+  display: none;
+  position: absolute;
+  background-color: white;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  -moz-transform: translateX(-50%);
+  -ms-transform: translateX(-50%);
+  -o-transform: translateX(-50%);
+  transform: translateX(-50%);
+  margin-right: auto;
+  margin-left: auto;
+  width: 300px;
+  height: 150px;
+  text-align: center;
+  border-radius: 8px;
 }
 
 /*-------------------------------------------------------------------
  Match Menu styling
 ----------------------------------------------------------------------*/
 .menu-icon {
-    display: block;
-    cursor: pointer;
-    position: relative;
-    /*left: 80%;*/
+  display: block;
+  cursor: pointer;
+  position: relative;
+  /*left: 80%;*/
 }
 
-.bar1, .bar3, .bar5 {
-    width: 20px;
-    height: 2px;
-    background-color: #1a1a1a;
-    margin: 0 0;
-    transition: 0.4s;
-    display: block;
-    position: relative;
-    left: 80%;
+.bar1,
+.bar3,
+.bar5 {
+  width: 20px;
+  height: 2px;
+  background-color: #1a1a1a;
+  margin: 0 0;
+  transition: 0.4s;
+  display: block;
+  position: relative;
+  left: 80%;
 }
-.bar2, .bar4 {
-    width: 20px;
-    height: 2px;
-    background-color: white;
-    margin: 0 0;
-    transition: 0.4s;
-    display: block;
-    position: relative;
-    left: 80%;
+.bar2,
+.bar4 {
+  width: 20px;
+  height: 2px;
+  background-color: white;
+  margin: 0 0;
+  transition: 0.4s;
+  display: block;
+  position: relative;
+  left: 80%;
 }
 
 .matchaction {
-    display: none;
-    background-color: black;
-    border: 1px solid white;
-    list-style-type: none;
-    width: 60%;
-    position: absolute;
-    top: 100%;
-    left: 20%;
-    font-size: 1rem !important;
-    padding-left: 2px;
-    opacity: 0.70;
+  display: none;
+  background-color: black;
+  border: 1px solid white;
+  list-style-type: none;
+  width: 60%;
+  position: absolute;
+  top: 100%;
+  left: 20%;
+  font-size: 1rem !important;
+  padding-left: 2px;
+  opacity: 0.7;
 }
 .matchaction > li {
-    color: white;
+  color: white;
 }
 
 .matchaction > li > a {
-    color: white !important;  
-    cursor: pointer;
+  color: white !important;
+  cursor: pointer;
 }
 
 .recordscores {
-    display: none;
-    position: absolute;
-    top: 0px;
-    left: 0px;
+  display: none;
+  position: absolute;
+  top: 0px;
+  left: 0px;
 }
 
 .modifymatchscores {
-    display: none;
+  display: none;
 }
 
 button.savematchscores {
-    width: 40%;
-    background-color: black;
-    border: none;
-    color: white;
-    text-align: center;
-    text-decoration: none;
-    font-size: x-small;
-    cursor: pointer;
-    box-sizing: border-box;
-    border-radius: 8px;
-    text-transform: none;
-    padding: 0 0 0 0;
+  width: 40%;
+  background-color: black;
+  border: none;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  font-size: x-small;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 8px;
+  text-transform: none;
+  padding: 0 0 0 0;
 }
 
 button.cancelmatchscores {
-    width: 40%;
-    background-color: black;
-    border: none;
-    color: white;
-    text-align: center;
-    text-decoration: none;
-    font-size: x-small;
-    cursor: pointer;
-    box-sizing: border-box;
-    border-radius: 8px;
-    text-transform: none;
-    padding: 0 0 0 0;
+  width: 40%;
+  background-color: black;
+  border: none;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  font-size: x-small;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 8px;
+  text-transform: none;
+  padding: 0 0 0 0;
 }
 
 .changematchstart {
-    display: none;
+  display: none;
 }
 
 input.changematchstart {
-    background: rgba(255,255,255,0.5);
-    width: 50%;
-    display: block;
-    box-sizing: border-box; 
-    margin: 0 auto;
+  background: rgba(255, 255, 255, 0.5);
+  width: 50%;
+  display: block;
+  box-sizing: border-box;
+  margin: 0 auto;
 }
 
 button.savematchstart {
-    width: 25%;
-    background-color: black;
-    border: none;
-    color: white;
-    text-align: center;
-    text-decoration: none;
-    font-size: x-small;
-    cursor: pointer;
-    box-sizing: border-box;
-    border-radius: 8px;
-    text-transform: none;
+  height: 5%;
+  margin: 4px 2px;
+  background-color: black;
+  border: none;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  font-size: small;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 8px;
+  text-transform: none;
 }
 
 button.cancelmatchstart {
-    width: 25%;
-    background-color: black;
-    border: none;
-    color: white;
-    text-align: center;
-    text-decoration: none;
-    font-size: x-small;
-    cursor: pointer;
-    box-sizing: border-box;
-    border-radius: 8px;
-    text-transform: none;
+  height: 5%;
+  background-color: black;
+  border: none;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  font-size: small;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 8px;
+  text-transform: none;
 }
 
 /*-----------------------------------------------------------------
  * Signup styling
  *----------------------------------------------------------------*/
- .eventSignup {
-    width: 75%;
-    list-style: none;
+.eventSignup {
+  width: 75%;
+  list-style: none;
 }
 
 .entrantSignup {
-    width: 100%;
+  width: 100%;
 }
 
 .entrantPosition {
-    background-color: white;
-    color: black;
-    width: 5%;
-    display: inline-block;
+  background-color: white;
+  color: black;
+  width: 5%;
+  display: inline-block;
 }
 
 div.entrantName {
-    background-color: white;
-    color: black;
-    display: inline-block;
-    width: 40% !important;
-    padding: 12px 20px;
-    margin: 8px 0;
-    box-sizing: border-box;
-    border: 2px solid black;
-    border-radius: 8px;
+  background-color: white;
+  color: black;
+  display: inline-block;
+  width: 40% !important;
+  padding: 12px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 2px solid black;
+  border-radius: 8px;
 }
 
 div.entrantSeed {
-    background-color: white;
-    color: black;
-    display: inline-block;
-    width: 10% !important;
-    padding: 12px 20px;
-    margin: 8px 0;
-    box-sizing: border-box;
-    border: 2px solid black;
-    border-radius: 8px;
+  background-color: white;
+  color: black;
+  display: inline-block;
+  width: 10% !important;
+  padding: 12px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 2px solid black;
+  border-radius: 8px;
 }
 
-input[type=text].entrantName {
-    background-color: white;
-    color: black;
-    display: inline-block;
-    width: 40% !important;
-    padding: 12px 20px;
-    margin: 8px 0;
-    box-sizing: border-box;
-    border: 2px solid black;
-    border-radius: 8px;
+input[type="text"].entrantName {
+  background-color: white;
+  color: black;
+  display: inline-block;
+  width: 40% !important;
+  padding: 12px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 2px solid black;
+  border-radius: 8px;
 }
 
-input[type=number].entrantSeed {
-    background-color: white;
-    color: black;
-    display: inline-block;
-    width: 12% !important;
-    padding: 12px 20px;
-    margin: 8px 0;
-    box-sizing: border-box;
-    border: 2px solid black;
-    border-radius: 8px;
+input[type="number"].entrantSeed {
+  background-color: white;
+  color: black;
+  display: inline-block;
+  width: 12% !important;
+  padding: 12px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 2px solid black;
+  border-radius: 8px;
 }
 
-a.entrantDelete:link, a.entrantDelete:visited {
-    background-color: black;
-    color: white;
-    padding: 14px 25px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    box-sizing: border-box;
-    border-radius: 8px;
-    font-weight: 700;
-  }
-  
-  a.entrantDelete:hover, a.entrantDelete:active {
-    background-color: red;
-  }
+a.entrantDelete:link,
+a.entrantDelete:visited {
+  background-color: black;
+  color: white;
+  padding: 14px 25px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  box-sizing: border-box;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+a.entrantDelete:hover,
+a.entrantDelete:active {
+  background-color: red;
+}
 
 /*Buttons*/
 .signupContainer .button {
-    background-color: black;
-    border: none;
-    color: white;
-    padding: 15px 32px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    margin: 4px 2px;
-    cursor: pointer;
-    box-sizing: border-box;
-    border-radius: 8px;
-    text-transform: none;
-  }
-
-  div.bracketDrawButtons {
-      margin: 0 auto;
-      width: 30%;
-  }
-
-.bracketDrawButtons .button {
-    background-color: black;
-    border: none;
-    color: white;
-    padding: 15px 32px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    margin: 4px 2px;
-    cursor: pointer;
-    box-sizing: border-box;
-    border-radius: 8px;
-    text-transform: none;
+  background-color: black;
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 8px;
+  text-transform: none;
 }
 
-.signupContainer .button:hover, .signupContainer .button:active {
-    background-color: green;
-  }
+div.bracketDrawButtons {
+  margin: 0 auto;
+  width: 30%;
+}
 
-  button.link-to-draw {
-    background-color: black;
-    border: none;
-    color: white;
-    padding: 15px 32px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    margin: 4px 2px;
-    cursor: pointer;
-    box-sizing: border-box;
-    border-radius: 8px;
-    text-transform: none;
-  }
-  .link-container .button:hover, .bracketDrawButtons .button:active {
-    background-color: green;
-  }
+.bracketDrawButtons .button {
+  background-color: black;
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 8px;
+  text-transform: none;
+}
 
-.bracketDrawButtons .button:hover, .bracketDrawButtons .button:active {
-    background-color: green;
-  }
+.signupContainer .button:hover,
+.signupContainer .button:active {
+  background-color: green;
+}
+
+button.link-to-draw {
+  background-color: black;
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 8px;
+  text-transform: none;
+}
+.link-container .button:hover,
+.bracketDrawButtons .button:active {
+  background-color: green;
+}
+
+.bracketDrawButtons .button:hover,
+.bracketDrawButtons .button:active {
+  background-color: green;
+}
 
 .entrantHighlight {
-    background-color: yellow;
+  background-color: yellow;
 }
 
 /*------------------------------------------------------------------------------------
@@ -635,18 +651,16 @@ a.entrantDelete:link, a.entrantDelete:visited {
 -------------------------------------------------------------------------------------------------------------*/
 
 @media only screen and (min-width: 320px) and (max-width: 480px) and (orientation: portrait) {
-    .bracketdraw  {
-        font-size: small !important;
-    }
+  .bracketdraw {
+    font-size: small !important;
+  }
 }
 
 @media only screen and (min-width: 320px) and (max-width: 480px) and (orientation: landscape) {
- 
-    .bracketdraw {
-        font-size: small !important;
-    }
+  .bracketdraw {
+    font-size: small !important;
+  }
 }
-
 
 /*----------------------------------------------------------------------
              iPhone 6,
@@ -655,17 +669,17 @@ a.entrantDelete:link, a.entrantDelete:visited {
 ------------------------------------------------------------------------------------*/
 
 @media only screen and (min-width: 375px) and (max-width: 667px) and (orientation: portrait),
-only screen and (min-width: 414px) and (max-width: 736px) and (orientation: portrait),
-only screen and (min-width: 380px) and (max-width: 640px) and (orientation: portrait) {
-    .bracketdraw img {
-        width: 150px;
-    }
+  only screen and (min-width: 414px) and (max-width: 736px) and (orientation: portrait),
+  only screen and (min-width: 380px) and (max-width: 640px) and (orientation: portrait) {
+  .bracketdraw img {
+    width: 150px;
+  }
 }
 
 @media only screen and (min-width: 375px) and (max-width: 667px) and (orientation: landscape),
-only screen and (min-width: 414px) and (max-width: 736px) and (orientation: landscape),
-only screen and (min-width: 380px) and (max-width: 640px) and (orientation: landscape) {
-    .breacketdraw img {
-        width: 200px;
-    }
+  only screen and (min-width: 414px) and (max-width: 736px) and (orientation: landscape),
+  only screen and (min-width: 380px) and (max-width: 640px) and (orientation: landscape) {
+  .breacketdraw img {
+    width: 200px;
+  }
 }

@@ -41,8 +41,7 @@ $clubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : 
 					if( is_null( $event ) ) wp_die("Could not find event with external id=$eventCPTId");
 				?>
 				
-				<hr style="clear:left;" class='root-event-divider'>
-				<h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+				<h3><?php the_title(); ?></h3>
 				<?php commonlib\tennis_events_get_term_links( $post->ID, TennisEventCpt::CUSTOM_POST_TYPE_TAX ); 
 					$eventType = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
 					$eventType   = EventType::AllTypes()[$eventType];
@@ -81,7 +80,6 @@ $clubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : 
 							$endDate = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
 							$leafEvent = Event::getEventByExtRef( get_the_ID() );
 						?>
-						<hr style="clear:left;" class="leaf-event-divider">
 						<section class="tennis-leaf-events"> <!-- Leaf Events -->
 							<?php echo the_title("<h3>","</h3>") ?>
 							<div><?php the_content() ?> </div>
@@ -96,7 +94,6 @@ $clubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : 
 								<tr class="event-meta-detail"><td><strong><?php echo __("Event Ends", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $endDate; ?></td></tr>
 							</tbody>
 							</table>
-							<h5>Actions</h5>
 							<ul class="tennis-event-brackets">
 							<?php 
 								$td = new TournamentDirector( $leafEvent );
@@ -108,6 +105,7 @@ $clubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : 
 							<?php } ?>
 							</ul>	
 						</section> <!-- /leaf events -->	
+						<div style="clear:both"></div>
 						<?php } ?>
 					<?php }
 					else {

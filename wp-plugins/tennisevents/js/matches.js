@@ -10,6 +10,11 @@
         var winnerclass = 'matchwinner';
         var MajorStatus = {NotStarted: 1, InProgress: 2, Completed: 3, Bye: 4, Waiting: 5, Cancelled: 6, Retired: 7 };
 
+        /**
+         * Function to make ajax calls.
+         * Needs the "action" and "security" nonce from the local object emitted from the server
+         * @param {} matchData 
+         */
         let ajaxFun = function( matchData ) {
             console.log('Draw Management: ajaxFun');
             let reqData =  { 'action': tennis_draw_obj.action      
@@ -82,6 +87,11 @@
             return [year, month, day].join('-');
         }
 
+        /**
+         * Apply the response from an ajax call to the elements of the page
+         * For example, recording scores or defaulting a player or adding comments
+         * @param {} data 
+         */
         function applyResults( data ) {
             data = data || [];
             console.log("Apply results:");
@@ -170,6 +180,10 @@
             }
         }
 
+        /**
+         * Advance completed matches in the draw/schedule
+         * @param {*} data 
+         */
         function advanceMatches( data ) {
             console.log( 'advanceMatches' );
             console.log( data );
@@ -184,6 +198,10 @@
             }
         }
 
+        /**
+         * Update the match start date and time
+         * @param {*} data 
+         */
         function updateMatchDate( data ) {
             console.log('updateMatchDate');
             
@@ -194,18 +212,30 @@
             $matchEl.children('.changematchstart').hide();
         }
 
+        /**
+         * Update the home entrant name
+         * @param {*} data 
+         */
         function updateHome( data ) {
             console.log('updateHome');
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.homeentrant').text(data.player);
         }
 
+        /**
+         * Update the visitor entrant name
+         * @param {*} data 
+         */
         function updateVisitor( data ) {
             console.log('updateVisitor');
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.visitorentrant').text(data.player);
         }
 
+        /**
+         * Update the match scores
+         * @param {*} data 
+         */
         function updateScore( data ) {
             console.log('updateScore');
             console.log( data );
@@ -235,6 +265,10 @@
             updateStatus(data);
         }
 
+        /**
+         * Update the match status
+         * @param {*} data 
+         */
         function updateStatus( data ) {
             console.log('updateStatus');
             console.log(data);
@@ -250,6 +284,11 @@
             // }
         }
 
+        /**
+         * Update the entrant summary table
+         * Applies to round robins only
+         * @param {*} data 
+         */
         function updateEntrantSummary( data ) {
             if( data.entrantSummary ) {
                 console.log('updateEntrantSummary');
@@ -282,12 +321,24 @@
             }
         }
 
+        /**
+         * Update the comments for a given match
+         * @param {*} data 
+         */
         function updateComments( data ) {
             console.log('updateComments');
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.matchcomments').text(data.comments);
         }
 
+        /**
+         * Find the match element on the page using its composite identifier.
+         * It is very important that this find method is based on match identifiers and not on css class or element id.
+         * @param int eventId 
+         * @param int bracketNum 
+         * @param int roundNum 
+         * @param int matchNum 
+         */
         function findMatch( eventId, bracketNum, roundNum, matchNum ) {
             console.log("findMatch(%d,%d,%d,%d)", eventId, bracketNum, roundNum, matchNum );
             let attFilter = 'td[data-eventid="' + eventId + '"]';
@@ -298,7 +349,10 @@
             return $matchElem;
         }
 
-        //Determine if a match is ready for scoring by checking status
+        /**
+         * Determine if a match is ready for scoring by checking status
+         * @param element el The match element from the current document
+         */
         function matchIsReady( el ) {
             let $parent = $(el).parents('.item-player');
             let majorStatus = $parent.attr('data-majorstatus');
@@ -310,8 +364,10 @@
             return false;
         }
         
-        //Get all match data from the element/obj
-        //Assumes that el is descendant of .item-player
+        /**
+         * Get all match data from the element/obj
+         * @param element el Assumes that el is descendant of .item-player
+         */
         function getMatchData( el ) {
             let parent = $(el).parents('.item-player');
             if( parent.length == 0) return {};
@@ -355,13 +411,19 @@
         }
 
         /* -------------------- Menu Visibility ------------------------------ */
+        /**
+         * Hide the menu
+         * @param {*} event 
+         */
         function hideMenu( event ) {
             console.log('hide menu....');
             $('.matchaction.approved').hide();
             $('.matchaction.unapproved').hide();
         }
 
-        //Click on the menu icon to open the menu
+        /**
+         * Click on the menu icon to open the menu
+         */
         $('.menu-icon').on('click', function ( event ) {
             console.log('show menu....');
             console.log( this );
@@ -390,7 +452,9 @@
             event.preventDefault();
         });
         
-        //Support clicking away from the menu to close it
+        /**
+         * Support clicking away from the menu to close it
+         */
         $('body').on('click', function( event ) {
             if( !$(event.target).hasClass('menu-icon') 
              && !$(event.target).parents().hasClass('menu-icon')
@@ -402,8 +466,11 @@
         });
         
         /* ------------------------------Menu Actions ---------------------------------*/
-        //Change the home player/entrant
-        // Can only be done if bracket is not yet approved
+
+        /**
+         * Change the home player/entrant
+         *  Can only be done if bracket is not yet approved
+         */
         $('.changehome').on('click', function (event) {
             console.log("change home");
             console.log(this);
@@ -424,7 +491,9 @@
                     , "player": home } );
         });
 
-        //Default the home entrant/player
+        /**
+         * Default the home entrant/player
+         */
         $('.defaulthome').on('click', function (event) {
             console.log("default home");
             hideMenu( event );
@@ -452,8 +521,10 @@
 
         });
 
-        //Change the home player/entrant
-        // Can only be done if bracket is not yet approved
+        /**
+         * Change the visitor player/entrant
+         * Can only be done if bracket is not yet approved
+         */
         $('.changevisitor').on('click', function (event) {
             console.log("change visitor");
             console.log(this);
@@ -475,7 +546,9 @@
                     , "player": visitor } );
         });
         
-        //Default the visitor entrant/player
+        /**
+         * Default the visitor entrant/player
+         */
         $('.defaultvisitor').on('click', function (event) {
             console.log("default visitor");
             console.log(this);
@@ -503,7 +576,9 @@
                     , "comments": comments } );
         });
 
-        //Record the match scores
+        /**
+         * Record the match scores
+         */
         $('.recordscore').on('click', function(event) {
             console.log("record score click");
             //console.log(this);
@@ -526,12 +601,20 @@
             showModifyScores( this );
         });
 
+        /**
+         * Show Modify scores elements
+         * @param element obj 
+         */
         function showModifyScores( obj ) {
             let $parent = $(obj).parents('.item-player');
             //$parent.find('.displaymatchscores').hide();
             $parent.find('.modifymatchscores').fadeIn( 1000 );
         }
 
+        /**
+         * Hide the score modification elements
+         * @param element obj 
+         */
         function hideModifyScores( obj ) {
             if( obj ) {
                 let $parent = $(obj).parents('.item-player');
@@ -544,14 +627,18 @@
             }
         }
 
-        //Cancel the changing of match scores
+        /**
+         * Cancel the changing of match scores
+         */
         $('.modifymatchscores.tennis-modify-scores').on('click','.cancelmatchscores', function( event ) {
             console.log("cancel scores");
             console.log( event.target );
             hideModifyScores( this );
         });
 
-        //Save the recorded match score
+        /**
+         * Save the recorded match score
+         */
         $('.modifymatchscores.tennis-modify-scores').on('click','.savematchscores', function (event) {
             console.log("save scores");
             let matchdata = getMatchData(this);
@@ -573,7 +660,9 @@
 
         });
 
-        //Capture start date & time of the match
+        /**
+         * Capture start date & time of the match
+         */
         $('.setmatchstart').on('click', function (event) {
             console.log("match start");
             console.log(this);
@@ -583,7 +672,9 @@
             $parent.find('.changematchstart').fadeIn( 500 );
         });
         
-        //Cancel the setting of match start date/time
+        /**
+         * Cancel the setting of match start date/time
+         */
         $('.cancelmatchstart').on('click', function( event ) {
             console.log("cancel scores");
             
@@ -592,7 +683,9 @@
             $parent.find('.matchstart').fadeIn( 500 );
         });
 
-        //Save start date & time of the match
+        /**
+         * Save start date & time of the match
+         */
         $('.savematchstart').on('click', function (event) {
             console.log("match start");
             console.log(this);
@@ -610,7 +703,9 @@
                     , "matchtime": matchdata.matchtime || 0  } );
         });
 
-        //Capture comments regarding the match
+        /**
+         * Capture comments regarding the match 
+         */
         $('.setcomments').on('click', function (event) {
             console.log("set comments");
             console.log(this);
@@ -639,7 +734,9 @@
         
         /* ------------------------Button Actions -------------------------------------- */
 
-        //Approve draw
+        /**
+         * Approve draw
+         */
         $('#approveDraw').on('click', function( event ) {
             console.log("Approve draw fired!");
 
@@ -649,7 +746,9 @@
             ajaxFun( {"task": "approve", "eventId": eventId, "bracketName": bracketName } );
         });
 
-        //Advance draws
+        /** 
+         * Advance completed matches
+         */
         $('#advanceMatches').on('click', function ( event ) {
             console.log( 'advanceMatches fired!');
 
@@ -659,7 +758,9 @@
             ajaxFun( {"task": "advance", "eventId": eventId, "bracketName": bracketName } );
         });
 
-        //Remove preliminary rounds
+        /**
+         * Remove preliminary rounds 
+         */
         $('#removePrelim').on('click', function( event ) {
             console.log("Remove preliminary round fired!");
             let ans = confirm("Are you sure?");
