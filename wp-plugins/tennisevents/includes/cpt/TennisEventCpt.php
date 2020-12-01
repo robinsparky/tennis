@@ -1,5 +1,6 @@
 <?php
 namespace cpt;
+
 use \DateTime;
 use \DateTimeInterface;
 use \WP_Error;
@@ -57,6 +58,8 @@ class TennisEventCpt {
 		add_action( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array( $tennisEvt, 'getColumnValues'), 10, 2 );
 		add_filter( 'manage_edit-' .self::CUSTOM_POST_TYPE . '_sortable_columns', array( $tennisEvt, 'sortableColumns') );
 		add_action( 'pre_get_posts', array( $tennisEvt, 'orderby' ) );
+		add_action( 'restrict_manage_posts', array( $tennisEvt, 'matchTypeFilter' ) );
+		add_filter( 'parse_query', array( $tennisEvt, 'matchTypeParseFilter' ) );
 		
 		//Required actions for meta boxes
 		add_action( 'add_meta_boxes', array( $tennisEvt, 'metaBoxes' ) );
@@ -158,6 +161,7 @@ class TennisEventCpt {
 	public function sortableColumns ( $columns ) {
 		$columns['start_date'] = 'startDate';
 		$columns['taxonomy-tenniseventcategory'] = 'categorySort';
+		$columns['parent_event'] = 'parentEventSort';
 		return $columns;
 	}
 
@@ -172,11 +176,69 @@ class TennisEventCpt {
 		if ( 'startDate' === $query->get( 'orderby') ) {
 			$query->set( 'orderby', 'meta_value' );
 			$query->set( 'meta_key', self::START_DATE_META_KEY );
-			$query->set( 'meta_type', 'numeric' );
 		}
 		elseif( 'categorySort' === $query->get( 'orderby' ) ) {
 			$query->set( 'orderby', self::CUSTOM_POST_TYPE_TAX );
 		}
+		elseif( 'parentEventSort' === $query->get( 'orderby' ) ) {
+			$query->set( 'orderby', 'meta_value' );
+			$query->set( 'meta_key', self::PARENT_EVENT_META_KEY );
+			//$query->set( 'meta_type', 'numeric' );
+		}
+	}
+
+	/**
+	 * Add a filter dropdown in the Event admin page
+	 */
+	public function matchTypeFilter( $post_type ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+		if ( $post_type === self::CUSTOM_POST_TYPE ) {
+			$this->log->error_log( "$loc using post_type: $post_type" );
+			$mtypes = MatchType::AllTypes();
+			if( empty( $mtypes ) ) return;
+
+			$selected = -1;
+			if( isset( $_GET['match_type'] ) && ! empty($_GET['match_type']) ) {
+				$selected = $_GET['match_type'];
+			}
+			$options[] = sprintf('<option value="-1">%1$s</option>', __('All Match Types', TennisEvents::TEXT_DOMAIN ) );
+			foreach( $mtypes as $key => $val ) {
+				if( $key === $selected ) {
+					$options[] = sprintf('<option value="%1$s" selected>%2$s</option>', esc_attr($key), $val );
+				}
+				else {
+					$options[] = sprintf('<option value="%1$s">%2$s</option>', esc_attr($key), $val );
+				}
+			}
+
+			/** Output the dropdown menu */
+			echo '<select class="" id="match_type" name="match_type">';
+			echo join('\n', $options );
+			echo '</select>';
+		}
+	}
+
+	/**
+	 * Modify the WP_QUERY using the value from the request query string
+	 */
+	public function matchTypeParseFilter( $query ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log( "$loc" );
+
+		global $pagenow;
+		$current_page = isset( $_GET['post_type']) ? $_GET['post_type'] : '';
+		
+		if ( is_admin() 
+		 && self::CUSTOM_POST_TYPE == $current_page 
+		 && 'edit.php' == $pagenow
+		 && isset( $_GET['match_type'] ) 
+		 && $_GET['match_type'] != '' 
+		 && $_GET['match_type'] != '-1') {
+			$query->query_vars['meta_key'] = self::MATCH_TYPE_META_KEY;
+			$query->query_vars['meta_value'] = $_GET['match_type'];
+			$query->query_vars['meta_compare'] = '=';
+		 }
 	}
 
 	// Populate the Tennis Event columns with values
