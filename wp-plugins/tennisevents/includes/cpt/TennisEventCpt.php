@@ -1286,11 +1286,11 @@ class TennisEventCpt {
 		$this->log->error_log("$loc: post_id='$post_id'");
 
 		$post = get_post( $post_id );
-		if( isset( $post ) && $post->post_type === self::CUSTOM_POST_TYPE ) {
+		$evt = $this->getEventByExtRef( $post_id );
+		if(isset( $post ) && $post->post_type === self::CUSTOM_POST_TYPE ) {
 			//First delete any references to this post as a parent event
 			$this->deleteParentReferences( $post_id );
-			//Second delete the Event
-			$evt = $this->getEventByExtRef( $post_id );
+			//Second delete the Event which cascades to child events in Tennis db
 			if( ! is_null( $evt ) ) $evt->delete();
 		}
 	}
@@ -1320,12 +1320,12 @@ class TennisEventCpt {
 						'suppress_filters' => true );
 		$numDel = 0;
 		$cpts = get_posts( $args );
-		//$this->log->error_log( $cpts, "$loc: posts with parent: $parent_id");
+		$this->log->error_log( $cpts, "$loc: posts with parent: $parent_id");
 		foreach( $cpts as $p ) {
-			delete_post_meta( $p->ID, self::PARENT_EVENT_META_KEY );
-			++$numDel;
+			//delete_post_meta( $p->ID, self::PARENT_EVENT_META_KEY );
+			if( wp_delete_post( $p->ID, true ) ) ++$numDel;
 		}
-		$this->log->error_log("$loc: number parent references deleted='$numDel'");
+		$this->log->error_log("$loc: deleted={$numDel} references to parent '{$parent_id}'");
 	}
 	
 	/**
