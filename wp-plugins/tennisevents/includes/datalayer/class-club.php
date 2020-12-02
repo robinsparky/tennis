@@ -28,6 +28,13 @@ class Club extends AbstractData
 	 */
 	private $courts;
 	private $courtsToBeDeleted=array(); //array of court ID's needing deletion
+	
+	/**
+	 * External references
+	 */
+	private $external_refsToBeDeleted = array(); //array of external references to be deleted
+	private $external_refs; //array of external reference to something (e.g. custom post type in WordPress)
+
 
 	/**
 	 * Collection of tennis events
@@ -106,7 +113,7 @@ class Club extends AbstractData
 	/**
 	 * Get instance of a Club using it's primary key: ID
 	 */
-    static public function get(int ... $pks) {
+    static public function get(int ...$pks) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$sql = "select ID,name from $table where ID=%d";
@@ -122,12 +129,43 @@ class Club extends AbstractData
 		}
 		return $obj;
 	}
+	
+	/**
+	 * Fetches one or more Clubs from the db with the given external reference
+	 * @param $extReference Alphanumeric up to 100 chars
+	 * @return Club matching external reference.
+	 *         Or an array of clubs matching reference
+	 *         Or Null if not found
+	 */
+	static public function getClubByExtRef( $extReference ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'tennis_external_club';		
+		$sql = "SELECT `club_ID`
+				FROM $table WHERE `external_ID`='%s'";
+		$safe = $wpdb->prepare( $sql, $extReference );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
+		error_log( sprintf("Club::getClubByExtRef(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
+		
+		$result = null;
+		if( count( $rows ) > 1) {
+			$result = array();
+			foreach( $rows as $row ) {
+				$result[] = Club::get( $row['club_ID'] );
+			}
+		}
+		elseif( count( $rows ) === 1 ) {
+			$result = Club::get( $rows[0]['club_ID'] );
+		}
+		return $result;
+	}
 
 	/*************** Instance Methods ****************/
 	public function __construct(string $cname=null) {
 		$this->isnew = TRUE;
 		$this->init();
 		if(isset($cname)) $this->name = $cname;
+		
+		parent::__construct( true );
 	}
 
 	public function __destruct() {
@@ -272,6 +310,75 @@ class Club extends AbstractData
 		return false;
 	}
 	
+	/**
+	 * A Club can have zero or more external references associated with it.
+	 * How these are usesd is up to the developer. 
+	 * For example, a custom post type in WordPress
+	 * @param string $extRef the external reference to be added to this club
+	 * @return bool True if successful; false otherwise
+	 */
+	public function addExternalRef( string $extRef ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log( $extRef, "$loc: External Reference Value");
+
+		$result = false;
+		if( !empty( $extRef ) ) {
+			$found = false;
+			foreach( $this->getExternalRefs( true ) as $er ) {
+				if( $extRef === $er ) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->external_refs[] = $extRef;
+				$result = $this->setDirty();
+			}
+		}
+		return $result;
+	}
+
+	/**
+	 * Remove the external reference
+	 * @param string $extRef The external reference to be removed	 
+	 * @return True if successful; false otherwise
+	 */
+	public function removeExternalRef( string $extRef ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("$loc: extRef='{$extRef}'");
+
+		$result = false;
+		if( !empty( $extRef ) ) {
+			$i=0;
+			foreach( $this->getExternalRefs() as $er ) {
+				if( $extRef === $er ) {
+					$this->external_refsToBeDeleted[] = $extRef;
+					unset( $this->external_refs[$i] );
+					$result = $this->setDirty();
+				}
+				$i++;
+			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Get all external references associated with this event
+	 * @param $force When set to true will force loading of related external references
+	 *               This will cause unsaved external refernces to be lost.
+	 */
+	public function getExternalRefs( $force = false ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+		
+		if( !isset( $this->external_refs ) 
+		   || (0 === count( $this->external_refs))  || $force ) {
+			$this->fetchExternalRefs();
+		}
+		return $this->external_refs;
+	}
+
+	
 	public function isValid() {
 		$isvalid = true;
 		$mess = '';
@@ -293,11 +400,11 @@ class Club extends AbstractData
 	 */
 	public function delete() {
 		$result = 0;
-		$eventId = $this->getID();
-		if(isset($eventId)) {
+		$clubId = $this->getID();
+		if(isset($clubId)) {
 			global $wpdb;
 			$table = $wpdb->prefix . self::$tablename;
-			$where = array( 'ID'=>$eventId );
+			$where = array( 'ID'=>$clubId );
 			$formats_where = array( '%d' );
 			$wpdb->delete($table, $where, $formats_where);
 			$result = $wpdb->rows_affected;
@@ -320,6 +427,14 @@ class Club extends AbstractData
 	 */
 	private function fetchCourts() {
 		$this->courts = Court::find($this->ID);
+	}
+	
+	/**
+	 * Fetch the external references to this event from the database
+	 */
+	private function fetchExternalRefs() {	
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->external_refs = ExternalRefRelations::fetchExternalRefs('club', $this->getID() );
 	}
 	
 	protected function create() {
@@ -407,6 +522,24 @@ class Club extends AbstractData
 		//Create join between Events and this Club
 		foreach($this->getEvents() as $evt) {
 			$result += ClubEventRelations::add($this->getID(),$evt->getID());
+		}
+		
+		//Save the External references related to this Club
+		if( isset( $this->external_refs ) ) {
+			foreach($this->external_refs as $er) {
+				//Create relation between this Club and its external references
+				$result += ExternalRefRelations::add( 'club', $this->getID(), $er );
+			}
+		}
+
+		//Remove relation between this Club and external referenceds
+		if( count( $this->external_refsToBeDeleted ) > 0 ) {
+			foreach( $this->external_refsToBeDeleted as $er ) {
+				if( !in_array( $er, $this->external_refs ) ) {
+					$result += ExternalRefRelations::remove( 'club', $this->getID(), $er );
+				}
+			}
+			$this->external_refsToBeDeleted = array();
 		}
 
 		return $result;

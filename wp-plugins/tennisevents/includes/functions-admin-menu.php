@@ -113,6 +113,7 @@ function gw_sanitize_clubId( $input ) {
             $club = Club::get( $input );
             if( !is_null( $club ) ) {
                 $output = $club->getID();
+                update_option('blogname', $club->getName());
             }
         }
         catch( Exception $ex ) {
@@ -154,9 +155,10 @@ function gw_get_clubs() {
 }
 
 function gw_get_events() {
+    $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
     $mainEventId = esc_attr( get_option('gw_tennis_main_event', 0) );
     $out = '';
-    $allEvents = Event::search('');
+    $allEvents = Event::find( ['club' => $homeClubId] );
     foreach( $allEvents as $event ) {
         if( $event->isLeaf()) continue;
         

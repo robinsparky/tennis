@@ -94,7 +94,10 @@ class TE_Install {
 		// Ensure needed classes are loaded		
 		//ManageSignup::register();
 		//ManageDraw::register();
-		TennisEventCpt::register();
+
+		// TennisEventCpt::register();
+		// TennisClubCpt::register();
+
 		// clear the permalinks after the post type has been registered
 		flush_rewrite_rules();
 
@@ -215,6 +218,7 @@ class TE_Install {
 		$booking_match_table 		= $this->dbTableNames["match_court_booking"];
 		$club_event_table			= $this->dbTableNames["club_event"];
 		$ext_event_ref_table        = $this->dbTableNames["external_event"];
+		$ext_club_ref_table         = $this->dbTableNames["external_club"];
 
 		//Check if schema already installed
 		$newSchema = true;
@@ -239,6 +243,30 @@ class TE_Install {
 		}
 		else {
 			$this->log->error_log( dbDelta( $sql ), "$club_table");
+		}
+		
+		/**
+		 * This table enables a relationship
+		 * between clubs and external clubs in a foreign schema table 
+		 * Namely, the custom post type in WordPress called TennisClubCPT 
+		 */
+		$sql = "CREATE TABLE `$ext_club_ref_table` (
+			`club_ID` INT NOT NULL,
+			`external_ID` NVARCHAR(100) NOT NULL,
+			INDEX USING BTREE (`external_ID`),
+			PRIMARY 'external_club' KEY (`club_ID`, `external_ID`),
+			CONSTRAINT `fk_ext_club`
+			FOREIGN KEY (`club_ID`)
+				REFERENCES `$club_table` (`ID`)
+				ON DELETE CASCADE
+				ON UPDATE NO ACTION);";
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $ext_club_ref_table" : "$ext_event_ref_table Created";
+			$this->log->error_log( $res );
+		}
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$ext_club_ref_table");
 		}
 
 		/**
@@ -296,7 +324,7 @@ class TE_Install {
 		$sql = "CREATE TABLE `$event_table` (
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(256) NOT NULL,
-				`parent_ID` INT NULL COMMENT 'Parent event',
+				`parent_ID` INT NULL COMMENT 'parent event',
 				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder, round robin',
 				`score_type` VARCHAR(25) NULL COMMENT 'regulation, no_ad, pro-set etc',
 				`match_type` DECIMAL(3,1) DEFAULT 0.0 COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles', 
@@ -327,7 +355,7 @@ class TE_Install {
 		$sql = "CREATE TABLE `$ext_event_ref_table` (
 				`event_ID` INT NOT NULL,
 				`external_ID` NVARCHAR(100) NOT NULL,
-				INDEX USING BTREE (`external_ID`),
+				INDEX `external_event` USING BTREE (`external_ID`),
 				PRIMARY KEY (`event_ID`, `external_ID`),
 				CONSTRAINT `fk_ext_event`
 				FOREIGN KEY (`event_ID`)

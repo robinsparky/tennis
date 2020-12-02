@@ -10,6 +10,7 @@
 use api\CustomMenu;
 use commonlib\BaseLogger;
 use cpt\TennisEventCpt;
+use cpt\TennisClubCpt;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -151,14 +152,13 @@ class TennisEvents {
 	
 	/**
 	 * Init Tennis Events 
-	 * 1. Instantiate the installer
-	 * 2. Instantiate the Endpoints/routes Controller
 	 */
 	public function init() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log( ">>>>>>>>>>>$loc start>>>>>>>>>" );
 		//Register various 
 		TennisEventCpt::register();
+		TennisClubCpt::register();
 		ManageSignup::register();
 		ManageDraw::register();
 		ManageRoundRobin::register();

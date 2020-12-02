@@ -7,7 +7,7 @@ get_header();
 
 $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
 $club = Club::get( $homeClubId ); 
-$clubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : $club->getName();
+$homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : $club->getName();
 ?>
 
 <!-- Page Content ---->
@@ -39,9 +39,17 @@ $clubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : 
 						$event = $events;
 					}
 					if( is_null( $event ) ) wp_die("Could not find event with external id=$eventCPTId");
+					$allClubs = $event->getClubs();
+					$thisClubName = $homeClubName;
+					foreach( $allClubs as $club ) {
+						if( $homeClubId === $club->getID() ) {
+							$thisClubName = $club->getName();
+							break;
+						}
+					}
 				?>
 				
-				<h3><?php the_title(); ?></h3>
+				<h3><?php the_title(); ?> at <?php echo $thisClubName?></h3>
 				<?php commonlib\tennis_events_get_term_links( $post->ID, TennisEventCpt::CUSTOM_POST_TYPE_TAX ); 
 					$eventType = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
 					$eventType   = EventType::AllTypes()[$eventType];
@@ -84,7 +92,6 @@ $clubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : 
 							<?php echo the_title("<h3>","</h3>") ?>
 							<div><?php the_content() ?> </div>
 							<table class='tennis-event-meta'>
-							<h5>Info</h5>
 							<tbody>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php echo $eventFormat; ?></td></tr>

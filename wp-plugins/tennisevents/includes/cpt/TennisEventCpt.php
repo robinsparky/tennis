@@ -1047,11 +1047,11 @@ class TennisEventCpt {
 	 */
 	public function updateTennisDB( $post_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log("$loc: post id={$post_id}");
+		$this->log->error_log("$loc: post id='$post_id'");
 
 		if( empty( $_POST ) ) return;
 
-		$this->log->error_log($_POST, "POST:");
+		$this->log->error_log($_POST, "$loc: POST...");
 		
 		if( ! isset( $_POST['tennis_end_date_nonce'] ) ) {
 			$this->log->error_log("$loc --> no end date nonce");
@@ -1074,12 +1074,14 @@ class TennisEventCpt {
 		}
 		
 		$evtName = "";
+		$post = get_post( $post_id );
+		if( $post->post_type !== self::CUSTOM_POST_TYPE ) return;
+
 		if( isset( $_POST['post_title'] ) ) {
 			$evtName = sanitize_text_field($_POST['post_title']);
 		}
 		else {
-			$p = get_post( $post_id );
-			$evtName = isset($p) ? $p->post_title : "";
+			$evtName = $post->post_title ?? "";
 		}
 
 		if( empty( $evtName ) ) {
