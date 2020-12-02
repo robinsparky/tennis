@@ -360,10 +360,18 @@ class TennisClubCpt {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc: post_id='$post_id'");
 
+		$homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
+		$club = $this->getClubByExtRef( $post_id );
+		//Don't allow default club to be deleted
+		//TODO: how do we delete all clubs?
+		if( isset($club) && ($homeClubId === $club->getID() ) ) {
+			$this->log->error_log("$loc: Cannot delete the default home club '{$homeClubId}'");
+			return;
+		}
+
 		$post = get_post( $post_id );
 		if( isset( $post ) && $post->post_type === self::CUSTOM_POST_TYPE ) {
 			//Delete the club
-			$club = $this->getClubByExtRef( $post_id );
 			if( ! is_null( $club ) ) $club->delete();
 		}
 	}
