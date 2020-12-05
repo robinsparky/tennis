@@ -367,9 +367,6 @@ EOT;
             if( !empty( $newName) ) {
                 $entrant->setName( $newName );
             }
-            else {
-                $this->log->error_log("$loc: Apparently '$newName' is empty!");
-            }
             if( $seed > -1 ) {
                 $entrant->setSeed( $seed );
             }
