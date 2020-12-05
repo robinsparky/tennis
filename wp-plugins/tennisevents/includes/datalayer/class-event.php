@@ -603,6 +603,15 @@ class Event extends AbstractData
 		if( !isset( $this->start_date ) ) return null;
 		else return $this->start_date->format( DateTime::ISO8601 );
 	}
+
+	/**
+	 * Get the season (i.e. year) in which this event was held
+	 * @return string Year of start date. Defaults to current year.
+	 */
+	public function getSeason() {
+		if( !isset( $this->start_date ) ) return date( 'Y' );
+		else return $this->start_date->format( 'Y' );
+	}
 	
 	/**
 	 * Set the end date for this event
