@@ -37,6 +37,7 @@ class SignupCommands extends WP_CLI_Command {
         $eventId = array_key_exists( 'eventId', $assoc_args ) ? $assoc_args["eventId"] : 0;
         $eventId = array_key_exists( 'bracketName', $assoc_args ) ? $assoc_args["bracketName"] : Bracket::WINNERS;
         if( 0 === $clubId || 0 === $eventId ) {
+            error_clear_last();
             list( $clubId, $eventId, $bracketName ) = $support->getEnvError();
             $last_error = error_get_last();
             if( !is_null( $last_error  ) ) {
