@@ -340,8 +340,11 @@ class Entrant extends AbstractData
 	 * Seed this player(s)
 	 */
 	public function setSeed( int $seed = 0 ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc: with seed=$seed");
+
 		$result = false;
-		if( isset( $seed ) && $seed > 0 ) {
+		if( $seed > -1 && $seed < 99 ) {
 			$this->seed = $seed;
 			$result = $this->setDirty();
 		}
@@ -463,9 +466,10 @@ class Entrant extends AbstractData
 	}
 
 	protected function update() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc");
+
 		global $wpdb;
-		$values;
-		$formats_values;
 
 		parent::update();
 		
