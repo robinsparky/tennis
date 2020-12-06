@@ -38,7 +38,15 @@ $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN
 					else {
 						$event = $events;
 					}
-					if( is_null( $event ) ) wp_die("Could not find event with external id=$eventCPTId");
+					if( is_null( $event ) ) {
+						//TODO: Sydney theme does not display this correctly!?
+						$errmess = "Could not find default tennis event with external id={$eventCPTId}";
+						error_log($errmess);
+						echo "<div class='tennis-error'>{$errmess}</div>";					
+						get_footer(); 	
+						wp_die( $errmess );
+					}
+					//Have a valid parent Event
 					$allClubs = $event->getClubs();
 					$thisClubName = $homeClubName;
 					foreach( $allClubs as $club ) {
@@ -58,6 +66,7 @@ $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN
 					<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
 				</ul>
 				<?php the_content() ?> 
+				
 				<!-- Now the child events -->
 				<?php
 					$args = array( "post_type" => TennisEventCpt::CUSTOM_POST_TYPE
@@ -128,6 +137,7 @@ $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN
 					'prev_text'          => '<i class="fa fa-angle-double-left"></i>',
 					'next_text'          => '<i class="fa fa-angle-double-right"></i>',
 				) );
+
 				?>
 
 			<?php
@@ -143,6 +153,5 @@ $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN
 </div> <!-- /Page content -->
 
 <?php 
-//echo "FOOTER*****************************";
 get_footer(); 
 ?>

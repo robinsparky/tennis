@@ -244,6 +244,32 @@ class TournamentDirector
 
         return 0;
     }
+    
+    /**
+     * Get the highest round number for this bracket
+     * NOTE: This round should have only one match in it
+     */
+    public function getLastRoundNumber( $bracketName = Bracket::WINNERS ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc($bracketName");
+
+        return self::calculateExponent( $this->signupSize( $bracketName ) );
+    }
+
+    /**
+     * Retrieve the Champion for this bracket
+     * @param String $bracketName
+     * @return Entrant who won the bracket or null if not completed
+     * @see class ChairUmpire
+     */
+    public function getChampion( $bracketName = Bracket::WINNERS ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc($bracketName");
+
+        $bracket = $this->getBracket( $bracketName ); 
+        
+        return $this->getChairUmpire()->getChampion( $bracket ); 
+    }
 
     /**
      * Advance completed matches to their respective next rounds
@@ -258,7 +284,7 @@ class TournamentDirector
         $bracket = $this->getBracket( $bracketName );
 
         if( is_null( $bracket ) ) {
-            throw new InvalidTournamentException( __( "Invalid bracket name $bracketNname.", TennisEvents::TEXT_DOMAIN) );
+            throw new InvalidTournamentException( __( "Invalid bracket name {$bracketNname}.", TennisEvents::TEXT_DOMAIN) );
         }
 
         if( !$bracket->isApproved() ) {
@@ -267,38 +293,44 @@ class TournamentDirector
 
         $matches = $bracket->getMatches();
         $umpire = $this->getChairUmpire();
-        $lastRound = self::calculateExponent( $this->signupSize() );
-        $champRound  = $lastRound + 1;
+        $lastRound = $this->getLastRoundNumber( $bracketName );
 
         $numAdvanced = 0;
         foreach( $matches as $match ) {  
             $title = $match->title();
             
+            $isLastRound = $lastRound === $match->getRoundNumber();
             //We don't advance the last match of the bracket
-            if( $lastRound === $match->getRoundNumber() ) {
-                $this->log->error_log( "$loc: '$title' in last round=$lastRound");
-                break;
-            }
+            // if( $isLastRound ) {
+            //     $this->log->error_log( "$loc: '$title' in last round=$lastRound");
+            //     break;
+            // }
 
             $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextMatchNumber() );
-            if( is_null( $nextMatch ) ) {
+            if( is_null( $nextMatch ) && !$isLastRound ) {
                 //When the bracket is approved all matches from preliminary to the end of the 
                 // tournament are generated. So we should not have the case where a next match
                 // is null until the very last match
-                $mess = "Match $title has invalid next match pointers.";
+                $mess = "Match {$title} has invalid next match pointers.";
                 $this->log->error_log( $mess );
                 throw new InvalidTournamentException( $mess );
             }
 
             $winner = null;
             if( $umpire->isLocked( $match, $winner ) ) {
-                //$winner = $umpire->matchWinner( $match );
 
                 if( is_null( $winner ) ) {
                     $mess = "Match $title is locked but cannot determine winner.";
                     $this->log->error_log( $mess );
                     throw new InvalidTournamentException( $mess );
                 }
+
+                //If we have a winner from the match in last round
+                // then this is the champion of the tournament
+                if( $isLastRound ) {
+                    $numAdvanced = $winner->getName(); //i.e. champion
+                    break;
+                } 
 
                 $this->log->error_log("$loc: attempting to advance match: $title");
 
@@ -347,7 +379,8 @@ class TournamentDirector
      */
     public function save() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc -> called ...");
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
 
         //TODO: This should spiral down thru all brackets, matches and sets.
         //      Needs to be tested and fixed.
@@ -441,6 +474,7 @@ class TournamentDirector
 
     /**
      * This function produces an array of statistics for the given bracket
+     * TODO: Should be moved the ChairUmpire
      * @param Bracket The bracket for which summary is required
      * @return array matches completed and total matches played by round
      *               total matches completed and played for the bracket
@@ -731,7 +765,11 @@ class TournamentDirector
     public function removeMatches( string $bracketName = Bracket::WINNERS ) {
         $bracket = $this->event->getBracket( $bracketName );
         if( !is_null( $bracket ) ) {
-            $bracket->removeAllMatches();
+            if( $bracket->removeAllMatches() ) {
+                $this->save();
+                return true;
+            }
+            return false;
         }
         else {
             throw new InvalidTournamentException( __( "Bracket name $bracketName does not exist when trying to remove its matches." ) );
@@ -887,13 +925,17 @@ class TournamentDirector
      * @return int Number of matches created
      */
     public function schedulePreliminaryRounds( string $bracketName, $randomizeDraw = false ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc");
 
         switch( $this->getEvent()->getFormat() ) {
             case Format::SINGLE_ELIM:
             case Format::DOUBLE_ELIM:
                 return $this->initializeEliminationRounds( $bracketName, $randomizeDraw );
             case Format::POINTS:
+            case Format::POINTS2;
             case Format::GAMES:
+            case Format::OPEN:
                 return $this->initializeRoundRobin( $bracketName, true );
         }
         return 0;
@@ -934,7 +976,7 @@ class TournamentDirector
                 break;
             case Bracket::LOSERS:
             default:
-                throw new InvalidBracketException( __("$bracketName is not valid for this event.", TennisEvents::TEXT_DOMAIN ) );
+                throw new InvalidBracketException( __("'{$bracketName}' is not valid for this event.", TennisEvents::TEXT_DOMAIN ) );
         }
         
         //Bracket must not be approved already
@@ -1036,9 +1078,9 @@ class TournamentDirector
         $slot = ($seedByes + $unseedByes) > 1 ? ceil( ceil( $bracketSignupSize / 2.0 ) / ($seedByes + $unseedByes) ) : 0;
         $slot = max( 2, $slot );
 
-        error_log(' ');
         error_log( sprintf(">>>>>%s -> bracket=%s seeds=%d; unseeded=%d", $loc, $bracket->getName(), count( $seeded ), count( $unseeded ) ) );
-        error_log( sprintf("     %s -> bracket=%s slot=%d; numInvolved=%d; remainder=%d; highMatchNum=%d; seedByes=%d; unseedByes=%d", $loc, $bracket->getName(), $slot, $numInvolved, $remainder, $highMatchnum, $seedByes, $unseedByes) );
+        error_log( sprintf("     %s -> bracket=%s slot=%d; numInvolved=%d; remainder=%d; highMatchNum=%d; seedByes=%d; unseedByes=%d"
+                          ,$loc, $bracket->getName(), $slot, $numInvolved, $remainder, $highMatchnum, $seedByes, $unseedByes) );
 
         for( $i = 0; $i < $seedByes; $i++ ) {
             if( 0 === $i ) {
@@ -1080,14 +1122,30 @@ class TournamentDirector
         //Set the first lot of matches starting from end of the line
         $ctr = 0;
         while( count( $unseeded ) > 0 || count( $seeded ) > 0 ) {
+            $numSeeded = count($seeded);
+            $numUnseeded = count($unseeded);
+            $this->log->error_log("$loc:$ctr. numSeeded=${numSeeded} numUnSeeded=${numUnseeded}");
+
             if( count( $seeded ) > 0 ) {
-                $home    = array_pop( $seeded );
+                $home    = array_shift( $seeded );
                 $visitor = array_shift( $unseeded );
 
                 // $lastSlot = rand( $lowMatchnum, $highMatchnum );
                 // $lastSlot += $slot;
-                if( $ctr & 2 ) $lastSlot = $highMatchnum - $ctr * $slot;
-                else           $lastSlot = $lowMatchnum  + $ctr * $slot;
+                if( $ctr & 2 ) {
+                    $lastSlot = (int)($highMatchnum - $ctr * $slot);
+                    if(0 === $lastSlot) $lastSlot = 1;
+                }
+                else {          
+                    $lastSlot = (int)($lowMatchnum  + $ctr * $slot);
+                }
+                $this->log->error_log("$loc:$ctr. lastSlot=$lastSlot ");
+
+                if( 0 === $lastSlot ) {
+                    $this->log->error_log("$loc: lastSlot is zero! with ctr=$ctr");
+                    throw new InvalidBracketException( __("$loc: lastSlot is zero! with ctr=$ctr", TennisEvents::TEXT_DOMAIN ) );
+                }
+
                 $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
                 array_push( $usedMatchNums, $lastSlot );
                 
@@ -1104,6 +1162,8 @@ class TournamentDirector
 
                 $mn = $matchnum++;
                 $mn = $this->getNextAvailable( $usedMatchNums, $mn );
+                $this->log->error_log("$loc:$ctr. lastSlot=$mn");
+
                 array_push( $usedMatchNums, $mn );
 
                 $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );

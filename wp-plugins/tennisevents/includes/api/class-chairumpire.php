@@ -9,10 +9,10 @@ require_once( $p2Dir . 'tennisevents.php' );
 require_once( 'api-exceptions.php' );
 
 /** 
- * ChairUmpire interprets the scores for matches
- * as well as determing if a match is complete or not.
+ * ChairUmpire interprets the scores for matches, determines match winners
+ * and bracket champions as well as determing if a match is complete or not.
  * This interface also supports defaulting a match.
- * @class  ChairUmpire
+ * All incarnations of umpire must inherit from this abstract class
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
@@ -43,6 +43,7 @@ abstract class ChairUmpire
 	abstract public function getScores( Match &$match );
     abstract public function matchWinner( Match &$match );
     abstract public function getMatchSummary( Match &$match );
+    abstract public function getChampion( Bracket &$bracket );
 	// abstract public function matchStatus( Match &$match );
 	// abstract public function defaultHome( Match &$match, string $cmts );
 	// abstract public function defaultVisitor( Match &$match, string $cmts );
@@ -78,6 +79,25 @@ abstract class ChairUmpire
         $chairUmpire->setScoreTypeMask( $scoretype );
 
         return $chairUmpire;
+    }
+    
+    /**
+     * Given the size of the draw (or any integer), calculate the highest 
+     * power of 2 which is greater than or equal to that size (or integer)
+     * @param int $size 
+     * @param int $upper The upper limit of the search; default is 8
+     * @return int The exponent if found; zero otherwise
+     * @see TournamentDirector's version of this
+     */
+	public static function calculateExponent( int $size, $upper = 8 ) {
+        $exponent = 0;
+        foreach( range( 1, $upper ) as $exp ) {
+            if( pow( 2, $exp ) >= $size ) {
+                $exponent = $exp;
+                break;
+            }
+        }
+        return $exponent;
     }
 
     /**

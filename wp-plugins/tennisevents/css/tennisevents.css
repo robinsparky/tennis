@@ -301,6 +301,13 @@ div.modifymatchscores.save-cancel-buttons {
   margin: 0 auto;
 }
 
+.tennis-champion {
+  font-size: x-large;
+  color: red;
+  font-style: oblique;
+  font-weight: bold;
+}
+
 .matchstatus {
   font-size: 100%;
 }

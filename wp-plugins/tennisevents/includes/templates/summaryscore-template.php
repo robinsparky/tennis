@@ -36,5 +36,5 @@ endfor //rounds in table head
 for($r = 1; $r<=$numRounds; $r++) : ?>
 <td id="summary-by-round-<?php echo $r; ?>" data-bracketsummary="<?php echo $bracketSummary["byRound"][$r];?>"><?php echo $bracketSummary["byRound"][$r]; ?></td>
 <?php endfor; ?>
-<td colspan="2"><span><?php if( !empty($bracketSummary["champion"]) ) echo "Champion: " . $bracketSummary["champion"];?></span></td>
+<td colspan="2"><span class="tennis-champion"><?php if( !empty($bracketSummary["champion"]) ) echo $bracketSummary["champion"];?></span></td>
 </tfoot></table>

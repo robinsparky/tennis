@@ -417,7 +417,7 @@ class ManageDraw
                 $data['matchdate'] = $match->getMatchDate_Str();
                 $data['matchtime'] = $match->getMatchTime_Str();
 
-                $data['advanced'] = 0; //$td->advance( $bracketName );
+                $data['advanced'] = $td->advance( $bracketName );
                 $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
                 $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
                 
@@ -734,6 +734,8 @@ class ManageDraw
 
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
+        $champion = $td->getChampion( $bracketName );
+        $champion = empty( $champion ) ? 'tba' : $champion->getName();
         $umpire = $td->getChairUmpire();
 
         $loadedMatches = $bracket->getMatchHierarchy( );
@@ -808,6 +810,12 @@ EOT;
 </td>
 EOT;
 
+        $champTemplate = <<<EOT
+<td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d"  data-majorstatus="%d"  data-minorstatus="%d">
+<div class="tennis-champion">%s</div>
+</td>
+EOT;   
+
         $rowEnder = "</tr>" . PHP_EOL;
         //rows
         $row = 0;
@@ -879,9 +887,11 @@ EOT;
                                , $visitorWinner
                                , $vname );
 
+                //Future matches following from this match
                 $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
+                $rowspan = 1;
                 foreach( $futureMatches as $futureMatch ) {
-                    $rowspan = pow( 2, $r++ );
+                    $rowspan = pow( 2, $r++ );//The trick!
                     $eventId = $futureMatch->getBracket()->getEvent()->getID();
                     $bracketNum = $futureMatch->getBracket()->getBracketNumber();
                     $roundNum = $futureMatch->getRoundNumber();
@@ -934,7 +944,13 @@ EOT;
                                    , $modifyscores
                                    , $visitorWinner
                                    , $vname);
-                }     
+                } //future matches  
+                
+                //Champion column
+                if( 1 === $row && $bracket->isApproved() ) {
+                    $out .= sprintf( $champTemplate, $rowspan, $eventId, $bracketNum, 0, 0, 0, 0
+                                    , $champion );
+                }  
             }
             catch( RuntimeException $ex ) {
                 $rowEnder = '';
@@ -944,7 +960,7 @@ EOT;
                 $out .= $rowEnder;
             }  
         } //preliminaryRound  
-             
+        
         $out .= "</tbody><tfooter></tfooter>";
         $out .= "</table>";	 
         $out .= "<div class='bracketDrawButtons'>";
@@ -979,6 +995,8 @@ EOT;
 
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
+        $champion = $td->getChampion( $bracketName );
+        $champion = empty( $champion ) ? 'tba' : $champion->getName();
         $umpire = $td->getChairUmpire();
 
         $loadedMatches = $bracket->getMatchHierarchy( true );
@@ -1030,6 +1048,12 @@ EOT;
 <div class="visitorentrant %s">%s</div>
 </td>
 EOT;
+
+    $champTemplate = <<<EOT
+<td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d"  data-majorstatus="%d"  data-minorstatus="%d">
+<div class="tennis-champion">%s</div>
+</td>
+EOT; 
 
         $rowEnder = "</tr>" . PHP_EOL;
         //rows
@@ -1100,6 +1124,7 @@ EOT;
                                , $vname );
 
                 $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
+                $rowspan = 1;
                 foreach( $futureMatches as $futureMatch ) {
                     $rowspan = pow( 2, $r++ );
                     $eventId = $futureMatch->getBracket()->getEvent()->getID();
@@ -1153,7 +1178,13 @@ EOT;
                                    , $displayscores
                                    , $visitorWinner
                                    , $vname);
-                }     
+                }
+                
+                //Champion column
+                if( 1 === $row && $bracket->isApproved() ) {
+                    $out .= sprintf( $champTemplate, $rowspan, $eventId, $bracketNum, 0, 0, 0, 0
+                                    ,$champion );
+                }       
             }
             catch( RuntimeException $ex ) {
                 $rowEnder = '';

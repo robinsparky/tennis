@@ -142,12 +142,7 @@ class ManageRoundRobin
             return __($mess, TennisEvents::TEXT_DOMAIN );
         }
 
-        if( !is_null( $bracket ) ) {
-            return $this->renderBracketByMatch( $td, $bracket );
-        }
-        else {
-            return  __("No such Bracket $bracketName", TennisEvents::TEXT_DOMAIN );
-        }
+        return $this->renderBracketByMatch( $td, $bracket );
     }
     
     /**

@@ -145,14 +145,14 @@ class TournamentCommands extends WP_CLI_Command {
 
         $support = CmdlineSupport::preCondtion();
 
-        list( $bracketName ) = $args;
+        //list( $bracketName ) = $args;
 
         $shuffle = array_key_exists("shuffle",$assoc_args) ? $assoc_args["shuffle"] : '';
         if( strcasecmp("yes", $shuffle) === 0 ) $shuffle = true;
         else $shuffle = false;
 
         $env = $support->getEnvError();
-        list( $clubId, $eventId ) = $env;
+        list( $clubId, $eventId, $bracketName ) = $env;
         error_clear_last();
         if( !is_null( error_get_last() ) ) {
             WP_CLI::error("Wrong env for ... clubId, eventId");
@@ -212,10 +212,10 @@ class TournamentCommands extends WP_CLI_Command {
     function reset( $args, $assoc_args ) {
 
         $support = CmdlineSupport::preCondtion();
-        list( $bracketName ) = $args;
 
         $env = $support->getEnvError();
-        list( $clubId, $eventId ) = $env;
+        error_clear_last();
+        list( $clubId, $eventId, $bracketName ) = $env;
         $last_error = error_get_last();
         if( !is_null( $last_error  ) ) {
             WP_CLI::error("Wrong env for ... clubId, eventId");
@@ -227,7 +227,7 @@ class TournamentCommands extends WP_CLI_Command {
         $target = null;
         if( count( $evts ) > 0 ) {
             foreach( $evts as $evt ) {
-                $target = CmdlineSupport::get_instance()->getEventRecursively( $evt, $eventId );
+                $target = $support->getEventRecursively( $evt, $eventId );
                 if( isset( $target ) ) {
                     $found = true;
                     break;
@@ -237,8 +237,8 @@ class TournamentCommands extends WP_CLI_Command {
                 $club = Club::get( $clubId );
                 $name = is_null($club) ? 'unknown club' : $club->getName();
                 $evtName = $target->getName();
-                $td = new TournamentDirector( $target );
                 try {
+                    $td = new TournamentDirector( $target );
                     if( $td->removeMatches( $bracketName ) ) {
                         WP_CLI::success("tennis tourney reset ... accomplished.");
                     }
@@ -277,13 +277,8 @@ class TournamentCommands extends WP_CLI_Command {
   
         $support = CmdlineSupport::preCondtion();
 
-        list( $bracketName ) = $args;
-        if(!is_null( error_get_last() ) ) {
-            WP_CLI::error("Invalid args ... need bracket name.");
-        }
-
-        list( $clubId, $eventId ) = $support->getEnvError();
         error_clear_last();
+        list( $clubId, $eventId, $bracketName ) = $support->getEnvError();
         if( !is_null( error_get_last() ) ) {
             WP_CLI::error("Wrong env for ... clubId, eventId");
             exit;

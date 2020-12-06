@@ -9,6 +9,7 @@
         var shorttimeout = 5000;
         var winnerclass = 'matchwinner';
         var MajorStatus = {NotStarted: 1, InProgress: 2, Completed: 3, Bye: 4, Waiting: 5, Cancelled: 6, Retired: 7 };
+        const isString = str => ((typeof str === 'string') || (str instanceof String));
 
         /**
          * Function to make ajax calls.
@@ -160,6 +161,7 @@
                     case 'savescore':
                         updateMatchDate( data );
                         updateScore( data );
+                        advanceMatches( data );
                         break;
                     case 'setcomments':
                         updateComments( data );
@@ -171,7 +173,8 @@
                         updateMatchDate( data );
                         break;
                     case 'advance':   
-                        advanceMatches( data ); 
+                        advanceMatches( data );
+                        updateChampion( data );
                         break;
                     default:
                         console.log("Unknown task from server: '%s'", task);
@@ -189,8 +192,8 @@
             console.log( data );
             $('#advanceMatches').prop('disabled', false );
             let advanced = data.advanced || data;
-            if( 0 < advanced ) {                  
-                alert(advanced + " matches advanced. Reloading...");
+            if( !isString( advanced ) && 0 < advanced ) {                  
+                alert(`${advanced} matches advanced. Reloading...`);
                 window.location.reload();
             }
             else {
@@ -233,6 +236,21 @@
         }
 
         /**
+         * Update the champion if crowned
+         * @param {} data
+         */
+        function updateChampion( data ) {
+            console.log('updateChampion');
+            if( isString( data.advanced ) ) {
+                //find the el and update it.
+                console.log(`Updating the champion '${data.advanced}'`);
+            }
+            else {
+                console.log("No champion crowned yet.")
+            }
+        }
+
+        /**
          * Update the match scores
          * @param {*} data 
          */
@@ -263,6 +281,7 @@
                     break;
             }
             updateStatus(data);
+            updateChampion(data);
         }
 
         /**

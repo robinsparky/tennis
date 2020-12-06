@@ -47,6 +47,10 @@ abstract class AbstractData
      * Save this Object to the database
      */
     public function save():int {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$calledBy = debug_backtrace()[1]['function'];
+        error_log("{$loc} ... called by {$calledBy}");
+        
         $result = 0;
 		if($this->isNew()) $result = $this->create();
         elseif ($this->isDirty()) $result = $this->update();

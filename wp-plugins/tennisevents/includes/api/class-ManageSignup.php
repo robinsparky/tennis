@@ -14,7 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * 4. Updating entrant's name and/or seed
  * 5. Approving the lineup by scheduling preliminary rounds
  * 6. Reset by removing preliminary rounds
- * @class  ManageSignup
  * @package TennisAdmin
  * @version 1.0.0
  * @since   0.1.0
@@ -460,6 +459,7 @@ EOT;
             $event   = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $bracketName = $data["bracketName"];
+            $this->log->error_log("$loc with bracketName='$bracketName'");
             $numMatches = $td->schedulePreliminaryRounds( $bracketName );
             $mess =  __("Created $numMatches preliminary matches for '$bracketName' bracket.", TennisEvents::TEXT_DOMAIN );
         }
