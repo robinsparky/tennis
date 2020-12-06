@@ -31,6 +31,7 @@ class EnvironmentCommands extends WP_CLI_Command {
 
         $tsc = CmdlineSupport::preCondtion();
 
+        error_clear_last();
         list( $clubId, $eventId, $bracketName ) = $args;
         $last_error = error_get_last();
         if( !is_null( $last_error  ) ) {
