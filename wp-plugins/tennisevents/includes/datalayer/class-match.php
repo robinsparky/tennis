@@ -53,6 +53,7 @@ class Match extends AbstractData
     private $home;
     private $visitor_ID;
     private $visitor;
+    private $entrantsToBeDeleted = array();
 
     private $comments;
     
@@ -78,8 +79,8 @@ class Match extends AbstractData
 		$calledBy = debug_backtrace()[1]['function'];
         error_log("{$loc} ... called by {$calledBy}");
 
-        $args = print_r( $fk_criteria, true );
-        error_log("$loc: args=$args");
+        //$args = print_r( $fk_criteria, true );
+        //error_log("$loc: args=$args");
 
 		global $wpdb;
         $table = $wpdb->prefix . self::$tablename;
@@ -122,7 +123,9 @@ class Match extends AbstractData
             return $col;
         }
         
-		$rows = $wpdb->get_results( $safe, ARRAY_A );
+        $rows = $wpdb->get_results( $safe, ARRAY_A );
+        
+        error_log("$loc: found {$wpdb->num_rows} matches");
 
 		foreach( $rows as $row ) {
             $obj = new Match( $eventId, $bracket, $round );
@@ -816,6 +819,10 @@ class Match extends AbstractData
     public function setHomeEntrant( Entrant $h ) {
         $result = false;
         if( isset( $h ) ) {
+            $existing = $this->getHomeEntrant();
+            if( isset( $existing ) ) {
+                array_push($this->entrantsToBeDeleted, $existing->getPosition());
+            }
             $this->home = $h;
             $this->home_ID = $h->getPosition();
             $result = $this->setDirty();
@@ -839,6 +846,10 @@ class Match extends AbstractData
     public function setVisitorEntrant( Entrant $v ) {
         $result = false;
         if( isset( $v ) ) {
+            $existing = $this->getVisitorEntrant();
+            if( isset( $existing ) ) {
+                array_push($this->entrantsToBeDeleted, $existing->getPosition());
+            }
             $this->visitor = $v;
             $this->visitor_ID = $v->getPosition();
             $result = $this->setDirty();
@@ -1225,6 +1236,13 @@ class Match extends AbstractData
         }
         $this->setsToBeDeleted = array();
 
+        foreach( $this->entrantsToBeDeleted as $pos ) {
+            $result += EntrantMatchRelations::remove( $this->getBracket()->getEvent()->getID()
+                                                    , $this->getBracket()->getBracketNumber()
+                                                    , $this->getRoundNumber()
+                                                    , $this->getMatchNumber()
+                                                    , $pos );
+        }
         $result += isset( $this->home ) ? EntrantMatchRelations::add( $this->getBracket()->getEvent()->getID(), $this->getBracket()->getBracketNumber(), $this->getRoundNumber(), $this->getMatchNumber(), $this->getHomeEntrant()->getPosition() ) : 0;
         $result += isset( $this->visitor ) ?  EntrantMatchRelations::add( $this->getBracket()->getEvent()->getID(), $this->getBracket()->getBracketNumber(), $this->getRoundNumber(), $this->getMatchNumber(), $this->getVisitorEntrant()->getPosition(), 1 ) : 0;
         
