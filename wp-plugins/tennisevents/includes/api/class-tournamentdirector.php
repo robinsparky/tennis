@@ -31,6 +31,8 @@ class TournamentDirector
 
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
     public const MAXIMUM_ENTRANTS = 256; //maximum for an elimination tournament
+    
+    public const MINIMUM_RR_ENTRANTS = 3; //minimum for a round robing1220 tournament
 
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
@@ -1215,7 +1217,7 @@ class TournamentDirector
         //Get or create the requested bracket
         $mainbracket = null;
         $loserbracket = null;
-        $minplayers =  3; //self::MINIMUM_ENTRANTS;
+        $minplayers =  self::MINIMUM_RR_ENTRANTS;
         $bracket = $this->getBracket( $bracketName );
 
         
@@ -1239,7 +1241,6 @@ class TournamentDirector
         }
         $this->log->error_log( "$loc: signup size=$bracketSignupSize" );
 
-
         //Remove any existing matches ... we know they have not started yet
         $this->removeMatches( $bracketName );
         $this->save();
@@ -1251,22 +1252,23 @@ class TournamentDirector
         //Heavy lifting done here!
         //1. Get contestants
         $contestants = array_map( function( $e ) { return $e->getName(); }, $entrants);
+        
+        //2. Shuffle the matches
+        if( $randomizeDraw ) shuffle( $contestants );
 
-        //2. Get combinations in groups of 2
+        //3. Get combinations in groups of 2
         // NOTE: (n choose k) = n!/k!(n-k)! where in this case k=2
         $numMatches = $bracketSignupSize * ( $bracketSignupSize - 1 ) / 2;
         $this->log->error_log( "$loc: Calculated number of matches={$numMatches}" );
         $matches = $this->getCombinations( $contestants );
         $matchesCreated = count( $matches );
+
         if( $matchesCreated !== $numMatches ) {
             $this->log->error_log($matches, "$loc: Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.");
             throw new InvalidTournamentException(__("Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.",TennisEvents::TEXT_DOMAIN ));
         }
 
-        //3. Shuffle the matches
-        if( $randomizeDraw ) shuffle( $matches );
-
-        $this->log->error_log( $matches, "$loc: Matches");
+        //$this->log->error_log( $matches, "$loc: Combinatorics Matches");
 
         //4. Fill out the matches by round array 
         //   ensuring that players do not play more than once in a round
@@ -1302,6 +1304,7 @@ class TournamentDirector
             $m = 1;
             foreach( $matches as $mtch ) {
                 $players = array_values( $mtch );
+                $this->log->error_log($players,"$loc:Players for round={$r}, match={$m}");
                 $home = $bracket->getNamedEntrant( $players[0] );
                 $visitor = $bracket->getNamedEntrant( $players[1] );
                 $match = new Match( $this->getEvent()->getID(), $bracket->getBracketNumber(), $r, $m++ );
@@ -1312,10 +1315,13 @@ class TournamentDirector
             }
         }
 
+        // $bsm = array_map( function( $m ) { return $m->toString(); }, $bracket->getMatches());
+        // $this->log->error_log( $bsm,"$loc: Matches before save...");
+
         $matchesCreated = $bracket->numMatches();
         if( $matchesCreated !== $numMatches ) {
             $this->log->error_log( "Actual number of real matches {$matchesCreated} differs from original created {$numMatches}.");
-            throw new InvalidTournamentException( __e("Actual number of real matches {$matchesCreated} differs from original created {$numMatches}.",TennisEvents::TEXT_DOMAIN ));
+            throw new InvalidTournamentException( __("Actual number of real matches {$matchesCreated} differs from original created {$numMatches}.",TennisEvents::TEXT_DOMAIN ));
         }
         $this->save();
 
@@ -1360,12 +1366,19 @@ class TournamentDirector
         return $result;
     }
 
+    /**
+     * Get all the combinations of the identified players
+     * @param array $set
+     * @param int $num The size of any combination i.e. (M choose N)
+     *              where M is the size of $set and N is $num
+     * @return array array of all arrays
+     */
     private function getCombinations( $set, int $num=2 ) {
 
         $combinatorics = new Math_Combinatorics;
-        if( is_null( $set ) ) {
-            return array();
-        }
+        if( is_null( $set ) ) return array();
+        if( count($set) <= $num ) return array();
+
         $combs = $combinatorics->combinations($set, $num);
         return $combs;
     }
