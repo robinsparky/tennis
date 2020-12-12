@@ -366,9 +366,9 @@ div.modifymatchscores.save-cancel-buttons {
 ----------------------------------------------------------------------*/
 .menu-icon {
   display: block;
+  height: 10%;
   cursor: pointer;
   position: relative;
-  /*left: 80%;*/
 }
 
 .bar1,
@@ -394,10 +394,24 @@ div.modifymatchscores.save-cancel-buttons {
   position: relative;
   left: 80%;
 }
+.dots {
+  /*width: 40px;
+  height: 10px;*/
+  font-size: 14px;
+  line-height: 14px;
+  box-sizing: border-box;
+  /*background-color: #1a1a1a;*/
+  fill: rgb(106, 115, 125);
+  margin: 0 0;
+  transition: 0.4s;
+  display: block;
+  position: relative;
+  left: 80%;
+}
 
 .matchaction {
   display: none;
-  background-color: black;
+  background-color: darkred;
   border: 1px solid white;
   list-style-type: none;
   width: 60%;
@@ -406,7 +420,7 @@ div.modifymatchscores.save-cancel-buttons {
   left: 20%;
   font-size: 1rem !important;
   padding-left: 2px;
-  opacity: 0.7;
+  /*opacity: 0.7;*/
 }
 .matchaction > li {
   color: white;

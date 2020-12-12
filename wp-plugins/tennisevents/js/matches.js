@@ -87,6 +87,31 @@
         
             return [year, month, day].join('-');
         }
+        
+        function storageAvailable(type) {
+            var storage;
+            try {
+                storage = window[type];
+                var x = '__storage_test__';
+                storage.setItem(x, x);
+                storage.removeItem(x);
+                return true;
+            }
+            catch(e) {
+                return e instanceof DOMException && (
+                    // everything except Firefox
+                    e.code === 22 ||
+                    // Firefox
+                    e.code === 1014 ||
+                    // test name field too, because code might not be present
+                    // everything except Firefox
+                    e.name === 'QuotaExceededError' ||
+                    // Firefox
+                    e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+                    // acknowledge QuotaExceededError only if there's something already stored
+                    (storage && storage.length !== 0);
+            }
+        }
 
         /**
          * Apply the response from an ajax call to the elements of the page
@@ -450,6 +475,7 @@
             console.log( event );
             if( tennis_draw_obj.isBracketApproved + 0 > 0) {
                 if( $(event.target).hasClass('menu-icon')
+                    || $(event.target).hasClass("dots")
                     || $(event.target).hasClass('bar1')
                     || $(event.target).hasClass('bar2')
                     || $(event.target).hasClass('bar3')
@@ -459,7 +485,8 @@
                 }
             } 
             else {
-                if( $(event.target ).hasClass('menu-icon') 
+                if( $(event.target ).hasClass('menu-icon')
+                || $(event.target).hasClass("dots") 
                 || $(event.target).hasClass('bar1')
                 || $(event.target).hasClass('bar2')
                 || $(event.target).hasClass('bar3')
@@ -793,5 +820,13 @@
         });
 
         hideModifyScores();
+        
+        //Test
+        if (storageAvailable('localStorage')) {
+            console.log("Yippee! We can use localStorage awesomeness");
+          }
+          else {
+            console.log("Too bad, no localStorage for us");
+          }
     });
 })(jQuery);
