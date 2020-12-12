@@ -66,13 +66,6 @@ class TennisEventCpt {
 
 		//Required actions for meta boxes
 		add_action('add_meta_boxes', array($tennisEvt, 'metaBoxes'));
-		//Actions for save functions re meta values
-		// add_action( 'save_post', array( $tennisEvt, 'eventTypeSave'), 10 );
-		// add_action( 'save_post', array( $tennisEvt, 'eventFormatSave'), 10 );
-		// add_action( 'save_post', array( $tennisEvt, 'matchTypeSave'), 10 );
-		// add_action( 'save_post', array( $tennisEvt, 'signupBySave'), 10 );
-		// add_action( 'save_post', array( $tennisEvt, 'startDateSave'), 10 );
-		// add_action( 'save_post', array( $tennisEvt, 'endDateSave'), 10 );
 		// Hook for updating/inserting into Tennis tables
 		add_action('save_post', array($tennisEvt, 'updateTennisDB'), 12);
 		//Hook for deleting cpt
@@ -295,7 +288,7 @@ class TennisEventCpt {
 			if (!empty($signupBy)) {
 				echo $signupBy;
 			} else {
-				echo __('TBA', TennisEvents::TEXT_DOMAIN);
+				echo __('', TennisEvents::TEXT_DOMAIN);
 			}
 		} elseif ($column_name === 'start_date') {
 			$start = get_post_meta($postID, self::START_DATE_META_KEY, TRUE);
@@ -329,11 +322,26 @@ class TennisEventCpt {
 
 		//hierarchical
 		$labels = array(
-			'name' => 'Tennis Event Categories', 'singular_name' => 'Tennis Event Category', 'search_items' => 'Tennis Event Search Category', 'all_items' => 'All Tennis Event Categories', 'parent_item' => 'Parent Tennis Event Category', 'parent_item_colon' => 'Parent Tennis Event Category:', 'edit_item' => 'Edit Tennis Event Category', 'update_item' => 'Update Tennis Event Category', 'add_new_item' => 'Add New Tennis Event Category', 'new_item_name' => 'New Tennis Event Category', 'menu_name' => 'Tennis Event Categories'
+			'name' => 'Tennis Event Categories'
+			, 'singular_name' => 'Tennis Event Category'
+			, 'search_items' => 'Tennis Event Search Category'
+			, 'all_items' => 'All Tennis Event Categories'
+			, 'parent_item' => 'Parent Tennis Event Category'
+			, 'parent_item_colon' => 'Parent Tennis Event Category:'
+			, 'edit_item' => 'Edit Tennis Event Category'
+			, 'update_item' => 'Update Tennis Event Category'
+			, 'add_new_item' => 'Add New Tennis Event Category'
+			, 'new_item_name' => 'New Tennis Event Category'
+			, 'menu_name' => 'Tennis Event Categories'
 		);
 
 		$args = array(
-			'hierarchical' => true, 'labels' => $labels, 'show_ui' => true, 'show_admin_column' => true, 'query_var' => true, 'rewrite' => array('slug' => self::CUSTOM_POST_TYPE_TAX)
+			'hierarchical' => true
+			, 'labels' => $labels
+			, 'show_ui' => true
+			, 'show_admin_column' => true
+			, 'query_var' => true
+			, 'rewrite' => array('slug' => self::CUSTOM_POST_TYPE_TAX)
 		);
 
 		register_taxonomy(
@@ -347,7 +355,9 @@ class TennisEventCpt {
 			self::CUSTOM_POST_TYPE_TAG,
 			self::CUSTOM_POST_TYPE,
 			array(
-				'label' => 'Tennis Event Tags', 'rewrite' => array('slug' => 'tenniseventtag'), 'hierarchical' => false
+				'label' => 'Tennis Event Tags'
+				, 'rewrite' => array('slug' => 'tenniseventtag')
+				, 'hierarchical' => false
 			)
 		);
 	}
@@ -480,59 +490,15 @@ class TennisEventCpt {
 	}
 
 	/**
-	 * Event Type save
-	 */
-	public function eventTypeSave($post_id)	{
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
-
-		if (!isset($_POST['tennis_event_type_nonce'])) {
-			$this->log->error_log("$loc --> no nonce");
-			return;
-		}
-
-		if (!wp_verify_nonce($_POST['tennis_event_type_nonce'], 'eventTypeSave')) {
-			$this->log->error_log("$loc --> bad nonce");
-			return;
-		}
-
-		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-			$this->log->error_log("$loc --> doing autosave");
-			return;
-		}
-
-		if (!current_user_can('edit_post', $post_id)) {
-			$this->log->error_log("$loc --> cannot edit post");
-			return;
-		}
-		if (!isset($_POST['tennis_event_type_field'])) {
-			$this->log->error_log("$loc --> no event type field");
-			return;
-		} else {
-			$eventType = $_POST['tennis_event_type_field'];
-		}
-
-		$this->log->error_log("$loc --> event type='$eventType'");
-
-		if (!empty($eventType)) {
-			update_post_meta($post_id, self::EVENT_TYPE_META_KEY, $eventType);
-		} else {
-			delete_post_meta($post_id, self::EVENT_TYPE_META_KEY);
-		}
-	}
-
-	/**
 	 * Parent Event callback
 	 */
 	public function parentEventCallBack($post) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
 
-		wp_nonce_field(
-			'parentEventSave' //action
-			,
-			'tennis_parent_event_nonce'
-		);
+		wp_nonce_field( 'parentEventSave' //action
+						,'tennis_parent_event_nonce'
+					);
 
 		$actual = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
 		if (!isset($actual)) $actual = "";
@@ -585,59 +551,15 @@ class TennisEventCpt {
 	}
 
 	/**
-	 * Parent Event save
-	 */
-	public function parentEventSave($post_id) {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
-
-		if (!isset($_POST['tennis_parent_nonce'])) {
-			$this->log->error_log("$loc --> no nonce");
-			return;
-		}
-
-		if (!wp_verify_nonce($_POST['tennis_parent_event_nonce'], 'parentEventSave')) {
-			$this->log->error_log("$loc --> bad nonce");
-			return;
-		}
-
-		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-			$this->log->error_log("$loc --> doing autosave");
-			return;
-		}
-
-		if (!current_user_can('edit_post', $post_id)) {
-			$this->log->error_log("$loc --> cannot edit post");
-			return;
-		}
-		if (!isset($_POST['tennis_parent_event_field'])) {
-			$this->log->error_log("$loc --> no parent event field");
-			return;
-		} else {
-			$parentEvent = $_POST['tennis_parent_event_field'];
-		}
-
-		$this->log->error_log("$loc --> parent event='$parentEvent'");
-
-		if (!empty($eventType)) {
-			update_post_meta($post_id, self::PARENT_EVENT_META_KEY, $eventType);
-		} else {
-			delete_post_meta($post_id, self::PARENT_EVENT_META_KEY);
-		}
-	}
-
-	/**
 	 * Event Format callback
 	 */
 	public function eventFormatCallBack($post) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
 
-		wp_nonce_field(
-			'eventFormatSave' //action
-			,
-			'tennis_event_format_nonce'
-		);
+		wp_nonce_field('eventFormatSave' //action
+						,'tennis_event_format_nonce'
+					);
 
 		$actual = get_post_meta($post->ID, self::EVENT_FORMAT_META_KEY, true);
 		$this->log->error_log("$loc --> actual='$actual'");
@@ -663,48 +585,6 @@ class TennisEventCpt {
 			echo '</select>';
 		} else {
 			echo "<!-- No format for root event {$post->ID} -->";
-		}
-	}
-
-	/**
-	 * Event Format save
-	 */
-	public function eventFormatSave($post_id) {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
-
-		if (!isset($_POST['tennis_event_format_nonce'])) {
-			$this->log->error_log("$loc --> no nonce");
-			return;
-		}
-
-		if (!wp_verify_nonce($_POST['tennis_event_format_nonce'], 'eventFormatSave')) {
-			$this->log->error_log("$loc --> bad nonce");
-			return;
-		}
-
-		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-			$this->log->error_log("$loc --> doing autosave");
-			return;
-		}
-
-		if (!current_user_can('edit_post', $post_id)) {
-			$this->log->error_log("$loc --> cannot edit post");
-			return;
-		}
-		if (!isset($_POST['tennis_event_format_field'])) {
-			$this->log->error_log("$loc --> no event format field");
-			return;
-		} else {
-			$eventFormat = $_POST['tennis_event_format_field'];
-		}
-
-		$this->log->error_log("$loc --> event type='$eventFormat'");
-
-		if (!empty($eventFormat)) {
-			update_post_meta($post_id, self::EVENT_FORMAT_META_KEY, $eventFormat);
-		} else {
-			delete_post_meta($post_id, self::EVENT_FORMAT_META_KEY);
 		}
 	}
 
@@ -748,59 +628,15 @@ class TennisEventCpt {
 	}
 
 	/**
-	 * Match Type save
-	 */
-	public function matchTypeSave($post_id)	{
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
-
-		if (!isset($_POST['tennis_match_type_nonce'])) {
-			$this->log->error_log("$loc --> no nonce");
-			return;
-		}
-
-		if (!wp_verify_nonce($_POST['tennis_match_type_nonce'], 'matchTypeSave')) {
-			$this->log->error_log("$loc --> bad nonce");
-			return;
-		}
-
-		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-			$this->log->error_log("$loc --> doing autosave");
-			return;
-		}
-
-		if (!current_user_can('edit_post', $post_id)) {
-			$this->log->error_log("$loc --> cannot edit post");
-			return;
-		}
-		if (!isset($_POST['tennis_match_type_field'])) {
-			$this->log->error_log("$loc --> no match type field");
-			return;
-		} else {
-			$matchType = $_POST['tennis_match_type_field'];
-		}
-
-		$this->log->error_log("$loc --> match type='$matchType'");
-
-		if (!empty($matchType)) {
-			update_post_meta($post_id, self::MATCH_TYPE_META_KEY, $matchType);
-		} else {
-			delete_post_meta($post_id, self::MATCH_TYPE_META_KEY);
-		}
-	}
-
-	/**
 	 * Score Type callback
 	 */
 	public function scoreTypeCallBack($post) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
 
-		wp_nonce_field(
-			'scoreTypeSave' //action
-			,
-			'tennis_score_type_nonce'
-		);
+		wp_nonce_field('scoreTypeSave' //action
+					,'tennis_score_type_nonce'
+				);
 
 		$actual = get_post_meta($post->ID, self::SCORE_TYPE_META_KEY, true);
 		if ($this->isNewEvent()) {
@@ -837,65 +673,27 @@ class TennisEventCpt {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
 
-		wp_nonce_field(
-			'signupBySave' //action
-			,
-			'tennis_signup_by_nonce'
-		);
+		wp_nonce_field('signupBySave' //action
+						,'tennis_signup_by_nonce'
+					);
 
 		$actual = get_post_meta($post->ID, self::SIGNUP_BY_DATE_META_KEY, true);
 		if (!@$actual) $actual = '';
 		$this->log->error_log("$loc --> actual=$actual");
+		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
+
+
+		if (!empty($parentId)) {
 		//Now echo the html desired
-		$markup = sprintf(
-			'<input type="date" name="tennis_signup_by_field" value="%s">',
-			$actual
-		);
+		$markup = sprintf('<input type="date" name="tennis_signup_by_field" value="%s">'
+						, $actual
+						);
+		}
+		else {
+			$markup = "<!-- no signup date for root event -->";
+		}
 
 		echo $markup;
-	}
-
-	/**
-	 * Signup By save
-	 */
-	public function signupBySave($post_id) {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
-
-		if (!isset($_POST['tennis_signup_by_nonce'])) {
-			$this->log->error_log("$loc --> no nonce");
-			return;
-		}
-
-		if (!wp_verify_nonce($_POST['tennis_signup_by_nonce'], 'signupBySave')) {
-			$this->log->error_log("$loc --> bad nonce");
-			return;
-		}
-
-		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-			$this->log->error_log("$loc --> doing autosave");
-			return;
-		}
-
-		if (!current_user_can('edit_post', $post_id)) {
-			$this->log->error_log("$loc --> cannot edit post");
-			return;
-		}
-		if (!isset($_POST['tennis_signup_by_field'])) {
-			$this->log->error_log("$loc --> no signup by field");
-			return;
-		} else {
-			$signupBy = $_POST['tennis_signup_by_field'];
-		}
-
-		$this->log->error_log("$loc --> signup by='$signupBy'");
-
-		//TODO: validate the date??
-		if (!empty($signupBy)) {
-			update_post_meta($post_id, self::SIGNUP_BY_DATE_META_KEY, $signupBy);
-		} else {
-			delete_post_meta($post_id, self::SIGNUP_BY_DATE_META_KEY);
-		}
 	}
 
 	/**
@@ -923,48 +721,6 @@ class TennisEventCpt {
 		echo $markup;
 	}
 
-	/**
-	 * Start Date save
-	 */
-	public function startDateSave($post_id)	{
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
-
-		if (!isset($_POST['tennis_start_date_nonce'])) {
-			$this->log->error_log("$loc --> no nonce");
-			return;
-		}
-
-		if (!wp_verify_nonce($_POST['tennis_start_date_nonce'], 'startDateSave')) {
-			$this->log->error_log("$loc --> bad nonce");
-			return;
-		}
-
-		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-			$this->log->error_log("$loc --> doing autosave");
-			return;
-		}
-
-		if (!current_user_can('edit_post', $post_id)) {
-			$this->log->error_log("$loc --> cannot edit post");
-			return;
-		}
-		if (!isset($_POST['tennis_start_date_field'])) {
-			$this->log->error_log("$loc --> no start date field");
-			return;
-		} else {
-			$startDate = $_POST['tennis_start_date_field'];
-		}
-
-		$this->log->error_log("$loc --> start date='$startDate'");
-
-		//TODO: Validate start date??
-		if (!empty($startDate)) {
-			update_post_meta($post_id, self::START_DATE_META_KEY, $startDate);
-		} else {
-			delete_post_meta($post_id, self::START_DATE_META_KEY);
-		}
-	}
 
 	/**
 	 * End Date callback
@@ -990,50 +746,6 @@ class TennisEventCpt {
 
 		echo $markup;
 	}
-
-	/**
-	 * End Date save
-	 */
-	public function endDateSave($post_id) {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
-
-		if (!isset($_POST['tennis_end_date_nonce'])) {
-			$this->log->error_log("$loc --> no nonce");
-			return;
-		}
-
-		if (!wp_verify_nonce($_POST['tennis_end_date_nonce'], 'endDateSave')) {
-			$this->log->error_log("$loc --> bad nonce");
-			return;
-		}
-
-		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-			$this->log->error_log("$loc --> doing autosave");
-			return;
-		}
-
-		if (!current_user_can('edit_post', $post_id)) {
-			$this->log->error_log("$loc --> cannot edit post");
-			return;
-		}
-		if (!isset($_POST['tennis_end_date_field'])) {
-			$this->log->error_log("$loc --> no end date field");
-			return;
-		} else {
-			$endDate = $_POST['tennis_end_date_field'];
-		}
-
-		$this->log->error_log("$loc --> end date='$endDate'");
-
-		//TODO: Validate end date??
-		if (!empty($endDate)) {
-			update_post_meta($post_id, self::END_DATE_META_KEY, $endDate);
-		} else {
-			delete_post_meta($post_id, self::END_DATE_META_KEY);
-		}
-	}
-
 
 	/**
 	 * Update the tennis database
@@ -1086,7 +798,6 @@ class TennisEventCpt {
 		if (0 === $homeClubId) {
 			$this->log->error_log("$loc - Home club id is not set.");
 			$this->add_error( __('Home club is not set',TennisEvents::TEXT_DOMAIN ) );
-			//throw new InvalidEventException(__('Home club id is not set.'), TennisEvents::TEXT_DOMAIN);
 		}
 
 		$eventType = '';
@@ -1131,6 +842,7 @@ class TennisEventCpt {
 		if (!empty($eventFormat)) {
 			update_post_meta($post_id, self::EVENT_FORMAT_META_KEY, $eventFormat);
 		} else {
+			if( !is_null( $parentEvent) ) $this->add_error(__('Event format is required', TennisEvents::TEXT_DOMAIN ) );
 			delete_post_meta($post_id, self::EVENT_FORMAT_META_KEY);
 		}
 
@@ -1141,6 +853,7 @@ class TennisEventCpt {
 		if (!empty($matchType)) {
 			update_post_meta( $post_id, self::MATCH_TYPE_META_KEY, $matchType );
 		} else {
+			if( !is_null( $parentEvent) ) $this->add_error(__('Match type is required', TennisEvents::TEXT_DOMAIN ) );
 			delete_post_meta( $post_id, self::MATCH_TYPE_META_KEY );
 		}
 
@@ -1151,6 +864,7 @@ class TennisEventCpt {
 		if (!empty( $scoreType ) ) {
 			update_post_meta( $post_id, self::SCORE_TYPE_META_KEY, $scoreType );
 		} else {
+			if( !is_null( $parentEvent) ) $this->add_error(__('Score type is required', TennisEvents::TEXT_DOMAIN ) );
 			delete_post_meta( $post_id, self::SCORE_TYPE_META_KEY );
 		}
 
@@ -1174,7 +888,7 @@ class TennisEventCpt {
 		if ( is_wp_error( $test ) ) {
 			$this->log->error_log("$loc: Error in signup date: " . $test->get_error_message());
 			$signupBy = '';
-			$this->add_error($test->get_error_message());
+			if( !is_null( $parentEvent) ) $this->add_error( __('Invalid signup date', TennisEvents::TEXT_DOMAIN ) );
 			$compareSign = null;
 		} else {
 			$signupBy = $this->getDateStr( $test );
@@ -1186,7 +900,7 @@ class TennisEventCpt {
 		if ( is_wp_error( $test ) ) {
 			$this->log->error_log("$loc: Error in start date: " . $test->get_error_message());
 			$startDate = '';
-			$this->add_error($test->get_error_message());
+			if( !is_null( $parentEvent) ) $this->add_error( __('Invalid start date', TennisEvents::TEXT_DOMAIN ) );
 			$compareStart = null;
 		} else {
 			$startDate = $this->getDateStr($test);
@@ -1199,7 +913,7 @@ class TennisEventCpt {
 			$this->log->error_log("$loc: Error in end date: " . $test->get_error_message());
 			$endDate = '';
 			$compareEnd = null;
-			$this->add_error( $test->get_error_message() );
+			if( !is_null( $parentEvent) ) $this->add_error( __('Invalid end date', TennisEvents::TEXT_DOMAIN ) );
 		} else {
 			$endDate = $this->getDateStr( $test );
 			$compareEnd = $test;
@@ -1212,13 +926,14 @@ class TennisEventCpt {
 				$this->add_error(__( 'Signup date must be at least 3 days earlier than start date', TennisEvents::TEXT_DOMAIN ) );
 				$signupBy = '';
 			}
-			if( !is_null( $compareEnd ) ) {
-				if( $compareStart >= $compareEnd ) {
-					$this->add_error(__( 'Start date must be earlier than end date', TennisEvents::TEXT_DOMAIN ) );
-					$startDate = '';
-				}
-			}
 		}		
+
+		if( !is_null( $compareStart ) && !is_null( $compareEnd ) ) {
+			if( $compareStart >= $compareEnd ) {
+				$this->add_error(__( 'Start date must be earlier than end date', TennisEvents::TEXT_DOMAIN ) );
+				$startDate = '';
+			}
+		}
 
 		//Update meta signupBy
 		if (!empty( $signupBy ) ) {
@@ -1280,6 +995,11 @@ class TennisEventCpt {
 		$event->save();
 	}
 
+	/**
+	 * Delete the post id in the external reference table
+	 * as well as the Tennis Event in the event table in the tennis schema
+	 * @param int $post_id
+	 */
 	public function deleteTennisDB(int $post_id) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc: post_id='$post_id'");
@@ -1499,9 +1219,9 @@ class TennisEventCpt {
 		remove_action( 'admin_notices', array( $this, 'handle_errors' ) );
 	}
 
-	public function add_error( $err ) {
+	public function add_error( $err='' ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log($loc);
+		$this->log->error_log("$loc({$err})");
 
 		array_push( $this->admin_notice_messages, $err );
 		set_transient( self::TENNIS_EVENT_ERROR_TRANSIENT_KEY, $this->admin_notice_messages );
