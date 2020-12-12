@@ -105,7 +105,7 @@ class TennisClubCpt {
 		$args = array( 'labels' => $labels
 					 //, 'taxonomies' => array( 'category', 'post_tag' )
 					 , 'description' => 'Tennis Club as a CPT'
-					 , 'menu_position' => 75
+					 , 'menu_position' => 93
 					 , 'menu_icon' => 'dashicons-code-standards'
 					 , 'exclude_from_search' => false
 					 , 'has_archive' => true
