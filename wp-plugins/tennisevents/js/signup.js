@@ -222,7 +222,7 @@
 
             signupData.newName = '';
             console.log("New seed value is %d", signupData.seed);
-            signupData.name = entrantId.replace(/_/g, ' ');
+            signupData.name = entrantId.replace(/_/g, ' ').replace(/'/g, '\'');
             signupData.position = $(this).parent("li.entrantSignup").attr('data-currentPos');
 
             signupData.clubId = $('.signupContainer').attr("data-clubid");
@@ -262,7 +262,7 @@
             console.log('Delete fired!');
             entrantId = $(this).parent("li.entrantSignup").attr("id");
             console.log("entrantId=%s", entrantId);
-            name = $(this).parent("li.entrantSignup").children("input.entrantName").val();
+            let name = $(this).parent("li.entrantSignup").children("input.entrantName").val();
             console.log("name is '%s'", name);
             signupData = signupDataMask;
             signupData.name = name; //entrantId.replace(/_/g, ' ');
@@ -298,6 +298,7 @@
             let name = prompt("Entrant's name: ", "");
             if( null === name) return;
             if( name.length < minNameLength ) return;
+
             if( isDuplicate(name)) {
                 alert( name + " already exists");
                 return;
@@ -313,7 +314,7 @@
             signupData.eventId = $('.signupContainer').attr("data-eventid");
             signupData.bracketName = $('.signupContainer').attr("data-bracketname");
 
-            liNode = $('<li>',{ id: name.replace(/ /g, '_').replace(/'/g,"")
+            liNode = $('<li>',{ id: name.replace(/ /g, '_').replace(/'/g,"\'")
                             ,class:"entrantSignup sortable-container ui-state-default"
                             });
             posDiv = $('<div>', {class: "entrantPosition ui-sortable-handle"
