@@ -28,7 +28,7 @@ function gw_tennis_admin_page() {
                  , 'gwtennissettings' //slug
                  , 'gw_tennis_create_page' // function to create page
                  , 'dashicons-admin-generic' //icon
-                 , 76 //menu position
+                 , 90 //menu position
     );
 
     //Generate admin sub pages
@@ -108,34 +108,67 @@ function gw_tennisMainEvent() {
 
 function gw_sanitize_clubId( $input ) {
     $output = 0;
-    if( is_numeric( $input ) ) {
+    $message = null;
+    $type = null;
+
+    if( !is_null( $input ) ) {
         try {
             $club = Club::get( $input );
             if( !is_null( $club ) ) {
                 $output = $club->getID();
                 update_option('blogname', $club->getName());
+                $type = 'success';
+                $message = __('Default tennis club setting updated', TennisEvents::TEXT_DOMAIN );
+            }
+            else {
+                $type = 'error';
+                $message = __('Default tennis club setting failed to find club.', TennisEvents::TEXT_DOMAIN );
+
             }
         }
         catch( Exception $ex ) {
             $output = 0;
+            $type = 'error';
+            $message = __('Default tennis club setting failed to find club: ', TennisEvents::TEXT_DOMAIN ) . $ex->getMessage();
         }
-    }
+    }    
+
+    add_settings_error('gw_tennisHomeClub', esc_attr('default_club_updated'), $message, $type);
+
     return $output;
 }
 
 function gw_sanitize_eventId( $input ) {
     $output = 0;
-    if( is_numeric( $input ) ) {
+    $message = null;
+    $type = null;
+
+    if( !is_null( $input ) ) {
         try {
             $event = Event::get( $input );
             if( !is_null( $event ) ) {
                 $output = $event->getID();
+                $type = 'success';
+                $message = __('Default tennis event setting updated', TennisEvents::TEXT_DOMAIN );
+            }
+            else {
+                $type = 'error';
+                $message = __('Default event setting failed to find event.', TennisEvents::TEXT_DOMAIN );
             }
         }
         catch( Exception $ex ) {
             $output = 0;
+            $type = 'error';
+            $message = __('Default tennis event setting failed: ', TennisEvents::TEXT_DOMAIN ) . $ex->getMessage();
         }
     }
+    else {
+        $type = 'error';
+        $message = __('Default tennis event event cannot be empty', TennisEvents::TEXT_DOMAIN );
+    }
+
+    add_settings_error('gw_tennisMainEvent', esc_attr('main_tennis_event_updated'), $message, $type);
+
     return $output;
 }
 
