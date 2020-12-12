@@ -299,6 +299,10 @@ class Bracket extends AbstractData
 	 * Get an entrant by name from the this bracket
 	 */
 	public function getNamedEntrant( string $name ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$calledBy = debug_backtrace()[1]['function'];
+        $this->log->error_log("$loc({$name}) ... called by {$calledBy}");
+        
 		$result = null;
 
 		foreach( $this->getSignup() as $draw ) {
@@ -560,10 +564,10 @@ class Bracket extends AbstractData
             $matches = array();
             $playerName = $player->getName();
             foreach( $this->getMatches() as $match ) {
-                if( $playerName === $match->getHomeEntrant()->getName()) {
+                if(!is_null($match->getHomeEntrant()) && $playerName === $match->getHomeEntrant()->getName()) {
                     $matches[] = $match;
                 }
-                elseif( $playerName === $match->getVisitorEntrant()->getName() ) {
+                elseif(!is_null($match->getVisitorEntrant()) && $playerName === $match->getVisitorEntrant()->getName() ) {
                     $matches[] = $match;
                 }
             }
