@@ -735,7 +735,7 @@ class ManageDraw
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
         $champion = $td->getChampion( $bracketName );
-        $champion = empty( $champion ) ? 'tba' : $champion->getName();
+        $championName = empty( $champion ) ? 'tba' : $champion->getName();
         $umpire = $td->getChairUmpire();
 
         $loadedMatches = $bracket->getMatchHierarchy( );
@@ -779,11 +779,11 @@ EOT;
         $templ = <<<EOT
 <td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d"  data-majorstatus="%d"  data-minorstatus="%d">
 <div class="menu-icon">
-<div class="bar1"></div>
-<div class="bar2"></div>
-<div class="bar3"></div>
-<div class="bar4"></div>
-<div class="bar5"></div>
+<svg class="dots" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+<path d="M8 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM1.5 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm13 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z">
+</path>
+</svg>
+
 <ul class="matchaction unapproved">
  <li><a class="changehome">Replace Home</a></li>
  <li><a class="changevisitor">Replace Visitor</a><li></ul>
@@ -949,7 +949,7 @@ EOT;
                 //Champion column
                 if( 1 === $row && $bracket->isApproved() ) {
                     $out .= sprintf( $champTemplate, $rowspan, $eventId, $bracketNum, 0, 0, 0, 0
-                                    , $champion );
+                                    , $championName );
                 }  
             }
             catch( RuntimeException $ex ) {
@@ -968,8 +968,11 @@ EOT;
             if( !$bracket->isApproved() ) {
                 $out .= '<button class="button" type="button" id="approveDraw">Approve</button>' . PHP_EOL;
             }
+            if( !empty($champion) ) {
+                $out .= '<button class="button" type="button" id="advanceMatches">Advance Matches</button>' . PHP_EOL;
+            }
+
             $out .= '<button class="button" type="button" id="removePrelim">Reset Bracket</button>&nbsp;' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="advanceMatches">Advance Matches</button>' . PHP_EOL;
         }
 
         $out .= "</div>";
@@ -996,7 +999,7 @@ EOT;
         $tournamentName = $td->getName();
         $bracketName    = $bracket->getName();
         $champion = $td->getChampion( $bracketName );
-        $champion = empty( $champion ) ? 'tba' : $champion->getName();
+        $championName = empty( $champion ) ? 'tba' : $champion->getName();
         $umpire = $td->getChairUmpire();
 
         $loadedMatches = $bracket->getMatchHierarchy( true );
@@ -1183,7 +1186,7 @@ EOT;
                 //Champion column
                 if( 1 === $row && $bracket->isApproved() ) {
                     $out .= sprintf( $champTemplate, $rowspan, $eventId, $bracketNum, 0, 0, 0, 0
-                                    ,$champion );
+                                    ,$championName );
                 }       
             }
             catch( RuntimeException $ex ) {
