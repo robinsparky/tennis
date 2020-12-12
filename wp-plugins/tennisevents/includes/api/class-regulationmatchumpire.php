@@ -325,22 +325,23 @@ class RegulationMatchUmpire extends ChairUmpire
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $bracketName = $bracket->getName();
         $this->log->error_log("$loc($bracketName)");
-
-        if( !$bracket->isApproved() ) return null;
-
-        $lastRound = $bracket->getNumberOfRounds();
-        $finalMatches = $bracket->getMatchesByRound( $lastRound );
-
-        if( count( $finalMatches ) !== 1 ) {
-            $c = count( $finalMatches );
-            $errmess = "Final round in bracket '{$bracketName}' with {$lastRound} rounds does not have exactly one match({$c}).";
-            $this->log->error_log( $errmess );
-            throw new InvalidBracketException( $errmess );
-        }
-
-        $finalMatch = array_pop($finalMatches);
         $champion = null;
-        $this->isLocked( $finalMatch, $champion );
+
+        if( !$bracket->isApproved() ) {
+            $lastRound = $bracket->getNumberOfRounds();
+            $finalMatches = $bracket->getMatchesByRound( $lastRound );
+
+            if( count( $finalMatches ) !== 1 ) {
+                $c = count( $finalMatches );
+                $errmess = "Final round in bracket '{$bracketName}' with {$lastRound} rounds does not have exactly one match({$c}).";
+                $this->log->error_log( $errmess );
+                //throw new InvalidBracketException( $errmess );
+            } else {
+                $finalMatch = array_pop($finalMatches);
+                $this->isLocked( $finalMatch, $champion );
+            }
+
+        }
         
         return $champion;
     }
