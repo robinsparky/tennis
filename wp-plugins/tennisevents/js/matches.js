@@ -221,9 +221,6 @@
                 alert(`${advanced} matches advanced. Reloading...`);
                 window.location.reload();
             }
-            else {
-                alert("No matches were advanced");
-            }
         }
 
         /**
@@ -385,7 +382,7 @@
          */
         function findMatch( eventId, bracketNum, roundNum, matchNum ) {
             console.log("findMatch(%d,%d,%d,%d)", eventId, bracketNum, roundNum, matchNum );
-            let attFilter = 'td[data-eventid="' + eventId + '"]';
+            let attFilter = '.item-player[data-eventid="' + eventId + '"]';
             attFilter += '[data-bracketnum="' + bracketNum + '"]';
             attFilter += '[data-roundnum="' + roundNum + '"]';
             attFilter += '[data-matchnum="' + matchNum + '"]';

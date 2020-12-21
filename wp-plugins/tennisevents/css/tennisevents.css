@@ -116,10 +116,32 @@ tr.drawRow:nth-child(even) { background-color:#fff; } */
 /*-------------------------------------------------------
  * Round Robin styling
 --------------------------------------------------------*/
+#bracket-name {
+  text-align: center;
+}
+main.bracketrobin {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 300px));
+  /*grid-template-rows: 1fr 1fr;*/
+  grid-column-gap: 10px;
+  grid-row-gap: 10px;
+}
+
+section.roundrobin-round {
+  justify-self: center;
+  align-self: center;
+  text-align: center;
+}
+
+article.item-player {
+  margin-top: 3px;
+  border: 1px solid black;
+}
+
 table.bracketrobin {
   width: 20%;
   border-collapse: collapse;
-  border: none;
+  border: black;
   /*font-size: 1rem;*/
   margin: 0 0 0 60%;
 }
@@ -148,14 +170,15 @@ table.bracketrobin td {
 }
 
 table.tennis-score-summary {
-  position: sticky;
-  position: -webkit-sticky; /* Safari */
-  top: 30%;
-  left: 0%;
+  /*position: sticky;*/
+  /*position: -webkit-sticky;  Safari */
+  /*top: 30%;
+  left: 0%;*/
+
   border: 3px solid black;
   margin-top: 20px;
   margin-bottom: 20px;
-  width: 50%;
+  /*width: 50%;*/
 }
 
 table.tennis-score-summary > caption {

@@ -725,16 +725,19 @@ class ManageRoundRobin
         
 	    // Start output buffering we don't output to the page
         ob_start();
-        //Render the score summary
-        $path = TE()->getPluginPath() . '\includes\templates\summaryscore-template.php';
-        require( $path );
 
         // Get template file
-        $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly.php';
+        // $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly.php';
+        $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly-grid.php';
         //$user = wp_get_current_user();
         if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
-            $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin.php';
+            // $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin.php';
+            $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin-grid.php';
         }
+        require( $path );
+        
+        //Render the score summary
+        $path = TE()->getPluginPath() . '\includes\templates\summaryscore-template.php';
         require( $path );
 
         // Save output and stop output buffering
