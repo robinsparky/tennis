@@ -29,35 +29,31 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ScoreType {
 
-    public const NoAd             = 1; //Can win game by one point
-    public const TieBreak7Pt      = 2; //7 point tie breaker
-    public const TieBreak10Pt     = 4; //10 point tie breaker
-    public const TieBreak12Pt     = 8; //12 point tie breaker
-    public const Best2Of3         = 16; //Specifies that match is best 2 of 3 sets
-    public const TieBreakAt3All   = 32; //tie break at 3 all because first to win 4 games wins the set
-    public const TieBreakAt6All   = 64; //tie break at 6 all
-    public const TieBreakAt8All   = 128; //tie break at 8 all
-    public const TieBreakAt10All  = 256; //tie break at 10 all
-    public const TieBreakDecider  = 512; //Match is decided by tie breaker instead of final set
-    public const NoTieBreakFinalSet = 1024; //Final set must be won by 2 games; ie no tie breaker
-    public const Best3Of5         = 2048; //Best 3 of 5 sets
-    public const OneSet           = 4096; //Only 1 set played
-
+    //Keys for rule masks
     public const REGULATION      = 'Regulation'; //Best 2 of 3 sets with 7pt tie breaker at 6 all
     public const ATPMAJOR        = 'Major'; //Best 3 of 5 sets with 7pt tie breaker at 6 all
     public const PRO_SET8        = "Pro Set 8 Games"; //Best of 8 games with 7 pt tie break at 8 all
     public const PRO_SET10       = "Pro Set 10 Games"; //Best of 10 games with 7pt tie break at 10 all
     public const MATCH_TIE_BREAK = "Match Tie Break"; //Best 2 of 3 sets, but 3rd set is 10pt tie breaker. e.g. Laver Cup
     public const FAST4           = "Fast4"; //No ad scoring, lets ignored, 7pt tie breaker at 3 all
-
-    public $ScoreTypes = array( self::REGULATION      => self::Best2Of3 & self::TieBreakAt6All & self::TieBreak7Pt,
-                                self::ATPMAJOR        => self::Best3Of5 & self::TieBreakAt6All & self::TieBreak7Pt,
-                                self::FAST4           => self::Best2Of3 & self::NoAd & self::TieBreakAt3All & self::TieBreak7Pt,
-                                self::PRO_SET8        => self::OneSet & self::TieBreakAt8All & self::TieBreak7Pt,
-                                self::PRO_SET10       => self::OneSet & self::TieBreakAt10All & self::TieBreak7Pt,
-                                self::MATCH_TIE_BREAK => self::Best2Of3 & self::TieBreakDecider & self::TieBreakAt6All & self::TieBreak10Pt, 
-                            );
-                               
+    public const POINTS1         = "Points1"; //Based on points per win and total games won
+    public const POINTS2         = "Points2"; //Based on points per win and total games won
+    
+    /**
+     * Scoring rules
+     * Each scoring rule is defined by a dictionary of scoring attributes
+     */
+    public $ScoreRules = 
+             array( self::REGULATION => array("MaxSets"=>3,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
+                    self::ATPMAJOR   => array("MaxSets"=>5,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
+                    self::FAST4      => array("MaxSets"=>3,"GamesPerSet"=>4, "TieBreakAt"=>3, "MustWinBy"=>1, "TieBreakerMinimum"=>7),
+                    self::PRO_SET8   => array("MaxSets"=>1,"GamesPerSet"=>8, "TieBreakAt"=>8, "TieBreakerMinimum"=>12),
+                    self::PRO_SET10  => array("MaxSets"=>1,"GamesPerSet"=>10, "TieBreakAt"=>10, "TieBreakerMinimum"=>12),
+                    self::MATCH_TIE_BREAK => array("MaxSets"=>3,"GamesPerSet"=>6,"TieBreakAt"=>6, "TieBreakerMinimum"=>10, "TieBreakDecider"=>true), 
+                    self::POINTS1    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>1,"PointsForWin"=>1),
+                    self::POINTS2    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>1,"PointsForWin"=>2),
+                );
+   
 
 	//This class's singleton
 	private static $_instance;
@@ -86,18 +82,36 @@ class ScoreType {
 		}
     }
     
-    public function allowedTypes() {
-        return array_keys($this->ScoreTypes);
+    /**
+     * Get keys of scoring rules
+     * Each key identifies a set of rules for scoring
+     */
+    public function allowedRules() {
+        return array_keys( $this->ScoreRules );
     }
 
+    /**
+     * Verify is a score key is valid
+     */
     public function isValid( $possible ) {
-        return in_array( $possible, $this->allowedTypes() );
+        return array_key_exists( $possible, $this->ScoreRules );
     }
 
-    public function getScoreTypeMask( string $key ): int {
-        if( $this->isValid($key) ) {
-            return $this->ScoreTypes[$key];
+    /**
+     * Get a the set of scoring rules for a given score type
+     * @param string $key
+     * @return array Set of scoring rules
+     */
+    public function getScoringRules( string $key ): array {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        error_log("{$loc}('{$key}')");
+
+        if( array_key_exists( $key, $this->ScoreRules ) ) {
+            error_log("$loc: returning ...{$key}=>");            
+            error_log(print_r($this->ScoreRules[$key], true ) );
+            return $this->ScoreRules[$key];
         }
-        return 0;
+        error_log("$loc: returning empty array");
+        return [];
     }
 }

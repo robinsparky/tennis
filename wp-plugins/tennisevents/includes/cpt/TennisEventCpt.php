@@ -647,16 +647,15 @@ class TennisEventCpt {
 		}
 
 		if (!empty($parentId)) {
-			$scoreType = ScoreType::get_instance();
 			error_clear_last();
-			$sts = array_keys($scoreType->ScoreTypes);
+			$rules = array_keys(ScoreType::get_instance()->ScoreRules);
 			//Now echo the html desired
 			echo '<select name="tennis_score_type_field">';
-			foreach ($sts as $st) {
-				$disp = esc_attr($st);
-				$value = esc_attr($st);
+			foreach ($rules as $rule) {
+				$disp = esc_attr($rule);
+				$value = esc_attr($rule);
 				$sel = '';
-				if ($actual === $st) $sel = 'selected';
+				if ($actual === $rule) $sel = 'selected';
 				echo "<option value='$value' $sel>$disp</option>";
 			}
 			echo '</select>';
