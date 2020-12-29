@@ -617,9 +617,8 @@ class TournamentDirector
                             $totalPoints += $totalMatchesWon * $pointsForWin;
                         }
                         elseif( $andTheWinnerIs === 'tie') {
-                            $tie = $pointsForWin/2;
                             ++$totalMatchesTied;
-                            $totalPoints += $totalMatchesTied * $tie;
+                            $totalPoints += $totalMatchesTied * $pointsForWin/2;
                         }
                     }
                     elseif( $entrant->getName() === $chairUmpire->getVisitorPlayer( $match ) ) {
@@ -630,9 +629,8 @@ class TournamentDirector
                             $totalPoints += $totalMatchesWon * $pointsForWin;
                         }
                         elseif( $andTheWinnerIs === 'tie') {
-                            $tie = $pointsForWin/2;
                             ++$totalMatchesTied;
-                            $totalPoints += $totalMatchesTied * $tie;
+                            $totalPoints += $totalMatchesTied * $pointsForWin/2;
                         }
                     }
                 } //matches
@@ -641,6 +639,7 @@ class TournamentDirector
             $entrantSummary["totalPoints"] = $totalPoints;
             $entrantSummary["totalGames"] = $totalGames;
             $entrantSummary["totalSets"] = $totalSetsWon;
+            $entrantSummary["totalTies"] = $totalMatchesTied;
             $summary[] = $entrantSummary;
         } //matchesByEntrant
 
