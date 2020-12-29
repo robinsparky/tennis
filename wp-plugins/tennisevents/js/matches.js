@@ -433,9 +433,15 @@
             let $visitorGames = parent.find('input[name=visitorGames]');
             let $visitorTB    = parent.find('input[name=visitorTieBreak]');
 
+
             let scores = [];
-            for( let i = 1; i <= tennis_draw_obj.numSets; i++ ) {                    
-                scores.push({"setNum":i,"homeGames": $homeGames[i-1].value,"visitorGames": $visitorGames[i-1].value,"homeTieBreaker": $homeTB[i-1].value, "visitorTieBreaker": $visitorTB[i-1].value});
+            for( let i = 1; i <= tennis_draw_obj.numSets; i++ ) {    
+                if( $homeTB.length > 0 ) {                
+                    scores.push({"setNum":i,"homeGames": $homeGames[i-1].value,"visitorGames": $visitorGames[i-1].value,"homeTieBreaker": $homeTB[i-1].value, "visitorTieBreaker": $visitorTB[i-1].value});
+                }
+                else {
+                    scores.push({"setNum":i,"homeGames": $homeGames[i-1].value,"visitorGames": $visitorGames[i-1].value,"homeTieBreaker": 0, "visitorTieBreaker": 0});
+                }
             }
 
             let data = {"eventid": eventId, "bracketnum": bracketNum, "roundnum": roundNum, "matchnum": matchNum
