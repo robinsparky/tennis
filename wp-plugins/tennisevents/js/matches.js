@@ -297,6 +297,10 @@
                 case 'visitor':
                     $matchEl.children('.visitorentrant').addClass(winnerclass)
                     break;
+                case 'tie':
+                    $matchEl.children('.homeentrant').addClass(winnerclass)
+                    $matchEl.children('.visitorentrant').addClass(winnerclass)
+                    break;
                 default:
                     $matchEl.children('.homeentrant').removeClass(winnerclass)
                     $matchEl.children('.visitorentrant').removeClass(winnerclass)

@@ -40,8 +40,8 @@ abstract class ChairUmpire
 	
 	protected $log;
 
-	abstract public function recordScores(Match &$match, int $set, int ...$scores );
-	abstract public function getScores( Match &$match );
+	//abstract public function recordScores(Match &$match, int $set, int ...$scores );
+	//abstract public function getScores( Match &$match );
     abstract public function matchWinner( Match &$match );
     abstract public function getMatchSummary( Match &$match );
     abstract public function getChampion( Bracket &$bracket );
@@ -75,7 +75,7 @@ abstract class ChairUmpire
             case ScoreType::POINTS1:
             case ScoreType::POINTS2:
                 //Points
-                $chairUmpire = RegulationMatchUmpire::getInstance();
+                $chairUmpire = PointsMatchUmpire::getInstance();
                 break;
             case ScoreType::REGULATION:
             case ScoreType::ATPMAJOR:
@@ -143,17 +143,154 @@ abstract class ChairUmpire
         $this->GamesPerSet = $GamesPerSet ?? 6;
         $this->TieBreakAt = $TieBreakAt ?? 6;
         $this->TieBreakerMinimum = $TieBreakerMinimum ?? 7;
-        $this->TieBreakDecider = $TieBreakerDecider ?? False;
-        $this->NoTieBreakerFinalSet = $NoTieBreakerFinalSet ?? False;
+        $this->TieBreakDecider = $TieBreakerDecider ?? false;
+        $this->NoTieBreakerFinalSet = $NoTieBreakerFinalSet ?? false;
 
         if( $this->TieBreakAt > $this->GamesPerSet ) $this->TieBreakAt = $this->GamesPerSet;
         if( !in_array($this->MustWinBy, array(1,2) ) ) $this->MustWinBy = 2;
-        if( $this->MustWinBy === 1 ) $this->NoTieBreakerFinalSet = True;
+        if( $this->MustWinBy === 1 ) $this->NoTieBreakerFinalSet = true;
 
-        if( $this->NoTieBreakerFinalSet ) $this->TieBreakDecider = False;
-        if( $this->TieBreakDecider ) $this->NoTieBreakerFinalSet = False;
+        // if( $this->NoTieBreakerFinalSet ) $this->TieBreakDecider = false;
+        // if( $this->TieBreakDecider ) $this->NoTieBreakerFinalSet = false;
+
+        $this->PointsPerWin = $PointsPerWin ?? 1;
         
         $this->log->error_log($this, "{$loc}: initialized this ...");
+    }
+
+    /**
+     * Return the score by set of the given Match
+     * @param object Match $match
+     * @return array of scores
+     */
+	public function getScores( Match &$match, bool $winnerFirst = false ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
+        $this->log->error_log( $mess );
+
+        $sets = $match->getSets();
+        $scores = array();
+
+        foreach($sets as $set ) {
+            $setnum = (int)$set->getSetNumber();
+            $mess = sprintf("%s(%s) -> Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                           , $loc, $set->toString()
+                           , $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
+            $this->log->error_log( $mess );
+            if( $this->winnerIsVisitor( $match ) && $winnerFirst ) {
+                $scores[$setnum] = array( $set->getVisitorWins(), $set->getHomeWins(), $set->getVisitorTieBreaker(), $set->getHomeTieBreaker() );
+            }
+            else {
+                $scores[$setnum] = array( $set->getHomeWins(), $set->getVisitorWins(), $set->getHomeTieBreaker(), $set->getVisitorTieBreaker() );
+            }
+        }
+        return $scores;
+    }
+    
+    /**
+     * Record game and tie breaker scores for a given set pf the supplied Match.
+     * @param Match $match The match whose score are recorded
+     * @param int $setnum The set number 
+     * @param int ...$scores if 2 args then game scores; if 4 then games and tiebreaker scores
+     */
+	public function recordScores( Match &$match, int $setnum, int ...$scores ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+        $title = $match->title();
+        $this->log->error_log( $scores, "$loc: called with match=$title, set num=$setnum and these scores: ");
+        
+        if( 0 === array_sum( $scores ) )  return; //E A R L Y return
+
+        if( $match->isBye() || $match->isWaiting() ) {
+            $this->log->error_log( sprintf( "%s -> Cannot record  scores because '%s' has bye or is watiing.", $loc,$match->title() ) );
+            throw new ChairUmpireException( sprintf("Cannot record scores because '%s' has bye or is wating.",$match->title() ) );
+        }
+
+        if( $this->isLocked( $match ) ) {
+            $this->log->error_log( sprintf("%s -> Cannot record scores because match '%s' is locked", $loc, $match->title() ) );
+            throw new ChairUmpireException( sprintf("Cannot record scores because '%s' is locked.",$match->title() ) );
+        }
+
+        switch( count( $scores ) ) {
+            case 2: //just 2 game scores ... no tiebreakers
+                $homewins    = $scores[0];
+                $visitorwins = $scores[1];
+                $maxGames = $this->GamesPerSet + 1;
+                if($homewins >= $maxGames ) {
+                    $diff = $homewins - $visitorwins;
+                    switch($diff) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            break;
+                        default: //assume 7 to 5
+                            $homewins = $maxGames;
+                            $visitorwins = $this->GamesPerSet - 1;
+                            break;
+                    }
+                }
+                elseif( $visitorwins >= $maxGames ) {
+                    $diff =  $visitorwins - $homewins;
+                    switch($diff) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            break;
+                        default: //assume 7 to 5
+                            $visitorwins = $maxGames;
+                            $homewins = $this->GamesPerSet - 1;
+                            break;
+                    }
+                }
+                $match->setScore( $setnum, $homewins, $visitorwins );
+                $this->log->error_log( sprintf( "%s -> Set home games=%d and visitor games=%d for %s."
+                                  , $loc, $homewins, $visitorwins, $match->title()  ) );
+                break;
+            case 4: //Both game scores and tiebreaker scores are available
+                $homewins    = $scores[0];
+                $visitorwins = $scores[2];
+                $maxGames = $this->GamesPerSet + 1;
+                if($homewins >= $maxGames ) {
+                    $diff = $homewins - $visitorwins;
+                    switch($diff) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            break;
+                        default: //assume 7 to 5
+                            $homewins = $maxGames;
+                            $visitorwins = $this->GamesPerSet - 1;
+                            break;
+                    }
+                }
+                elseif( $visitorwins >= $maxGames ) {
+                    $diff =  $visitorwins - $homewins;
+                    switch($diff) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            break;
+                        default: //assume 7 to 5
+                            $visitorwins = $maxGames;
+                            $homewins = $this->GamesPerSet - 1;
+                            break;
+                    }
+                }
+                //$homewins    = min( $scores[0], $this->GamesPerSet );
+                $home_tb_pts = $scores[1];
+                //$visitorwins = min( $scores[2], $this->GamesPerSet );
+                $visitor_tb_pts = $scores[3];
+                $match->setScore( $setnum, $homewins, $visitorwins, $home_tb_pts, $visitor_tb_pts );
+                $this->log->error_log( sprintf( "%s -> Set home games=%d(%d) and visitor games=%d(%d) for %s."
+                                  , $loc, $homewins, $home_tb_pts, $visitorwins, $visitor_tb_pts, $match->title()  ) );
+                break;
+            default: 
+                $this->log->error_log( sprintf( "%s -> Did not find 2 or 4 scores in args for %s.", $loc, $match->title() ) );
+                break;
+        }
+
+        $match->save();
     }
 
     /**
@@ -344,7 +481,14 @@ abstract class ChairUmpire
 
         $vname = $visitor->getName();
         $winner = $this->matchWinner( $match );
-        $wname = is_null( $winner ) ? 'no winner yet' : $winner->getName();
+
+        $wname = 'no winner yet';
+        if( is_a( $winner, 'Entrant' ) ) {
+            $wname = $winner->getName();
+        }
+        elseif( is_string( $winner ) ) {
+            $wname = $winner;
+        }
         $this->log->error_log("$loc: visitor name=$vname; winner name=$wname");
         return ($vname === $wname);
     }
@@ -361,7 +505,14 @@ abstract class ChairUmpire
 
         $hname = $home->getName();
         $winner = $this->matchWinner( $match );
-        $wname = is_null( $winner ) ? 'no winner yet' : $winner->getName();
+        
+        $wname = 'no winner yet';
+        if( is_a( $winner, 'Entrant' ) ) {
+            $wname = $winner->getName();
+        }
+        elseif( is_string( $winner ) ) {
+            $wname = $winner;
+        }
         $this->log->error_log("$loc: home name=$hname; winner name=$wname");
         return ($hname === $wname);
     }
@@ -545,7 +696,7 @@ EOT;
 
             $homeTBScores = $visitorTBScores = '';
             if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
-                if( $setNum === $this->getMaxSets() && $this->getNoTieBreakerFinalSet() ) {
+                if( $setNum === $this->getMaxSets() ) {
                     $homeTBScores = "";
                     $visitorTBScores = '';
                 }

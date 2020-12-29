@@ -31,6 +31,10 @@
         $winner = $visitor->getName();
         $visitorWinner = $winnerClass;
     }
+    elseif( $andTheWinnerIs === 'tie') {
+        $homeWinner = $winnerClass;
+        $visitorWinner = $winnerClass;
+    }
     else {
         $winner = 'no winner yet';
     }

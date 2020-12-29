@@ -345,10 +345,12 @@ class ManageRoundRobin
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
             }
+
             $match = $bracket->getMatch( $roundNum, $matchNum );
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
+
             $chairUmpire = $td->getChairUmpire();
             $scores = $data["score"]; //$this->parseScores( $strScore );
             if( is_string( $scores ) ) {
@@ -358,18 +360,18 @@ class ManageRoundRobin
                 $match->save();
                 $data['score'] = '';
                 $data['status'] = $chairUmpire->matchStatus( $match );
-                $mess          = __("Score reset.", TennisEvents::TEXT_DOMAIN );
+                $mess = __("Score reset.", TennisEvents::TEXT_DOMAIN );
             }
             else {
                 //Set the score for this match 
                 $winner = null;
                 foreach( $scores as $score ) {
                     $chairUmpire->recordScores( $match
-                                                , $score["setNum"]
-                                                , $score["homeGames"]
-                                                , $score["homeTieBreaker"]
-                                                , $score["visitorGames"]
-                                                , $score["visitorTieBreaker"] );
+                                                ,$score["setNum"]
+                                                ,$score["homeGames"]
+                                                ,$score["homeTieBreaker"]
+                                                ,$score["visitorGames"]
+                                                ,$score["visitorTieBreaker"] );
                     if( $chairUmpire->isLocked( $match, $winner ) ) break;
                 }
 
@@ -395,22 +397,17 @@ class ManageRoundRobin
                 $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
                 
                 $pointsPerWin = 1;
-                if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+                //if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+                $pointsPerWin = $chairUmpire->getPointsPerWin();
+
                 $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
                 //$this->log->error_log($summaryTable, "$loc - entrant summary");
                 $data["entrantSummary"] = $summaryTable;
                 $data["bracketSummary"] = $td->getBracketSummary( $bracket );
 
-                //$winner = $chairUmpire->matchWinner( $match );
-                $data['winner'] = '';
-                if( !is_null( $winner ) ) {
-                    if( $chairUmpire->winnerIsVisitor( $match ) ) {
-                        $data['winner'] = 'visitor';
-                    }
-                    else {
-                        $data['winner'] = 'home';
-                    }
-                }
+                $numVars = extract( $chairUmpire->getMatchSummary( $match ) );
+                $data['winner'] = $andTheWinnerIs;
+                $this->log->error_log($data, "$loc: numVars={$numVars} data...");
                 $mess = __("Score recorded.", TennisEvents::TEXT_DOMAIN );
             }
         }
@@ -719,6 +716,7 @@ class ManageRoundRobin
         $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
         $jsData["numSets"] = $umpire->getMaxSets();
         $arrData = $this->getMatchesAsArray( $td, $bracket );
+        $this->log->error_log($arrData, "$loc: arrData...");
         $jsData["matches"] = $arrData; 
         wp_enqueue_script( 'manage_rr' );         
         wp_localize_script( 'manage_rr', 'tennis_draw_obj', $jsData );        
@@ -762,29 +760,30 @@ class ManageRoundRobin
         $arrMatches = [];
         foreach( $matches as $match ) {
             $arrMatch = $match->toArray();
-            extract( $chairUmpire->getMatchSummary( $match ) );
-            
-            if( !empty( $andTheWinnerIs ) ) {
-                switch( $andTheWinnerIs ) {
-                    case 'home':
-                        $winner = $match->getHomeEntrant();
-                        break;
-                    case 'visitor':
-                        $winner = $match->getVisitorEntrant();
-                        break;
-                    default:
-                        $winner = null;
-                }
-            }
-            else {
-                $winner = null;
-            }
-            //$winner = $chairUmpire->matchWinner( $match );
+
             $status = $chairUmpire->matchStatus( $match );
+            $arrMatch["status"] = $status;
+
             $strScores = $chairUmpire->strGetScores( $match );
             $arrMatch["scores"] = $strScores;
-            $arrMatch["status"] = $status;
-            $arrMatch["winner"] = is_null( $winner ) ? '' : $winner->getName();
+
+            extract( $chairUmpire->getMatchSummary( $match ) );
+            
+            switch( $andTheWinnerIs ) {
+                case 'home':
+                    $winner = $match->getHomeEntrant()->getName();
+                    break;
+                case 'visitor':
+                    $winner = $match->getVisitorEntrant()->getName();
+                    break;
+                case 'tie':
+                    $winner = 'tie';
+                    break;
+                default:
+                    $winner = '';
+            }
+
+            $arrMatch["winner"] = $winner;
             $arrMatches[] = $arrMatch;
         }
         return $arrMatches;

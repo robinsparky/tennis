@@ -604,6 +604,7 @@ class TournamentDirector
             $entrantSummary["name"] = $entrant->getName();
             for( $r = 1; $r <= $numRounds; $r++ ) {
                 $totalMatchesWon = 0;
+                $totalMatchesTied = 0;
                 $entrantSummary[$r] = 0;
                 foreach( $matches as $match ) {
                     if( $r != $match->getRoundNumber() ) continue;
@@ -615,6 +616,11 @@ class TournamentDirector
                             ++$totalMatchesWon;
                             $totalPoints += $totalMatchesWon * $pointsForWin;
                         }
+                        elseif( $andTheWinnerIs === 'tie') {
+                            $tie = $pointsForWin/2;
+                            ++$totalMatchesTied;
+                            $totalPoints += $totalMatchesTied * $tie;
+                        }
                     }
                     elseif( $entrant->getName() === $chairUmpire->getVisitorPlayer( $match ) ) {
                         $totalGames += $visitorGamesWon;
@@ -623,9 +629,14 @@ class TournamentDirector
                             ++$totalMatchesWon;
                             $totalPoints += $totalMatchesWon * $pointsForWin;
                         }
+                        elseif( $andTheWinnerIs === 'tie') {
+                            $tie = $pointsForWin/2;
+                            ++$totalMatchesTied;
+                            $totalPoints += $totalMatchesTied * $tie;
+                        }
                     }
                 } //matches
-                $entrantSummary[$r] += $totalMatchesWon;
+                $entrantSummary[$r] += $totalMatchesWon + $totalMatchesTied/2;
             } //rounds
             $entrantSummary["totalPoints"] = $totalPoints;
             $entrantSummary["totalGames"] = $totalGames;
