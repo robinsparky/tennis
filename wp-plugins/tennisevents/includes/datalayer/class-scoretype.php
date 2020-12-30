@@ -107,11 +107,11 @@ class ScoreType {
         error_log("{$loc}('{$key}')");
 
         if( array_key_exists( $key, $this->ScoreRules ) ) {
-            error_log("$loc: returning ...{$key}=>");            
-            error_log(print_r($this->ScoreRules[$key], true ) );
+            // error_log("$loc: returning ...{$key}=>");            
+            // error_log(print_r($this->ScoreRules[$key], true ) );
             return $this->ScoreRules[$key];
         }
-        error_log("$loc: returning empty array");
+        // error_log("$loc: returning empty array");
         return [];
     }
 }

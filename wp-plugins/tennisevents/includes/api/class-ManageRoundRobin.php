@@ -1,6 +1,6 @@
 <?php
 use templates\DrawTemplateGenerator;
-use api\BaseLoggerEx;
+use commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -36,7 +36,7 @@ class ManageRoundRobin
 	/*************** Instance Methods ****************/
 	public function __construct( ) {
 	    $this->errobj = new WP_Error();	
-        $this->log = new BaseLoggerEx( true );
+        $this->log = new BaseLogger( true );
     }
 
 

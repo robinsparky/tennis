@@ -1,4 +1,5 @@
 <?php
+use commonlib\gw_debug;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -222,30 +223,41 @@ class RegulationMatchUmpire extends ChairUmpire
     }
        
     /**
-     * Retrieve the Champion for this bracket
+     * Retrieve the Champion for this bracket if exists 'tba' otherwise
      * @param Bracket $bracket
      * @return Entrant who won the bracket or null if not completed
+     * @throws InvalidBracketException
      */
     public function getChampion( &$bracket ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $bracketName = $bracket->getName();
         $this->log->error_log("$loc($bracketName)");
+        // $trace = GW_Debug::get_debug_trace( 2 );
+        // $this->log->error_log($trace, "$loc called by ...");
+        //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+        //print_r(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2));
+        
         $champion = null;
 
-        if( !$bracket->isApproved() ) {
+        if( $bracket->isApproved() ) {
             $lastRound = $bracket->getNumberOfRounds();
             $finalMatches = $bracket->getMatchesByRound( $lastRound );
+            // $this->log->error_log("$loc: lastRound={$lastRound}");
 
             if( count( $finalMatches ) !== 1 ) {
                 $c = count( $finalMatches );
                 $errmess = "Final round in bracket '{$bracketName}' with {$lastRound} rounds does not have exactly one match({$c}).";
-                $this->log->error_log( $errmess );
-                //throw new InvalidBracketException( $errmess );
+                //$this->log->error_log( $errmess );
+                throw new InvalidBracketException( $errmess );
             } else {
                 $finalMatch = array_pop($finalMatches);
                 $this->isLocked( $finalMatch, $champion );
+                $this->log->error_log($champion, "$loc: champion: ");
             }
-
+        }
+        else {
+            $errmess = "Bracket '{$bracketName}' is not approved yet!";
+            throw new InvalidBracketException( $errmess );
         }
         
         return $champion;

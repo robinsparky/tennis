@@ -1,4 +1,5 @@
 <?php
+namespace commonlib;
 
 class GW_Debug {
 
@@ -37,5 +38,13 @@ class GW_Debug {
         list($usec, $sec) = explode(" ", microtime());
 
         echo "<div><span><strong>$label</strong> $datetime $usec</span></div>";
+    }
+
+    public static function get_debug_trace( $frames = 2) {
+ 
+        $trace = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, $frames + 1 );
+        array_shift($trace);
+
+        return $trace;
     }
 }

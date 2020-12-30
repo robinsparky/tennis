@@ -1,4 +1,6 @@
 <?php
+use commonlib\gw_debug;
+
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -58,7 +60,11 @@ abstract class ChairUmpire
      */
     public static function getUmpire( string $strScoreType ) : ChairUmpire {
         $loc = __CLASS__ . ':: static ' . __FUNCTION__;
-        error_log("{$loc}('{$strScoreType}')");
+        // $trace = GW_Debug::get_debug_trace( 2 );
+        // error_log("{$loc}('{$strScoreType}')");
+        // error_log(print_r($trace, true ));
+        // error_log(debug_backtrace()[1]['function']);
+
 
         $chairUmpire = null;
 
@@ -88,7 +94,6 @@ abstract class ChairUmpire
         //Initialize the umpire with the scoring rules
         $chairUmpire->setScoringRules( $strScoreType );
 
-        error_log("$loc finished!");
         return $chairUmpire;
     }
     
@@ -130,12 +135,14 @@ abstract class ChairUmpire
      * @param string $score_rules Identifyng (i.e. key to) score rules from ScoreTypes.
      */
     public function setScoringRules( string $score_rules) {
+        if( !empty( $this->Scoring_Rule ) ) return; //can only be set once!
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("{$loc}('{$score_rules}')");
 
+
         $this->Scoring_Rule = $score_rules;
         $rules = ScoreType::get_instance()->getScoringRules( $score_rules );
-        $this->log->error_log($rules,"$loc: rules...");
+        //$this->log->error_log($rules,"$loc: rules...");
 
         $numVars = extract( $rules );
         $this->MustWinBy = $MustWinBy ?? 2;
@@ -155,7 +162,7 @@ abstract class ChairUmpire
 
         $this->PointsPerWin = $PointsPerWin ?? 1;
         
-        $this->log->error_log($this, "{$loc}: initialized this ...");
+        //$this->log->error_log($this, "{$loc}: initialized this ...");
     }
 
     /**

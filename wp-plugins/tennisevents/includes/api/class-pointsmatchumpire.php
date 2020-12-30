@@ -251,7 +251,9 @@ class PointsMatchUmpire extends ChairUmpire
     public function getChampion( &$bracket ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $bracketName = $bracket->getName();
-        $this->log->error_log("$loc($bracketName)");
+        $this->log->error_log("$loc($bracketName)");        
+        $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+
         $champion = null;
 
         if( !$bracket->isApproved() ) {
