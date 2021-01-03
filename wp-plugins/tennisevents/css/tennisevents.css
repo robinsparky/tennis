@@ -367,10 +367,10 @@ div.modifymatchscores.save-cancel-buttons {
 #tennis-event-message {
   border: 1px black solid;
   display: none;
-  position: absolute;
+  position: fixed;
   background-color: white;
-  top: 50%;
-  left: 50%;
+  bottom: 10%;
+  left: 85%;
   -webkit-transform: translateX(-50%);
   -moz-transform: translateX(-50%);
   -ms-transform: translateX(-50%);
