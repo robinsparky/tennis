@@ -105,13 +105,13 @@ class PointsMatchUmpire extends ChairUmpire
      *               visitor sets won
      *               visitor games won
      */
-    public function getMatchSummary( Match &$match ) {
+    public function getMatchSummary( Match &$match, $force = false ) {
         $startTime = \microtime( true );
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $title = $match->toString();
-        $this->log->error_log("$loc($title)");
-        $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+        $this->log->error_log("$loc($title)" );
+        //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
         
         //NOTE: It is imperative that sets be in ascending order of set number
         $sets = $match->getSets( );
@@ -136,6 +136,7 @@ class PointsMatchUmpire extends ChairUmpire
         $cmts = '';
         $tie = false;
 
+        //TODO: Make use of "ties" in the database!!!!!!!!!!
         foreach( $sets as $set ) {
             $setNum = $set->getSetNumber();
             $this->log->error_log("{$loc}: set number={$setNum}");
@@ -169,11 +170,11 @@ class PointsMatchUmpire extends ChairUmpire
                 $this->log->error_log( sprintf( "%s(%s): home W=%d, visitor W=%d"
                                         , $loc, $set->toString(), $homeW, $visitorW ) );
                 
-                if( !in_array($homeW, array($this->GamesPerSet, $this->GamesPerSet + 1))
-                &&  !in_array($visitorW, array($this->GamesPerSet, $this->GamesPerSet + 1) )) {
+                if( $homeW < $this->getGamesPerSet() &&  $visitorW < $this->getGamesPerSet() ) {
                     $setInProgress = $set->getSetNumber();
                     break; //not done yet
                 }
+                
                 if( ($homeW - $visitorW >= $this->MustWinBy ) ) {
                     ++$homeSetsWon;
                 }
@@ -182,7 +183,7 @@ class PointsMatchUmpire extends ChairUmpire
                 }
                 else {
                     if( $setNum === $this->getMaxSets() ) {
-                        //tie score
+                        //tie score and we know there is only one set
                         $tie = true;
                     }
                     else { //Tie breaker
@@ -237,7 +238,7 @@ class PointsMatchUmpire extends ChairUmpire
                     ,"earlyEnd"        => $earlyEnd
                     ,"comments"        => $cmts ];
 
-        error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", commonlib\micro_time_elapsed( $startTime )));
+        $this->log->error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", commonlib\micro_time_elapsed( $startTime )));
         $this->log->error_log($result, "$loc: Match Summary Result");
 
         return $result;
@@ -256,7 +257,7 @@ class PointsMatchUmpire extends ChairUmpire
 
         $champion = null;
 
-        if( !$bracket->isApproved() ) {
+        if( $bracket->isApproved() ) {
             $lastRound = $bracket->getNumberOfRounds();
             $finalMatches = $bracket->getMatchesByRound( $lastRound );
 
@@ -269,7 +270,6 @@ class PointsMatchUmpire extends ChairUmpire
                 $finalMatch = array_pop($finalMatches);
                 $this->isLocked( $finalMatch, $champion );
             }
-
         }
         
         return $champion;

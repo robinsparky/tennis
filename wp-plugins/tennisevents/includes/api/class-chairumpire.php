@@ -789,13 +789,13 @@ EOT;
      * @param int $homeScore The home entrant's game score
      * @param int $visitorScore the visitor entrant's game score
      */
-    private function getAllowableGameScore( int &$homeScore, int &$visitorScore ) {
+    protected function getAllowableGameScore( int &$homeScore, int &$visitorScore ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 
         $diff = $homeScore - $visitorScore;
         if($homeScore >= $this->getGamesPerSet() && $diff > 0 ) {
             if( $diff >= $this->getMustWinBy() && $this->noTieBreakers() ) {
-                $homeScore = $visitorScore + $this->getMustWinBy();    
+                $homeScore = max( $visitorScore + $this->getMustWinBy(), $this->getGamesPerSet() );    
             }
             elseif( $diff >= $this->getMustWinBy() ) {
                 if( $visitorScore === $this->getGamesPerSet() - 1 ) {
@@ -810,7 +810,7 @@ EOT;
         elseif( $visitorScore >= $this->getGamesPerSet() && $diff < 0 ) {
             $diff =  abs($diff);
             if( $diff >= $this->getMustWinBy()  && $this->noTieBreakers() ) {
-                $visitorScore = $homeScore + $this->getMustWinBy();  
+                $visitorScore = max( $homeScore + $this->getMustWinBy(), $this->getGamesPerSet() );  
             }
             elseif( $diff >= $this->getMustWinBy() ) {
                 if( $homeScore === $this->getGamesPerSet() - 1 ) {
@@ -835,7 +835,7 @@ EOT;
      * @param int $homeScore The home entrant's tie break score
      * @param int $visitorScore the visitor entrant's tie break score
      */
-    private function getAllowableTieBreakScore( int &$homeScore, int &$visitorScore ) {
+    protected function getAllowableTieBreakScore( int &$homeScore, int &$visitorScore ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         
         if( $this->noTieBreakers() ) return;

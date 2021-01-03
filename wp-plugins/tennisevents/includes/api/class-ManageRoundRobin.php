@@ -366,12 +366,7 @@ class ManageRoundRobin
                 //Set the score for this match 
                 $winner = null;
                 foreach( $scores as $score ) {
-                    $chairUmpire->recordScores( $match
-                                                ,$score["setNum"]
-                                                ,$score["homeGames"]
-                                                ,$score["homeTieBreaker"]
-                                                ,$score["visitorGames"]
-                                                ,$score["visitorTieBreaker"] );
+                    $chairUmpire->recordScores( $match, $score );
                     if( $chairUmpire->isLocked( $match, $winner ) ) break;
                 }
 
@@ -380,8 +375,8 @@ class ManageRoundRobin
                     $match->setMatchTime_Str( date("g:i:s") );
                 }
 
-                $numTrimmed = $chairUmpire->trimSets( $match );
-                $data['setsTrimmed'] = $numTrimmed;
+                // $numTrimmed = $chairUmpire->trimSets( $match );
+                // $data['setsTrimmed'] = $numTrimmed;
                 $match->save();
 
                 $statusObj = $chairUmpire->matchStatusEx( $match );
