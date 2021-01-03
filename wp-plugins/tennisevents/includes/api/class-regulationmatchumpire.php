@@ -98,13 +98,13 @@ class RegulationMatchUmpire extends ChairUmpire
      *               visitor sets won
      *               visitor games won
      */
-    public function getMatchSummary( Match &$match ) {
+    public function getMatchSummary( Match &$match, $force = false ) {
         $startTime = \microtime( true );
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $title = $match->toString();
-        $this->log->error_log("$loc($title)");
-        $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+        $this->log->error_log("$loc($title)" );
+        //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
         
         //NOTE: It is imperative that sets be in ascending order of set number
         $sets = $match->getSets( );
@@ -155,22 +155,24 @@ class RegulationMatchUmpire extends ChairUmpire
                 $this->log->error_log( sprintf( "%s(%s): home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
                                      , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
                 
-                if( !in_array($homeW, array($this->GamesPerSet, $this->GamesPerSet + 1))
-                &&  !in_array($visitorW, array($this->GamesPerSet, $this->GamesPerSet + 1) )) {
+                // the game score can go as high as it wants if there is no tie breaker
+                if( $homeW < $this->getGamesPerSet() &&  $visitorW < $this->getGamesPerSet() ) {
                     $setInProgress = $set->getSetNumber();
                     break; //not done yet
                 }
-                if( ($homeW - $visitorW >= $this->MustWinBy ) ) {
+
+                if( ($homeW - $visitorW >= $this->getMustWinBy() ) ) {
                     ++$homeSetsWon;
                 }
-                elseif( ($visitorW - $homeW >= $this->MustWinBy ) ) {
+                elseif( ($visitorW - $homeW >= $this->getMustWinBy() ) ) {
                     ++$visitorSetsWon;
                 }
                 else {
-                    if( $this->getNoTieBreakerFinalSet() && $setNum === $this->getMaxSets() ) {
-                        //do nothing
+                    if( true === $this->getNoTieBreakerFinalSet() && $setNum === $this->getMaxSets()
+                    ||  true === $this->noTieBreakers() ) {
+                        //do nothing because there are no tie breakers
                     }
-                    else { //Tie breaker
+                    else { //Tie breakers
                         if( ($homeTB - $visitorTB >= $this->MustWinBy ) && $homeTB >= $this->getTieBreakMinScore() ) {
                             ++$homeSetsWon;
                         }
@@ -254,10 +256,6 @@ class RegulationMatchUmpire extends ChairUmpire
                 $this->isLocked( $finalMatch, $champion );
                 $this->log->error_log($champion, "$loc: champion: ");
             }
-        }
-        else {
-            $errmess = "Bracket '{$bracketName}' is not approved yet!";
-            throw new InvalidBracketException( $errmess );
         }
         
         return $champion;

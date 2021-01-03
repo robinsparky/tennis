@@ -392,12 +392,8 @@ class ManageDraw
             else {
                 //Set the score for this match 
                 foreach( $scores as $score ) {
-                    $chairUmpire->recordScores( $match
-                                                , $score["setNum"]
-                                                , $score["homeGames"]
-                                                , $score["homeTieBreaker"]
-                                                , $score["visitorGames"]
-                                                , $score["visitorTieBreaker"] );
+                    //Record and save scores
+                    $chairUmpire->recordScores( $match, $score );
                 }
 
                 if( empty($match->getMatchDate_Str()) ) {
@@ -405,9 +401,9 @@ class ManageDraw
                     $match->setMatchTime_Str( date("g:i:s") );
                 }
 
-                $numTrimmed = $chairUmpire->trimSets( $match );
-                $data['setsTrimmed'] = $numTrimmed;
-                $match->save();
+                // $numTrimmed = $chairUmpire->trimSets( $match );
+                // $data['setsTrimmed'] = $numTrimmed;
+                $match->save();//Now save the match
 
                 $statusObj = $chairUmpire->matchStatusEx( $match );
                 $data['majorStatus'] = $statusObj->getMajorStatus();

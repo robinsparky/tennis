@@ -12,6 +12,9 @@ use commonlib\BaseLogger;
 use cpt\TennisEventCpt;
 use cpt\TennisClubCpt;
 
+//Uncomment this to turn off all logging in this plugin
+//$GLOBALS['TennisEventNoLog'] = 1;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }

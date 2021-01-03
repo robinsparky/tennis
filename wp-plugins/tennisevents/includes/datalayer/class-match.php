@@ -359,7 +359,7 @@ class Match extends AbstractData
         static $numMatches = 0;
         $loc = __CLASS__ . '::' . __FUNCTION__;
         ++$numMatches;
-        $this->log->error_log("{$loc} ... {$numMatches}");
+        // $this->log->error_log("{$loc} ... {$numMatches}");
 
         unset( $this->event );
 

@@ -278,7 +278,7 @@ class Event extends AbstractData
 		static $numEvents = 0;
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		++$numEvents;
-		error_log("{$loc} ... {$numEvents}");
+		// error_log("{$loc} ... {$numEvents}");
 		
 		$this->parent = null;
 			if(isset($this->childEvents)) {

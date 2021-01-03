@@ -127,10 +127,13 @@ class Set extends AbstractData
 	}
 
     /*************** Instance Methods ****************/
+	public function __construct( ) {
+        parent::__construct( true );
+    }
 
     public function __destruct() {
         $loc=__CLASS__ . '->' . __FUNCTION__;
-        $this->log->error_log($loc);
+        // $this->log->error_log($loc);
         $this->match = null;
     }
     
