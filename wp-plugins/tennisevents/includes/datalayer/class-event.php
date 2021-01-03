@@ -73,7 +73,7 @@ class Event extends AbstractData
      */
     public static function find( ...$fk_criteria ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;		
-		$calledBy = debug_backtrace()[1]['function'];
+		$calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class']. '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
 		error_log("{$loc} ... called by {$calledBy}");
 
 		global $wpdb;

@@ -509,7 +509,7 @@ class ManageDraw
             }
             
             $advanced = $td->advance( $bracketName );
-            $data['advanced'] = $advanced;
+            $data['advanced'] = $advanced; //Could be the name of the champion!!!
             $mess = __("{$advanced} Matches advanced.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {

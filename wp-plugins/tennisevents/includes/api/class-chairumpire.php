@@ -206,8 +206,12 @@ abstract class ChairUmpire
     public function recordScores( Match &$match, array $score ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
+        $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
+        
         $title = $match->title();
+        $this->log->error_log("{$mess} called by {$calledBy}");
         $this->log->error_log( $score, "$loc: called with match=$title, this set number and scores: ");
+        $this->log->error_log( "Called by {$calledBy}");
         
         $setnum = (int)$score['setNum'];
         if( $setnum < 1 || $setnum > $this->getMaxSets() ) return;
@@ -884,7 +888,10 @@ EOT;
                         ,$visitor_tb 
                         ,$home_ties
                         ,$visitor_ties);
-        $this->log->error_log($mess);
+        $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
+        
+        $this->log->error_log("{$mess} called by {$calledBy}");
+
 
 
         $match->setScore( $setnum, $home_wins, $visitor_wins, $home_tb, $visitor_tb, $home_ties, $visitor_ties );

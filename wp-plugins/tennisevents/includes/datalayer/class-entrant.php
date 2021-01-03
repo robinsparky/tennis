@@ -233,7 +233,7 @@ class Entrant extends AbstractData
 
 	public function __destruct() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log("$loc");
+		// $this->log->error_log("$loc");
 
 		//destroy players
 		if( isset( $this->players ) ) {

@@ -101,9 +101,10 @@ class RegulationMatchUmpire extends ChairUmpire
     public function getMatchSummary( Match &$match, $force = false ) {
         $startTime = \microtime( true );
         $loc = __CLASS__ . "::" . __FUNCTION__;
+        $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
 
         $title = $match->toString();
-        $this->log->error_log("$loc($title)" );
+        $this->log->error_log("$loc($title) called by {$calledBy}" );
         //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
         
         //NOTE: It is imperative that sets be in ascending order of set number

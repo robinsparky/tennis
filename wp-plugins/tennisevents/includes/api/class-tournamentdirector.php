@@ -207,8 +207,10 @@ class TournamentDirector
      * @return int Number of entrants advanced
      */
     public function advance( $bracketName ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-        $this->log->error_log("$loc($bracketName)");
+        $loc = __CLASS__ . "::" . __FUNCTION__;        
+        $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
+
+        $this->log->error_log("$loc($bracketName) called by {$calledBy}");
 
         $format = $this->getEvent()->getFormat( $bracketName );
         switch( $format ) {
@@ -275,12 +277,13 @@ class TournamentDirector
 
     /**
      * Advance completed matches to their respective next rounds
-     * in a single elimination event
+     * in a single elimination event. And save the results.
      * @param string $bracketName name of the bracket
      * @return int Number of entrants advanced
      */
     private function advanceSingleElimination( $bracketName ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $loc = __CLASS__ . "::" . __FUNCTION__;        
+
         $this->log->error_log("$loc($bracketName)");
 
         $bracket = $this->getBracket( $bracketName );
@@ -349,7 +352,7 @@ class TournamentDirector
                     $nextMatch->save();
                     $bracket->setDirty();
                     $nextMatch->setIsBye( false );
-                    ++$numAdvanced;                    
+                    $numAdvanced += 0.5;                    
                     $this->log->error_log( sprintf( "%s --> %d. Advanced winner %s of match %s to next match %s"
                                                   , $loc, $numAdvanced, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
                 }
@@ -599,6 +602,8 @@ class TournamentDirector
             $totalGames = 0;
             $totalPoints = 0;
             $totalSetsWon = 0;
+            $totalMatchesWon = 0;
+            $totalMatchesTied = 0;
             $entrantSummary=[];
             $entrantSummary["position"] = $entrant->getPosition();
             $entrantSummary["name"] = $entrant->getName();

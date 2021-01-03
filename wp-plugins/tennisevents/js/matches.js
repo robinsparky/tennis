@@ -217,8 +217,8 @@
             console.log( data );
             $('#advanceMatches').prop('disabled', false );
             let advanced = data.advanced || data;
-            if( !isString( advanced ) && 0 < advanced ) {                  
-                alert(`${advanced} matches advanced. Reloading...`);
+            if( !isString( advanced ) && advanced >= 1 ) {                  
+                alert(`${advanced} matches should be advanced.`);
                 window.location.reload();
             }
         }
