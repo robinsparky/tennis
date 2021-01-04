@@ -17,7 +17,6 @@ class PointsMatchUmpire extends ChairUmpire
 {
 	//This class's singleton
 	private static $_instance;
-    protected $PointsPerWin = 1;
 
 	/**
 	 * RegulationMatchUmpire Singleton
@@ -119,11 +118,11 @@ class PointsMatchUmpire extends ChairUmpire
         $sets = $match->getSets( );
         $numSets = count( $sets );
 
-        if( $numSets > 1 ) {
-            $mess = "{$loc}({$title}): The number of sets must be 1 or 0 not '{$numSets}'";
-            $this->log->error_log($mess);
-            //throw new InvalidSetException( $mess );
-        }
+        // if( $numSets > 1 ) {
+        //     $mess = "{$loc}({$title}): The number of sets must be 1 or 0 not '{$numSets}'";
+        //     $this->log->error_log($mess);
+        //     //throw new InvalidSetException( $mess );
+        // }
     
         $home = 'home';
         $visitor = 'visitor';
@@ -174,7 +173,7 @@ class PointsMatchUmpire extends ChairUmpire
                 
                 if( $homeW < $this->getGamesPerSet() &&  $visitorW < $this->getGamesPerSet() ) {
                     $setInProgress = $set->getSetNumber();
-                    break; //not done yet
+                    break; //not done yet so don't even consider other sets
                 }
                 
                 if( ($homeW - $visitorW >= $this->MustWinBy ) ) {
@@ -184,15 +183,20 @@ class PointsMatchUmpire extends ChairUmpire
                     ++$visitorSetsWon;
                 }
                 else {
-                    if( $setNum === $this->getMaxSets() ) {
+                    if( false === $this->includeTieBreakerScores( $setNum )  ) {
                         //tie score and we know there is only one set
-                        $tie = true;
+                        if( $homeW === $visitorW ) {
+                            $homeSetsWon += 0.5;
+                            $visitorSetsWon += 0.5;
+                        }
                     }
                     else { //Tie breaker
-                        if( ($homeTB - $visitorTB >= $this->MustWinBy ) && $homeTB >= $this->getTieBreakMinScore() ) {
+                        if( ($homeTB - $visitorTB >= $this->MustWinBy ) 
+                            && $homeTB >= $this->getTieBreakMinScore() ) {
                             ++$homeSetsWon;
                         }
-                        elseif( ($visitorTB - $homeTB >= $this->MustWinBy )  && $visitorTB >= $this->getTieBreakMinScore() ) {
+                        elseif( ($visitorTB - $homeTB >= $this->MustWinBy )  
+                            && $visitorTB >= $this->getTieBreakMinScore() ) {
                             ++$visitorSetsWon;
                         }
                         else { //match not finished yet
@@ -205,20 +209,20 @@ class PointsMatchUmpire extends ChairUmpire
 
                 $setInProgress = $set->getSetNumber();
                 //Best of 1 happened yet?
-                if( $homeSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
+                if( ceil($homeSetsWon) >= ceil( $this->getMaxSets()/2.0 ) ) {
                     $andTheWinnerIs = 'home';
+                    if( $homeSetsWon === $visitorSetsWon ) {
+                        $andTheWinnerIs = 'tie';
+                    }
                     $finalSet = $set->getSetNumber();
                     $setInProgress = 0;
                     break;
                 }
-                elseif( $visitorSetsWon >= ceil( $this->MaxSets/2.0 ) ) {
+                elseif( ceil($visitorSetsWon) >= ceil( $this->getMaxSets()/2.0 ) ) {
                     $andTheWinnerIs = 'visitor';
-                    $finalSet = $set->getSetNumber();
-                    $setInProgress = 0;
-                    break;
-                }
-                elseif( true === $tie ) {
-                    $andTheWinnerIs = 'tie';
+                    if( $homeSetsWon === $visitorSetsWon ) {
+                        $andTheWinnerIs = 'tie';
+                    }
                     $finalSet = $set->getSetNumber();
                     $setInProgress = 0;
                     break;

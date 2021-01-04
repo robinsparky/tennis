@@ -696,8 +696,8 @@ class ManageRoundRobin
         // $numMatches = $bracket->getNumberOfMatches();
 
         $pointsPerWin = 1;
-        if( $td->getEvent()->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
-        $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
+        ///if( $td->getEvent()->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+        $summaryTable = $td->getEntrantSummary( $bracket );
         $bracketSummary = $td->getBracketSummary( $bracket ); //NOTE: calls $bracket->getMatchHierarchy();
 
         $signupSize = $bracket->signupSize();

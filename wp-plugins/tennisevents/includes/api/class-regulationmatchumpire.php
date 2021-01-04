@@ -159,7 +159,7 @@ class RegulationMatchUmpire extends ChairUmpire
                 // the game score can go as high as it wants if there is no tie breaker
                 if( $homeW < $this->getGamesPerSet() &&  $visitorW < $this->getGamesPerSet() ) {
                     $setInProgress = $set->getSetNumber();
-                    break; //not done yet
+                    break; //not done yet and don't even consider other sets
                 }
 
                 if( ($homeW - $visitorW >= $this->getMustWinBy() ) ) {
@@ -169,15 +169,16 @@ class RegulationMatchUmpire extends ChairUmpire
                     ++$visitorSetsWon;
                 }
                 else {
-                    if( true === $this->getNoTieBreakerFinalSet() && $setNum === $this->getMaxSets()
-                    ||  true === $this->noTieBreakers() ) {
+                    if( false === $this->includeTieBreakerScores( $setNum ) ) {
                         //do nothing because there are no tie breakers
                     }
                     else { //Tie breakers
-                        if( ($homeTB - $visitorTB >= $this->MustWinBy ) && $homeTB >= $this->getTieBreakMinScore() ) {
+                        if( ($homeTB - $visitorTB >= $this->MustWinBy ) 
+                            && $homeTB >= $this->getTieBreakMinScore() ) {
                             ++$homeSetsWon;
                         }
-                        elseif( ($visitorTB - $homeTB >= $this->MustWinBy )  && $visitorTB >= $this->getTieBreakMinScore() ) {
+                        elseif( ($visitorTB - $homeTB >= $this->MustWinBy )  
+                            && $visitorTB >= $this->getTieBreakMinScore() ) {
                             ++$visitorSetsWon;
                         }
                         else { //match not finished yet

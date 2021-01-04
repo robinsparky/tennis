@@ -583,7 +583,7 @@ class TournamentDirector
      * @return array entrant summary: name, position, points, games and sets
      *                                and matches won per round
      */
-    public function getEntrantSummary( Bracket $bracket, int $pointsForWin = 1 ) {
+    public function getEntrantSummary( Bracket $bracket ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log("$loc<<<<<<<<<<<<<<<<<<<<<<<<<<");
         $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
@@ -594,6 +594,7 @@ class TournamentDirector
 
         $summary = [];
         $chairUmpire = $this->getChairUmpire();
+        $pointsForWin = $chairUmpire->getPointsPerWin();
         $matchesByEntrant = $bracket->matchesByEntrant();
         $numRounds = $bracket->getNumberOfRounds();
         foreach( $matchesByEntrant as $matchInfo) {

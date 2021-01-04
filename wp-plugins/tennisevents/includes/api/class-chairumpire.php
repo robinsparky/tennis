@@ -40,6 +40,7 @@ abstract class ChairUmpire
     protected $TieBreakDecider = false;
     protected $NoTieBreakerFinalSet = false;
     protected $MustWinBy = 2;
+    protected $PointsPerWin = 1;
 	
 	protected $log;
 
@@ -65,7 +66,6 @@ abstract class ChairUmpire
         // error_log("{$loc}('{$strScoreType}')");
         // error_log(print_r($trace, true ));
         // error_log(debug_backtrace()[1]['function']);
-
 
         $chairUmpire = null;
 
@@ -209,7 +209,6 @@ abstract class ChairUmpire
         $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
         
         $title = $match->title();
-        $this->log->error_log("{$mess} called by {$calledBy}");
         $this->log->error_log( $score, "$loc: called with match=$title, this set number and scores: ");
         $this->log->error_log( "Called by {$calledBy}");
         
@@ -780,8 +779,8 @@ EOT;
 
         $result = true;
         
-        if( ( $this->getMaxSets() === $setNum && $this->getNoTieBreakerFinalSet() )
-        || ( strpos($this->Scoring_Rules, "Points") === 0 && $this->getMaxSets() === 1 ) ) {
+        if( ( $this->getMaxSets() === $setNum && $this->getNoTieBreakerFinalSet() ) 
+        || true === $this->noTieBreakers() ) {
             $result = false;
         }
 
