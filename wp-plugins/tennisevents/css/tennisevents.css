@@ -364,6 +364,11 @@ div.modifymatchscores.save-cancel-buttons {
   color: red;
 }
 
+.tennis-score-rules {
+  list-style: none;
+  text-align: left;
+}
+
 #tennis-event-message {
   border: 1px black solid;
   display: none;

@@ -92,6 +92,7 @@ $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN
 							$eventFormat = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_FORMAT_META_KEY, true );
 							$eventFormat = Format::AllFormats()[$eventFormat];	
 							$scoreType   = get_post_meta( get_the_ID(), TennisEventCpt::SCORE_TYPE_META_KEY, true );
+							$scoreRules  = ScoreType::get_instance()->ScoreRules[$scoreType];
 							$signupBy = get_post_meta( get_the_ID(), TennisEventCpt::SIGNUP_BY_DATE_META_KEY, true );
 							$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
 							$endDate = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
@@ -104,7 +105,13 @@ $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN
 							<tbody>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php echo $eventFormat; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Score Type", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php echo $scoreType; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Score Rules", TennisEvents::TEXT_DOMAIN);?></td></strong><td><strong><?php echo $scoreType; ?></strong>
+								<ul class="tennis-score-rules">
+								<?php foreach($scoreRules as $name=>$rule ) { ?>
+										<li><?php echo "{$name}: {$rule}"?></li>
+									<?php } ?>
+									</ul>
+								</td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Signup Deadline", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php   echo $signupBy; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Event Starts", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $startDate; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Event Ends", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $endDate; ?></td></tr>
