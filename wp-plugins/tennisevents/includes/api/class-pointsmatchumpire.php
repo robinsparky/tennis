@@ -18,6 +18,8 @@ class PointsMatchUmpire extends ChairUmpire
 	//This class's singleton
 	private static $_instance;
 
+    protected $PointsPerWin = 1;
+
 	/**
 	 * RegulationMatchUmpire Singleton
 	 *
@@ -45,6 +47,23 @@ class PointsMatchUmpire extends ChairUmpire
     
     public function getPointsPerWin() {
         return $this->PointsPerWin;
+    }
+
+
+    /**
+     * Overerides function in ChairUmpire and adds PointsPerWin property.
+     * @param string $score_rules Identifies (i.e. key to) score rules from ScoreTypes.
+     * @return array Rules for this identifier of score type
+     */
+    public function setScoringRules( string $score_rules) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+        $rules = parent::setScoringRules( $score_rules );
+        //$this->log->error_log($rules,"$loc: rules...");
+
+        $numVars = extract( $rules );
+        $this->PointsPerWin = $PointsPerWin ?? 1;
+        return $rules;
     }
 
     /**

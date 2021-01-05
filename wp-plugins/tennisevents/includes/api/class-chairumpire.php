@@ -40,7 +40,6 @@ abstract class ChairUmpire
     protected $TieBreakDecider = false;
     protected $NoTieBreakerFinalSet = false;
     protected $MustWinBy = 2;
-    protected $PointsPerWin = 1;
 	
 	protected $log;
 
@@ -133,7 +132,8 @@ abstract class ChairUmpire
 
     /**
      * Extract the scoring rules into object properties
-     * @param string $score_rules Identifyng (i.e. key to) score rules from ScoreTypes.
+     * @param string $score_rules Identifies (i.e. key to) score rules from ScoreTypes.
+     * @return array Rules for this identifier of score type
      */
     public function setScoringRules( string $score_rules) {
         if( !empty( $this->Scoring_Rules ) ) return; //can only be set once!
@@ -160,10 +160,9 @@ abstract class ChairUmpire
 
         // if( $this->NoTieBreakerFinalSet ) $this->TieBreakDecider = false;
         // if( $this->TieBreakDecider ) $this->NoTieBreakerFinalSet = false;
-
-        $this->PointsPerWin = $PointsPerWin ?? 1;
         
         //$this->log->error_log($this, "{$loc}: initialized this ...");
+        return rules;
     }
 
     /**
