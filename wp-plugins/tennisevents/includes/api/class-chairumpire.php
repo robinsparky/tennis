@@ -130,7 +130,6 @@ abstract class ChairUmpire
     /**
      * Extract the scoring rules into object properties
      * @param string $score_rules Identifies (i.e. key to) score rules from ScoreTypes.
-     * @return array Rules for this identifier of score type
      */
     public function setScoringRules( string $score_rules) {
         if( !empty( $this->Scoring_Rules ) ) return; //can only be set once!
@@ -195,8 +194,7 @@ abstract class ChairUmpire
     /**
      * Manupliate (massage) game, tie breaker scores beforing saving them.
      * @param Match $match The match whose score are recorded
-     * @param int $setnum The set number 
-     * @param int ...$scores if 2 args then game scores; if 4 then games and tiebreaker scores
+     * @param array $score dictionary of game scores and tb scores for home and visitor; also contains the associated set number
      */
     public function recordScores( Match &$match, array $score ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
