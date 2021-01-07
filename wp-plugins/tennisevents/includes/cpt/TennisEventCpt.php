@@ -131,12 +131,12 @@ class TennisEventCpt {
 		$this->log->error_log($columns, $loc);
 
 		// column vs displayed title
-		$newColumns['cb'] = $columns['cb'];
+		$newColumns['cb'] = $columns['cb'];		
+		$newColumns['tennis_season'] = __('Season', TennisEvents::TEXT_DOMAIN);
+		$newColumns['parent_event'] = __('Parent', TennisEvents::TEXT_DOMAIN);
 		$newColumns['title'] = $columns['title'];
 		$newColumns['taxonomy-tenniseventcategory'] = __('Category', TennisEvents::TEXT_DOMAIN);
-		$newColumns['tennis_season'] = __('Season', TennisEvents::TEXT_DOMAIN);
 		$newColumns['event_type'] = __('Event Type', TennisEvents::TEXT_DOMAIN);
-		$newColumns['parent_event'] = __('Parent', TennisEvents::TEXT_DOMAIN);
 		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN);
 		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN);
 		$newColumns['score_type'] = __('Score Type', TennisEvents::TEXT_DOMAIN);
@@ -254,7 +254,7 @@ class TennisEventCpt {
 				if (!is_null($tecpt)) {
 					$name = $tecpt->post_title;
 				}
-				echo "$name($eventParentId)";
+				echo "$name";
 			} else {
 				echo "";
 			}
@@ -388,7 +388,7 @@ class TennisEventCpt {
 			,array($this, 'parentEventCallBack') //Callback
 			,self::CUSTOM_POST_TYPE //mixed: screen cpt name or ???
 			,'side' //context: normal, side
-			,'high' // priority: low, high, default
+			,'low' // priority: low, high, default
 			// array callback args
 		);
 

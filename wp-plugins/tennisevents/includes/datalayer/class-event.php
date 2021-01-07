@@ -264,12 +264,12 @@ class Event extends AbstractData
 		switch( $eventType ) {
 			case EventType::TOURNAMENT:
 				$this->event_type = $eventType;
-				$this->format = Format::SINGLE_ELIM;
+				$this->format = Format::TOURNAMENT;
 				break;
 			case EventType::LEAGUE:
 			case EventType::LADDER:
 				$this->event_type = $eventType;
-				$this->format = Format::GAMES;
+				$this->format = Format::ROUNDROBIN;
 				break;
 		}
 	}

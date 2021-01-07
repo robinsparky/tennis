@@ -12,20 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since   0.1.0
  */
 class Format {
-	const SINGLE_ELIM = 'selim';
-	const DOUBLE_ELIM = 'delim';
-	const POINTS      = 'points'; //round robin
-	const POINTS2     = 'points2'; //round robin
-	const GAMES       = 'games'; //round robin
-	const OPEN        = 'open';
+	const TOURNAMENT  = 'tournament';
+	const ROUNDROBIN  = 'roundrobin';
 
 	public static function AllFormats() {
-		return [ self::SINGLE_ELIM  => __( 'Single Elimination', TennisEvents::TEXT_DOMAIN )
-			   , self::DOUBLE_ELIM  => __( 'Double Elimination', TennisEvents::TEXT_DOMAIN )
-			   , self::POINTS       => __( 'Total Points 1', TennisEvents::TEXT_DOMAIN )
-			   , self::POINTS2      => __( 'Total Points 2', TennisEvents::TEXT_DOMAIN )
-			   , self::GAMES        => __( 'Total Games', TennisEvents::TEXT_DOMAIN ) 
-			   , self::OPEN         => __( 'Open', TennisEvents::TEXT_DOMAIN ) ];
+		return [ self::TOURNAMENT   => __( 'Tournament', TennisEvents::TEXT_DOMAIN )
+			   , self::ROUNDROBIN   => __( 'Round Robin', TennisEvents::TEXT_DOMAIN )];
 	}
 
 	public static function isValid( $possible ) {

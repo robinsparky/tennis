@@ -36,11 +36,10 @@
 				}
 				elseif( $mode === "draw" ) {
 					switch( $event->getFormat() ) {
-						case Format::SINGLE_ELIM:
+						case Format::TOURNAMENT:
 							echo do_shortcode("[manage_draw by=match eventid={$event->getID()}, bracketname={$bracketName}]");
 						break;
-						case Format::POINTS:
-						case Format::POINTS2:
+						case Format::ROUNDROBIN:
 							echo do_shortcode("[manage_roundrobin eventid={$event->getID()}, bracketname={$bracketName}]");
 						break;
 					}

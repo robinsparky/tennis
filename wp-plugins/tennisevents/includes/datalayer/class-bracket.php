@@ -944,13 +944,10 @@ class Bracket extends AbstractData
 
         $format = $this->getEvent()->getFormat();
         switch( $format ) {
-            case Format::SINGLE_ELIM:
+            case Format::TOURNAMENT:
                 return $this->loadSingleElimination();
             break;
-            case Format::POINTS:
-            case Format::POINTS2:
-            case Format::GAMES:
-            case Format::OPEN:
+            case Format::ROUNDROBIN:
                 return $this->getMatchHierarchy( true );
             break;
         }

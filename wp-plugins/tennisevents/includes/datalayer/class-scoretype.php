@@ -30,11 +30,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ScoreType {
 
     //Keys for rule masks
-    public const REGULATION      = 'Regulation'; //Best 2 of 3 sets with 7pt tie breaker at 6 all
-    public const ATPMAJOR        = 'Major'; //Best 3 of 5 sets with 7pt tie breaker at 6 all
-    public const PRO_SET8        = "Pro Set 8 Games"; //Best of 8 games with 7 pt tie break at 8 all
-    public const PRO_SET10       = "Pro Set 10 Games"; //Best of 10 games with 7pt tie break at 10 all
-    public const MATCH_TIE_BREAK = "Match Tie Break"; //Best 2 of 3 sets, but 3rd set is 10pt tie breaker. e.g. Laver Cup
+    public const BEST2OF3        = 'Best 2 of 3'; //Best 2 of 3 sets with 7pt tie breaker at 6 all
+    public const BEST3OF5        = 'Best 3 of 5'; //Best 3 of 5 sets with 7pt tie breaker at 6 all
+    public const PROSET8         = "Pro Set 8 Games"; //Best of 8 games with 7 pt tie break at 8 all
+    public const PROSET10        = "Pro Set 10 Games"; //Best of 10 games with 7pt tie break at 10 all
+    public const BEST2OF3TB      = "Best 2 of 3 match tie breaker"; //Best 2 of 3 sets, but 3rd set is 10pt tie breaker. e.g. Laver Cup
     public const FAST4           = "Fast4"; //No ad scoring, lets ignored, 7pt tie breaker at 3 all
     public const POINTS1         = "Points1"; //Based on points per win and total games won
     public const POINTS2         = "Points2"; //Based on points per win and total games won
@@ -44,12 +44,12 @@ class ScoreType {
      * Each scoring rule is defined by a dictionary of scoring attributes
      */
     public $ScoreRules = 
-             array( self::REGULATION => array("MaxSets"=>3,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
-                    self::ATPMAJOR   => array("MaxSets"=>5,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
+             array( self::BEST2OF3   => array("MaxSets"=>3,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
+                    self::BEST3OF5   => array("MaxSets"=>5,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
                     self::FAST4      => array("MaxSets"=>3,"GamesPerSet"=>4, "TieBreakAt"=>3, "MustWinBy"=>1, "TieBreakerMinimum"=>7),
-                    self::PRO_SET8   => array("MaxSets"=>1,"GamesPerSet"=>8, "TieBreakAt"=>8, "TieBreakerMinimum"=>12),
-                    self::PRO_SET10  => array("MaxSets"=>1,"GamesPerSet"=>10, "TieBreakAt"=>10, "TieBreakerMinimum"=>12),
-                    self::MATCH_TIE_BREAK => array("MaxSets"=>3,"GamesPerSet"=>6,"TieBreakAt"=>6, "TieBreakerMinimum"=>10, "TieBreakDecider"=>true), 
+                    self::PROSET8   => array("MaxSets"=>1,"GamesPerSet"=>8, "TieBreakAt"=>8, "TieBreakerMinimum"=>12),
+                    self::PROSET10  => array("MaxSets"=>1,"GamesPerSet"=>10, "TieBreakAt"=>10, "TieBreakerMinimum"=>12),
+                    self::BEST2OF3TB => array("MaxSets"=>3,"GamesPerSet"=>6,"TieBreakAt"=>6, "TieBreakerMinimum"=>10, "TieBreakDecider"=>true), 
                     self::POINTS1    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>1),
                     self::POINTS2    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>2),
                 );

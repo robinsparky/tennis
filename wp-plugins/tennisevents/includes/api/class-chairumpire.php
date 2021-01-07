@@ -43,15 +43,9 @@ abstract class ChairUmpire
 	
 	protected $log;
 
-	//abstract public function recordScores(Match &$match, int $set, int ...$scores );
-	//abstract public function getScores( Match &$match );
     abstract public function matchWinner( Match &$match );
     abstract public function getMatchSummary( Match &$match, $force = false );
     abstract public function getChampion( Bracket &$bracket );
-
-	// abstract public function matchStatus( Match &$match );
-	// abstract public function defaultHome( Match &$match, string $cmts );
-	// abstract public function defaultVisitor( Match &$match, string $cmts );
     
     /**
      * Return a ChairUmpire based on the type of event
@@ -64,13 +58,13 @@ abstract class ChairUmpire
         // $trace = GW_Debug::get_debug_trace( 2 );
         // error_log("{$loc}('{$strScoreType}')");
         // error_log(print_r($trace, true ));
-        // error_log(debug_backtrace()[1]['function']);
+        //error_log(debug_backtrace()[1]['function']);
 
         $chairUmpire = null;
 
         switch( $strScoreType ) {
-            case ScoreType::PRO_SET8:
-            case ScoreType::PRO_SET10:
+            case ScoreType::PROSET8:
+            case ScoreType::PROSET10:
                 //Pro Set
                 $chairUmpire = RegulationMatchUmpire::getInstance();
                 break;
@@ -83,12 +77,15 @@ abstract class ChairUmpire
                 //Points
                 $chairUmpire = PointsMatchUmpire::getInstance();
                 break;
-            case ScoreType::REGULATION:
-            case ScoreType::ATPMAJOR:
-            case ScoreType::MATCH_TIE_BREAK:
+            case ScoreType::BEST2OF3:
+            case ScoreType::BEST3OF5:
+            case ScoreType::BEST2OF3TB:
+                //Regulation
+                $chairUmpire = RegulationMatchUmpire::getInstance();
+                break;
             default:
-            //Regulation
-            $chairUmpire = RegulationMatchUmpire::getInstance();
+                $mess = __( 'Invalid Score Type: ', TennisEvents::TEXT_DOMAIN ) . $strScoreType;
+                throw new InvalidEventException( $mess );
         }
 
         //Initialize the umpire with the scoring rules
@@ -162,7 +159,6 @@ abstract class ChairUmpire
         // if( $this->TieBreakDecider ) $this->NoTieBreakerFinalSet = false;
         
         //$this->log->error_log($this, "{$loc}: initialized this ...");
-        return rules;
     }
 
     /**
@@ -766,7 +762,7 @@ EOT;
             }
         }
         return $numRemoved;
-    } 
+    }
     
     /**
      * Rule for determining if tie break scores should be included
