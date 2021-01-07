@@ -58,12 +58,12 @@ class PointsMatchUmpire extends ChairUmpire
     public function setScoringRules( string $score_rules) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 
-        $rules = parent::setScoringRules( $score_rules );
+        parent::setScoringRules( $score_rules );
+        $rules = ScoreType::get_instance()->getScoringRules( $score_rules );
         //$this->log->error_log($rules,"$loc: rules...");
 
         $numVars = extract( $rules );
         $this->PointsPerWin = $PointsPerWin ?? 1;
-        return $rules;
     }
 
     /**
@@ -298,6 +298,171 @@ class PointsMatchUmpire extends ChairUmpire
         }
         
         return $champion;
+    }
+     
+       /**
+     * This function produces an array of statistics for the given bracket
+     * TODO: Should be moved the ChairUmpire
+     * @param Bracket The bracket for which summary is required
+     * @return array matches completed and total matches played by round
+     *               total matches completed and played for the bracket
+     *               Bracket champion if all matches have been played
+     */
+    public function getBracketSummary( Bracket $bracket ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
+        $this->log->error_log("{$loc} Called By: {$calledBy}");
+        //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+        
+        if( !$bracket->hasEvent() ) {
+            throw new InvalidBracketException("Bracket's event is missing");
+        }
+        
+        $matchesByRound = $bracket->getMatchHierarchy();
+        
+        $numRounds = 0;
+        $numMatches = 0;
+        foreach( $matchesByRound as $r => $matches ) {
+            if( $r > $numRounds ) $numRounds = $r;
+            foreach( $matches as $match ) {
+                ++$numMatches;
+            }
+        }
+
+        //$numRounds = $bracket->getNumberOfRounds();
+        $summary=[];
+        $completed = 0;
+        $total = 0;
+        $summary["byRound"] = array();
+        $lastMatchNum = 0;
+        $allMatchesCompleted = true;
+        for($r = 1; $r <= $numRounds; $r++ ) {
+            $completedByRound = $totalByRound = 0;
+            foreach( $matchesByRound[$r] as $match ) {
+                ++$totalByRound;
+                $lastMatchNum = $match->getMatchNumber();
+                if( !empty( $this->matchWinner( $match ) ) ) {
+                    ++$completedByRound;
+                }
+                if( $allMatchesCompleted && !$this->isLocked( $match ) ) $allMatchesCompleted = false;
+            }
+            $summary["byRound"][$r] = $completedByRound . '/' . $totalByRound;
+            $total += $totalByRound;
+            $completed += $completedByRound;
+        }
+
+        $summary["completedMatches"] = $completed;
+        $summary["totalMatches"] = $total;
+        $summary["champion"] = '';
+        //Determine Champion
+        if( $total === $completed ) {
+            switch( $bracket->getEvent()->getFormat() ) {
+                case Format::TOURNAMENT:
+                    $champion = $this->matchWinner( $matchesByRound[$numRounds][$lastMatchNum] );
+                    $champion = is_null( $champion ) ? 'Could not determine the champion!' : $champion->getName();
+                    $summary["champion"] = $champion;
+                break;
+                case Format::ROUNDROBIN:
+                    if( $allMatchesCompleted ) { //only find champion if all matches have been completed
+                        $entrantSummary = $this->getEntrantSummary( $bracket );
+                        $champion = '';
+                        $maxPoints = 0;
+                        foreach( $entrantSummary as $player ) {
+                            if( $player["totalPoints"] > $maxPoints ) {
+                                $maxPoints = $player["totalPoints"];
+                                $champion = $player["name"];
+                            }
+                        }
+                    }
+                break;
+                default:
+                break;
+            }
+            $summary["champion"] = $champion;
+        }
+        unset( $matchesByRound );
+        unset( $entrantSummary );
+        $this->log->error_log("$loc>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        return $summary;
+    }
+    
+    /**
+     * Get summary of entrant match wins by round as well as total points and total games
+     * @param object Bracket $bracket
+     * @return array entrant summary: name, position, points, games and sets
+     *                                and matches won per round
+     */
+    public function getEntrantSummary( Bracket $bracket ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;        
+        $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
+        $this->log->error_log("{$loc} Called by: {$calledBy}");
+        //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+
+        if( !$bracket->hasEvent() ) {
+            throw new InvalidBracketException("Bracket's event is missing");
+        }
+
+        $summary = [];
+        $pointsForWin = $this->getPointsPerWin();
+        $matchesByEntrant = $bracket->matchesByEntrant();
+        $numRounds = $bracket->getNumberOfRounds();
+        foreach( $matchesByEntrant as $matchInfo) {
+            $entrant = $matchInfo[0];
+            $matches = $matchInfo[1];
+            $totalGames = 0;
+            $totalPoints = 0;
+            $totalSetsWon = 0;
+            $totalMatchesWon = 0;
+            $totalMatchesTied = 0;
+            $entrantSummary=[];
+            $entrantSummary["position"] = $entrant->getPosition();
+            $entrantSummary["name"] = $entrant->getName();
+            for( $r = 1; $r <= $numRounds; $r++ ) {
+                $totalMatchesWon = 0;
+                $totalMatchesTied = 0;
+                $entrantSummary[$r] = 0;
+                foreach( $matches as $match ) {
+                    if( $r != $match->getRoundNumber() ) continue;
+                    extract( $this->getMatchSummary( $match ) );
+                    if( $entrant->getName() === $this->getHomePlayer( $match ) ) {
+                        $totalGames += $homeGamesWon;
+                        $totalSetsWon += $homeSetsWon;
+                        if( $andTheWinnerIs === 'home') {
+                            ++$totalMatchesWon;
+                            $totalPoints += $totalMatchesWon * $pointsForWin;
+                        }
+                        elseif( $andTheWinnerIs === 'tie') {
+                            ++$totalMatchesTied;
+                            $totalPoints += $totalMatchesTied * $pointsForWin/2;
+                        }
+                    }
+                    elseif( $entrant->getName() === $this->getVisitorPlayer( $match ) ) {
+                        $totalGames += $visitorGamesWon;
+                        $totalSetsWon += $visitorSetsWon;
+                        if( $andTheWinnerIs === 'visitor') {
+                            ++$totalMatchesWon;
+                            $totalPoints += $totalMatchesWon * $pointsForWin;
+                        }
+                        elseif( $andTheWinnerIs === 'tie') {
+                            ++$totalMatchesTied;
+                            $totalPoints += $totalMatchesTied * $pointsForWin/2;
+                        }
+                    }
+                } //matches
+                $entrantSummary[$r] += $totalMatchesWon + $totalMatchesTied/2;
+            } //rounds
+            $entrantSummary["totalPoints"] = $totalPoints;
+            $entrantSummary["totalGames"] = $totalGames;
+            $entrantSummary["totalSets"] = $totalSetsWon;
+            $entrantSummary["totalTies"] = $totalMatchesTied;
+            $summary[] = $entrantSummary;
+        } //matchesByEntrant
+
+        unset( $matchesByEntrant );
+        unset( $matchInfo );
+        unset( $matches );
+        $this->log->error_log("$loc>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        return $summary;
     }
 
 } //end of class

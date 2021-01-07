@@ -395,10 +395,10 @@ class ManageRoundRobin
                 //if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
                 $pointsPerWin = $chairUmpire->getPointsPerWin();
 
-                $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
+                $summaryTable = $chairUmpire->getEntrantSummary( $bracket );
                 //$this->log->error_log($summaryTable, "$loc - entrant summary");
                 $data["entrantSummary"] = $summaryTable;
-                $data["bracketSummary"] = $td->getBracketSummary( $bracket );
+                $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
 
                 $numVars = extract( $chairUmpire->getMatchSummary( $match ) );
                 $data['winner'] = $andTheWinnerIs;
@@ -513,9 +513,9 @@ class ManageRoundRobin
             
             $pointsPerWin = 1;
             if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
-            $summaryTable = $td->getEntrantSummary( $bracket, $pointsPerWin );
+            $summaryTable = $chairUmpire->getEntrantSummary( $bracket, $pointsPerWin );
             $data["entrantSummary"] = $summaryTable;
-            $data["bracketSummary"] = $td->getBracketSummary( $bracket );
+            $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -697,8 +697,8 @@ class ManageRoundRobin
 
         $pointsPerWin = 1;
         ///if( $td->getEvent()->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
-        $summaryTable = $td->getEntrantSummary( $bracket );
-        $bracketSummary = $td->getBracketSummary( $bracket ); //NOTE: calls $bracket->getMatchHierarchy();
+        $summaryTable = $umpire->getEntrantSummary( $bracket );
+        $bracketSummary = $umpire->getBracketSummary( $bracket ); //NOTE: calls $bracket->getMatchHierarchy();
 
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: num matches:$numMatches; number rounds=$numRounds; signup size=$signupSize");
