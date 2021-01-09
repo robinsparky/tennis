@@ -16,7 +16,7 @@ class Format {
 	const ROUNDROBIN  = 'roundrobin';
 
 	public static function AllFormats() {
-		return [ self::TOURNAMENT   => __( 'Tournament', TennisEvents::TEXT_DOMAIN )
+		return [ self::TOURNAMENT   => __( 'Elimination Rounds', TennisEvents::TEXT_DOMAIN )
 			   , self::ROUNDROBIN   => __( 'Round Robin', TennisEvents::TEXT_DOMAIN )];
 	}
 
