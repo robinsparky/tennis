@@ -64,6 +64,9 @@ class TennisEventCpt {
 		add_action('restrict_manage_posts', array($tennisEvt, 'matchTypeFilter'));
 		add_filter('parse_query', array($tennisEvt, 'matchTypeParseFilter'));
 
+		add_filter('bulk_actions-edit-' . self::CUSTOM_POST_TYPE, array($tennisEvt, 'addResetBulkAction'));
+		add_filter('handle_bulk_actions-edit-' . self::CUSTOM_POST_TYPE, array($tennisEvt, 'handleBulkReset'), 10, 3 );
+
 		//Required actions for meta boxes
 		add_action('add_meta_boxes', array($tennisEvt, 'metaBoxes'));
 		// Hook for updating/inserting into Tennis tables
@@ -360,6 +363,32 @@ class TennisEventCpt {
 				, 'hierarchical' => false
 			)
 		);
+	}
+	
+	public function addResetBulkAction( $bulk_actions ) {
+		$bulk_actions['tennis-event-reset'] = __('Reset the Draw', TennisEvents::TEXT_DOMAIN );
+		return $bulk_actions;
+	}
+
+	public function handleBulkReset( $redirect_url, $action, $post_ids ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($post_ids, "$loc($redirect_url, $action)");
+
+		$numEvts = 0;
+		$numBrackets = 0;
+		if( $action === 'tennis-event-reset' ) {
+			foreach( $post_ids as $post_id ) {
+				$evt = $this->getEventByExtRef( $post_id );
+				++$numEvts;
+				foreach( $evt->getBrackets() as $bracket ) {
+					$bracket->removeAllMatches();
+					++$numBrackets;
+				}
+				$evt->save();
+			}
+		}
+		$this->log->error_log("$loc: reset $numEvts Events; $numBrackets Brackets");
+		return $redirect_url;
 	}
 
 	/* 
