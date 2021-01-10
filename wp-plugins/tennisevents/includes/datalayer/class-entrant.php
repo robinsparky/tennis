@@ -137,8 +137,11 @@ class Entrant extends AbstractData
 							,ent.name as name 
 							,ent.seed as seed 
 				FROM $table ent 
-				INNER JOIN $matchEntrantTable me on me.entrant_position=ent.position AND me.match_event_ID=ent.event_ID
-				INNER JOIN $bracketTable b ON b.event_ID=me.match_event_ID AND b.bracket_num=me.match_bracket_num  
+				INNER JOIN $matchEntrantTable me ON me.entrant_position=ent.position 
+												AND me.match_event_ID=ent.event_ID 
+												AND me.match_bracket_num=ent.bracket_num
+				INNER JOIN $bracketTable b ON b.event_ID=me.match_event_ID 
+											AND b.bracket_num=me.match_bracket_num  
 				WHERE ent.event_ID=%d 
 				and   b.bracket_num=%d 
 				AND   me.match_round_num=%d 
