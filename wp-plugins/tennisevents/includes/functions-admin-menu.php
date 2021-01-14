@@ -57,16 +57,26 @@ function gw_tennis_create_page() {
 function gw_tennis_custom_settings() {
     register_setting( 'gw-tennis-settings-group' //Options group
                     , 'gw_tennis_home_club' //Option name used in get_option
-                    , 'gw_sanitize_clubId' //sanitize call back
+                    , ['type'=>'number'
+                      ,'sanitize_callback'=>'gw_sanitize_clubId' ]
+                    );
+                    
+    register_setting( 'gw-tennis-settings-group' //Options group
+                    , 'gw_tennis_event_season' //Option name used in get_option
+                    , ['type'=>'number'
+                      ,'sanitize_callback'=>'gw_sanitize_season'
+                      ,'description'=>'The relevant season for tennis events.']
                     );
                     
     register_setting( 'gw-tennis-settings-group' //Options group
                     , 'gw_tennis_main_event' //Option name used in get_option
-                    , 'gw_sanitize_eventId' //sanitize call back
+                    , ['type'=>'number'
+                      ,'sanitize_callback'=>'gw_sanitize_eventId']
                     );
 
+
     add_settings_section( 'gw-tennis-options' //id
-                        , 'Tennis Options' //title
+                        , 'Tennis Settings' //title
                         , 'gw_tennis_options' //callback to generate html
                         , 'gwtennissettings' //page
                     );
@@ -79,6 +89,14 @@ function gw_tennis_custom_settings() {
                       //,  array of args
                 );
                 
+    add_settings_field( 'gw_tennis_season' // id
+                    , 'Season' // title
+                    , 'gw_tennisSeason' // callback
+                    , 'gwtennissettings' // page
+                    , 'gw-tennis-options' // section
+                    //,  array of args
+                );
+                
     add_settings_field( 'gw_tennis_main_event' // id
                     , 'Main Event' // title
                     , 'gw_tennisMainEvent' // callback
@@ -89,20 +107,25 @@ function gw_tennis_custom_settings() {
 }
 
 function gw_tennis_options() {
-    echo "Manage your Tennis Administration Options";
+    echo "Manage your Tennis Event Options";
 }
 
 function gw_tennisHomeClub() {
-    // $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
-    // echo '<input type="number" placeholder="Min: 1, max: 100"
-    // min="1" max="100" step="1" name="gw_tennis_home_club" value="' . $homeClubId . '" /><p>Max 100 and at least 1</p>';
     echo '<select name="gw_tennis_home_club">' . gw_get_clubs() . '</select>';
 }
 
-function gw_tennisMainEvent() {
-    // $mainEventId = esc_attr( get_option('gw_tennis_main_event', 0) );
+function gw_tennisSeason() {
+    // $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
     // echo '<input type="number" placeholder="Min: 1, max: 100"
-    // min="1" max="100" step="1" name="gw_tennis_main_event" value="' . $mainEventId . '" /><p>Max 100 and at least 1</p>';
+    // min="1" max="100" step="1" name="gw_tennis_home_club" value="' . $homeClubId . '" /><p>Max 100 and at least 1</p>';
+    $currentYear = date('Y');
+    $min = $currentYear - 10;
+    $max = $currentYear;
+    $season = esc_attr( get_option('gw_tennis_event_season', $currentYear) );
+    echo "<input id='gw_tennis_event_season' name='gw_tennis_event_season' type='number' value='{$season}' min='{$min}' max='{$max}' step='1' >";
+}
+
+function gw_tennisMainEvent() {
     echo '<select name="gw_tennis_main_event">' . gw_get_events() . '</select>';
 }
 
@@ -138,6 +161,33 @@ function gw_sanitize_clubId( $input ) {
     return $output;
 }
 
+function gw_sanitize_season( $input ) {
+    $message = null;
+    $type = null;
+    $output = date('Y');
+    if( !is_null( $input ) ) {
+        if( is_numeric( $input ) ) {
+            $output = $input;
+            if( $input < (date('Y') - 10) ) $output = date('Y') - 10;
+            if( $input > date('Y')) $output = date('Y');
+            $type = 'success';
+            $message = __('Tennis season setting updated', TennisEvents::TEXT_DOMAIN );
+        }
+        else {
+            $type = 'error';
+            $message = __('Tennis season setting must be numeric', TennisEvents::TEXT_DOMAIN );
+        }
+    }
+    else {
+        $type = 'error';
+        $message = __('Tennis season setting must not be empty', TennisEvents::TEXT_DOMAIN );
+    }
+
+    add_settings_error('gw_tennisSeason', esc_attr('main_tennis_season_updated'), $message, $type);
+
+    return $output;
+}
+
 function gw_sanitize_eventId( $input ) {
     $output = 0;
     $message = null;
@@ -164,7 +214,7 @@ function gw_sanitize_eventId( $input ) {
     }
     else {
         $type = 'error';
-        $message = __('Default tennis event event cannot be empty', TennisEvents::TEXT_DOMAIN );
+        $message = __('Default tennis event setting cannot be empty', TennisEvents::TEXT_DOMAIN );
     }
 
     add_settings_error('gw_tennisMainEvent', esc_attr('main_tennis_event_updated'), $message, $type);

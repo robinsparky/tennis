@@ -1,4 +1,4 @@
-<h1> Options for <?php bloginfo('name');?></h1>
+<h1>Tennis Event Settings for <?php bloginfo('name');?></h1>
 <?php 
     settings_errors();
     function tennis_settings_admin_notices() {

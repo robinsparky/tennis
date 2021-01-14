@@ -8,11 +8,12 @@ get_header();
 $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
 $club = Club::get( $homeClubId ); 
 $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : $club->getName();
+$season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 ?>
 
 <!-- Page Content ---->
 <div class="page-content">	
-
+<h1> Season <?php echo $season; ?> </h1>
 <?php
 
 // Sidebar Alt 
@@ -46,26 +47,31 @@ $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN
 						get_footer(); 	
 						wp_die( $errmess );
 					}
+					if( $season !== $event->getSeason() ) continue;
+
 					//Have a valid parent Event
 					$allClubs = $event->getClubs();
 					$thisClubName = $homeClubName;
+					//TODO: Take action if club id is not same as home club id
 					foreach( $allClubs as $club ) {
 						if( $homeClubId === $club->getID() ) {
 							$thisClubName = $club->getName();
 							break;
 						}
 					}
-				?>
-				
-				<h3><?php the_title(); ?> at <?php echo $thisClubName?></h3>
-				<?php commonlib\tennis_events_get_term_links( $post->ID, TennisEventCpt::CUSTOM_POST_TYPE_TAX ); 
+					//commonlib\tennis_events_get_term_links( $post->ID, TennisEventCpt::CUSTOM_POST_TYPE_TAX ); 
 					$eventType = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
-					$eventType   = EventType::AllTypes()[$eventType];
-				?>							
+					$eventType = EventType::AllTypes()[$eventType];
+					$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
+					if(empty($startDate)) $startDate = 'tba';
+
+				?>	
+				<h3>&quot;<?php the_title(); ?>&quot; <?php echo $eventType ?></h3>		
+				<?php the_content() ?> 			
 				<ul class='tennis-event-meta tennis-event-meta-detail'>							
 					<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
+					<li><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
 				</ul>
-				<?php the_content() ?> 
 				
 				<!-- Now the child events -->
 				<?php
