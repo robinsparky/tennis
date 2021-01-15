@@ -26,8 +26,10 @@ class Match extends AbstractData
 	private static $datetimeformat = "Y-m-d H:i:s";
     private static $indateformat = "!Y-m-d";
     private static $outdateformat = "Y-m-d";
-    private static $intimeformat = "g:i";
-    private static $intimeformat2 = "g:i:u";
+    private static $intimeformat1 = "g:i";
+    private static $intimeformat2 = "g:i a";
+    private static $intimeformat3 = "g:i:s";
+    private static $intimeformat4 = "g:i:s a";
     private static $outtimeformat = "g:i a";
     
     private $match_type; 
@@ -585,8 +587,10 @@ class Match extends AbstractData
 		$result = false;
         if( is_null( $time ) || empty( $time ) ) return $result;
 
-        $test = DateTime::createFromFormat( self::$intimeformat, $time );		
-        if(false === $test) $test = DateTime::createFromFormat( self::$intimeformat2, $time );
+        $test = DateTime::createFromFormat( self::$intimeformat1, $time );		
+        if(false === $test) $test = DateTime::createFromFormat( self::$intimeformat2, $time );		
+        if(false === $test) $test = DateTime::createFromFormat( self::$intimeformat3, $time );		
+        if(false === $test) $test = DateTime::createFromFormat( self::$intimeformat4, $time );
 
 		$last = DateTime::getLastErrors();
 		if($last['error_count'] > 0) {
