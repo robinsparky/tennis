@@ -68,12 +68,13 @@ function gw_tennis_custom_settings() {
                       ,'description'=>'The relevant season for tennis events.']
                     );
                     
+/*
     register_setting( 'gw-tennis-settings-group' //Options group
                     , 'gw_tennis_main_event' //Option name used in get_option
                     , ['type'=>'number'
                       ,'sanitize_callback'=>'gw_sanitize_eventId']
                     );
-
+*/
 
     add_settings_section( 'gw-tennis-options' //id
                         , 'Tennis Settings' //title
@@ -96,7 +97,7 @@ function gw_tennis_custom_settings() {
                     , 'gw-tennis-options' // section
                     //,  array of args
                 );
-                
+/*          
     add_settings_field( 'gw_tennis_main_event' // id
                     , 'Main Event' // title
                     , 'gw_tennisMainEvent' // callback
@@ -104,6 +105,7 @@ function gw_tennis_custom_settings() {
                     , 'gw-tennis-options' // section
                     //,  array of args
                 );
+*/
 }
 
 function gw_tennis_options() {
