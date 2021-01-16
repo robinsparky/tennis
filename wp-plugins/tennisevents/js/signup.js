@@ -129,25 +129,33 @@
 
         //Move an entrant
         function handleSortStop( event, ui ) {
+            console.log('handleSortStop');
+            console.log(event);
+            console.log(ui);
             let item = ui.item;
+            console.log("item:");
+            console.log(item);
             let target = $( event.target );
+            console.log(target);
+
             //NOTE: this == event.target == ul (droppable)
             $( item ).addClass( "entrantHighlight" );
 
-            let name = $(item.context).attr("id").replace(/_/g, ' ');
+            let name = $(item).attr("id").replace(/_/g, ' ');
             
             let maxPos = getMaxPosition();
             console.log("Maximum position is %d", maxPos );
 
-            let currentPos = parseFloat(item.context.dataset.currentpos);
+            console.log($(item).attr('data-currentpos'));
+            let currentPos = parseFloat($(item).attr('data-currentpos'));
 
             let prevPos = 0;
-            if(item.context.previousSibling) {
-                prevPos = parseFloat(item.context.previousSibling.dataset.currentpos);
+            if($(item).prev()) {
+                prevPos = parseFloat($(item).prev().attr('data-currentpos'));
             }
             let nextPos = 0;
-            if( item.context.nextSibling ) {
-                nextPos = parseFloat(item.context.nextSibling.dataset.currentpos);
+            if( $(item).next() ) {
+                nextPos = parseFloat($(item).next().attr('data-currentpos'));
             }
 
             let newPos = (prevPos + nextPos ) / 2.0;
@@ -159,8 +167,8 @@
             }
             console.log("prevPos=" + prevPos + "; nextPos=" + nextPos + "; moveTo=" + newPos);
 
-            $(item.context).attr("data-currentpos", newPos );
-            $(item.context).children('.entrantPosition').html(newPos);
+            $(item).attr("data-currentpos", newPos );
+            $(item).children('.entrantPosition').html(newPos);
 
             signupData = signupDataMask;
             signupData.task="move";
@@ -181,6 +189,7 @@
             numPreliminary = numPreliminary || 0;
             if( numPreliminary < 1 ) {
                 $('#createPrelim').prop('disabled', false);
+                $('#reseqSignup').prop('disabled', false);
                 $('button.entrantDelete').prop('disabled', false);
                 $('#addEntrant').prop('disabled', false);
                 $('input.entrantName').prop('disabled', false);
@@ -188,6 +197,7 @@
             }
             else {
                 $('#createPrelim').prop('disabled', true);
+                $('#reseqSignup').prop('disabled', true);
                 $('button.entrantDelete').prop('disabled', true);
                 $('#addEntrant').prop('disabled', true);
                 $('input.entrantName').prop('disabled', true);
@@ -357,6 +367,19 @@
             toggleButtons( 1 );
             
             ajaxFun( {"task": "createPrelim", "clubId": clubId, "eventId": eventId, "bracketName": bracketName } );
+        });    
+        
+        //Approve signup by scheduling preliminary rounds
+        $('#reseqSignup').on('click', function( event ) {
+            console.log("Resequence signup fired!");
+            let clubId = $('.signupContainer').attr("data-clubid");
+            let eventId = $('.signupContainer').attr("data-eventid");
+            let bracketName = tennis_signupdata_obj.bracketName;
+
+            $(this).prop('disabled', true);
+            toggleButtons( 1 );
+            
+            ajaxFun( {"task": "reseqSignup", "clubId": clubId, "eventId": eventId, "bracketName": bracketName } );
         });        
 
         toggleButtons( tennis_signupdata_obj.numPreliminary );

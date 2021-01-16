@@ -215,6 +215,7 @@ EOT;
 
         if( $numPrelimMatches < 1 && is_user_logged_in() && current_user_can( 'manage_options' )  ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="createPrelim">Initialize Draw</button>' . PHP_EOL;
         }
         // elseif( $numPrelimMatches < 1 && $bracketName === Bracket::CONSOLATION ) {
@@ -274,8 +275,11 @@ EOT;
             case "add":
                 $mess = $this->addEntrant( $data );
                 break;
-                case "createPrelim":
+            case "createPrelim":
                 $mess = $this->createPreliminary( $data );
+                break;
+            case "reseqSignup":
+                $mess = $this->reseqSignup( $data );
                 break;
             default:
                 wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
@@ -319,11 +323,38 @@ EOT;
         $fromPos = $data["currentPos"];
         $toPos   = round($data["newPos"]);
 
-        $mess    =  __("Move Entrant fromt '{$fromPos}' to '{$toPos}' succeeded.", TennisEvents::TEXT_DOMAIN );
+        $mess    =  __("Move Entrant from '{$fromPos}' to '{$toPos}' succeeded.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event = Event::get( $this->eventId );
             $bracket = $event->getBracket( $this->bracketName );
-            $bracket->moveEntrant( $fromPos, $toPos );
+            $rows = $bracket->moveEntrant( $fromPos, $toPos );
+            $this->signup = $bracket->getSignup( true );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+
+        return $mess;
+    }
+    
+    /**
+     * Resequence positions in the signup
+     * @param array $data Associative array contaning entrant's data
+     * @return string message describing the result of the operation
+     */
+    private function reseqSignup( array $data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+
+        $this->eventId = $data["eventId"];
+        $this->bracketName = $data["bracketName"];
+
+        $mess    =  __("Resequence the signup succeeded.", TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event = Event::get( $this->eventId );
+            $bracket = $event->getBracket( $this->bracketName );
+            $rows = $bracket->resequenceSignup( );
             $this->signup = $bracket->getSignup( true );
         }
         catch( Exception $ex ) {
