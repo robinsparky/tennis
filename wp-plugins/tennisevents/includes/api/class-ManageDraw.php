@@ -7,8 +7,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /** 
- * Renders a draw by match or by entrant using shortcodes
- * with actions to manage the draw such as approve
+ * Renders a draw/schedule of matches using shortcode
+ * Shows the status of a match and identifies the winner
+ * depending on the scoring rules for the elimination draw
+ * Performs ajax actions to manage the draw:
+ * Preliminary schedules:
+ *  Approve preliminary schedule
+ *  Change the home
+ *  Change the visitor
+ * Approved schedules:
+ *  Set the start date and time
+ *  Record scores
+ *  Default the home
+ *  Default the visitor
+ *  Advance completed matches thru the schedule
+ *  Comment a match
+ *  Reset the draw (i.e. remove all matches)
  * @class  ManageDraw
  * @package Tennis Events
  * @version 1.0.0
