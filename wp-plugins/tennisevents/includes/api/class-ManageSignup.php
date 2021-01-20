@@ -155,7 +155,7 @@ class ManageSignup
         }
         
         $td = new TournamentDirector( $target );
-        $eventName = $td->getName();
+        $eventName = str_replace("\'", "&apos;", $td->getName());
         $clubName = $club->getName();
         $isApproved = $bracket->isApproved();
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
@@ -199,7 +199,7 @@ EOT;
         $ctr = 1;
         foreach( $this->signup as $entrant ) {
             $pos = $entrant->getPosition();
-            $name = $entrant->getName();
+            $name = str_replace("\'","&apos;", $entrant->getName());
             $nameId = str_replace( [' ',"\'","'"], ['_','',''], $entrant->getName() );
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
