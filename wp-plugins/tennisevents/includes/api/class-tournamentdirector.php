@@ -1092,6 +1092,8 @@ class TournamentDirector
         $matches = $this->getCombinations( $contestants );
         $matchesCreated = count( $matches );
 
+        shuffle( $matches ); //randomize again to prevent unfair assignment to rounds
+
         if( $matchesCreated !== $numMatches ) {
             $this->log->error_log($matches, "$loc: Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.");
             throw new InvalidTournamentException(__("Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.",TennisEvents::TEXT_DOMAIN ));
