@@ -147,10 +147,10 @@ class TennisEventCpt {
 		$newColumns['signup_by_date'] = __('Signup By', TennisEvents::TEXT_DOMAIN);
 		$newColumns['start_date'] = __('Start Date', TennisEvents::TEXT_DOMAIN);
 		$newColumns['end_date'] = __('End Date', TennisEvents::TEXT_DOMAIN);
+		$newColumns['gender_type'] = __('Gender Type', TennisEvents::TEXT_DOMAIN );
 		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN);
 		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN);
 		$newColumns['score_type'] = __('Score Type', TennisEvents::TEXT_DOMAIN);
-		$newColumns['gender_type'] = __('Gender Type', TennisEvents::TEXT_DOMAIN );
 		$newColumns['age_min'] = __('Minimum Age', TennisEvents::TEXT_DOMAIN );
 		$newColumns['age_max'] = __('Maximum Age', TennisEvents::TEXT_DOMAIN );
 		$newColumns['author'] = $columns['author'];
