@@ -77,7 +77,7 @@ class TennisEventCpt {
 		add_action('save_post', array($tennisEvt, 'updateTennisDB'), 12);
 		//Hook for deleting cpt
 		add_action('delete_post', array($tennisEvt, 'deleteTennisDB'));
-		//Error handling function for use with updateTennisDB function below it:
+		//Error handling function used by updateTennisDB function below it:
 		add_action('admin_notices', array($tennisEvt, 'handle_errors') );
 	}
 
@@ -924,11 +924,11 @@ class TennisEventCpt {
 	 */
 	public function updateTennisDB($post_id) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log("$loc: post id='$post_id'");
+		$this->log->error_log("{$loc}($post_id)");
 
 		if (empty($_POST)) return;
 
-		$this->log->error_log($_POST, "$loc: POST...");
+		$this->log->error_log($_POST, "$loc: _POST...");
 
 		if (!isset($_POST['tennis_end_date_nonce'])) {
 			$this->log->error_log("$loc --> no end date nonce");
@@ -971,6 +971,7 @@ class TennisEventCpt {
 		if (0 === $homeClubId) {
 			$this->log->error_log("$loc - Home club id is not set.");
 			$this->add_error( __('Home club is not set',TennisEvents::TEXT_DOMAIN ) );
+			return;
 		}
 
 		$eventType = '';
@@ -995,6 +996,7 @@ class TennisEventCpt {
 			if (is_null($parentPost)) {
 				delete_post_meta( $post_id, self::PARENT_EVENT_META_KEY );
 				$this->add_error( __('No such parent event', TennisEvents::TEXT_DOMAIN ) );
+				$this->log->error_log("No such custom post parent event: '{$parentPostId}'");
 			}
 			$this->log->error_log($parentPostId, "$loc: Parent post id");
 
@@ -1002,6 +1004,7 @@ class TennisEventCpt {
 			if (is_null($parentEvent)) {
 				delete_post_meta($post_id, self::PARENT_EVENT_META_KEY);
 				$this->add_error( __( 'No such parent event', TennisEvents::TEXT_DOMAIN ) );
+				$this->log->error_log("No such actual parent tennis event: '{$parentPostId}'");
 			}
 			update_post_meta($post_id, self::PARENT_EVENT_META_KEY, $parentPostId);
 		} else {
@@ -1190,48 +1193,61 @@ class TennisEventCpt {
 		
 		//Don't bother with setting up the Tennis Event
 		// as errors are present in the input
-		if( $errorsFound > 0 ) {
+		if( $errorsFound > 0 ) {			
+			$this->add_error(__( 'Errors were found!', TennisEvents::TEXT_DOMAIN ) );
 			return;
 		}
 
-		$event = $this->getEventByExtRef( $post_id );
-		if (is_null( $event ) ) {
-			$event = new Event( $evtName );
+		try {
+			$event = $this->getEventByExtRef( $post_id );
+			if (is_null( $event ) ) {
+				$event = new Event( $evtName );
+				$this->log->error_log("{$loc}: Created new event with name {$evtName}");
+			}
+			else {
+				$event->setName( $evtName );
+				$this->log->error_log("{$loc}: Retrieved existing event with name {$evtName}");
+			}
+
+			$event->addClub($club);
+			$bracket = $event->getWinnersBracket(); //Ensure at 1 least bracket is available.
+
+			//Set the parent event of the Event before setting other props
+			$event->setParent($parentEvent);
+
+			//Set Event external references
+			$event->addExternalRef((string)$post_id);
+
+			//Set other Event props
+			if (!$event->setEventType($eventType)) {
+				delete_post_meta($post_id, self::EVENT_TYPE_META_KEY);
+			}
+
+			if (!$event->setMatchType($matchType)) {
+				delete_post_meta($post_id, self::MATCH_TYPE_META_KEY);
+			}
+
+			if (!$event->setGenderType($genderType)) {
+				delete_post_meta($post_id, self::GENDER_TYPE_META_KEY);
+			}
+
+			if (!$event->setFormat($eventFormat)) {
+				delete_post_meta($post_id, self::EVENT_FORMAT_META_KEY);
+			}
+
+			if (!$event->setScoreType($scoreType)) {
+				delete_post_meta($post_id, self::SCORE_TYPE_META_KEY);
+			}
+
+			$event->setSignupBy($signupBy);
+			$event->setStartDate($startDate);
+			$event->setEndDate($endDate);
+			$event->save();
 		}
-		else {
-			$event->setName( $evtName );
+		catch(Exception $ex ) {
+			$mess = __("Could not save event because: {$ex->getMessage()}", TennisEvents::TEXT_DOMAIN);
+			$this->add_error( $mess );
 		}
-
-		$event->addClub($club);
-		$bracket = $event->getWinnersBracket(); //Ensure at 1 least bracket is available.
-
-		//Set the parent event of the Event before setting other props
-		$event->setParent($parentEvent);
-
-		//Set Event external references
-		$event->addExternalRef((string)$post_id);
-
-		//Set other Event props
-		if (!empty($eventType) && !$event->setEventType($eventType)) {
-			delete_post_meta($post_id, self::EVENT_TYPE_META_KEY);
-		}
-
-		if (!empty($matchType) && !$event->setMatchType($matchType)) {
-			delete_post_meta($post_id, self::MATCH_TYPE_META_KEY);
-		}
-
-		if (!empty($eventFormat) && !$event->setFormat($eventFormat)) {
-			delete_post_meta($post_id, self::EVENT_FORMAT_META_KEY);
-		}
-
-		if (!empty($scoreType) && !$event->setScoreType($scoreType)) {
-			delete_post_meta($post_id, self::SCORE_TYPE_META_KEY);
-		}
-
-		$event->setSignupBy($signupBy);
-		$event->setStartDate($startDate);
-		$event->setEndDate($endDate);
-		$event->save();
 	}
 
 	/**
