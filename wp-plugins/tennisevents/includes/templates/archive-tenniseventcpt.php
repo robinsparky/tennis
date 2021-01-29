@@ -103,6 +103,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 							$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
 							$endDate = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
 							$leafEvent = Event::getEventByExtRef( get_the_ID() );
+
 						?>
 						<section class="tennis-leaf-events"> <!-- Leaf Events -->
 							<?php echo the_title("<h3>","</h3>") ?>
@@ -123,15 +124,23 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 								<tr class="event-meta-detail"><td><strong><?php echo __("Event Ends", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $endDate; ?></td></tr>
 							</tbody>
 							</table>
+							<?php						
+								if( empty($leafEvent)) {
+									$err = __("Cannot find the actual tennis event for this custom post type", TennisEvents::TEXT_DOMAIN);
+									echo "<h3 class='tennis-error'>" . $err . "</h3>";
+								}
+								else {
+							?>
 							<ul class="tennis-event-brackets">
-							<?php 
+
+							<?php 	
 								$td = new TournamentDirector( $leafEvent );
 								$brackets = $td->getBrackets( );
 								foreach( $brackets as $bracket ) {
 							?>
 								<li><a href="<?php the_permalink() ?>?manage=signup&bracket=<?php echo $bracket->getName() ?>"><?php echo $bracket->getName()?> Signup</a></li>
 								<li><a href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo $bracket->getName() ?>"><?php echo $bracket->getName()?> Draw</a></li>	
-							<?php } ?>
+							<?php }} ?>
 							</ul>	
 						</section> <!-- /leaf events -->	
 						<div style="clear:both"></div>
