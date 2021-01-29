@@ -371,29 +371,28 @@ class Event extends AbstractData
     }
 
 	/**
-	 * Set the type of event
+	 * Set the type of event: e.g. League, Tournament, Ladder
 	 * Applies only to a root event
+	 * @param string $type
+	 * @return boolean True if successfull false otherwise
 	 */
 	public function setEventType( string $type ) {
 		$result = false;
 		if( $this->isRoot() ) {
-			switch($type) {
-				case EventType::TOURNAMENT:
-				case EventType::LEAGUE:
-				case EventType::LADDER:
-				case EventType::ROUND_ROBIN:
-					$this->event_type = $type;
-					$result = $this->setDirty();
-					break;
-				default:
-					$result = false;
+			if( EventType::isValid( $type ) ) {
+				$this->event_type = $type;
+				$result = $this->setDirty();
 			}
 		}
 		return $result;
 	}
 
+	/**
+	 * Get the Event Type for this event
+	 * @return string The event type or empty string if not set
+	 */
 	public function getEventType():string {
-		return isset( $this->event_type) ? $this->event_type : '';
+		return  $this->event_type ?? '';
 	}
 
 	/**
@@ -462,8 +461,8 @@ class Event extends AbstractData
 	/**
 	 * Get the type of scoring for this event
 	 */
-	public function getScoreType( ): string {
-		return isset($this->score_type) ? $this->score_type : '';
+	public function getScoreType( ) : string {
+		return $this->score_type ?? '';
 	}
 
 	/**
@@ -1177,6 +1176,12 @@ class Event extends AbstractData
 		}
 		elseif( $this->isRoot() && count( $this->getClubs() ) < 1 ) {
 			$mess = __('Root event must be associated with at least one club', TennisEvents::TEXT_DOMAIN );
+		}
+		elseif( $this->isLeaf() && isset( $this->score_type ) && isset( $this->format ) ) {
+			$acceptable = ScoreType::get_instance()->validScoringRules($this->format);
+			if( count($acceptable) > 0 && !in_array( $this->score_type, array_keys($acceptable) ) ) {
+				$mess = __("Score Type '{$this->score_type }' is invalid for the assigned Format '{$this->format}'");
+			}
 		}
 
 		if(strlen( $mess ) > 0) throw new InvalidEventException( $mess );

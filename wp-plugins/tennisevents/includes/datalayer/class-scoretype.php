@@ -36,8 +36,10 @@ class ScoreType {
     public const PROSET10        = "Pro Set 10 Games"; //Best of 10 games with 7pt tie break at 10 all
     public const BEST2OF3TB      = "Best 2 of 3 match tie breaker"; //Best 2 of 3 sets, but 3rd set is 10pt tie breaker. e.g. Laver Cup
     public const FAST4           = "Fast4"; //No ad scoring, lets ignored, 7pt tie breaker at 3 all
-    public const POINTS1         = "Points1"; //Based on points per win and total games won
-    public const POINTS2         = "Points2"; //Based on points per win and total games won
+    public const POINTS1         = "One Set One Point Per Win"; //Based on points per win and total games won
+    public const POINTS2         = "One Set Two Points Per Win"; //Based on points per win and total games won    
+    public const POINTS3         = "Two Sets Two Points Per Win"; //Based on points per win and total games won
+
     
     /**
      * Scoring rules
@@ -47,14 +49,14 @@ class ScoreType {
              array( self::BEST2OF3   => array("MaxSets"=>3,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
                     self::BEST3OF5   => array("MaxSets"=>5,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
                     self::FAST4      => array("MaxSets"=>3,"GamesPerSet"=>4, "TieBreakAt"=>3, "MustWinBy"=>1, "TieBreakerMinimum"=>7),
-                    self::PROSET8   => array("MaxSets"=>1,"GamesPerSet"=>8, "TieBreakAt"=>8, "TieBreakerMinimum"=>12),
-                    self::PROSET10  => array("MaxSets"=>1,"GamesPerSet"=>10, "TieBreakAt"=>10, "TieBreakerMinimum"=>12),
+                    self::PROSET8    => array("MaxSets"=>1,"GamesPerSet"=>8, "TieBreakAt"=>8, "TieBreakerMinimum"=>12),
+                    self::PROSET10   => array("MaxSets"=>1,"GamesPerSet"=>10, "TieBreakAt"=>10, "TieBreakerMinimum"=>12),
                     self::BEST2OF3TB => array("MaxSets"=>3,"GamesPerSet"=>6,"TieBreakAt"=>6, "TieBreakerMinimum"=>10, "TieBreakDecider"=>true), 
                     self::POINTS1    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>1),
                     self::POINTS2    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>2),
+                    self::POINTS3    => array("MaxSets"=>2,"GamesPerSet"=>4,"MustWinBy"=>2,"PointsPerWin"=>2),
                 );
    
-
 	//This class's singleton
 	private static $_instance;
 
@@ -113,5 +115,36 @@ class ScoreType {
         }
         // error_log("$loc: returning empty array");
         return [];
+    }
+
+    /**
+     * Get scoring rules acceptable for given Format
+     * @param string $format
+     * @return array of scoring rules
+     */
+    public function validScoringRules( string $format ) : array {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+        $result = array();
+        $elimOnly = array_diff_key($this->ScoreRules,[self::POINTS1 =>'', self::POINTS2=>'']);
+        $rrOnly = array_diff_key($this->ScoreRules, $elimOnly );
+
+        error_log("{$loc}: Elimination rules:");
+        error_log(print_r($elimOnly,true));
+        error_log("{$loc}: Round Robin rules:");
+        error_log(print_r($rrOnly,true));
+
+        if( Format::isValid( $format ) ) {
+            switch($format) {
+                case Format::ELIMINATION:
+                    $result = $elimOnly;
+                    break;
+                case Format::ROUNDROBIN:
+                    $result = $rrOnly;
+                    break;
+            }
+        }
+
+        return $result;
     }
 }

@@ -19,6 +19,8 @@ class ExternalRefRelations {
 	 */
 	static function remove(string $target, int $Id, string $extRef ):int {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log("{$loc}($target, $Id, $extRef)");
+
 		$result = 0;
 		global $wpdb;
 		if( isset($extRef) && isset($Id) ) {
@@ -50,12 +52,11 @@ class ExternalRefRelations {
 	 */
 	static function add(string $target, int $Id, string $extRef ):int {
 		$loc = __CLASS__ . '::' .  __FUNCTION__;
+		error_log("{$loc}($target, $Id, $extRef)");
 
 		$result = 0;
 		global $wpdb;
-		
-		if( !is_numeric( $extRef ) && !is_string( $extRef )  ) return $result;
-		
+				
 		switch( $target ) {
 			case 'club':					
 				$table = $wpdb->prefix . 'tennis_external_club';
@@ -70,10 +71,10 @@ class ExternalRefRelations {
 		}
 		
 		$query = "SELECT IFNULL(count(*),0) FROM $table
-				  WHERE ${col_ID}=%d and external_ID='%s';";
+				  WHERE {$col_ID}=%d and external_ID='%s';";
 		$safe = $wpdb->prepare( $query, $Id, $extRef );
 		$num = $wpdb->get_var( $safe );
-		error_log("$loc: Tareget=$target number found=$num");
+		error_log("$loc: Target=$target number found=$num");
 
 		if( isset( $extRef ) && isset( $Id ) && $num == 0 ) {
 			$wpdb->insert($table, array( $col_ID => $Id, 'external_ID' => $extRef )

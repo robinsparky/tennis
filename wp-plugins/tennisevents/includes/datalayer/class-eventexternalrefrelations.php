@@ -39,12 +39,11 @@ class EventExternalRefRelations {
 	 */
 	static function add( int $eventId, string $extRef ):int {
 		$loc = __CLASS__ . '::' .  __FUNCTION__;
+		error_log("{$loc}($eventId, $extRef)");
 
 		$result = 0;
 		global $wpdb;
-		
-		if( !is_numeric( $extRef ) && !is_string( $extRef )  ) return $result;
-		
+				
 		$query = "SELECT IFNULL(count(*),0) FROM {$wpdb->prefix}tennis_external_event
 				  WHERE event_ID=%d and external_ID='%s';";
 		$safe = $wpdb->prepare( $query, $eventId, $extRef );
