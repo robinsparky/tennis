@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since   0.1.0
  */
 class Format {
-	const TOURNAMENT  = 'tournament';
+	const TOURNAMENT  = 'elimination';
 	const ROUNDROBIN  = 'roundrobin';
 
 	public static function AllFormats() {

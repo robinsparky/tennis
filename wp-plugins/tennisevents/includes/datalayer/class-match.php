@@ -483,20 +483,14 @@ class Match extends AbstractData
     
 	/**
 	 * Choose whether this match is a mens, ladies or mixed event.
-	 * @param $mtype 1.1=mens singles, 1.2=ladies singles, 2.1=mens dodubles, 2.2=ladies doubles, 2.3=mixed douibles
+	 * @param $mtype singles or dodubles
 	 * @return true if successful; false otherwise
 	 */
-	public function setMatchType( float $mtype ) {
+	public function setMatchType( $mtype ) {
 		$result = false;
-        switch($mtype) {
-            case MatchType::MENS_SINGLES:
-            case MatchType::WOMENS_SINGLES:
-            case MatchType::MENS_DOUBLES:
-            case MatchType::WOMENS_DOUBLES:
-            case MatchType::MIXED_DOUBLES:
-                $this->match_type = $mtype;
-                $result = $this->setDirty();
-                break;
+        if( MatchType::isValid( $mtype ) ) {
+            $this->match_type = $mtype;
+            $result = $this->setDirty();
         }
 		return $result;
     }
@@ -504,8 +498,8 @@ class Match extends AbstractData
     /**
      * Get this Match's match type
      */
-    public function getMatchType():float {
-        return $this->match_type;
+    public function getMatchType() {
+        return $this->match_type ?? 'unknown';
     }
 
     /**
@@ -938,16 +932,9 @@ class Match extends AbstractData
             $code = 540;
             $this->log->error_log( $mess );
         }
-        
-        switch( $this->match_type ) {
-            case MatchType::MENS_SINGLES:
-            case MatchType::WOMENS_SINGLES:
-            case MatchType::MENS_DOUBLES:
-            case MatchType::WOMENS_DOUBLES:
-            case MatchType::MIXED_DOUBLES:
-                break;
-            default:
-            $mess = __( "$id - Match Type is invalid: $this->match_type" );
+
+        if( false === MatchType::isValid( $this->match_type )) {
+            $mess = __( "{$id} - Match Type is invalid: {$this->match_type}", TennisEvents::TEXT_DOMAIN );
             $code = 560;
             $this->log->error_log( $mess );
         }

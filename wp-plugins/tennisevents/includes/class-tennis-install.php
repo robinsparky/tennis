@@ -71,6 +71,7 @@ class TE_Install {
 								   ,"match_court_booking"	=> $wpdb->prefix . "tennis_match_court_booking"
 								   ,"club_event"			=> $wpdb->prefix . "tennis_club_event"
 								   ,"external_event"        => $wpdb->prefix . "tennis_external_event"
+								   ,"external_club"			=> $wpdb->prefix . "tennis_external_club"
 								);
 		
         add_filter( 'query_vars', array( $this,'add_query_vars_filter' ) );
@@ -115,6 +116,7 @@ class TE_Install {
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
 		// unregister the post type, so the rules are no longer in memory
 		unregister_post_type( TennisEventCpt::CUSTOM_POST_TYPE );
+		unregister_post_type( TennisClubCpt::CUSTOM_POST_TYPE );
 		// clear the permalinks to remove our post type's rules from the database
 		flush_rewrite_rules();
 
@@ -128,6 +130,7 @@ class TE_Install {
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
 
 		$this->delete_options();
+		$this->delete_customPostTypes();
 		$this->dropSchema();
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
@@ -136,8 +139,29 @@ class TE_Install {
 		update_option( self::OPTION_NAME_VERSION , TennisEvents::VERSION, false );
 	}
 	
+	/**
+	 * Delete options for this plugin
+	 */
 	protected function delete_options() {
 		delete_option( self::OPTION_NAME_VERSION );
+		//TODO: Make the following option names static fields somewhere
+		delete_option( 'gw_tennis_event_season' );
+		delete_option( 'gw_tennis_home_club' );
+	}
+
+	/**
+	 * Delete Custom Post Types for this plugin:
+	 * TennisEventCpt, TennisClubCpt
+	 */
+	protected function delete_customPostTypes() {
+		$eventposts = get_posts( array( 'post_type' => TennisEventCpt::CUSTOM_POST_TYPE, 'numberposts' => -1));
+		foreach( $eventposts as $cpt ) {
+			wp_delete_post( $cpt->ID, true );
+		}
+		$clubposts = get_posts( array( 'post_type' => TennisClubCpt::CUSTOM_POST_TYPE, 'numberposts' => -1));
+		foreach( $clubposts as $cpt ) {
+			wp_delete_post( $cpt->ID, true );
+		}
 	}
 
 	/**
@@ -156,6 +180,17 @@ class TE_Install {
 		}
 		else {
 			$this->log->error_log( "Could not add role 'Tennis Player'." );
+		}
+
+		$result = add_role( 'tennis_tournament_director', 'Tournament Director'
+						  , array( 'read' => true
+						         , 'level_10' => true ) );
+
+		if( null !== $result ) {
+			$this->log->error_log( "Role 'Tournament Director' added." );
+		}
+		else {
+			$this->log->error_log( "Could not add role 'Tournament Directors'." );
 		}
 	}
 	
@@ -254,7 +289,7 @@ class TE_Install {
 			`club_ID` INT NOT NULL,
 			`external_ID` NVARCHAR(100) NOT NULL,
 			INDEX USING BTREE (`external_ID`),
-			PRIMARY 'external_club' KEY (`club_ID`, `external_ID`),
+			PRIMARY KEY (`club_ID`, `external_ID`),
 			CONSTRAINT `fk_ext_club`
 			FOREIGN KEY (`club_ID`)
 				REFERENCES `$club_table` (`ID`)
@@ -325,10 +360,13 @@ class TE_Install {
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(256) NOT NULL,
 				`parent_ID` INT NULL COMMENT 'parent event',
-				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder, round robin',
-				`score_type` VARCHAR(25) NULL COMMENT 'regulation, no_ad, pro-set etc',
-				`match_type` DECIMAL(3,1) DEFAULT 0.0 COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles', 
-				`format` VARCHAR(25) NULL COMMENT 'single elimination, double elimination, games won, sets won',
+				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder',
+				`score_type` VARCHAR(25) NULL COMMENT 'best2of3, best3or5, fast4, pro-set etc',
+				`match_type` VARCHAR(10) COMMENT 'singles or doubles',
+				`gender_type` VARCHAR(10) COMMENT 'males, females or mixed',
+				`age_min` INT DEFAULT 1,
+				`age_max` INT DEFAULT 99,
+				`format` VARCHAR(25) NULL COMMENT 'elimination rounds, round robin',
 				`signup_by` DATE NULL,
 				`start_date` DATE NULL,
 				`end_date` DATE NULL,
@@ -739,6 +777,7 @@ class TE_Install {
 		$sql = $sql . "," . $this->dbTableNames["player_team"];
 		$sql = $sql . "," . $this->dbTableNames["club_event"];
 		$sql = $sql . "," . $this->dbTableNames["external_event"];
+		$sql = $sql . "," . $this->dbTableNames["external_club"];
 		$sql = $sql . "," . $this->dbTableNames["squad"];
 		$sql = $sql . "," . $this->dbTableNames["team"];
 		$sql = $sql . "," . $this->dbTableNames["player"];

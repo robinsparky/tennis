@@ -23,11 +23,6 @@ require_once( 'api-exceptions.php' );
 */
 class TournamentDirector
 { 
-    public const MENSINGLES    = 'Mens Singles';
-    public const MENSDOUBLES   = 'Mens Doubles';
-    public const WOMENSINGLES  = 'Womens Singles';
-    public const WOMENSDOUBLES = 'Womens Doubles';
-    public const MIXEDDOUBLES  = 'Mixed Doubles';
 
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
     public const MAXIMUM_ENTRANTS = 256; //maximum for an elimination tournament
@@ -37,7 +32,7 @@ class TournamentDirector
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
     //private $hasChallengerRound = false; //Is a challenger round required
-    private $matchType; //The type of match such as mens singles, womens doubles etc
+    private $matchType; //The type of match such as singles or doubles
     private $name = '';
     private $event = null;
 
@@ -69,27 +64,7 @@ class TournamentDirector
         $this->getAllDescendants();
         
         $this->matchType = $this->event->getMatchType();
-        switch( $this->matchType ) {
-            case MatchType::MENS_SINGLES:
-                $this->name = self::MENSINGLES;
-                break;
-            case MatchType::WOMENS_SINGLES:
-                $this->name = self::WOMENSINGLES;
-                break;
-            case MatchType::MENS_DOUBLES:
-                $this->name = self::MENSDOUBLES;
-                break;
-            case MatchType::WOMENS_DOUBLES:
-                $this->name = self::WOMENSDOUBLES;
-                break;
-            case MatchType::MIXED_DOUBLES:
-                $this->name = self::MIXEDDOUBLES;
-                break;
-            default:
-                $this->matchType = MatchType::MENS_SINGLES;
-                $this->name = self::MENSINGLES;
-                break;
-        }
+        $this->name = $this->event->getName() . '-' . MatchType::AllTypes()[$this->matchType];
     }
 
     public function __destruct() {

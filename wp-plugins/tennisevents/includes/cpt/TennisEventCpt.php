@@ -9,6 +9,7 @@ use api\BaseLoggerEx;
 use \TennisEvents;
 use \EventType;
 use \MatchType;
+use \GenderType;
 use \ScoreType;
 use \Format;
 use \Event;
@@ -34,8 +35,11 @@ class TennisEventCpt {
 	const EVENT_FORMAT_META_KEY    = '_tennisevent_format';
 	const EVENT_TYPE_META_KEY      = '_tennisevent_type';
 	const MATCH_TYPE_META_KEY      = '_tennisevent_match_type';
+	const GENDER_TYPE_META_KEY     = '_tennisevent_gender_type';
 	const SCORE_TYPE_META_KEY      = '_tennisevent_score_type';
 	const PARENT_EVENT_META_KEY    = '_tennisevent_parent_event';
+	const AGE_MIN_META_KEY         = '_tennisevent_age_min';
+	const AGE_MAX_META_KEY         = '_tennisevent_age_max';
 
 	const TENNIS_EVENT_ERROR_TRANSIENT_KEY = 'tennis_event_settings_errors';
 
@@ -61,8 +65,8 @@ class TennisEventCpt {
 		add_action('manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array($tennisEvt, 'getColumnValues'), 10, 2);
 		add_filter('manage_edit-' . self::CUSTOM_POST_TYPE . '_sortable_columns', array($tennisEvt, 'sortableColumns'));
 		add_action('pre_get_posts', array($tennisEvt, 'orderby'));
-		add_action('restrict_manage_posts', array($tennisEvt, 'matchTypeFilter'));
-		add_filter('parse_query', array($tennisEvt, 'matchTypeParseFilter'));
+		add_action('restrict_manage_posts', array($tennisEvt, 'genderTypeFilter'));
+		add_filter('parse_query', array($tennisEvt, 'genderTypeParseFilter'));
 
 		add_filter('bulk_actions-edit-' . self::CUSTOM_POST_TYPE, array($tennisEvt, 'addResetBulkAction'));
 		add_filter('handle_bulk_actions-edit-' . self::CUSTOM_POST_TYPE, array($tennisEvt, 'handleBulkReset'), 10, 3 );
@@ -140,12 +144,15 @@ class TennisEventCpt {
 		$newColumns['title'] = $columns['title'];
 		$newColumns['taxonomy-tenniseventcategory'] = __('Category', TennisEvents::TEXT_DOMAIN);
 		$newColumns['event_type'] = __('Event Type', TennisEvents::TEXT_DOMAIN);
-		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN);
-		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN);
-		$newColumns['score_type'] = __('Score Type', TennisEvents::TEXT_DOMAIN);
 		$newColumns['signup_by_date'] = __('Signup By', TennisEvents::TEXT_DOMAIN);
 		$newColumns['start_date'] = __('Start Date', TennisEvents::TEXT_DOMAIN);
 		$newColumns['end_date'] = __('End Date', TennisEvents::TEXT_DOMAIN);
+		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN);
+		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN);
+		$newColumns['score_type'] = __('Score Type', TennisEvents::TEXT_DOMAIN);
+		$newColumns['gender_type'] = __('Gender Type', TennisEvents::TEXT_DOMAIN );
+		$newColumns['age_min'] = __('Minimum Age', TennisEvents::TEXT_DOMAIN );
+		$newColumns['age_max'] = __('Maximum Age', TennisEvents::TEXT_DOMAIN );
 		$newColumns['author'] = $columns['author'];
 		$newColumns['date'] = $columns['date'];
 		return $newColumns;
@@ -185,20 +192,20 @@ class TennisEventCpt {
 	/**
 	 * Add a filter dropdown in the Event admin page
 	 */
-	public function matchTypeFilter($post_type)	{
+	public function genderTypeFilter($post_type)	{
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 
 		if ($post_type === self::CUSTOM_POST_TYPE) {
 			$this->log->error_log("$loc using post_type: $post_type");
-			$mtypes = MatchType::AllTypes();
-			if (empty($mtypes)) return;
+			$gtypes = GenderType::AllTypes();
+			if (empty($gtypes)) return;
 
 			$selected = -1;
-			if (isset($_GET['match_type']) && !empty($_GET['match_type'])) {
-				$selected = $_GET['match_type'];
+			if (isset($_GET['gender_type']) && !empty($_GET['gender_type'])) {
+				$selected = $_GET['gender_type'];
 			}
-			$options[] = sprintf('<option value="-1">%1$s</option>', __('All Match Types', TennisEvents::TEXT_DOMAIN));
-			foreach ($mtypes as $key => $val) {
+			$options[] = sprintf('<option value="-1">%1$s</option>', __('All Gender Types', TennisEvents::TEXT_DOMAIN));
+			foreach ($gtypes as $key => $val) {
 				if ($key === $selected) {
 					$options[] = sprintf('<option value="%1$s" selected>%2$s</option>', esc_attr($key), $val);
 				} else {
@@ -207,7 +214,7 @@ class TennisEventCpt {
 			} 
 
 			/** Output the dropdown menu */
-			echo '<select class="" id="match_type" name="match_type">';
+			echo '<select class="" id="gender_type" name="gender_type">';
 			echo join('\n', $options);
 			echo '</select>';
 		}
@@ -216,7 +223,7 @@ class TennisEventCpt {
 	/**
 	 * Modify the WP_QUERY using the value from the request query string
 	 */
-	public function matchTypeParseFilter($query) {
+	public function genderTypeParseFilter($query) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc");
 
@@ -227,12 +234,12 @@ class TennisEventCpt {
 			is_admin()
 			&& self::CUSTOM_POST_TYPE == $current_page
 			&& 'edit.php' == $pagenow
-			&& isset($_GET['match_type'])
-			&& $_GET['match_type'] != ''
-			&& $_GET['match_type'] != '-1'
+			&& isset($_GET['gender_type'])
+			&& $_GET['gender_type'] != ''
+			&& $_GET['gender_type'] != '-1'
 		) {
-			$query->query_vars['meta_key'] = self::MATCH_TYPE_META_KEY;
-			$query->query_vars['meta_value'] = $_GET['match_type'];
+			$query->query_vars['meta_key'] = self::GENDER_TYPE_META_KEY;
+			$query->query_vars['meta_value'] = $_GET['gender_type'];
 			$query->query_vars['meta_compare'] = '=';
 		}
 	}
@@ -246,6 +253,13 @@ class TennisEventCpt {
 			$eventType = get_post_meta($postID, self::EVENT_TYPE_META_KEY, TRUE);
 			if (!empty($eventType)) {
 				echo EventType::AllTypes()[$eventType];
+			} else {
+				echo "";
+			}
+		} elseif ($column_name === 'match_type') {
+			$matchType = get_post_meta($postID, self::MATCH_TYPE_META_KEY, TRUE);
+			if (!empty($matchType)) {
+				echo MatchType::AllTypes()[$matchType];
 			} else {
 				echo "";
 			}
@@ -263,15 +277,15 @@ class TennisEventCpt {
 			}
 		} elseif ($column_name === 'event_format') {
 			$eventFormat = get_post_meta($postID, self::EVENT_FORMAT_META_KEY, TRUE);
-			if (!empty($eventFormat)) {
+			if (!empty($eventFormat) && Format::isValid($eventFormat)) {
 				echo Format::AllFormats()[$eventFormat];
 			} else {
 				echo "";
 			}
-		} elseif ($column_name === 'match_type') {
-			$matchType = get_post_meta($postID, self::MATCH_TYPE_META_KEY, TRUE);
-			if (!empty($matchType)) {
-				echo MatchType::AllTypes()[$matchType];
+		} elseif ($column_name === 'gender_type') {
+			$genderType = get_post_meta($postID, self::GENDER_TYPE_META_KEY, TRUE);
+			if (!empty($genderType)) {
+				echo GenderType::AllTypes()[$genderType];
 			} else {
 				echo "";
 			}
@@ -286,19 +300,33 @@ class TennisEventCpt {
 			} else {
 				echo "";
 			}
+		} elseif( $column_name === 'age_min' ) {			
+			$ageMin = get_post_meta($postID, self::AGE_MIN_META_KEY, TRUE);
+			if (!empty($ageMin)) {
+				echo $ageMin;
+			} else {
+				echo '';
+			}
+		} elseif( $column_name === 'age_max' ) {		
+			$ageMax = get_post_meta($postID, self::AGE_MAX_META_KEY, TRUE);
+			if (!empty($ageMax)) {
+				echo $ageMax;
+			} else {
+				echo '';
+			}
 		} elseif ($column_name === 'signup_by_date') {
 			$signupBy = get_post_meta($postID, self::SIGNUP_BY_DATE_META_KEY, TRUE);
 			if (!empty($signupBy)) {
 				echo $signupBy;
 			} else {
-				echo __('', TennisEvents::TEXT_DOMAIN);
+				echo '';
 			}
 		} elseif ($column_name === 'start_date') {
 			$start = get_post_meta($postID, self::START_DATE_META_KEY, TRUE);
 			if (!empty($start)) {
 				echo $start;
 			} else {
-				echo __('TBA', TennisEvents::TEXT_DOMAIN);
+				echo '';
 			}
 		} elseif ($column_name === 'tennis_season') {
 			$start = get_post_meta($postID, self::START_DATE_META_KEY, TRUE);
@@ -314,7 +342,7 @@ class TennisEventCpt {
 			if (!empty($end)) {
 				echo $end;
 			} else {
-				echo __('TBA', TennisEvents::TEXT_DOMAIN);
+				echo '';
 			}
 		}
 	}
@@ -440,12 +468,42 @@ class TennisEventCpt {
 			,'high' // priority: low, high, default
 			// array callback args
 		);
+		
+		add_meta_box(
+			'tennis_gender_type_meta_box',
+			'Gender Type' //Title
+			,array($this, 'genderTypeCallBack') //Callback
+			,self::CUSTOM_POST_TYPE //mixed: screen cpt name or ???
+			,'normal' //context: normal, side
+			,'high' // priority: low, high, default
+			// array callback args
+		);
 
 		add_meta_box(
 			'tennis_score_type_meta_box',
 			'Score Type' //Title
 			,array($this, 'scoreTypeCallBack') //Callback
 			,self::CUSTOM_POST_TYPE //mixed: screen cpt name or ???
+			,'normal' //context: normal, side
+			,'high' // priority: low, high, default
+			// array callback args
+		);
+		
+		add_meta_box(
+			'tennis_age_min_meta_box',
+			'Minimum Age' //Title
+			,array($this, 'ageMinCallBack') //Callback
+			,self::CUSTOM_POST_TYPE //mixed: screen, cpt name or ???
+			,'normal' //context: normal, side
+			,'high' // priority: low, high, default
+			// array callback args
+		);
+
+		add_meta_box(
+			'tennis_age_max_meta_box',
+			'Maximum Age' //Title
+			,array($this, 'ageMaxCallBack') //Callback
+			,self::CUSTOM_POST_TYPE //mixed: screen, cpt name or ???
 			,'normal' //context: normal, side
 			,'high' // priority: low, high, default
 			// array callback args
@@ -505,6 +563,7 @@ class TennisEventCpt {
 		if ( empty( $parentId ) ) {
 			//Now echo the html desired
 			echo '<select name="tennis_event_type_field">';
+			echo '<option value="">Select Event Type...</option>';
 			foreach (EventType::AllTypes() as $key => $val) {
 				$disp = esc_attr($val);
 				$value = esc_attr($key);
@@ -592,17 +651,13 @@ class TennisEventCpt {
 
 		$actual = get_post_meta($post->ID, self::EVENT_FORMAT_META_KEY, true);
 		$this->log->error_log("$loc --> actual='$actual'");
-		if ($this->isNewEvent()) {
-			if (!isset($actual)) $actual = Format::SINGLE_ELIM;
-			$parentId = true;
-		} else {
-			$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
-		}
+
+		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
 
 		if (!empty($parentId)) {
 			//Now echo the html desired
 			echo '<select name="tennis_event_format_field">';
-			echo '<option value="-1">Select Format...</option>';
+			echo '<option value="">Select Format...</option>';
 			$formats = Format::AllFormats();
 			foreach ($formats as $key => $val) {
 				$disp = esc_attr($val);
@@ -632,17 +687,14 @@ class TennisEventCpt {
 
 		$actual = get_post_meta($post->ID, self::MATCH_TYPE_META_KEY, true);
 		$this->log->error_log("$loc --> actual=$actual");
-		if ($this->isNewEvent()) {
-			if (!@$actual) $actual = MatchType::MENS_SINGLES;
-			$parentId = true;
-		} else {
-			$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
-		}
+
+		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
+		
 
 		if (!empty($parentId)) {
 			//Now echo the html desired
 			echo '<select name="tennis_match_type_field">';
-			echo '<option value="-1">Select Match Type...</option>';
+			echo '<option value="">Select Match Type...</option>';
 			foreach (MatchType::AllTypes() as $key => $val) {
 				$disp = esc_attr($val);
 				$value = esc_attr($key);
@@ -655,6 +707,42 @@ class TennisEventCpt {
 			echo "<!-- No match type for root event {$post->ID} -->";
 		}
 	}
+	
+	/**
+	 * Match Type callback
+	 */
+	public function genderTypeCallBack($post) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		wp_nonce_field(
+			'genderTypeSave' //action
+			,
+			'tennis_gender_type_nonce'
+		);
+
+		$actual = get_post_meta($post->ID, self::GENDER_TYPE_META_KEY, true);
+		$this->log->error_log("$loc --> actual=$actual");
+
+		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
+		
+
+		if (!empty($parentId)) {
+			//Now echo the html desired
+			echo '<select name="tennis_gender_type_field">';
+			echo '<option value="">Select Gender Type...</option>';
+			foreach (GenderType::AllTypes() as $key => $val) {
+				$disp = esc_attr($val);
+				$value = esc_attr($key);
+				$sel = '';
+				if ($actual === $value) $sel = 'selected';
+				echo "<option value='$value' $sel>$disp</option>";
+			}
+			echo '</select>';
+		} else {
+			echo "<!-- No gender type for root event {$post->ID} -->";
+		}
+	}
 
 	/**
 	 * Score Type callback
@@ -664,22 +752,18 @@ class TennisEventCpt {
 		$this->log->error_log($loc);
 
 		wp_nonce_field('scoreTypeSave' //action
-					,'tennis_score_type_nonce'
-				);
+					,'tennis_score_type_nonce');
 
 		$actual = get_post_meta($post->ID, self::SCORE_TYPE_META_KEY, true);
-		if ($this->isNewEvent()) {
-			if (!@$actual) $actual = '';
-			$parentId = true;
-		} else {
-			$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
-		}
+
+		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
 
 		if (!empty($parentId)) {
 			error_clear_last();
 			$rules = array_keys(ScoreType::get_instance()->ScoreRules);
 			//Now echo the html desired
 			echo '<select name="tennis_score_type_field">';
+			echo '<option value="">Select Score Type...</option>';
 			foreach ($rules as $rule) {
 				$disp = esc_attr($rule);
 				$value = esc_attr($rule);
@@ -691,6 +775,66 @@ class TennisEventCpt {
 		} else {
 			echo "<!-- No score type for root event {$post->ID} -->";
 		}
+	}
+	
+	/**
+	 * Minimum age callback
+	 */
+	public function ageMinCallBack($post)	{
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		wp_nonce_field('ageMinSave' //action
+						,'tennis_age_min_by_nonce'
+					);
+
+		$actual = get_post_meta($post->ID, self::AGE_MIN_META_KEY, true);
+		if (!@$actual) $actual = '1';
+		$this->log->error_log("$loc --> actual=$actual");
+		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
+
+
+		if (!empty($parentId)) {
+			//Now echo the html desired
+			$markup = sprintf('<input type="number" min="1" max="99" name="tennis_age_min_field" value="%s">'
+							, $actual
+							);
+		}
+		else {
+			$markup = "<!-- no min age for root event -->";
+		}
+
+		echo $markup;
+	}
+		
+	/**
+	 * Minimum age callback
+	 */
+	public function ageMaxCallBack($post)	{
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		wp_nonce_field('ageMaxSave' //action
+						,'tennis_age_max_by_nonce'
+					);
+
+		$actual = get_post_meta($post->ID, self::AGE_MAX_META_KEY, true);
+		if (!@$actual) $actual = '99';
+		$this->log->error_log("$loc --> actual=$actual");
+		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
+
+
+		if (!empty($parentId)) {
+			//Now echo the html desired
+			$markup = sprintf('<input type="number" min="1" max="99" name="tennis_age_max_field" value="%s">'
+							, $actual
+							);
+		}
+		else {
+			$markup = "<!-- no max age for root event -->";
+		}
+
+		echo $markup;
 	}
 
 
@@ -806,6 +950,7 @@ class TennisEventCpt {
 			return;
 		}
 
+		$errorsFound = 0;
 		$evtName = "";
 		$post = get_post( $post_id );
 		if ($post->post_type !== self::CUSTOM_POST_TYPE) return;
@@ -863,6 +1008,9 @@ class TennisEventCpt {
 			delete_post_meta($post_id, self::PARENT_EVENT_META_KEY);
 		}
 
+		//TODO: Rationalize Format with ScoreType
+		// If Format is Round Robin then ScoreType can only be: Points1 or Points2
+		// If Format is Elimination then ScoreType cannot be Points1 or Points2
 		$eventFormat = '';
 		if (isset($_POST['tennis_event_format_field'])) {
 			$eventFormat = sanitize_text_field($_POST['tennis_event_format_field']);
@@ -870,7 +1018,10 @@ class TennisEventCpt {
 		if (!empty($eventFormat)) {
 			update_post_meta($post_id, self::EVENT_FORMAT_META_KEY, $eventFormat);
 		} else {
-			if( !is_null( $parentEvent) ) $this->add_error(__('Event format is required', TennisEvents::TEXT_DOMAIN ) );
+			if( !is_null($parentEvent) ) {
+				$this->add_error(__('Event format is required', TennisEvents::TEXT_DOMAIN ) );
+				++$errorsFound;
+			}
 			delete_post_meta($post_id, self::EVENT_FORMAT_META_KEY);
 		}
 
@@ -881,8 +1032,25 @@ class TennisEventCpt {
 		if (!empty($matchType)) {
 			update_post_meta( $post_id, self::MATCH_TYPE_META_KEY, $matchType );
 		} else {
-			if( !is_null( $parentEvent) ) $this->add_error(__('Match type is required', TennisEvents::TEXT_DOMAIN ) );
+			if( !is_null($parentEvent) ) {
+				$this->add_error(__('Match type is required', TennisEvents::TEXT_DOMAIN ) );
+				++$errorsFound;
+			}
 			delete_post_meta( $post_id, self::MATCH_TYPE_META_KEY );
+		}
+
+		$genderType = '';
+		if (isset($_POST['tennis_gender_type_field'])) {
+			$genderType = sanitize_text_field($_POST['tennis_gender_type_field']);
+		}
+		if (!empty($genderType)) {
+			update_post_meta( $post_id, self::GENDER_TYPE_META_KEY, $genderType );
+		} else {
+			if( !is_null($parentEvent) ) {
+				$this->add_error(__('Gender type is required', TennisEvents::TEXT_DOMAIN ) );
+				++$errorsFound;
+			}
+			delete_post_meta( $post_id, self::GENDER_TYPE_META_KEY );
 		}
 
 		$scoreType = '';
@@ -892,21 +1060,38 @@ class TennisEventCpt {
 		if (!empty( $scoreType ) ) {
 			update_post_meta( $post_id, self::SCORE_TYPE_META_KEY, $scoreType );
 		} else {
-			if( !is_null( $parentEvent) ) $this->add_error(__('Score type is required', TennisEvents::TEXT_DOMAIN ) );
+			if( !is_null($parentEvent) ) {
+				$this->add_error(__('Score type is required', TennisEvents::TEXT_DOMAIN ) );
+				++$errorsFound;
+			}
 			delete_post_meta( $post_id, self::SCORE_TYPE_META_KEY );
+		}
+
+		//Min and Max ages
+		$ageMin = 0;
+		if( (isset($_POST['tennis_age_min_field']))) {
+			$ageMin = $_POST['tennis_age_min_field'];
+		}
+		$ageMax = 0;
+		if( (isset($_POST['tennis_age_max_field']))) {
+			$ageMax = $_POST['tennis_age_max_field'];
+		}
+		if( ($ageMin > 0 && $ageMin > 0) && ($ageMin < $ageMax) ) {
+			update_post_meta( $post_id, self::AGE_MIN_META_KEY, $ageMin );
+			update_post_meta( $post_id, self::AGE_MAX_META_KEY, $ageMax );
 		}
 
 		//Posted SignupBy, Start and End Dates
 		$signupBy = "";
-		if (isset($_POST['tennis_signup_by_field'])) {
+		if(isset($_POST['tennis_signup_by_field'])) {
 			$signupBy = $_POST['tennis_signup_by_field'];
 		}
 		$startDate = "";
-		if (isset($_POST['tennis_start_date_field'])) {
+		if(isset($_POST['tennis_start_date_field'])) {
 			$startDate = $_POST['tennis_start_date_field'];
 		}
 		$endDate = "";
-		if (isset($_POST['tennis_end_date_field'])) {
+		if(isset($_POST['tennis_end_date_field'])) {
 			$endDate = $_POST['tennis_end_date_field'];
 		}
 		$this->log->error_log("$loc: signupBy='{$signupBy}'; start='{$startDate}'; end='{$endDate}'");
@@ -916,7 +1101,10 @@ class TennisEventCpt {
 		if ( is_wp_error( $test ) ) {
 			$this->log->error_log("$loc: Error in signup date: " . $test->get_error_message());
 			$signupBy = '';
-			if( !is_null( $parentEvent) ) $this->add_error( __('Invalid signup date', TennisEvents::TEXT_DOMAIN ) );
+			if( !is_null( $parentEvent) ) {
+				$this->add_error( __('Invalid signup date', TennisEvents::TEXT_DOMAIN ) );
+				++$errorsFound;
+			}
 			$compareSign = null;
 		} else {
 			$signupBy = $this->getDateStr( $test );
@@ -928,7 +1116,10 @@ class TennisEventCpt {
 		if ( is_wp_error( $test ) ) {
 			$this->log->error_log("$loc: Error in start date: " . $test->get_error_message());
 			$startDate = '';
-			if( !is_null( $parentEvent) ) $this->add_error( __('Invalid start date', TennisEvents::TEXT_DOMAIN ) );
+			if( !is_null( $parentEvent) ) {
+				$this->add_error( __('Invalid start date', TennisEvents::TEXT_DOMAIN ) );
+				++$errorsFound;
+			}
 			$compareStart = null;
 		} else {
 			$startDate = $this->getDateStr($test);
@@ -941,7 +1132,10 @@ class TennisEventCpt {
 			$this->log->error_log("$loc: Error in end date: " . $test->get_error_message());
 			$endDate = '';
 			$compareEnd = null;
-			if( !is_null( $parentEvent) ) $this->add_error( __('Invalid end date', TennisEvents::TEXT_DOMAIN ) );
+			if( !is_null( $parentEvent) ) {
+				$this->add_error( __('Invalid end date', TennisEvents::TEXT_DOMAIN ) );
+				++$errorsFound;
+			}
 		} else {
 			$endDate = $this->getDateStr( $test );
 			$compareEnd = $test;
@@ -953,6 +1147,7 @@ class TennisEventCpt {
 			if( $diff->invert === 1 || $diff->days < 3 ) {
 				$this->add_error(__( 'Signup date must be at least 3 days earlier than start date', TennisEvents::TEXT_DOMAIN ) );
 				$signupBy = '';
+				++$errorsFound;
 			}
 		}		
 
@@ -960,6 +1155,7 @@ class TennisEventCpt {
 			if( $compareStart >= $compareEnd ) {
 				$this->add_error(__( 'Start date must be earlier than end date', TennisEvents::TEXT_DOMAIN ) );
 				$startDate = '';
+				++$errorsFound;
 			}
 		}
 
@@ -984,11 +1180,26 @@ class TennisEventCpt {
 			delete_post_meta($post_id, self::END_DATE_META_KEY);
 		}
 
+
 		//Event stuff
 		$club = Club::get( $homeClubId );
+		if( empty($club) ) {				
+			$this->add_error(__( 'Home club is not set.', TennisEvents::TEXT_DOMAIN ) );
+			++$errorsFound;
+		}
+		
+		//Don't bother with setting up the Tennis Event
+		// as errors are present in the input
+		if( $errorsFound > 0 ) {
+			return;
+		}
+
 		$event = $this->getEventByExtRef( $post_id );
 		if (is_null( $event ) ) {
 			$event = new Event( $evtName );
+		}
+		else {
+			$event->setName( $evtName );
 		}
 
 		$event->addClub($club);

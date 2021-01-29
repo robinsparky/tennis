@@ -29,6 +29,9 @@ class Event extends AbstractData
 	private $signup_by; //Cut off date for signing up
 	private $start_date; //Start date of this event
 	private $end_date; //End date of this event
+	private $gender_type; //male, female, mixed
+	private $age_max = 99; //maximum age allowed
+	private $age_min = 1; //minimum age allowed
     
 	private $clubs; //array of related clubs for this root event
 	private $childEvents; //array of child events
@@ -51,7 +54,7 @@ class Event extends AbstractData
 		
 		$criteria .= strpos($criteria,'%') ? '' : '%';
 		
-		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`,`parent_ID`,`signup_by`,`start_date`, `end_date` 
+		$sql = "SELECT `ID`,`event_type`,`name`,`format`, `match_type`,`score_type`,`gender_type`,`age_min`,`age_max`,`parent_ID`,`signup_by`,`start_date`, `end_date` 
 		        FROM $table WHERE `name` like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
@@ -89,7 +92,7 @@ class Event extends AbstractData
 			//All events who are children of specified Event
 			$col_value = $fk_criteria["parent_ID"];
 			error_log("Event::find using parent_ID=$col_value");
-			$sql = "SELECT ce.ID, ce.event_type, ce.name, ce.format, ce.match_type, ce.score_type, ce.parent_ID
+			$sql = "SELECT ce.ID, ce.event_type, ce.name, ce.format, ce.match_type, ce.score_type, ce.gender_type, ce.age_max, ce.age_min, ce.parent_ID
 			 			  ,ce.signup_by,ce.start_date,ce.end_date  
 					FROM $table ce
 					WHERE ce.parent_ID = %d;";
@@ -98,7 +101,7 @@ class Event extends AbstractData
 			//All events belonging to specified club
 			$col_value = $fk_criteria["club"];
 			error_log( "Event::find using club_ID=$col_value" );
-			$sql = "SELECT e.ID, e.event_type, e.name, e.format, e.match_type, e.score_type, e.parent_ID 
+			$sql = "SELECT e.ID, e.event_type, e.name, e.format, e.match_type, e.score_type, e.gender_type, e.age_max, e.age_min, e.parent_ID 
 						  ,e.signup_by,e.start_date,e.end_date 
 					from $table e 
 					INNER JOIN $joinTable AS j ON j.event_ID = e.ID 
@@ -108,7 +111,7 @@ class Event extends AbstractData
 			//All events
 			error_log( "Event::find all events" );
 			$col_value = 0;
-			$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
+			$sql = "SELECT `ID`,`event_type`,`name`,`format`, `match_type`, `score_type`,`gender_type`, `age_max`, `age_min`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
 					FROM $table;";
 		}
 		else {
@@ -196,7 +199,7 @@ class Event extends AbstractData
 		
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
+		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`, `gender_type`, `age_max`, `age_min`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
 		        FROM $table WHERE `ID`=%d";
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
@@ -261,16 +264,8 @@ class Event extends AbstractData
 		$this->isnew = true;
 		$this->name = $name;
 
-		switch( $eventType ) {
-			case EventType::TOURNAMENT:
-				$this->event_type = $eventType;
-				$this->format = Format::TOURNAMENT;
-				break;
-			case EventType::LEAGUE:
-			case EventType::LADDER:
-				$this->event_type = $eventType;
-				$this->format = Format::ROUNDROBIN;
-				break;
+		if( EventType::isValid( $eventType ) ) {
+			$this->event_type = $eventType;
 		}
 	}
 	
@@ -402,24 +397,19 @@ class Event extends AbstractData
 	}
 
 	/**
-	 * Set the type of event such as Mens Singles, or Womens Doubles, etc.
+	 * Set the type of matches in this event: Singles, or Doubles
 	 * @param $matchType
 	 * @see MatchType class
 	 */
-	public function setMatchType( float $matchType ) {
+	public function setMatchType( $matchType ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("{$loc}({$matchType})");
+
 		$result = false;
 		if( $this->isLeaf() ) {
-			switch( $matchType ) {
-				case MatchType::MENS_SINGLES:
-				case MatchType::MENS_DOUBLES:
-				case MatchType::WOMENS_SINGLES:
-				case MatchType::WOMENS_DOUBLES:
-				case MatchType::MIXED_DOUBLES:
-					$this->match_type = $matchType;
-					$result = $this->setDirty();
-					break;
-				default:
-					$result = false;
+			if( MatchType::isValid( $matchType ) ) {
+				$this->match_type = $matchType;
+				$result = $this->setDirty();
 			}
 		}
 		return $result;
@@ -428,13 +418,15 @@ class Event extends AbstractData
 	/**
 	 * Get the type of match for this event
 	 */
-	public function getMatchType():float {
-		return isset( $this->match_type ) ? $this->match_type : 0.0;
+	public function getMatchType() {
+		return isset( $this->match_type ) ? $this->match_type : '';
 	}
 	
 	/**
-	 * Set the format
+	 * Set the format which specifies Elimination rounds or Round Robin style.
 	 * Applies only to the lowest child event
+	 * @param string $format
+	 * @return bool True if successful false otherwise
 	 */
 	public function setFormat( string $format ) {
 		$result = false;
@@ -454,7 +446,7 @@ class Event extends AbstractData
 	/**
 	 * Set the score type for this leaf events
 	 * @param string $scoreType
-	 * @return bool True if successful false otherwises
+	 * @return bool True if successful false otherwise
 	 */
 	public function setScoreType( string $scoreType ) {
 		$result = false;
@@ -467,8 +459,52 @@ class Event extends AbstractData
 		return $result;
 	}
 
+	/**
+	 * Get the type of scoring for this event
+	 */
 	public function getScoreType( ): string {
 		return isset($this->score_type) ? $this->score_type : '';
+	}
+
+	/**
+	 * Set the minimum age for this event's eligibility
+	 * @param int $age_min
+	 */
+	public function setMinAge( int $age_min ) {
+		$result = false;
+		if( $age_min > 1 ) {
+			$this->age_min = $age_min;
+			$result = $this->setDirty();
+		}
+		return $result;
+	}
+
+	/**
+	 * Get the minimum age for this event's eligibility
+	 */
+	public function getMinAge() : int {
+		return $this->age_min ?? 1;
+	}
+	
+	/**
+	 * Set the maximum age for this event's eligibility
+	 * @param int $age_max
+	 */
+	public function setMaxAge( int $age_max ) {
+		$result = false;
+		if( $age_max > 1 && $age_max < 100 ) {
+			$this->age_max = $age_max;
+			$result = $this->setDirty();
+		}
+		return $result;
+	}
+
+	/**
+	 * Get the maximum age for this event's eligibility
+	 * Default's to 99.
+	 */
+	public function getMaxAge() : int {
+		return $this->age_max ?? 99;
 	}
 
     /**
@@ -538,7 +574,7 @@ class Event extends AbstractData
 	 * Get the date by which players must signup for this event
 	 */
 	public function getSignupBy_Str() {
-		if( !isset( $this->signup_by ) ) return '';
+		if( !isset( $this->signup_by ) ) return null;
 		else return $this->signup_by->format( self::$datetimeformat );
 	}
 
@@ -665,6 +701,19 @@ class Event extends AbstractData
 		return $this->end_date;
 	}
 
+	public function setGenderType( $gender ) {
+		$result = false;
+		if( GenderType::isValid( $gender ) ) {
+			$this->gender_type = $gender;
+			$result = $this->setDirty();
+		}
+		return $result;		
+	}
+
+	public function getGenderType() :string {
+		return $this->gender_type ?? '';
+	}
+
 	/**
 	 * Add a child event to this Parent Event
 	 * This method ensures that the same child event is not added more than once.
@@ -731,7 +780,6 @@ class Event extends AbstractData
 
 	/**
 	 * Get an Event with a specific name belonging to this Event
-	 * TODO: Make recursive
 	 */
 	public function getNamedEvent( string $name ) {
 		$result = null;
@@ -1142,13 +1190,14 @@ class Event extends AbstractData
 	 */
 	public function delete() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		$where = array( 'ID'=>$this->getID() );
 		$formats_where = array( '%d' );
 		$wpdb->delete( $table, $where, $formats_where );
 		$result = $wpdb->rows_affected;
-		error_log( sprintf("%s(%s): deleted %d row(s)", $loc, $this->toString(), $result ) );
+		$this->log->error_log( sprintf("%s(%s): deleted %d row(s)", $loc, $this->toString(), $result ) );
 
 		return $result;
 	}
@@ -1159,7 +1208,7 @@ class Event extends AbstractData
 
 	public function save():int {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log( sprintf("%s called ...", $loc) );
+		$this->log->error_log( sprintf("%s called ...", $loc) );
 		return parent::save();
 	}
 
@@ -1186,7 +1235,6 @@ class Event extends AbstractData
 		foreach( $this->brackets as $bracket ){
 			$bracket->setEvent( $this );
 		}
-
 	}
 
 	/**
@@ -1196,7 +1244,8 @@ class Event extends AbstractData
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->external_refs = EventExternalRefRelations::fetchExternalRefs( $this->getID() );
 	}
-	
+
+	/*
     private function sortBySeedDesc( $a, $b ) {
         if($a->getSeed() === $b->getSeed()) return 0; return ($a->getSeed() < $b->getSeed()) ? 1 : -1;
     }
@@ -1208,8 +1257,11 @@ class Event extends AbstractData
     private function sortByPositionAsc( $a, $b ) {
         if($a->getPosition() === $b->getPosition()) return 0; return ($a->getPosition() < $b->getPosition()) ? 1 : -1;
     }
+	*/
 
-
+	/**
+	 * Create a new Event record in the database
+	 */
 	protected function create() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 
@@ -1225,11 +1277,14 @@ class Event extends AbstractData
 						,'format'     => $this->getFormat()
 						,'match_type' => $this->getMatchType()
 						,'score_type' => $this->getScoreType()
+						,'gender_type'=> $this->getGenderType()
+						,'age_min'    => $this->getMinAge()
+						,'age_max'    => $this->getMaxAge()
 						,'signup_by'  => $this->getSignupBy_Str()
 						,'start_date' => $this->getStartDate_Str()
 						,'end_date'   => $this->getEndDate_Str()
 					    );
-		$formats_values = array( '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s', '%s' );
+		$formats_values = array( '%s', '%d', '%s', '%s', '%s', '%s','%s', '%d','%d', '%s', '%s', '%s' );
 		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
 		$this->ID = $wpdb->insert_id;
 		$result = $wpdb->rows_affected;
@@ -1243,6 +1298,9 @@ class Event extends AbstractData
 		return $result;
 	}
 
+	/**
+	 * Update the record in the database
+	 */
 	protected function update() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 
@@ -1258,11 +1316,14 @@ class Event extends AbstractData
 						,'format'     => $this->getFormat()
 						,'match_type' => $this->getMatchType()
 						,'score_type' => $this->getScoreType()
+						,'gender_type'=> $this->getGenderType()
+						,'age_min'    => $this->getMinAge()
+						,'age_max'    => $this->getMaxAge()
 						,'signup_by'  => $this->getSignupBy_Str()
 						,'start_date' => $this->getStartDate_Str()
 						,'end_date'   => $this->getEndDate_Str()
 					    );
-		$formats_values = array( '%s', '%d', '%s', '%s', '%f', '%s', '%s', '%s', '%s' );
+		$formats_values = array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
 		$where          = array( 'ID' => $this->ID );
 		$formats_where  = array( '%d ');
 		$check = $wpdb->update( $wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where );
@@ -1282,11 +1343,14 @@ class Event extends AbstractData
     protected static function mapData( $obj, $row ) {
 		parent::mapData( $obj, $row );
         $obj->name       = $row["name"];
+        $obj->parent_ID  = $row["parent_ID"];
 		$obj->event_type = $row["event_type"];
 		$obj->match_type = $row["match_type"];
-        $obj->parent_ID  = $row["parent_ID"];
 		$obj->format     = $row["format"];
 		$obj->score_type = $row["score_type"];
+		$obj->gender_type = $row["gender_type"];
+		$obj->age_max    = $row["age_max"];
+		$obj->age_min    = $row["age_min"];
 		$obj->signup_by  = isset( $row['signup_by'] )  ? new DateTime( $row['signup_by'] ) : null;
 		$obj->start_date = isset( $row['start_date'] ) ? new DateTime( $row['start_date'] ) : null;
 		$obj->end_date   = isset( $row["end_date"] )   ? new DateTime( $row["end_date"] ) : null;
