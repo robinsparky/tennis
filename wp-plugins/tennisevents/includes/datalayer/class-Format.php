@@ -12,11 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since   0.1.0
  */
 class Format {
-	const TOURNAMENT  = 'elimination';
+	const ELIMINATION  = 'elimination';
 	const ROUNDROBIN  = 'roundrobin';
 
 	public static function AllFormats() {
-		return [ self::TOURNAMENT   => __( 'Elimination Rounds', TennisEvents::TEXT_DOMAIN )
+		return [ self::ELIMINATION  => __( 'Elimination Rounds', TennisEvents::TEXT_DOMAIN )
 			   , self::ROUNDROBIN   => __( 'Round Robin', TennisEvents::TEXT_DOMAIN )];
 	}
 

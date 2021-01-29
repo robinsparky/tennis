@@ -190,7 +190,7 @@ class TournamentDirector
 
         $format = $this->getEvent()->getFormat( $bracketName );
         switch( $format ) {
-            case Format::TOURNAMENT:
+            case Format::ELIMINATION:
                 return $this->advanceSingleElimination( $bracketName );
             break;
             case Format::ROUNDROBIN:
@@ -433,7 +433,7 @@ class TournamentDirector
 
         $bracket = $this->getBracket( $bracketName );
         switch($this->getEvent()->getFormat()) {
-            case Format::TOURNAMENT:
+            case Format::ELIMINATION:
                 $this->numRounds = self::calculateExponent( $bracket->signupSize() );
                 //$this->numRounds = $bracket->getNumberOfRounds();
             break;
@@ -739,7 +739,7 @@ class TournamentDirector
         $this->log->error_log("$loc");
 
         switch( $this->getEvent()->getFormat() ) {
-            case Format::TOURNAMENT:
+            case Format::ELIMINATION:
                 return $this->initializeEliminationRounds( $bracketName, $randomizeDraw );
             case Format::ROUNDROBIN:
                 return $this->initializeRoundRobin( $bracketName, true );

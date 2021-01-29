@@ -357,7 +357,7 @@ class PointsMatchUmpire extends ChairUmpire
         //Determine Champion
         if( $total === $completed ) {
             switch( $bracket->getEvent()->getFormat() ) {
-                case Format::TOURNAMENT:
+                case Format::ELIMINATION:
                     $champion = $this->matchWinner( $matchesByRound[$numRounds][$lastMatchNum] );
                     $champion = is_null( $champion ) ? 'Could not determine the champion!' : $champion->getName();
                     $summary["champion"] = $champion;

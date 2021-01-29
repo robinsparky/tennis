@@ -952,7 +952,7 @@ class Bracket extends AbstractData
 
         $format = $this->getEvent()->getFormat();
         switch( $format ) {
-            case Format::TOURNAMENT:
+            case Format::ELIMINATION:
                 return $this->loadSingleElimination();
             break;
             case Format::ROUNDROBIN:
