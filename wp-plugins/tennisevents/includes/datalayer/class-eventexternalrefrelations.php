@@ -57,7 +57,9 @@ class EventExternalRefRelations {
 		}
 
 		if($wpdb->last_error) {
-			error_log("$loc: Last error='$wpdb->last_error'");
+			$mess = "{$loc}: Last error='{$wpdb->last_error}'";
+			error_log($mess);
+			throw new InvalidEventException($mess);
 		}
 		
 		error_log("$loc: added $result rows");

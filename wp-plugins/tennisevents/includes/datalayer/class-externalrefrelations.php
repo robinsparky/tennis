@@ -7,12 +7,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** 
  * Provides functions to support the more complex
  * data operations such as maintaining intersection tables.
- * @class  EventExternalRefRelations
+ * @class  ExternalRefRelations
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
 */
 class ExternalRefRelations {
+
+	private const ClubExternalTable = 'tennis_external_club';
+	private const EventExternalTable = 'tennis_external_event';
 	
 	/**
 	 * Remove a relationship between and Club and an external reference
@@ -26,11 +29,11 @@ class ExternalRefRelations {
 		if( isset($extRef) && isset($Id) ) {
 			switch( $target ) {
 				case 'club':					
-					$table = $wpdb->prefix . 'tennis_external_club';
+					$table = $wpdb->prefix . self::ClubExternalTable;
 					$col_ID = 'club_ID';
 					break;
 				case 'event':
-					$table = $wpdb->prefix . 'tennis_external_event';
+					$table = $wpdb->prefix . self::EventExternalTable;
 					$col_ID = 'event_ID';
 					break;
 				default:
@@ -59,11 +62,11 @@ class ExternalRefRelations {
 				
 		switch( $target ) {
 			case 'club':					
-				$table = $wpdb->prefix . 'tennis_external_club';
+				$table = $wpdb->prefix . self::ClubExternalTable;
 				$col_ID = 'club_ID';
 				break;
 			case 'event':
-				$table = $wpdb->prefix . 'tennis_external_event';
+				$table = $wpdb->prefix . self::EventExternalTable;
 				$col_ID = 'event_ID';
 				break;
 			default:
@@ -83,7 +86,16 @@ class ExternalRefRelations {
 		}
 
 		if($wpdb->last_error) {
-			error_log("$loc: Last error='$wpdb->last_error'");
+			$mess = "$loc: Last error='$wpdb->last_error'";
+			error_log($mess);	
+			switch( $target ) {
+				case 'club':
+					throw new InvalidClubException($mess);
+				case 'event':
+					throw new InvalidEventException($mess);
+				default:
+					throw new InvalidArgumentException($mess);
+			}
 		}
 		
 		error_log("$loc: Target=$target added $result external reference rows");
@@ -102,11 +114,11 @@ class ExternalRefRelations {
 		
 		switch( $target ) {
 			case 'club':					
-				$table = $wpdb->prefix . 'tennis_external_club';
+				$table = $wpdb->prefix . self::ClubExternalTable;
 				$col_ID = 'club_ID';
 				break;
 			case 'event':
-				$table = $wpdb->prefix . 'tennis_external_event';
+				$table = $wpdb->prefix . self::EventExternalTable;
 				$col_ID = 'event_ID';
 				break;
 			default:

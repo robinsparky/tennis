@@ -1247,7 +1247,7 @@ class Event extends AbstractData
 	 */
 	private function fetchExternalRefs() {	
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->external_refs = EventExternalRefRelations::fetchExternalRefs( $this->getID() );
+		$this->external_refs = ExternalRefRelations::fetchExternalRefs('event', $this->getID() );
 	}
 
 	/*
@@ -1424,7 +1424,7 @@ class Event extends AbstractData
 		if( isset( $this->external_refs ) ) {
 			foreach($this->external_refs as $er) {
 				//Create relation between this Event and its external references
-				$result += EventExternalRefRelations::add( $this->getID(), $er );
+				$result += ExternalRefRelations::add('event', $this->getID(), $er );
 			}
 		}
 
@@ -1432,7 +1432,7 @@ class Event extends AbstractData
 		if( count( $this->external_refsToBeDeleted ) > 0 ) {
 			foreach( $this->external_refsToBeDeleted as $er ) {
 				if( !in_array( $er, $this->external_refs ) ) {
-					$result += EventExternalRefRelations::remove( $this->getID(), $er );
+					$result += ExternalRefRelations::remove('event', $this->getID(), $er );
 				}
 			}
 			$this->external_refsToBeDeleted = array();
