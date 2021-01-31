@@ -56,6 +56,12 @@ class ScoreType {
                     self::POINTS2    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>2),
                     self::POINTS3    => array("MaxSets"=>2,"GamesPerSet"=>4,"MustWinBy"=>2,"PointsPerWin"=>2),
                 );
+                
+
+    //Used to separate Elimination rules from Round Robin rules
+    private $RoundRobinOnly = [self::POINTS1 =>''
+                              ,self::POINTS2 =>''
+                              ,self::POINTS3 =>''];
    
 	//This class's singleton
 	private static $_instance;
@@ -118,23 +124,24 @@ class ScoreType {
     }
 
     /**
-     * Get scoring rules acceptable for given Format
+     * Get scoring rules valid for given Format
      * @param string $format
      * @return array of scoring rules
      */
-    public function validScoringRules( string $format ) : array {
+    public function validFormatScoringRules( string $format ) : array {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 
         $result = array();
-        $elimOnly = array_diff_key($this->ScoreRules,[self::POINTS1 =>'', self::POINTS2=>'']);
-        $rrOnly = array_diff_key($this->ScoreRules, $elimOnly );
 
-        error_log("{$loc}: Elimination rules:");
-        error_log(print_r($elimOnly,true));
-        error_log("{$loc}: Round Robin rules:");
-        error_log(print_r($rrOnly,true));
+        if( $this->isValid( $format ) ) {
+            $elimOnly = array_diff_key($this->ScoreRules, $this->RoundRobinOnly);
+            $rrOnly = array_diff_key($this->ScoreRules, $elimOnly );
 
-        if( Format::isValid( $format ) ) {
+            error_log("{$loc}: Elimination rules:");
+            error_log(print_r($elimOnly,true));
+            error_log("{$loc}: Round Robin rules:");
+            error_log(print_r($rrOnly,true));
+
             switch($format) {
                 case Format::ELIMINATION:
                     $result = $elimOnly;
@@ -144,7 +151,6 @@ class ScoreType {
                     break;
             }
         }
-
         return $result;
     }
 }

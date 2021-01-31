@@ -1178,7 +1178,7 @@ class Event extends AbstractData
 			$mess = __('Root event must be associated with at least one club', TennisEvents::TEXT_DOMAIN );
 		}
 		elseif( $this->isLeaf() && isset( $this->score_type ) && isset( $this->format ) ) {
-			$acceptable = ScoreType::get_instance()->validScoringRules($this->format);
+			$acceptable = ScoreType::get_instance()->validFormatScoringRules($this->format);
 			if( count($acceptable) > 0 && !in_array( $this->score_type, array_keys($acceptable) ) ) {
 				$mess = __("Score Type '{$this->score_type }' is invalid for the assigned Format '{$this->format}'");
 			}
