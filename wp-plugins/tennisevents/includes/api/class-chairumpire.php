@@ -70,7 +70,7 @@ abstract class ChairUmpire
                 break;
             case ScoreType::FAST4: 
                 //Fast4
-                $chairUmpire = Fast4Umpire::getInstance();
+                $chairUmpire = RegulationMatchUmpire::getInstance();
                 break;
             case ScoreType::POINTS1:
             case ScoreType::POINTS2:
@@ -153,11 +153,8 @@ abstract class ChairUmpire
         if( $this->TieBreakAt > $this->GamesPerSet ) $this->TieBreakAt = $this->GamesPerSet;
         if( !in_array($this->MustWinBy, array(1,2) ) ) $this->MustWinBy = 2;
         if( $this->MustWinBy === 1 ) $this->NoTieBreakerFinalSet = true;
-
-        // if( $this->NoTieBreakerFinalSet ) $this->TieBreakDecider = false;
-        // if( $this->TieBreakDecider ) $this->NoTieBreakerFinalSet = false;
         
-        //$this->log->error_log($this, "{$loc}: initialized this ...");
+        $this->log->error_log($this, "{$loc}: initialized this ...");
     }
 
     /**
