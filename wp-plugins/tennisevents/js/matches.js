@@ -440,12 +440,15 @@
 
             let scores = [];
             for( let i = 1; i <= tennis_draw_obj.numSets; i++ ) {    
-                if( $homeTB.length > 0 ) {                
-                    scores.push({"setNum":i,"homeGames": $homeGames[i-1].value,"visitorGames": $visitorGames[i-1].value,"homeTieBreaker": $homeTB[i-1].value, "visitorTieBreaker": $visitorTB[i-1].value});
-                }
-                else {
-                    scores.push({"setNum":i,"homeGames": $homeGames[i-1].value,"visitorGames": $visitorGames[i-1].value,"homeTieBreaker": 0, "visitorTieBreaker": 0});
-                }
+                homeG = (typeof $homeGames[i-1] === 'undefined') ? 0 : $homeGames[i-1].value
+                homeT = (typeof $homeTB[i-1] === 'undefined') ? 0 : $homeTB[i-1].value
+                visitorG = (typeof $visitorGames[i-1] === 'undefined') ? 0 : $visitorGames[i-1].value
+                visitorT = (typeof $visitorTB[i-1] === 'undefined') ? 0 : $visitorTB[i-1].value;                    
+                scores.push({"setNum":i
+                            ,"homeGames": homeG
+                            ,"visitorGames": visitorG
+                            ,"homeTieBreaker": homeT
+                            ,"visitorTieBreaker": visitorT});
             }
 
             let data = {"eventid": eventId, "bracketnum": bracketNum, "roundnum": roundNum, "matchnum": matchNum
