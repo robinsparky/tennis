@@ -22,6 +22,9 @@ abstract class AbstractData
     abstract static public function get(int ...$pks);
     abstract public function isValid();
 
+	protected $isdirty = FALSE;
+    protected $isnew   = TRUE;
+    protected $ID;
     protected $log;
     
    //Default constructor
@@ -100,14 +103,10 @@ abstract class AbstractData
     protected function objSort( &$objArray, $indexFunction, $sort_flags=0) {
         $indices = array();
         foreach( $objArray as $obj ) {
-            $indeces[] = $indexFunction( $obj );
+            $indices[] = $indexFunction( $obj );
         }
-        return array_multisort( $indeces, $objArray, $sort_flags );
+        return array_multisort( $indices, $objArray, $sort_flags );
     }  
-
-	protected $isdirty = FALSE;
-    protected $isnew   = TRUE;
-    protected $ID;
 
 } //end class
  

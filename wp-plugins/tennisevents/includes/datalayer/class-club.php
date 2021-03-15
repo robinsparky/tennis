@@ -444,8 +444,17 @@ class Club extends AbstractData
 
 		$values         = array('name'=>$this->name);
 		$formats_values = array('%s');
-		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+		$res = $wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+		
+		if( $res === false || $res === 0 ) {
+			$mess = "$loc: wpdb->insert returned false or inserted 0 rows.";
+			$err = empty($wpdb->last_error) ? '' : $wpdb->last_error;
+			$mess .= " : Err='$err'";
+			throw new InvalidClubException($mess);
+		}
+		
 		$this->ID = $wpdb->insert_id;
+
 		$result = $wpdb->rows_affected;
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;

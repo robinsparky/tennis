@@ -20,7 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 global $wpdb;
-$wpdb->hide_errors(); 
+//$wpdb->hide_errors();
+$wpdb->show_errors(); 
 
 if (isset($tennisEvents) && is_object($tennisEvents) && is_a($tennisEvents, 'TennisEvents') && function_exists('TE')) return;
 
@@ -165,6 +166,7 @@ class TennisEvents {
 		ManageSignup::register();
 		ManageDraw::register();
 		ManageRoundRobin::register();
+		flush_rewrite_rules(); //necessary to make permlinks work for tennis templates
 
 		//Test for ImageMagick
 		// $image = new Imagick();
@@ -193,10 +195,13 @@ class TennisEvents {
 	 */
 	public function archive_tennisevent_query( $query ) {
 		$loc = __FILE__ . '::' . __FUNCTION__;
-		$this->log->error_log("$loc");
 		
+		$post_type = $query->get( 'post_type' );
+		$this->log->error_log("$loc: post_type='{$post_type}'");
+
 		if( $query->is_main_query() && !$query->is_feed() && !is_admin() 
 		&& $query->is_post_type_archive( TennisEventCpt::CUSTOM_POST_TYPE ) ) {
+			$this->log->error_log("$loc: post_type='{$post_type}' is post type archive!");
 			//$this->log->error_log($query, "Query Object Before");
 			$meta_query = array( 
 								array(

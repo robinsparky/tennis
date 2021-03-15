@@ -1289,9 +1289,20 @@ class Event extends AbstractData
 						,'start_date' => $this->getStartDate_Str()
 						,'end_date'   => $this->getEndDate_Str()
 					    );
-		$formats_values = array( '%s', '%d', '%s', '%s', '%s', '%s','%s', '%d','%d', '%s', '%s', '%s' );
-		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
+		$formats_values = array( '%s','%d','%s','%s','%s','%s','%s','%d','%d','%s','%s','%s' );
+
+		//$this->log->error_log($values,"$loc: Values:");
+		$res = $wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
+
+		if( $res === false || $res === 0 ) {
+			$mess = "$loc: wpdb->insert returned false or inserted 0 rows.";
+			$err = empty($wpdb->last_error) ? '' : $wpdb->last_error;
+			$mess .= " : Err='$err'";
+			throw new InvalidEventException($mess);
+		}
+
 		$this->ID = $wpdb->insert_id;
+
 		$result = $wpdb->rows_affected;
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;

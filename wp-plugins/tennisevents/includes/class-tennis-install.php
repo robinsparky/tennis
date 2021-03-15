@@ -1,5 +1,6 @@
 <?php
 use cpt\TennisEventCpt;
+use cpt\TennisClubCpt;
 use commonlib\BaseLogger;
 
 /**
@@ -106,7 +107,7 @@ class TE_Install {
 		// $this->addCap();
 		$this->create_options();
 		$this->createSchema();
-		$this->seedData();
+		//$this->seedData();
 		//add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
@@ -361,8 +362,8 @@ class TE_Install {
 				`name` VARCHAR(256) NOT NULL,
 				`parent_ID` INT NULL COMMENT 'parent event',
 				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder',
-				`score_type` VARCHAR(25) NULL COMMENT 'best2of3, best3or5, fast4, pro-set etc',
-				`match_type` VARCHAR(10) COMMENT 'singles or doubles',
+				`score_type` VARCHAR(50) NULL COMMENT 'best2of3, best3or5, fast4, pro-set etc',
+				`match_type` VARCHAR(10) COMMENT 'singles, doubles',
 				`gender_type` VARCHAR(10) COMMENT 'males, females or mixed',
 				`age_min` INT DEFAULT 1,
 				`age_max` INT DEFAULT 99,

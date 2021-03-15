@@ -58,6 +58,12 @@ class ExternalRefRelations {
 		error_log("{$loc}($target, $Id, $extRef)");
 
 		$result = 0;
+		if( $Id === 0 ) {
+			$mess = "$loc: cannot Add {$target} with Id=0 to external reference table;";
+			error_log($mess);
+			return $result;
+		}
+
 		global $wpdb;
 				
 		switch( $target ) {
@@ -85,7 +91,7 @@ class ExternalRefRelations {
 			$result = $wpdb->rows_affected;
 		}
 
-		if($wpdb->last_error) {
+		if($wpdb->last_error !== '') {
 			$mess = "$loc: Last error='$wpdb->last_error'";
 			error_log($mess);	
 			switch( $target ) {

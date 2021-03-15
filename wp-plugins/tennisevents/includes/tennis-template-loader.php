@@ -3,6 +3,8 @@
  * Use template files within this plugin.
  */
 
+use cpt\TennisEventCpt;
+
 /**
  * Locate template.
  *
@@ -21,7 +23,8 @@
  */
 
 function tennis_locate_template( $template_name, $template_path = '', $default_path = '' ) {
-
+	$loc = __FUNCTION__;
+	
 	// Set variable to search in tennisevents-plugin-templates folder of theme.
 	if ( ! $template_path ) :
 		$template_path = 'tennisevents-plugin-templates/';
@@ -31,6 +34,7 @@ function tennis_locate_template( $template_name, $template_path = '', $default_p
 	if ( ! $default_path ) :
 		$default_path = plugin_dir_path( __FILE__ ) . 'templates/'; // Path to the template folder
 	endif;
+	error_log("$loc: template_name='{$template_name}', template_path='{$template_path}', default_path='{$default_path}'");
 
 	// Search template file in theme folder.
 	$template = locate_template( array( $template_path . $template_name, $template_name	) );
@@ -58,13 +62,16 @@ function tennis_locate_template( $template_name, $template_path = '', $default_p
  * @param string 	$string $template_path	Path to templates.
  * @param string	$default_path			Default path to template files.
  */
-function tennis_get_template( $template_name, $args = array(), $tempate_path = '', $default_path = '' ) {
+function tennis_get_template( $template_name, $args = array(), $template_path = '', $default_path = '' ) {
+	$loc = __FUNCTION__;
 
 	if ( isset( $args ) && is_array( $args ) ) :
 		extract( $args );
 	endif;
+	error_log("$loc: template_name='{$template_name}', template_path='{$template_path}', default_path='{$default_path}'");
 
-	$template_file = tennis_locate_template( $template_name, $tempate_path, $default_path );
+	$template_file = tennis_locate_template( $template_name, $template_path, $default_path );
+	error_log("$loc: template_file='{$template_file}'");
 
 	if ( ! file_exists( $template_file ) ) :
 		_doing_it_wrong( __FUNCTION__, sprintf( '<code>%s</code> does not exist.', $template_file ), '1.0.0' );
@@ -89,6 +96,8 @@ function tennis_get_template( $template_name, $args = array(), $tempate_path = '
  * @param string 	$name The name of the specialised template. Defaults to null
  */
 function tennis_get_template_part( $slug, $name = null ) {
+	$loc = __FUNCTION__;
+	error_log( "$loc: slug='{$slug}', name='{$name}'" );
 
 	$template_name = "{$slug}.php";
     $name  = (string) $name;
@@ -105,7 +114,7 @@ function tennis_get_template_part( $slug, $name = null ) {
  *
  * The template loader will check if WP is loading a template
  * for a specific Post Type and will try to load the template
- * from out 'templates' directory.
+ * from our 'templates' directory.
  *
  * @since 1.0.0
  *
@@ -113,16 +122,17 @@ function tennis_get_template_part( $slug, $name = null ) {
  * @return	string				Template file that should be loaded.
  */
 function tennis_template_loader( $template ) {
-	$loc = __FILE__ . ":" .  __FUNCTION__;
+	$loc =  __FUNCTION__;	
 	error_log( "$loc: template='$template'" );
 
 	$find = array();
 	$file = '';
 
-	
-	$my_post_types = array( 'tenniseventcpt' );
+	$cptName =  TennisEventCpt::CUSTOM_POST_TYPE;
+	$my_post_types = array( $cptName );
 	  
 	if( ! is_singular( $my_post_types) && ! is_post_type_archive( $my_post_types ) ) {
+		error_log("$loc: E A R L Y   R E T U R N");
 	  return $template;
 	}
 	
@@ -156,9 +166,10 @@ function tennis_template_loader( $template ) {
 	  }
 	  error_log("$loc: looking for file='$file'");
 	
-	if ( file_exists( tennis_locate_template( $file ) ) ) {
-		$template = tennis_locate_template( $file );
-	}
+	  $templateFile = tennis_locate_template( $file );
+	  if ( file_exists( $templateFile ) ) {
+		$template = $templateFile;
+	  }
 
 	return $template;
 
