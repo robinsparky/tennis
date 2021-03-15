@@ -681,6 +681,7 @@ class ManageRoundRobin
         // }
 
         $umpire = $td->getChairUmpire();
+        $scoreType = $td->getEvent()->getScoreType();
 
         $loadedMatches = $bracket->getMatchHierarchy();
         $numRounds = 0;

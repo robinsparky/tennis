@@ -1,6 +1,7 @@
 <h3 id="bracket-name"><?php  
     $tnName = str_replace("\'","&apos;",$tournamentName );
-    echo $tnName;?>&#58;&nbsp;<?php echo $bracketName; ?> Bracket</h3>
+    echo $tnName;?>&#58;&nbsp;<?php echo $bracketName; ?> Bracket
+    (<?php echo $scoreType; ?>)</h3>
 
 <main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 

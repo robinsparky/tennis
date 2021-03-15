@@ -757,6 +757,7 @@ class ManageDraw
         $signupSize = $bracket->signupSize();
         $this->log->error_log("$loc: num matches:$numMatches; number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
 
+        $scoreType = $td->getEvent()->getScoreType();
         $this->eventId = $td->getEvent()->getID();
         $jsData = $this->get_ajax_data();
         $jsData["eventId"] = $this->eventId;
@@ -772,10 +773,10 @@ class ManageDraw
 
         $begin = <<<EOT
 <table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
-<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket</caption>
+<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket (%s)</caption>
 <thead><tr>
 EOT;
-        $out = sprintf( $begin, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName );
+        $out = sprintf( $begin, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreType );
 
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $bracket->roundOf( $i );
