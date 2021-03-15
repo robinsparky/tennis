@@ -7,19 +7,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Represents the chair umpire for an tennis tournament 
- * using elimination to record scores, determine match winners and bracket champion 
+ * using Fast4 rules to record scores, determine match winners and bracket champion 
  * 
  * @package TennisAdmin
  * @version 1.0.0
  * @since   0.1.0
  */
-class RegulationMatchUmpire extends ChairUmpire
+class Fast4Umpire extends ChairUmpire
 {
 	//This class's singleton
 	private static $_instance;
 
 	/**
-	 * RegulationMatchUmpire Singleton
+	 * Fast4Umpire Singleton
 	 *
 	 * @since 1.0
 	 * @static
@@ -127,7 +127,6 @@ class RegulationMatchUmpire extends ChairUmpire
             $setNum = $set->getSetNumber();
             $this->log->error_log("{$loc}: set number={$setNum}");
             if( 1 === $this->getMaxSets() && 1 !== $setNum ) {
-                $this->log->error_log("{$loc}: skipping set number={$setNum}");
                 break;
             }
 
@@ -158,8 +157,8 @@ class RegulationMatchUmpire extends ChairUmpire
                                      , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
                 
                 // the game score can go as high as it wants if there is no tie breaker
-                if( $homeW    < min($this->getGamesPerSet(),$this->getTieBreakAt()) 
-                &&  $visitorW < min($this->getGamesPerSet(),$this->getTieBreakAt()) ) {
+                if( $homeW < min($this->getGamesPerSet(), $this->getTieBreakAt()) 
+                &&  $visitorW < min($this->getGamesPerSet(), $this->getTieBreakAt()) ) {
                     $setInProgress = $set->getSetNumber();
                     break; //not done yet and don't even consider other sets
                 }
@@ -263,6 +262,91 @@ class RegulationMatchUmpire extends ChairUmpire
         }
         
         return $champion;
-    }
+    }    
+
+    /**
+    * Edits the game scores before saving them
+    * @param int $homeScore The home entrant's game score
+    * @param int $visitorScore the visitor entrant's game score
+    */
+   protected function getAllowableGameScore( int &$homeScore, int &$visitorScore ) {
+       $loc = __CLASS__ . '::' . __FUNCTION__;
+
+       $diff = $homeScore - $visitorScore;
+       $gamesPerSet = $this->getGamesPerSet();
+       if( 0 === $diff && $homeScore >= $this->getTieBreakAt() ) $gamesPerSet = $this->getTieBreakAt();
+
+       if($homeScore >= $gamesPerSet && $diff > 0 ) {
+           if( $diff >= $this->getMustWinBy() && $this->noTieBreakers() ) {
+               $homeScore = max( $visitorScore + $this->getMustWinBy(), $gamesPerSet );    
+           }
+           elseif( $diff >= $this->getMustWinBy() ) {
+               if( $visitorScore === $gamesPerSet - 1 ) {
+                   $homeScore = $gamesPerSet;
+               }
+               else {
+                   $homeScore = $gamesPerSet;
+                   $visitorScore = min( $visitorScore, $homeScore - $this->getMustWinBy() );
+               }
+           }
+       }
+       elseif( $visitorScore >= $gamesPerSet && $diff < 0 ) {
+           $diff =  abs($diff);
+           if( $diff >= $this->getMustWinBy() && $this->noTieBreakers() ) {
+               $visitorScore = max( $homeScore + $this->getMustWinBy(), $gamesPerSet );  
+           }
+           elseif( $diff >= $this->getMustWinBy() ) {
+               if( $homeScore === $gamesPerSet - 1 ) {
+                   $visitorScore = $gamesPerSet;
+               }
+               else {
+                   $visitorScore = $gamesPerSet;
+                   $homeScore = min( $homeScore, $visitorScore - $this->getMustWinBy() );
+               }
+           }
+       }
+       elseif( 0 === $diff ) {
+           if( !$this->noTieBreakers() ) {
+               $homeScore = min( $homeScore, $gamesPerSet );
+               $visitorScore = min( $visitorScore, $gamesPerSet );
+           }
+       }
+   }
+
+   /**
+    * Edits the tie breaker scores before saving them
+    * @param int $homeScore The home entrant's tie break score
+    * @param int $visitorScore the visitor entrant's tie break score
+    */
+   protected function getAllowableTieBreakScore( int &$homeScore, int &$visitorScore ) {
+       $loc = __CLASS__ . '::' . __FUNCTION__;
+       
+       if( $this->noTieBreakers() ) return;
+
+       $diff = $homeScore - $visitorScore;
+       if($homeScore >= $this->getTieBreakMinScore() && $diff > 0 ) {
+           if( $diff >= $this->getMustWinBy() ) {
+               if( $visitorScore === $this->getTieBreakMinScore() - 1 ) {
+                   $homeScore = $this->getTieBreakMinScore() + ($this->getMustWinBy() - 1);
+               }
+               else {
+                   $homeScore = $this->getTieBreakMinScore();
+                   $visitorScore = min( $visitorScore, $homeScore - $this->getMustWinBy() );
+               }
+           }
+       }
+       elseif( $visitorScore >= $this->getTieBreakMinScore() && $diff < 0 ) {
+           $diff =  abs($diff);
+           if( $diff >= $this->getMustWinBy() ) {
+               if( $homeScore === $this->getTieBreakMinScore() - 1 ) {
+                   $visitorScore = $this->getTieBreakMinScore() + ($this->getMustWinBy() - 1);
+               }
+               else {
+                   $visitorScore = $this->getTieBreakMinScore();
+                   $homeScore = min( $homeScore, $visitorScore - $this->getMustWinBy() );
+               }
+           }
+       }
+   }
 
 } //end of class

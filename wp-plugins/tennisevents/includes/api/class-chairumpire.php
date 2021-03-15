@@ -70,7 +70,8 @@ abstract class ChairUmpire
                 break;
             case ScoreType::FAST4: 
                 //Fast4
-                $chairUmpire = RegulationMatchUmpire::getInstance();
+                // $chairUmpire = Fast4Umpire::getInstance();
+                $chairUmpire = RegulationMatchUmpire::getInstance();                
                 break;
             case ScoreType::POINTS1:
             case ScoreType::POINTS2:
@@ -152,7 +153,7 @@ abstract class ChairUmpire
 
         if( $this->TieBreakAt > $this->GamesPerSet ) $this->TieBreakAt = $this->GamesPerSet;
         if( !in_array($this->MustWinBy, array(1,2) ) ) $this->MustWinBy = 2;
-        if( $this->MustWinBy === 1 ) $this->NoTieBreakerFinalSet = true;
+        //if( $this->MustWinBy === 1 ) $this->NoTieBreakerFinalSet = true;
         
         $this->log->error_log($this, "{$loc}: initialized this ...");
     }
@@ -280,9 +281,14 @@ abstract class ChairUmpire
      * @return bool true if no tie breakers, false otherwise
      */
     public function noTieBreakers(): bool {
-        return 0 === $this->TieBreakAt;
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        //$this->log->error_log("{$loc}: TieBreakAt={$this->TieBreakAt}");
+        $result = false;
+        if( $this->TieBreakAt < 1 ) $result = true;
+ 
+        return $result;
     }
-    
+        
     /**
      * Get the minimum tie breaker score
      */
@@ -506,7 +512,9 @@ abstract class ChairUmpire
                 // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
                 //                 , $loc, $match->toString(), $setNum
                 //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
-                if( $scores[0] === $scores[1] && $scores[0] === $this->GamesPerSet ) {
+                if( ($scores[0] === $scores[1]) 
+                && (($scores[0] === $this->GamesPerSet )
+                ||  ($scores[0] === $this->getTieBreakAt()))) {
                     $strScores .= sprintf("%d(%d)-%d(%d)%s ", $scores[0], $scores[2], $scores[1], $scores[3], $sep);
                 } 
                 else {
@@ -656,7 +664,9 @@ EOT;
             $this->log->error_log($mess);
 
             $homeTBScores = $visitorTBScores = '';
-            if( $scores[0] === $scores[1] && $scores[0] >= $this->GamesPerSet ) {
+            if( ($scores[0] === $scores[1]) 
+            && (($scores[0] >= $this->GamesPerSet)
+            ||  ($scores[0] === $this->getTieBreakAt() ))) {
                 if( $this->includeTieBreakerScores( $setNum ) ) {
                     $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
                     $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
@@ -767,11 +777,15 @@ EOT;
     protected function includeTieBreakerScores( $setNum ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 
-        $result = true;
-        
+        $result = True;
+
         if( ( $this->getMaxSets() === $setNum && $this->getNoTieBreakerFinalSet() ) 
-        || true === $this->noTieBreakers() ) {
-            $result = false;
+            || $this->noTieBreakers() ) {
+            $result = False;
+            $this->log->error_log("{$loc}({$setNum}): yields false");
+        }
+        else {
+            $this->log->error_log("{$loc}({$setNum}): yields true");
         }
 
         return $result;        
@@ -786,39 +800,42 @@ EOT;
         $loc = __CLASS__ . '::' . __FUNCTION__;
 
         $diff = $homeScore - $visitorScore;
-        if($homeScore >= $this->getGamesPerSet() && $diff > 0 ) {
+        $gamesPerSet = $this->getGamesPerSet();
+        if( 0 === $diff && $homeScore >= $this->getTieBreakAt() ) $gamesPerSet = $this->getTieBreakAt();
+ 
+        if($homeScore >= $gamesPerSet && $diff > 0 ) {
             if( $diff >= $this->getMustWinBy() && $this->noTieBreakers() ) {
-                $homeScore = max( $visitorScore + $this->getMustWinBy(), $this->getGamesPerSet() );    
+                $homeScore = max( $visitorScore + $this->getMustWinBy(), $gamesPerSet );    
             }
             elseif( $diff >= $this->getMustWinBy() ) {
-                if( $visitorScore === $this->getGamesPerSet() - 1 ) {
-                    $homeScore = $this->getGamesPerSet() + 1;
+                if( $visitorScore === $gamesPerSet - 1 ) {
+                    $homeScore = $gamesPerSet  + ($this->getMustWinBy() - 1);
                 }
                 else {
-                    $homeScore = $this->getGamesPerSet();
+                    $homeScore = $gamesPerSet;
                     $visitorScore = min( $visitorScore, $homeScore - $this->getMustWinBy() );
                 }
             }
         }
-        elseif( $visitorScore >= $this->getGamesPerSet() && $diff < 0 ) {
+        elseif( $visitorScore >= $gamesPerSet && $diff < 0 ) {
             $diff =  abs($diff);
             if( $diff >= $this->getMustWinBy()  && $this->noTieBreakers() ) {
-                $visitorScore = max( $homeScore + $this->getMustWinBy(), $this->getGamesPerSet() );  
+                $visitorScore = max( $homeScore + $this->getMustWinBy(), $gamesPerSet );  
             }
             elseif( $diff >= $this->getMustWinBy() ) {
-                if( $homeScore === $this->getGamesPerSet() - 1 ) {
-                    $visitorScore = $this->getGamesPerSet() + 1;
+                if( $homeScore === $gamesPerSet - 1 ) {
+                    $visitorScore = $gamesPerSet  + ($this->getMustWinBy() - 1);
                 }
                 else {
-                    $visitorScore = $this->getGamesPerSet();
+                    $visitorScore = $gamesPerSet;
                     $homeScore = min( $homeScore, $visitorScore - $this->getMustWinBy() );
                 }
             }
         }
         elseif( 0 === $diff ) {
             if( !$this->noTieBreakers() ) {
-                $homeScore = min( $homeScore, $this->getGamesPerSet() );
-                $visitorScore = min( $visitorScore, $this->getGamesPerSet() );
+                $homeScore = min( $homeScore, $gamesPerSet );
+                $visitorScore = min( $visitorScore, $gamesPerSet );
             }
         }
     }
@@ -837,7 +854,7 @@ EOT;
         if($homeScore >= $this->getTieBreakMinScore() && $diff > 0 ) {
             if( $diff >= $this->getMustWinBy() ) {
                 if( $visitorScore === $this->getTieBreakMinScore() - 1 ) {
-                    $homeScore = $this->getTieBreakMinScore() + 1;
+                    $homeScore = $this->getTieBreakMinScore() + ($this->getMustWinBy() - 1);
                 }
                 else {
                     $homeScore = $this->getTieBreakMinScore();
@@ -849,7 +866,7 @@ EOT;
             $diff =  abs($diff);
             if( $diff >= $this->getMustWinBy() ) {
                 if( $homeScore === $this->getTieBreakMinScore() - 1 ) {
-                    $visitorScore = $this->getTieBreakMinScore() + 1;
+                    $visitorScore = $this->getTieBreakMinScore() + ($this->getMustWinBy() - 1);
                 }
                 else {
                     $visitorScore = $this->getTieBreakMinScore();
