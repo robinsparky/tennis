@@ -293,7 +293,8 @@ class TennisEventCpt {
 			$scoreType = get_post_meta($postID, self::SCORE_TYPE_META_KEY, TRUE);
 			if (!empty($scoreType)) {
 				if (ScoreType::get_instance()->isValid($scoreType)) {
-					echo $scoreType;
+					//echo $scoreType;
+					echo ScoreType::get_instance()->getRuleDescriptions()[$scoreType];
 				} else {
 					echo "";
 				}
@@ -760,15 +761,15 @@ class TennisEventCpt {
 
 		if (!empty($parentId)) {
 			error_clear_last();
-			$rules = array_keys(ScoreType::get_instance()->ScoreRules);
+			$descriptions = ScoreType::get_instance()->getRuleDescriptions();
 			//Now echo the html desired
 			echo '<select name="tennis_score_type_field">';
 			echo '<option value="">Select Score Type...</option>';
-			foreach ($rules as $rule) {
-				$disp = esc_attr($rule);
-				$value = esc_attr($rule);
+			foreach ($descriptions as $key => $desc) {
+				$disp = esc_attr($desc);
+				$value = esc_attr($key);
 				$sel = '';
-				if ($actual === $rule) $sel = 'selected';
+				if ($actual === $key) $sel = 'selected';
 				echo "<option value='$value' $sel>$disp</option>";
 			}
 			echo '</select>';

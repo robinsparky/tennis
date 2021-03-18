@@ -30,16 +30,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ScoreType {
 
     //Keys for rule masks
-    public const BEST2OF3        = 'Best 2 of 3'; //Best 2 of 3 sets with 7pt tie breaker at 6 all
-    public const BEST3OF5        = 'Best 3 of 5'; //Best 3 of 5 sets with 7pt tie breaker at 6 all
-    public const PROSET8         = "Pro Set 8 Games"; //Best of 8 games with 7 pt tie break at 8 all
-    public const PROSET10        = "Pro Set 10 Games"; //Best of 10 games with 7pt tie break at 10 all
-    public const BEST2OF3TB      = "Best 2 of 3 match tie breaker"; //Best 2 of 3 sets, but 3rd set is 10pt tie breaker. e.g. Laver Cup
-    public const FAST4           = "Fast4"; //No ad scoring, lets ignored, 7pt tie breaker at 3 all
-    public const POINTS1         = "One Set One Point Per Win"; //Based on points per win and total games won
-    public const POINTS2         = "One Set Two Points Per Win"; //Based on points per win and total games won    
-    public const POINTS3         = "Two Sets Two Points Per Win"; //Based on points per win and total games won
+    public const BEST2OF3        = '2of3'; //Best 2 of 3 sets with 7pt tie breaker at 6 all
+    public const BEST3OF5        = '3of5'; //Best 3 of 5 sets with 7pt tie breaker at 6 all
+    public const PROSET8         = "proset8"; //Best of 8 games with 7 pt tie break at 8 all
+    public const PROSET10        = "proset10"; //Best of 10 games with 7pt tie break at 10 all
+    public const BEST2OF3TB      = "2of3matchtiebreaker"; //Best 2 of 3 sets, but 3rd set is 10pt tie breaker. e.g. Laver Cup
+    public const FAST4           = "fast4"; //No ad scoring, lets ignored, 7pt tie breaker at 3 all
+    public const POINTS1         = "1set1point"; //Based on points per win and total games won
+    public const POINTS2         = "1set2points"; //Based on points per win and total games won    
+    public const POINTS3         = "2sets2points"; //Based on points per win and total games won
 
+    /*
+    * Score Type Descriptions
+    */
+    private $ScoreRuleDescriptions = [
+            self::BEST2OF3   => 'Best 2 of 3',
+            self::BEST3OF5   => 'Best 3 of 5',
+            self::PROSET8    => "Pro Set 8 Games",
+            self::PROSET10   => "Pro Set 10 Games",
+            self::BEST2OF3TB => "Best 2 of 3 match tie breaker",
+            self::FAST4      => "Fast4",
+            self::POINTS1    => "One Set One Point Per Win",
+            self::POINTS2    => "One Set Two Points Per Win",    
+            self::POINTS3    => "Two Sets Two Points Per Win",
+    ];
     
     /**
      * Scoring rules
@@ -88,6 +102,13 @@ class ScoreType {
 		if ( isset( self::$_instance ) ) {
 			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ),get_class( $this ) ) );
 		}
+    }
+
+    /*
+    * Get the descriptions of the scoring rules
+    */
+    public function getRuleDescriptions() {
+        return $this->ScoreRuleDescriptions;
     }
     
     /**

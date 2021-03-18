@@ -462,7 +462,23 @@ class Event extends AbstractData
 	 * Get the type of scoring for this event
 	 */
 	public function getScoreType( ) : string {
+		return $this->getScoreRule();
+	}
+
+	/**
+	 * Get the type of scoring for this event
+	 */
+	public function getScoreRule( ) : string {
 		return $this->score_type ?? '';
+	}
+
+	public function getScoreRuleDescription() {
+		$result = '';
+		$st = ScoreType::get_instance();
+		if( array_key_exists($this->getScoreRule(), $st->getRuleDescriptions())) {
+			$result = $st->getRuleDescriptions()[$this->getScoreRule()]; 
+		}
+		return $result;
 	}
 
 	/**
