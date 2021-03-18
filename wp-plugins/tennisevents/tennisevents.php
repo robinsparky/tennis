@@ -39,6 +39,7 @@ class TennisEvents {
 	 * @var     string
 	 */
 	public const VERSION = '1.0.0';
+	public const OPTION_NAME_SEEDED  = 'data_seeded';
 	
 	/**
 	 * Unique identifier for the plugin.
@@ -167,6 +168,7 @@ class TennisEvents {
 		ManageDraw::register();
 		ManageRoundRobin::register();
 		flush_rewrite_rules(); //necessary to make permlinks work for tennis templates
+		$this->seedData();
 
 		//Test for ImageMagick
 		// $image = new Imagick();
@@ -177,6 +179,31 @@ class TennisEvents {
 		// $this->log->error_log("$loc: $magicmess"); 
 
 		$this->log->error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
+	}
+	
+	/**
+	 * Seed the newly created schema
+	 */
+	public function seedData() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+
+		if( false === get_option(TennisEvents::OPTION_NAME_SEEDED) ) {
+			$post_data = ['post_content'=>'Seeded data for default tennis club'
+						,'post_title' => get_bloginfo('name')
+						,'post_name' => get_bloginfo('name')
+						,'post_type' => TennisClubCpt::CUSTOM_POST_TYPE
+						,'post_status' => 'publish'
+						,'comment_status' => 'closed'
+						,'ping_status' => 'closed'];
+			$postId = wp_insert_post($post_data);
+			if( is_wp_error($postId) ) {
+				throw new Exception($postId->get_error_message());
+			}
+			if( $postId === 0 ){
+				throw new Exception("Failed to seed tennis club");
+			}
+			update_option(TennisEvents::OPTION_NAME_SEEDED, "yes");
+		}
 	}
 	
 	public function getPluginPath() {

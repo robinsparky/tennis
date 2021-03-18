@@ -107,7 +107,6 @@ class TE_Install {
 		// $this->addCap();
 		$this->create_options();
 		$this->createSchema();
-		//$this->seedData();
 		//add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
@@ -145,9 +144,7 @@ class TE_Install {
 	 */
 	protected function delete_options() {
 		delete_option( self::OPTION_NAME_VERSION );
-		//TODO: Make the following option names static fields somewhere
-		delete_option( 'gw_tennis_event_season' );
-		delete_option( 'gw_tennis_home_club' );
+		delete_option( TennisEvents::OPTION_NAME_SEEDED );
 	}
 
 	/**
@@ -361,13 +358,13 @@ class TE_Install {
 				`ID` INT NOT NULL AUTO_INCREMENT,
 				`name` VARCHAR(256) NOT NULL,
 				`parent_ID` INT NULL COMMENT 'parent event',
-				`event_type` VARCHAR(50) NULL COMMENT 'tournament, league, ladder',
-				`score_type` VARCHAR(50) NULL COMMENT 'best2of3, best3or5, fast4, pro-set etc',
+				`event_type` VARCHAR(25) NULL COMMENT 'tournament, league, ladder',
+				`score_type` VARCHAR(25) NULL COMMENT 'best2of3, best3or5, fast4, pro-set etc',
 				`match_type` VARCHAR(10) COMMENT 'singles, doubles',
 				`gender_type` VARCHAR(10) COMMENT 'males, females or mixed',
 				`age_min` INT DEFAULT 1,
 				`age_max` INT DEFAULT 99,
-				`format` VARCHAR(25) NULL COMMENT 'elimination rounds, round robin',
+				`format` VARCHAR(25) NULL COMMENT 'elimination, round robin',
 				`signup_by` DATE NULL,
 				`start_date` DATE NULL,
 				`end_date` DATE NULL,
@@ -745,22 +742,6 @@ class TE_Install {
 		return $wpdb->last_error;
 
 	} //end add schema
-
-	/**
-	 * Seed the newly created schema
-	 */
-	public function seedData() {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		global $wpdb;
-
-		$table = $this->dbTableNames["club"];
-		$values = array("name" => "Tyandaga Tennis Club");
-		$formats_values = array('%s');
-		$affected = $wpdb->insert( $table, $values, $formats_values );
-		$this->log->error_log( "$loc: last error='{$wpdb->last_error}'" );
-		$this->log->error_log( "$loc: rows affected = $affected" );
-		return $affected;
-	}
 	
 	/**
 	 * Drop the Tennis Events schema
