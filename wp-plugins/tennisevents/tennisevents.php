@@ -103,6 +103,81 @@ class TennisEvents {
 		$this->includes();
 		$this->log = new BaseLogger( true );//Must come after includes
 		$this->setup();
+		//Temporary test of CF7 filter
+		//$this->addCF7Filters();
+	}
+
+	/**
+	 * Add Contact Form 7 filters
+	 * Tests to explore what is possible programmably
+	 * You can best capture CF7 posted data using the "save post" action.
+	 * See updateTennisDB in the CPT's
+	 */
+	private function addCF7Filters() {
+		/**
+		 * Description
+		 *
+		 * @param $properties
+		 * @param $cf7
+		 * @return $properties
+		 */
+		// add_filter('wpcf7_contact_form_properties', function($properties) {
+		// 	$this->log->error_log($properties,"wpcf7 Properties");
+		// 	return $properties;
+		// });
+		/**
+		 * Filter the form response output
+		 *
+		 * @param $output 
+		 * @param $class 
+		 * @param $content 
+		 * @param $cf7 
+		 * @return @output
+		 */
+		add_filter('wpcf7_form_response_output', function($output) {
+			$this->log->error_log($output,"wpcf7 Output");
+			return $output;
+		});
+		/**
+		 * Used to change the form action URL
+		 *
+		 * @param $url the current URL
+		 * @return string The new URL you want
+		 */
+		add_filter('wpcf7_form_action_url', function($url) {
+			$this->log->error_log("wpcf7 Action Url: $url");
+			return $url;
+		});
+		/**
+		 * Change de form HTML id value
+		 *
+		 * @param $html_id The current id value
+		 * @return string The new id
+		 */
+		add_filter('wpcf7_form_id_attr', function($html_id) {
+			$this->log->error_log("wpcf7 Id: $html_id");
+			return $html_id;
+		});
+		/**
+		 * Change de form HTML name
+		 *
+		 * @param $html_name The actual name
+		 * @return string The new name
+		 */
+		add_filter('wpcf7_form_name_attr', function($html_name) {
+			$this->log->error_log("wpcf7 Id: $html_name");
+			return $html_name;
+		});
+		/**
+		 * Change de form class name
+		 *
+		 * @param $html_class The actual class name
+		 * @return string The new class name
+		 */
+		add_filter('wpcf7_form_class_attr', function($html_class) {
+			$this->log->error_log("wpcf7 Id: $html_class");
+			return $html_class;
+		});
 	}
 	
 	private function includes() {
