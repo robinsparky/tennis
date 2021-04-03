@@ -314,9 +314,10 @@ class TennisClubCpt {
         // if( !isset( $_POST ) &&  !isset( $_GET ) ) return;
         // if( empty( $_POST )  && empty( $_GET ) ) return;
         
-        // $myArr = $_POST ?? $_GET;
-        // if( empty( $myArr ) ) return;
-        // $this->log->error_log($myArr, "$loc: myArr");
+        $myArr = $_POST ?? $_GET;
+        if( empty( $myArr ) ) return;
+        $this->log->error_log($myArr, "$loc: Post or Get");
+		
 		
 		if( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			$this->log->error_log("$loc --> doing autosave");
