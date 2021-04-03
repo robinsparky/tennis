@@ -674,7 +674,7 @@ class ManageRoundRobin
         
 		$startFuncTime = microtime( true );
 
-        $tournamentName = $td->getName();
+        $tournamentName = str_replace("\'","&apos;", $td->getName() );
         $bracketName    = $bracket->getName();
         // if( !$bracket->isApproved() ) {
         //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
@@ -682,6 +682,7 @@ class ManageRoundRobin
 
         $umpire = $td->getChairUmpire();
         $scoreType = $td->getEvent()->getScoreType();
+        $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
 
         $loadedMatches = $bracket->getMatchHierarchy();
         $numRounds = 0;

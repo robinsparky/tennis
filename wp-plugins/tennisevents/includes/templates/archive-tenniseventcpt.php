@@ -99,6 +99,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 							$eventFormat = Format::AllFormats()[$eventFormat];	
 							$scoreType   = get_post_meta( get_the_ID(), TennisEventCpt::SCORE_TYPE_META_KEY, true );
 							$scoreRules  = ScoreType::get_instance()->ScoreRules[$scoreType];
+							$scoreRuleDesc = ScoreType::get_instance()->getRuleDescriptions()[$scoreType];
 							$signupBy = get_post_meta( get_the_ID(), TennisEventCpt::SIGNUP_BY_DATE_META_KEY, true );
 							$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
 							$endDate = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
@@ -112,7 +113,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 							<tbody>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php echo $eventFormat; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Score Rules", TennisEvents::TEXT_DOMAIN);?></td></strong><td><strong><?php echo $scoreType; ?></strong>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Score Rules", TennisEvents::TEXT_DOMAIN);?></td></strong><td><strong><?php echo $scoreRuleDesc; ?></strong>
 								<ul class="tennis-score-rules">
 								<?php foreach($scoreRules as $name=>$rule ) { ?>
 										<li><?php echo "{$name}: {$rule}"?></li>
