@@ -323,6 +323,11 @@ class TennisEvents {
 	 */
 	private function setup() {
 
+		//Set the default time zone
+		date_default_timezone_set(ini_get('date.timezone'));
+		$tz = date_default_timezone_get();
+		$this->log->error_log("TennisEvents: Plugin Setup: time zone={$tz}");
+
         // Add actions
 		add_action( 'init', array( $this, 'init') );
 		//add_action( 'rest_api_init', array( self::getControllerManager(), 'register_tennis_rest_routes' ) );
