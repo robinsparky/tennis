@@ -306,7 +306,7 @@ class Bracket extends AbstractData
 		$result = null;
 
 		foreach( $this->getSignup() as $entrant ) {
-			if( $name === str_replace(array("\'","'"),"",$entrant->getName()) ) {
+			if( $name === str_replace(array("\'"),"'",$entrant->getName()) ) {
 				$result = $entrant;
 				break;
 			}
