@@ -75,6 +75,7 @@ abstract class ChairUmpire
                 break;
             case ScoreType::POINTS1:
             case ScoreType::POINTS2:
+            case ScoreType::POINTS3:
                 //Points
                 $chairUmpire = PointsMatchUmpire::getInstance();
                 break;
