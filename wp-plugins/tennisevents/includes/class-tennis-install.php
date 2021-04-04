@@ -93,13 +93,6 @@ class TE_Install {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
 
-		// Ensure needed classes are loaded		
-		//ManageSignup::register();
-		//ManageDraw::register();
-
-		// TennisEventCpt::register();
-		// TennisClubCpt::register();
-
 		// clear the permalinks after the post type has been registered
 		flush_rewrite_rules();
 
@@ -368,6 +361,7 @@ class TE_Install {
 				`signup_by` DATE NULL,
 				`start_date` DATE NULL,
 				`end_date` DATE NULL,
+				`num_brackets` INT DEFAULT 1,
 				PRIMARY KEY (`ID`),
 				CONSTRAINT `fk_hierarchy`
 				FOREIGN KEY (`parent_ID`)
@@ -496,8 +490,7 @@ class TE_Install {
 				`round_num` INT NOT NULL  DEFAULT 0, 
 				`match_num` INT NOT NULL  DEFAULT 0, 
 				`match_type` DECIMAL(3,1) NOT NULL COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles', 
-				`match_date` DATE NULL, 
-				`match_time` TIME(6) NULL, 
+				`match_date` DATETIME NULL, 
 				`is_bye` TINYINT DEFAULT 0, 
 				`next_round_num` INT DEFAULT 0, 
 				`next_match_num` INT DEFAULT 0, 
