@@ -32,6 +32,7 @@ class Event extends AbstractData
 	private $gender_type; //male, female, mixed
 	private $age_max = 99; //maximum age allowed
 	private $age_min = 1; //minimum age allowed
+	private $num_brackets; //number of brackets for this child event
     
 	private $clubs; //array of related clubs for this root event
 	private $childEvents; //array of child events
@@ -54,7 +55,11 @@ class Event extends AbstractData
 		
 		$criteria .= strpos($criteria,'%') ? '' : '%';
 		
-		$sql = "SELECT `ID`,`event_type`,`name`,`format`, `match_type`,`score_type`,`gender_type`,`age_min`,`age_max`,`parent_ID`,`signup_by`,`start_date`, `end_date` 
+		$sql = "SELECT `ID`,`event_type`,`name`
+		       ,`format`, `match_type`,`score_type`,`gender_type`
+			   ,`age_min`,`age_max`
+			   ,`parent_ID`,`num_brackets`
+			   ,`signup_by`,`start_date`, `end_date` 
 		        FROM $table WHERE `name` like '%s'";
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
@@ -92,7 +97,7 @@ class Event extends AbstractData
 			//All events who are children of specified Event
 			$col_value = $fk_criteria["parent_ID"];
 			error_log("Event::find using parent_ID=$col_value");
-			$sql = "SELECT ce.ID, ce.event_type, ce.name, ce.format, ce.match_type, ce.score_type, ce.gender_type, ce.age_max, ce.age_min, ce.parent_ID
+			$sql = "SELECT ce.ID, ce.event_type, ce.name, ce.format, ce.match_type, ce.score_type, ce.gender_type, ce.age_max, ce.age_min, ce.parent_ID, ce.num_brackets 
 			 			  ,ce.signup_by,ce.start_date,ce.end_date  
 					FROM $table ce
 					WHERE ce.parent_ID = %d;";
@@ -101,7 +106,7 @@ class Event extends AbstractData
 			//All events belonging to specified club
 			$col_value = $fk_criteria["club"];
 			error_log( "Event::find using club_ID=$col_value" );
-			$sql = "SELECT e.ID, e.event_type, e.name, e.format, e.match_type, e.score_type, e.gender_type, e.age_max, e.age_min, e.parent_ID 
+			$sql = "SELECT e.ID, e.event_type, e.name, e.format, e.match_type, e.score_type, e.gender_type, e.age_max, e.age_min, e.parent_ID, e.num_brackets 
 						  ,e.signup_by,e.start_date,e.end_date 
 					from $table e 
 					INNER JOIN $joinTable AS j ON j.event_ID = e.ID 
@@ -111,7 +116,7 @@ class Event extends AbstractData
 			//All events
 			error_log( "Event::find all events" );
 			$col_value = 0;
-			$sql = "SELECT `ID`,`event_type`,`name`,`format`, `match_type`, `score_type`,`gender_type`, `age_max`, `age_min`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
+			$sql = "SELECT `ID`,`event_type`,`name`,`format`, `match_type`, `score_type`,`gender_type`, `age_max`, `age_min`,`parent_ID`,`num_brackets`,`signup_by`,`start_date`,`end_date` 
 					FROM $table;";
 		}
 		else {
@@ -199,7 +204,7 @@ class Event extends AbstractData
 		
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
-		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`, `gender_type`, `age_max`, `age_min`,`parent_ID`,`signup_by`,`start_date`,`end_date` 
+		$sql = "SELECT `ID`,`event_type`,`name`,`format`,`match_type`,`score_type`, `gender_type`, `age_max`, `age_min`,`parent_ID`,`num_brackets`,`signup_by`,`start_date`,`end_date` 
 		        FROM $table WHERE `ID`=%d";
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
@@ -250,7 +255,7 @@ class Event extends AbstractData
     
 
 	/******************************* Instance Methods **************************************/
-	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT) {
+	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
 		parent::__construct( true );
@@ -691,6 +696,38 @@ class Event extends AbstractData
 		}
 
         return $result;
+	}
+
+	/**
+	 * If an end data has been set and the current date 
+	 * is after the end date then the event is considered closed.
+	 * @return boolean
+	 */
+	public function isClosed() : boolean {
+		$result = false;
+		if( !is_null( $this->end_date ) ) {
+			if( $this->end_date < new \DateTime() ) $result = true;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Set the number of brackets that this child event should have
+	 * @param int $numBrackets
+	 */
+	public function setNumberOfBrackets( int $numBrackets ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->num_brackets = $numBrackets;
+		return $this->setDirty();
+	}
+
+	/**
+	 * Get the number of brackets that this child event should have
+	 * @return int The number of brackets.
+	 */
+	public function getNumberOfBrackets() :int {
+		return $this->num_brackets ?? 1;
 	}
 
 	/**
@@ -1304,8 +1341,9 @@ class Event extends AbstractData
 						,'signup_by'  => $this->getSignupBy_Str()
 						,'start_date' => $this->getStartDate_Str()
 						,'end_date'   => $this->getEndDate_Str()
+						,'num_brackets' => $this->getNumberOfBrackets()
 					    );
-		$formats_values = array( '%s','%d','%s','%s','%s','%s','%s','%d','%d','%s','%s','%s' );
+		$formats_values = array( '%s','%d','%s','%s','%s','%s','%s','%d','%d','%s','%s','%s','%d' );
 
 		//$this->log->error_log($values,"$loc: Values:");
 		$res = $wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
@@ -1354,8 +1392,9 @@ class Event extends AbstractData
 						,'signup_by'  => $this->getSignupBy_Str()
 						,'start_date' => $this->getStartDate_Str()
 						,'end_date'   => $this->getEndDate_Str()
+						,'num_brackets' => $this->getNumberOfBrackets()
 					    );
-		$formats_values = array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
+		$formats_values = array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%d' );
 		$where          = array( 'ID' => $this->ID );
 		$formats_where  = array( '%d ');
 		$check = $wpdb->update( $wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where );
@@ -1383,6 +1422,7 @@ class Event extends AbstractData
 		$obj->gender_type = $row["gender_type"];
 		$obj->age_max    = $row["age_max"];
 		$obj->age_min    = $row["age_min"];
+		$obj->num_brackets = $row["num_brackets"];
 		$obj->signup_by  = isset( $row['signup_by'] )  ? new DateTime( $row['signup_by'] ) : null;
 		$obj->start_date = isset( $row['start_date'] ) ? new DateTime( $row['start_date'] ) : null;
 		$obj->end_date   = isset( $row["end_date"] )   ? new DateTime( $row["end_date"] ) : null;
