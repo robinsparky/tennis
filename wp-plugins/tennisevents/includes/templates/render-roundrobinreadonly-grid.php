@@ -66,9 +66,9 @@
     $startDate = $match->getMatchDate_Str();
     $startTime = $match->getMatchTime_Str();
     $startedMess = '';
-    if( strlen( $startDate ) > 0 ) {
-        $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
-    }
+    // if( strlen( $startDate ) > 0 ) {
+    //     $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
+    // }
     $this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobinReadOnly Elapsed time", \commonlib\micro_time_elapsed( $begin ), $title));
 ?>
 <article class="item-player" data-eventid="<?php echo $eventId;?>" 

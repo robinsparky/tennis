@@ -71,10 +71,11 @@
 
     $startDate = $match->getMatchDate_Str();
     $startTime = $match->getMatchTime_Str();
+    $this->log->error_log("$loc: {$match->toString()} start date: '{$startDate}'; start time: '{$startTime}'");
     $startedMess = '';
-    if( !empty($startDate) > 0 ) {
-        $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
-    }
+    // if( !empty($startDate) > 0 ) {
+    //     $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
+    // }
     $this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobin Elapsed time", \commonlib\micro_time_elapsed( $begin ), $title));
 ?>
 

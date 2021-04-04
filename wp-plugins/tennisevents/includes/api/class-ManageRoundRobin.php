@@ -371,8 +371,10 @@ class ManageRoundRobin
                 }
 
                 if( empty($match->getMatchDate_Str()) ) {
-                    $match->setMatchDate_Str( date("Y-m-d") );
-                    $match->setMatchTime_Str( date("g:i:s") );
+                    $now = date("Y-m-d G:i:s", time());
+                    $this->log->error_log("$loc: setting match date to '{$now}'");
+                    $match->setMatchDate_Str( $now );
+                    //$match->setMatchTime_Str( date("g:i:s") );
                 }
 
                 // $numTrimmed = $chairUmpire->trimSets( $match );
@@ -407,6 +409,7 @@ class ManageRoundRobin
             }
         }
         catch( Exception $ex ) {
+            $this->log->error_log($ex,"$loc");
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['score'] = '';
@@ -580,8 +583,8 @@ class ManageRoundRobin
         $bracketNum    = $data["bracketNum"];
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
-        $matchStartDate= $data["matchstartdate"];
-        $matchStartTime= $data["matchstarttime"];
+        $matchStartDate= $data["matchdate"];
+        $matchStartTime= $data["matchtime"];
         $mess          = __("Set Start Match Date/Time.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event = Event::get( $this->eventId );
@@ -596,8 +599,7 @@ class ManageRoundRobin
             }
             $timestamp = strtotime( $matchStartDate );
             $match->setMatchDate_TS( $timestamp );
-            list( $hours, $minutes ) = explode(":", $matchStartTime );
-            $match->setMatchTime( $hours, $minutes );
+            $match->setMatchTime_Str( $matchStartTime );
             $match->save();
             $data['matchstartdate'] = $match->getMatchDate_Str();
             $data['matchstarttime'] = $match->getMatchTime_Str();

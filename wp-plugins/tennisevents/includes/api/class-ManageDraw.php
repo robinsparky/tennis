@@ -411,8 +411,7 @@ class ManageDraw
                 }
 
                 if( empty($match->getMatchDate_Str()) ) {
-                    $match->setMatchDate_Str( date("Y-m-d") );
-                    $match->setMatchTime_Str( date("g:i:s") );
+                    $match->setMatchDate_Str( date("Y-m-d G:i:s") );
                 }
 
                 // $numTrimmed = $chairUmpire->trimSets( $match );

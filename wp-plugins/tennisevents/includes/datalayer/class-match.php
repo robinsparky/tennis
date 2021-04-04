@@ -26,6 +26,7 @@ class Match extends AbstractData
 	private static $datetimeformat = "Y-m-d H:i:s";
     private static $indateformat = "!Y-m-d";
     private static $outdateformat = "Y-m-d";
+    private static $outdateformat2 = "Y-m-d G:i:s";
     private static $intimeformat1 = "g:i";
     private static $intimeformat2 = "g:i a";
     private static $intimeformat3 = "g:i:s";
@@ -42,8 +43,7 @@ class Match extends AbstractData
     private $match_num;
     //---
 
-    private $match_date;
-    private $match_time;
+    private $match_datetime;
     private $is_bye = false;
 
     //pointers for linked list
@@ -98,26 +98,26 @@ class Match extends AbstractData
             $eventId = $fk_criteria["event_ID"];
             $bracket = $fk_criteria["bracket_num"];
             $round = $fk_criteria["round_num"];
-            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments 
+            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d AND round_ID = %d;";
             $safe = $wpdb->prepare( $sql, $eventId, $bracketnum, $round );
         }
         elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) ) {
             $eventId = $fk_criteria["event_ID"];
             $bracket = $fk_criteria["bracket_num"];
-            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments 
+            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d;";
             $safe = $wpdb->prepare( $sql, $eventId, $bracket );
         }
         elseif( 3 === count( $fk_criteria ) ) {
             list( $eventId, $bracketnum, $round ) = $fk_criteria;
-            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments 
+            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d AND round_num = %d;";
             $safe = $wpdb->prepare( $sql, $eventId, $bracketnum, $round );
         }
         elseif( 2 === count( $fk_criteria ) ) {
             list( $eventId, $bracket ) = $fk_criteria;
-            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments 
+            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d;";
             $safe = $wpdb->prepare( $sql, $eventId, $bracket );
         }
@@ -150,7 +150,7 @@ class Match extends AbstractData
         $obj = NULL;
         if( count( $pks ) !== 4 ) return $obj;
         
-        $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,match_time,is_bye,next_round_num,next_match_num,comments  
+        $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments  
                 FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d AND match_num=%d;";
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
@@ -257,7 +257,7 @@ class Match extends AbstractData
                 //Need to start a transaction (default isolation level)
                 $wpdb->query( "start transaction;" );
 
-                $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,match_time 
+                $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date 
                         FROM $table WHERE event_ID = %d AND bracket_num=%d AND round_num = %d AND match_num >= %d and match_num < %d 
                         ORDER BY match_num DESC FOR UPDATE;";
                 $safe = $wpdb->prepare( $sql, array( $eventId, $bracket, $round, $toMatchNum, $tempMatchNum ) );
@@ -510,12 +510,29 @@ class Match extends AbstractData
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $result = false;
         if( is_null( $date ) || empty( $date ) ) return $result;
+        try {
+            $test = new \DateTime($date);
+			$this->match_datetime = $test;
+			$result = $this->setDirty();
+            return $result; //early return
+        }
+        catch( Exception $ex ) {
+            $this->log->error_log("$loc: failed to construct using '{$date}'");
+        }
 
 		$test = DateTime::createFromFormat( self::$indateformat, $date );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $date );
-		if(false === $test) $test = DateTime::createFromFormat( '!j/n/Y', $date );
-		if(false === $test) $test = DateTime::createFromFormat( '!d/m/Y', $date );
-		if(false === $test) $test = DateTime::createFromFormat( '!d-m-Y', $date );
+        if(false === $test) $test = DateTime::createFromFormat("Y-m-d G:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("Y-m-d H:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("Y-m-d g:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("Y-m-d h:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("Y/m/d G:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("Y/m/d H:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("Y/m/d g:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("Y/m/d h:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("d/m/Y G:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("d/m/Y H:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("d/m/Y g:i:s", $date );
+        if(false === $test) $test = DateTime::createFromFormat("d/m/Y h:i:s", $date );
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
@@ -526,7 +543,7 @@ class Match extends AbstractData
 			throw new InvalidMatchException( $mess );
 		}
 		elseif( $test instanceof DateTime ) {
-			$this->match_date = $test;
+			$this->match_datetime = $test;
 			$result = $this->setDirty();
 		}
 
@@ -537,17 +554,17 @@ class Match extends AbstractData
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc:{$this->toString()}($year,$month,$day)");
 
-        if( !isset( $this->match_date ) ) $this->match_date = new DateTime();
-        $this->match_date->setDate( $year, $month, $day );
-        $this->match_date->setTime( 0, 0, 0 );
+        if( !isset( $this->match_datetime ) ) $this->match_datetime = new DateTime();
+        $this->match_datetime->setDate( $year, $month, $day );
+        $this->match_datetime->setTime( 0, 0, 0 );
     }
 
     public function setMatchDate_TS( int $timestamp ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         //$this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
-        if( !isset( $this->match_date ) ) $this->match_date = new DateTime();
-        $this->match_date->setTimeStamp( $timestamp );
+        if( !isset( $this->match_datetime ) ) $this->match_datetime = new DateTime();
+        $this->match_datetime->setTimeStamp( $timestamp );
     }
 
 	/**
@@ -555,28 +572,46 @@ class Match extends AbstractData
 	 */
 	public function getMatchDate_Str() {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log( $this->match_date, $loc);
+        $this->log->error_log( $this->match_datetime, $loc);
 
-		if( !isset( $this->match_date ) || is_null( $this->match_date ) ) {
+		if( !isset( $this->match_datetime ) || is_null( $this->match_datetime ) ) {
             return '';
         }
-		else return $this->match_date->format( self::$outdateformat );
+		else return $this->match_datetime->format( self::$outdateformat );
+	}
+    
+	/**
+	 * Get the Match date and time in string format
+	 */
+	public function getMatchDateTime_Str() {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log($loc);
+
+        $result = '0-0-0 00:00:00';
+		if( isset( $this->match_datetime ) ) {
+            $this->log->error_log($this->match_datetime);
+            $result = $this->match_datetime->format( self::$outdateformat2 );
+        }
+		
+        $this->log->error_log("$loc: returning {$result}");
+        return $result;
 	}
 	
 	/**
 	 * Get the Match date in ISO 8601 format
 	 */
 	public function getMatchDate_ISO() {
-		if( !isset( $this->match_date ) ) return null;
-		else return $this->match_date->format(DateTime::ISO8601 );
+		if( !isset( $this->match_datetime ) ) return null;
+		else return $this->match_datetime->format(DateTime::ISO8601 );
 	}
 
     /**
      * Set the time of the match
-     * @param $time is a string in hh-mm-ss format
+     * @param string $time is a string in hh-mm-ss am/pm format
      */
     public function setMatchTime_Str( string $time ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log("{$loc}('{$time}')");
 
 		$result = false;
         if( is_null( $time ) || empty( $time ) ) return $result;
@@ -589,45 +624,52 @@ class Match extends AbstractData
 		$last = DateTime::getLastErrors();
 		if($last['error_count'] > 0) {
 			$arr = $last['errors'];
-			$mess = '';
+			$mess = $this->toString() . ':';
 			foreach($arr as $err) {
 				$mess .= $err.':';
 			}
 			throw new InvalidMatchException( $mess );
 		}
 		elseif($test instanceof DateTime) {
-			$this->match_time = $test;
+            $hours = (int)$test->format('H');
+            $minutes = (int)$test->format('i');
+            $this->setMatchTime( $hours, $minutes );
+            $this->log->error_log($test, "$loc: setting time to '$time'");
 			$result = $this->setDirty();
 		}
 
         return $result;
     }
 
-    public function setMatchTime( int $hour, int $minutes ) {
+    private function setMatchTime( int $hour, int $minutes ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        //$this->log->error_log("$loc($hour,$minutes)");
-        if( !isset( $this->match_time ) ) {
-            $this->match_time = new DateTime();
+        $this->log->error_log("$loc($hour,$minutes)");
+
+        if( !isset( $this->match_datetime ) ) {
+            $this->match_datetime = new \DateTime();
         }
-        $this->match_time->setTime( $hour, $minutes );
-        $this->match_time->setDate ( 0, 1, 1 );
+        $this->match_datetime->setTime( $hour, $minutes );
         
         return $this->setDirty();
     }
 
+    /**
+     * Get the match start time
+     * @return string match start time as a string hh:mm am/pm format
+     */
     public function getMatchTime_Str() {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log( $this->match_time, $loc);
-        if( !isset( $this->match_time ) ) return '';
+        $this->log->error_log("$loc: '{$this->title()}'");
+        
+        // if( !isset( $this->match_time ) ) return '';
 
-        $result =  $this->match_time->format( self::$outtimeformat );
-        if( $result == "00:00") $result='';
+        // $result =  $this->match_time->format( self::$outtimeformat );
+        // //if( $result == "00:00") $result='';
+        if( !isset( $this->match_datetime ) ) return '';
+        $result = $this->match_datetime->format( self::$outtimeformat );
 
+        $this->log->error_log("$loc: returning '{$result}'");
         return $result;
-    }
-
-    public function getMatchTime() {
-        return $this->match_time;
     }
 
     public function setIsBye( bool $by = false ) {
@@ -1152,13 +1194,12 @@ class Match extends AbstractData
                         ,'round_num'   => $this->round_num
                         ,'match_num'   => $this->match_num
                         ,'match_type'  => $this->match_type
-                        ,'match_date'  => $this->getMatchDate_Str()
-                        ,'match_time'  => $this->getMatchTime_Str()
+                        ,'match_date'  => $this->getMatchDateTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'next_round_num' => $this->next_round_num
                         ,'next_match_num' => $this->next_match_num
                         ,'comments'    => $this->comments );
-        $formats_values = array( '%d', '%d', '%d', '%d', '%f', '%s', '%s', '%d', '%d', '%d', '%s' );
+        $formats_values = array( '%d', '%d', '%d', '%d', '%f', '%s', '%d', '%d', '%d', '%s' );
 		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
         $result = $wpdb->rows_affected;
         $wpdb->query( "UNLOCK TABLES;" );
@@ -1196,13 +1237,12 @@ class Match extends AbstractData
         parent::update();
 
         $values = array( 'match_type'  => $this->match_type
-                        ,'match_date'  => $this->getMatchDate_Str()
-                        ,'match_time'  => $this->getMatchTime_Str()
+                        ,'match_date'  => $this->getMatchDateTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'next_round_num' => $this->next_round_num
                         ,'next_match_num' => $this->next_match_num
                         ,'comments'    => $this->comments );
-		$formats_values = array( '%f', '%s', '%s', '%d', '%d', '%d', '%s' );
+		$formats_values = array( '%f', '%s', '%d', '%d', '%d', '%s' );
         $where          = array( 'event_ID'  => $this->event_ID
                                , 'bracket_num' => $this->bracket_num
                                , 'round_num' => $this->round_num
@@ -1258,18 +1298,16 @@ class Match extends AbstractData
             $obj->setMatchDate_TS( $timestamp );
         }
         else {
-            $obj->match_date = null;
+            $obj->match_datetime = null;
         }
 
         //$obj->match_time   = isset( $row["match_time"] ) ? new DateTime( $row["match_time"] ) : null;
-        if( isset( $row["match_time"] ) ) {
-            list( $hours, $minutes ) = explode(':', $row["match_time"]);
-            if( $hours != 0 && $minutes != 0 ) $obj->setMatchTime( $hours, $minutes );
-            else  $obj->match_time = null;
-        }
-        else {
-            $obj->match_time = null;
-        }
+        // if( isset( $row["match_time"] ) ) {
+        //     $obj->setMatchTime_Str($row["match_time"]);
+        // }
+        // else {
+        //     $obj->match_time = null;
+        // }
 
         $obj->is_bye       = $row["is_bye"] == 1 ? true : false;
         $obj->comments     = $row["comments"];

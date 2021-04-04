@@ -92,7 +92,7 @@ class MatchTest extends TestCase
             $this->assertGreaterThan( 0, $match->getMatchNumber(), 'Match number > 0' );
             $match->setMatchDate( 2018, 4, 16 );
             $this->assertEquals( '2018-04-16', $match->getMatchDate_Str(), 'Test match date');
-            $match->setMatchTime( 2, 30 );
+            //$match->setMatchTime( 2, 30 );
             $this->assertEquals( '02:30', $match->getMatchTime_Str(), 'Test match time');
             $hscore = rand( 1, 6 );
             $vscore = rand( 1, 6 );
