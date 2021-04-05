@@ -654,6 +654,7 @@ class ManageDraw
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketName );
+            $chairUmpire = $td->getChairUmpire();
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
             }
@@ -667,6 +668,7 @@ class ManageDraw
             $match->save();
             $data['matchdate'] = $match->getMatchDate_Str();
             $data['matchtime'] = $match->getMatchTime_Str();
+            $data['status'] = $chairUmpire->matchStatus( $match );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

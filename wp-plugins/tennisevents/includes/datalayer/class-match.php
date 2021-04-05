@@ -506,46 +506,52 @@ class Match extends AbstractData
      * Set the date of the match
      * @param $date is a string in Y-m-d format
      */
-    public function setMatchDate_Str( string $date ) {
+    public function setMatchDate_Str( string $date = '' ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $result = false;
-        if( is_null( $date ) || empty( $date ) ) return $result;
-        try {
-            $test = new \DateTime($date);
-			$this->match_datetime = $test;
+        if( empty( $date ) ) {
+            $this->match_datetime = null;
 			$result = $this->setDirty();
-            return $result; //early return
         }
-        catch( Exception $ex ) {
-            $this->log->error_log("$loc: failed to construct using '{$date}'");
-        }
+        else {
+            try {
+                $test = new \DateTime($date);
+                $this->match_datetime = $test;
+                $result = $this->setDirty();
+                return $result; //early return
+            }
+            catch( Exception $ex ) {
+                $this->log->error_log("$loc: failed to construct using '{$date}'");
+            }
 
-		$test = DateTime::createFromFormat( self::$indateformat, $date );
-        if(false === $test) $test = DateTime::createFromFormat("Y-m-d G:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("Y-m-d H:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("Y-m-d g:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("Y-m-d h:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("Y/m/d G:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("Y/m/d H:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("Y/m/d g:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("Y/m/d h:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("d/m/Y G:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("d/m/Y H:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("d/m/Y g:i:s", $date );
-        if(false === $test) $test = DateTime::createFromFormat("d/m/Y h:i:s", $date );
-		$last = DateTIme::getLastErrors();
-		if( $last['error_count'] > 0 ) {
-			$arr = $last['errors'];
-			$mess = '';
-			foreach( $arr as $err ) {
-				$mess .= $err.':';
-			}
-			throw new InvalidMatchException( $mess );
-		}
-		elseif( $test instanceof DateTime ) {
-			$this->match_datetime = $test;
-			$result = $this->setDirty();
-		}
+            $test = DateTime::createFromFormat( self::$indateformat, $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y-m-d G:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y-m-d H:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y-m-d g:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y-m-d h:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y/m/d G:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y/m/d H:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y/m/d g:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y/m/d h:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("d/m/Y G:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("d/m/Y H:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("d/m/Y g:i:s", $date );
+            if(false === $test) $test = DateTime::createFromFormat("d/m/Y h:i:s", $date );
+            
+            $last = DateTIme::getLastErrors();
+            if( $last['error_count'] > 0 ) {
+                $arr = $last['errors'];
+                $mess = '';
+                foreach( $arr as $err ) {
+                    $mess .= $err.':';
+                }
+                throw new InvalidMatchException( $mess );
+            }
+            elseif( $test instanceof DateTime ) {
+                $this->match_datetime = $test;
+                $result = $this->setDirty();
+            }
+        }
 
         return $result;
     }
@@ -565,6 +571,14 @@ class Match extends AbstractData
 
         if( !isset( $this->match_datetime ) ) $this->match_datetime = new DateTime();
         $this->match_datetime->setTimeStamp( $timestamp );
+    }
+
+    /**
+     * Get the DateTime object reprsenting the start time of the match
+     * @return object DateTime or null
+     */
+    public function getMatchDateTime() {
+        return $this->match_datetime;
     }
 
 	/**

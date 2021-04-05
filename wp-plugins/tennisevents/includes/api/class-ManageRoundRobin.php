@@ -589,6 +589,7 @@ class ManageRoundRobin
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
+            $chairUmpire = $td->getChairUmpire();
             $bracket = $td->getBracket( $bracketName );
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
@@ -603,6 +604,7 @@ class ManageRoundRobin
             $match->save();
             $data['matchstartdate'] = $match->getMatchDate_Str();
             $data['matchstarttime'] = $match->getMatchTime_Str();
+            $data['status'] = $chairUmpire->matchStatus($match);
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

@@ -383,6 +383,9 @@ abstract class ChairUmpire
             extract( $this->getMatchSummary( $match ) );
 
             if( $setInProgress > 0 ) $status = ChairUmpire::INPROGRESS;
+            $now = new \DateTime();
+            $startDate = $match->getMatchDateTime();
+            if( !is_null($startDate) && ($startDate <= $now) ) $status = ChairUmpire::INPROGRESS;
 
             if( !empty( $andTheWinnerIs ) ) {
                 $status = ChairUmpire::COMPLETED;
@@ -416,6 +419,9 @@ abstract class ChairUmpire
             extract( $this->getMatchSummary( $match ) );
 
             if( $setInProgress > 0 ) $status->setMajor(MatchStatus::InProgress);
+            $now = new \DateTime();
+            $startDate = $match->getMatchDateTime();
+            if( !is_null($startDate) && ($startDate <= $now) ) $status->setMajor(MatchStatus::InProgress);
 
             if( !empty( $andTheWinnerIs ) ) {
                 $status->setMajor(MatchStatus::Completed);

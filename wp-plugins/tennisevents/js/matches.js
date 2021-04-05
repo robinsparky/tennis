@@ -232,9 +232,10 @@
             
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.children('.matchstart').text(data.matchdate + " " + data.matchtime);
-            if( data.matchdate || data.matchtime ) $matchEl.css('before','Started: ');
+            //if( data.matchdate || data.matchtime ) $matchEl.css('before','Started: ');
             $matchEl.children('.matchstart').fadeIn( 500 );
             $matchEl.children('.changematchstart').hide();
+            updateStatus( data );
         }
 
         /**
@@ -317,6 +318,7 @@
         function updateStatus( data ) {
             console.log('updateStatus');
             console.log(data);
+            console.log(data.status)
             let $matchEl = findMatch( data.eventId, data.bracketNum, data.roundNum, data.matchNum );
             $matchEl.attr({'data-majorstatus': data.majorStatus, 'data-minorstatus': data.minorStatus});
             $matchEl.find('.matchinfo.matchstatus').text(data.status);
