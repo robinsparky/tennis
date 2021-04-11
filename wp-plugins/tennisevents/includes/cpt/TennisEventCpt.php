@@ -38,6 +38,7 @@ class TennisEventCpt {
 	const GENDER_TYPE_META_KEY     = '_tennisevent_gender_type';
 	const SCORE_TYPE_META_KEY      = '_tennisevent_score_type';
 	const PARENT_EVENT_META_KEY    = '_tennisevent_parent_event';
+	const NUMBER_OF_BRACKETS_KEY   = '_tennisevent_number_brackets';
 	const AGE_MIN_META_KEY         = '_tennisevent_age_min';
 	const AGE_MAX_META_KEY         = '_tennisevent_age_max';
 
@@ -151,6 +152,7 @@ class TennisEventCpt {
 		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN);
 		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN);
 		$newColumns['score_type'] = __('Score Type', TennisEvents::TEXT_DOMAIN);
+		$newColumns['num_brackets'] = __('Number of Brackets', TennisEvents::TEXT_DOMAIN);
 		$newColumns['age_min'] = __('Minimum Age', TennisEvents::TEXT_DOMAIN );
 		$newColumns['age_max'] = __('Maximum Age', TennisEvents::TEXT_DOMAIN );
 		$newColumns['author'] = $columns['author'];
@@ -300,6 +302,13 @@ class TennisEventCpt {
 				}
 			} else {
 				echo "";
+			}
+		} elseif( $column_name === 'num_brackets' ) {
+			$numBrackets = get_post_meta($postID, self::NUMBER_OF_BRACKETS_KEY, TRUE);
+			if (!empty($numBrackets)) {
+				echo $numBrackets;
+			} else {
+				echo '';
 			}
 		} elseif( $column_name === 'age_min' ) {			
 			$ageMin = get_post_meta($postID, self::AGE_MIN_META_KEY, TRUE);
@@ -484,6 +493,16 @@ class TennisEventCpt {
 			'tennis_score_type_meta_box',
 			'Score Type' //Title
 			,array($this, 'scoreTypeCallBack') //Callback
+			,self::CUSTOM_POST_TYPE //mixed: screen cpt name or ???
+			,'normal' //context: normal, side
+			,'high' // priority: low, high, default
+			// array callback args
+		);
+
+		add_meta_box(
+			'tennis_number_brackets_meta_box'
+			,'Number of Brackets' //Title
+			,array($this, 'numberBracketsCallback') //Callback
 			,self::CUSTOM_POST_TYPE //mixed: screen cpt name or ???
 			,'normal' //context: normal, side
 			,'high' // priority: low, high, default
@@ -777,6 +796,31 @@ class TennisEventCpt {
 			echo "<!-- No score type for root event {$post->ID} -->";
 		}
 	}
+
+	public function numberBracketsCallback( $post ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		wp_nonce_field('numberBracketsSave' //action
+					,'tennis_number_brackets_nonce');
+					
+		$actual = get_post_meta($post->ID, self::NUMBER_OF_BRACKETS_KEY, true);
+		if (!@$actual) $actual = '2';
+		$this->log->error_log("$loc --> actual=$actual");
+		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
+
+		if ( !empty($parentId) ) {
+			//Now echo the html desired
+			$markup = sprintf('<input type="number" name="tennis_number_brackets_field" value="%s">'
+							, $actual
+							);
+		}
+		else {
+			$markup = "<!-- no number of brackets for root event -->";
+		}
+
+		echo $markup;
+	}
 	
 	/**
 	 * Minimum age callback
@@ -793,7 +837,6 @@ class TennisEventCpt {
 		if (!@$actual) $actual = '1';
 		$this->log->error_log("$loc --> actual=$actual");
 		$parentId = get_post_meta($post->ID, self::PARENT_EVENT_META_KEY, true);
-
 
 		if (!empty($parentId)) {
 			//Now echo the html desired
@@ -954,7 +997,10 @@ class TennisEventCpt {
 		$errorsFound = 0;
 		$evtName = "";
 		$post = get_post( $post_id );
-		if ($post->post_type !== self::CUSTOM_POST_TYPE) return;
+		if ($post->post_type !== self::CUSTOM_POST_TYPE) {
+			$this->log->error_log("$loc --> not tennis event custom post type!");
+			return;
+		}
 
 		if (isset($_POST['post_title'])) {
 			$evtName = sanitize_text_field($_POST['post_title']);
@@ -1013,8 +1059,8 @@ class TennisEventCpt {
 		}
 
 		//TODO: Rationalize Format with ScoreType
-		// If Format is Round Robin then ScoreType can only be: Points1 or Points2
-		// If Format is Elimination then ScoreType cannot be Points1 or Points2
+		// If Format is Round Robin then ScoreType can only be: Points1, Points2, etc.
+		// If Format is Elimination then ScoreType cannot be Points1, Points2, etc.
 		$eventFormat = '';
 		if (isset($_POST['tennis_event_format_field'])) {
 			$eventFormat = sanitize_text_field($_POST['tennis_event_format_field']);
@@ -1070,6 +1116,10 @@ class TennisEventCpt {
 			}
 			delete_post_meta( $post_id, self::SCORE_TYPE_META_KEY );
 		}
+
+		//Number of brackets
+		$numBrackets = $_POST['tennis_number_brackets_field'] ?? 2;
+		update_post_meta( $post_id, self::NUMBER_OF_BRACKETS_KEY, $numBrackets );
 
 		//Min and Max ages
 		$ageMin = 0;
@@ -1220,24 +1270,28 @@ class TennisEventCpt {
 			$event->addExternalRef((string)$post_id);
 
 			//Set other Event props
-			if (!$event->setEventType($eventType)) {
+			if( !$event->setEventType($eventType) ) {
 				delete_post_meta($post_id, self::EVENT_TYPE_META_KEY);
 			}
 
-			if (!$event->setMatchType($matchType)) {
+			if( !$event->setMatchType($matchType) ) {
 				delete_post_meta($post_id, self::MATCH_TYPE_META_KEY);
 			}
 
-			if (!$event->setGenderType($genderType)) {
+			if( !$event->setGenderType($genderType) ) {
 				delete_post_meta($post_id, self::GENDER_TYPE_META_KEY);
 			}
 
-			if (!$event->setFormat($eventFormat)) {
+			if( !$event->setFormat($eventFormat) ) {
 				delete_post_meta($post_id, self::EVENT_FORMAT_META_KEY);
 			}
 
-			if (!$event->setScoreType($scoreType)) {
+			if( !$event->setScoreType($scoreType) ) {
 				delete_post_meta($post_id, self::SCORE_TYPE_META_KEY);
+			}
+
+			if( !$event->setNumberOfBrackets($numBrackets) ) {
+				delete_post_meta($post_id, self::NUMBER_OF_BRACKETS_KEY);
 			}
 
 			$event->setSignupBy($signupBy);
