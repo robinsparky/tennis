@@ -182,10 +182,10 @@ class PointsMatchUmpire extends ChairUmpire
             else {
                 $homeW = $set->getHomeWins();
                 $homeGamesWon += $homeW;
-                //$homeTB = $set->getHomeTieBreaker();
+                $homeTB = $set->getHomeTieBreaker();
                 $visitorW = $set->getVisitorWins();
                 $visitorGamesWon += $visitorW;
-                //$visitorTB = $set->getVisitorTieBreaker();
+                $visitorTB = $set->getVisitorTieBreaker();
 
                 $this->log->error_log( sprintf( "%s(%s): home W=%d, visitor W=%d"
                                         , $loc, $set->toString(), $homeW, $visitorW ) );
@@ -195,58 +195,45 @@ class PointsMatchUmpire extends ChairUmpire
                     break; //not done yet so don't even consider other sets
                 }
                 
-                if( ($homeW - $visitorW >= $this->MustWinBy ) ) {
+                if( ($homeW - $visitorW) >= $this->MustWinBy
+                || ($homeW > $visitorW) ) {
                     ++$homeSetsWon;
                 }
-                elseif( ($visitorW - $homeW >= $this->MustWinBy) ) {
+                elseif( ($visitorW - $homeW) >= $this->MustWinBy 
+                || ($visitorW > $homeW) ) {
                     ++$visitorSetsWon;
                 }
                 else {
-                    if( false === $this->includeTieBreakerScores( $setNum )  ) {
-                        //tie score and we know there is only one set
-                        if( $homeW === $visitorW ) {
-                            $homeSetsWon += 0.5;
-                            $visitorSetsWon += 0.5;
-                        }
-                    }
-                    else { //Tie breaker
-                        if( ($homeTB - $visitorTB >= $this->MustWinBy ) 
-                            && $homeTB >= $this->getTieBreakMinScore() ) {
-                            ++$homeSetsWon;
-                        }
-                        elseif( ($visitorTB - $homeTB >= $this->MustWinBy )  
-                            && $visitorTB >= $this->getTieBreakMinScore() ) {
-                            ++$visitorSetsWon;
-                        }
-                        else { //match not finished yet
-                            $setInProgress = $set->getSetNumber();
-                            $this->log->error_log("$loc($title): set number {$set->getSetNumber()} not finished tie breaker yet");
-                            break;
-                        } 
-                    } 
+                    //No check for tie breakers because ties are allowed in POINTS score types
+                    //tie score?
+                    $homeSetsWon += 0.5;
+                    $visitorSetsWon += 0.5;
                 }
 
                 $setInProgress = $set->getSetNumber();
-                //Best of 1 happened yet?
-                if( ceil($homeSetsWon) >= ceil( $this->getMaxSets()/2.0 ) ) {
-                    $andTheWinnerIs = 'home';
+
+                if( $setInProgress === $this->getMaxSets() ) {
+                    
                     if( $homeSetsWon === $visitorSetsWon ) {
                         $andTheWinnerIs = 'tie';
+                        $finalSet = $set->getSetNumber();
+                        $setInProgress = 0;
+                        break;
                     }
-                    $finalSet = $set->getSetNumber();
-                    $setInProgress = 0;
-                    break;
-                }
-                elseif( ceil($visitorSetsWon) >= ceil( $this->getMaxSets()/2.0 ) ) {
-                    $andTheWinnerIs = 'visitor';
-                    if( $homeSetsWon === $visitorSetsWon ) {
-                        $andTheWinnerIs = 'tie';
+                    elseif( $homeSetsWon > $visitorSetsWon ) {
+                        $andTheWinnerIs = 'home';
+                        $finalSet = $set->getSetNumber();
+                        $setInProgress = 0;
+                        break;
                     }
-                    $finalSet = $set->getSetNumber();
-                    $setInProgress = 0;
-                    break;
-                }
-            }
+                    else {
+                        $andTheWinnerIs = 'visitor';
+                        $finalSet = $set->getSetNumber();
+                        $setInProgress = 0;
+                        break;
+                    }
+                } //in final set
+            } //early end?
         } //foreach
         
         $winnerName = empty( $andTheWinnerIs) ? 'unknown' : $andTheWinnerIs;
