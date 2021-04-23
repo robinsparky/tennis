@@ -1,5 +1,5 @@
 <h3 id="bracket-name"><?php 
-    echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?> Bracket
+    echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>
     (<?php echo $scoreRuleDesc; ?>)</h3>
 <main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 <?php 

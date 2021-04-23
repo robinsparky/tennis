@@ -776,7 +776,7 @@ class ManageDraw
 
         $begin = <<<EOT
 <table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
-<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket (%s)</caption>
+<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;(%s)</caption>
 <thead><tr>
 EOT;
         $out = sprintf( $begin, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc );
