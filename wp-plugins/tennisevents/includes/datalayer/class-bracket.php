@@ -151,11 +151,11 @@ class Bracket extends AbstractData
 
 
     public function setBracketNumber( int $bracketnum ) {
-        $this->bracket_num = $bracket;
+        $this->bracket_num = $bracketnum;
         return $this->setDirty();
     }
 
-    public function getBracketNumber() {
+    public function getBracketNumber() :int {
         return $this->bracket_num;
     }
 
@@ -1260,8 +1260,8 @@ class Bracket extends AbstractData
         parent::mapData( $obj, $row );
         $obj->event_ID      = (int) $row["event_ID"];
         $obj->bracket_num   = (int) $row["bracket_num"];
-        $obj->is_approved   = (int) $row["is_approved"];
         $obj->name          = $row["name"];
+        $obj->is_approved   = (int) $row["is_approved"];
 		$obj->is_approved   = $obj->is_approved === 0 ? false : true;
 	}
 
