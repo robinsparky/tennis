@@ -237,14 +237,7 @@
             console.log("on blur")
             console.log(this)     
             if ($(this).data('beforeContentEdit') !== this.innerText) {
-                let ans = prompt("Save the new name: ",this.innerText )
-                if( ans = 'y') {
-                    $(this).trigger('change');
-                }
-                else {
-                    this.innerText = $(this).data('beforeContentEdit');
-                    $(this).removeData('beforeContentEdit')
-                }
+                $(this).trigger('change');
             }
         });
 
