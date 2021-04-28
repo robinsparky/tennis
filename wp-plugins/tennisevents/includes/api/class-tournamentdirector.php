@@ -522,12 +522,12 @@ class TournamentDirector
     }
 
     /**
-     * Get a bracket by name
-     * @param string $bracketName The name of the bracket
+     * Get a bracket by name or number
+     * @param  $bracketId The name or number of the bracket
      * @return Bracket if exists, null otherwise
      */
-    public function getBracket( $bracketName ) {
-        return $this->event->getBracket( $bracketName );
+    public function getBracket( $bracketId ) {
+        return $this->event->getBracket( $bracketId );
     }
 
     /**
@@ -540,6 +540,18 @@ class TournamentDirector
         $result = $this->save();
         
         return $result;
+    }
+    /**
+     * Add a new bracket to the underlying event
+     * @param string $bracketName
+     * @return object Bracket
+     * 
+     */
+    public function addBracket( $bracketName ) {
+        $result = 0;
+        $bracket = $this->event->createBracket( $bracketName );
+        $result = $this->save();
+        return $bracket;
     }
 
     /**

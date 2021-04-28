@@ -713,13 +713,27 @@ class Event extends AbstractData
 	}
 
 	/**
-	 * Set the number of brackets that this child event should have
+	 * Set the number of brackets that this leaf event should have
 	 * @param int $numBrackets
+	 * @return bool true if modified; false otherwise
 	 */
-	public function setNumberOfBrackets( int $numBrackets ) {
+	public function setNumberOfBrackets( int $numBrackets = 0 ) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
-		$this->num_brackets = $numBrackets;
-		return $this->setDirty();
+		$result = false;
+		if( $this->isParent() ) return $result;
+
+		if( $numBrackets >= 0 ) {
+			$this->num_brackets = $numBrackets;
+			$result = $this->setDirty();
+
+			if( $numBrackets === 0 ) {
+				$this->removeBrackets();
+			}
+			else {
+				$this->generateBrackets( $this->num_brackets );
+			}		
+		}
+		return $result;
 	}
 
 	/**
@@ -727,7 +741,38 @@ class Event extends AbstractData
 	 * @return int The number of brackets.
 	 */
 	public function getNumberOfBrackets() :int {
-		return $this->num_brackets ?? 1;
+		return $this->num_brackets ?? 0;
+	}
+
+	/**
+	 * Generate collection of brackets for this leaf event
+	 * @param int $numBrackets is the number of brackets to generate
+	 * @return int the number of brackets created
+	 */
+	private function generateBrackets( int $numBrackets = 0 ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+
+		$result = 0;
+
+		if( $this->isParent() || ($numBrackets <= 0) ) return $result;
+		if( count($this->getBrackets()) > 0 ) {
+			$this->log->error_log("$loc: Cannot generate brackets when they already exist.");
+			return $result;
+		}
+
+		$prefix = "Bracket_";
+		$parentEvt = $this->getParent();
+		if( EventType::LADDER === $parentEvt->getEventType() ) $prefix = "Box_";
+
+		foreach(range(1,$numBrackets) as $bracket_num ) {
+			$br_name = "{$prefix}{$bracket_num}";
+			$bracket = new Bracket();
+			$bracket->setName( $br_name );
+			$this->addBracket( $bracket );
+			++$result;
+			$this->setDirty();
+		}
+		return $result;
 	}
 
 	/**
@@ -945,18 +990,30 @@ class Event extends AbstractData
 	}
 
 	/**
-	 * Get a bracket by its name
+	 * Get a bracket by its name or its number
 	 * Ignores case
-	 * @param $bracketName The name of the bracket
+	 * @param $bracketId The name or number of the bracket
 	 * @return object Bracket object or null if not found
 	 */
-	public function getBracket( string $bracketName = Bracket::WINNERS ) {
+	public function getBracket( $bracketId = Bracket::WINNERS ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("$loc({$bracketId})");
 		$result = null;
 
-		foreach( $this->getBrackets() as $bracket ) {
-			if( strcasecmp( $bracketName, $bracket->getName() ) === 0 ) {
-				$result = $bracket;
-				break;
+		if( is_numeric( $bracketId ) ) {
+			foreach( $this->getBrackets() as $bracket ) {
+				if( $bracketId == $bracket->getBracketNumber() ) {
+					$result = $bracket;
+					break;
+				}	
+			}	
+		}
+		elseif( is_string( $bracketId ) ) {
+			foreach( $this->getBrackets() as $bracket ) {
+				if( strcasecmp( $bracketId, $bracket->getName() ) === 0 ) {
+					$result = $bracket;
+					break;
+				}
 			}
 		}
 		return $result;
