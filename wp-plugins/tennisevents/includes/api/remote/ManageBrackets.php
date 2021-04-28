@@ -182,7 +182,7 @@ class ManageBrackets
         try {
             $event = Event::get( $eventId );
             $td = new TournamentDirector( $event );
-            $bracket = $td->addBracket( $newBracketName );
+            $bracket = $td->addBracket( $newBracketName ); //automatically saves
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("Bracket not created or found", TennisEvents::TEXT_DOMAIN) );
             }
