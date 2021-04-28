@@ -105,6 +105,7 @@ class ManageBrackets
         }
 
         $this->log->error_log("$loc: action={$_POST['action']}");
+        if( self::ACTION !== $_POST['action']) return;
 
         $response = array();
 
@@ -119,9 +120,15 @@ class ManageBrackets
         switch( $task ) {
             case 'editname':
                 $mess = $this->modifyBracketName( $data );
+                $returnData = $data;
                 break;
             case 'addbracket':
                 $mess = $this->addBracket( $data );
+                $returnData = $data;
+                break;
+            case 'removebracket':
+                $mess = $this->removeBracket( $data );
+                $returnData = $data;
                 break;
             default:
             $mess =  __( 'Illegal Bracket task.', TennisEvents::TEXT_DOMAIN );
@@ -144,7 +151,7 @@ class ManageBrackets
     /**
      * Change and existing bracket's name
      */
-    private function modifyBracketName( $data ) {
+    private function modifyBracketName( &$data ) {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log($data,"$loc: data...");
 
@@ -171,7 +178,10 @@ class ManageBrackets
         return $mess;
     }
 
-    private function addBracket( $data ) {
+    /**
+     * Add a new bracket to the event
+     */
+    private function addBracket( &$data ) {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log($data,"$loc: data...");
 
@@ -195,6 +205,30 @@ class ManageBrackets
         return $mess;
     } 
 
+    /**
+     * Remove a bracket by name
+     */
+    private function removeBracket( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+
+        $eventId = $data["eventId"];
+        $bracketNum    = $data["bracketNum"];
+        $bracketName = $data["bracketName"];
+        $event = Event::get( $eventId );
+        try {
+            $event = Event::get( $eventId );
+            $td = new TournamentDirector( $event );
+            $td->removeBracket( $bracketName );
+            $td->save();
+            $mess = "Removed bracket '{$bracketName}'";
+        } 
+        catch (Exception $ex ) {
+            $errobj->add( $errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    } 
     /**
      * Get the AJAX data that WordPress needs to output.
      *

@@ -555,6 +555,16 @@ class TournamentDirector
     }
 
     /**
+     * Remove a bracket by name
+     * @param string $bracketName
+     */
+    public function removeBracket( $bracketName ) {
+        $result = false;
+        $result = $this->event->removeBracket( $bracketName );
+        return $result;
+    }
+
+    /**
      * Return all matches for an event or just for a given round
      * @param string $bracketName The bracket name
      * @param mixed $round The round whose matches are to be retrieved

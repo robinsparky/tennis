@@ -137,6 +137,9 @@
                     case 'addbracket':
                         addBracket( data );
                         break;
+                    case 'removebracket':
+                        hideBracket( data );
+                        break;
                     default:
                         console.log("Unknown task from server: '%s'", task);
                         break;
@@ -163,6 +166,18 @@
             $parent = $('.tennis-event-brackets');
             window.location.reload(); //TODO: don't reload, add the necessary elements
             //let $matchEl = findBracket( data.eventId, data.bracketNum );
+        }
+
+        /**
+         * Hide a removed bracket
+         * @param {*} data 
+         */
+        function hideBracket( data ) {
+            console.log('hideBracket');
+            let eventId = data['eventId']
+            let bracketNum = data['bracketNum']
+            let $el = findBracket(eventId, bracketNum)
+            $el.hide();
         }
 
         /**
@@ -194,9 +209,9 @@
             let bracketName  = myTrim($bracketName.text());
 
             let data = {"eventid": eventId, "bracketnum": bracketNum
-                        , "newBracketName": bracketName };
-            // console.log("getBracketData....");
-            // console.log(data);
+                        , "bracketName": bracketName };
+            console.log("getBracketData....");
+            console.log(data);
             return data;
         }
         
@@ -266,7 +281,7 @@
         // observer.observe(targetNode, config)
 
         /**
-         * Default the home entrant/player
+         * Add a new bracket
          */
         $('#add-bracket').on('click', function (event) {
             console.log("add bracket");
@@ -280,6 +295,29 @@
             ajaxFun( {"task": "addbracket"
                     , "eventId": eventId
                     , "bracketName": bracketName } );
+        });
+
+        $('.remove-bracket').hover( function(event) {
+            $(this).css('cursor','pointer');
+        }, function(event) {
+            $(this).css('cursor','default');
+        });
+
+        /**
+         * Remove a bracket
+         */
+        $('.remove-bracket').on('click', function (event) {
+            console.log("remove bracket");
+            console.log(this);
+            let bracketdata = getBracketData(this);
+            $(this).removeData('beforeContentEdit')
+            //let eventId = tennis_bracket_obj.eventId; 
+            let config =  {"task": "removebracket"
+                          , "eventId": bracketdata.eventid
+                          , "bracketNum": bracketdata.bracketnum
+                          , "bracketName": bracketdata.bracketName }
+            console.log(config)
+            ajaxFun( config );
         });
         
         //Test
