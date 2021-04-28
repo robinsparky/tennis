@@ -11,6 +11,7 @@ use api\CustomMenu;
 use commonlib\BaseLogger;
 use cpt\TennisEventCpt;
 use cpt\TennisClubCpt;
+use api\remote\ManageBrackets;
 
 //Uncomment this to turn off all logging in this plugin
 //$GLOBALS['TennisEventNoLog'] = 1;
@@ -242,6 +243,7 @@ class TennisEvents {
 		ManageSignup::register();
 		ManageDraw::register();
 		ManageRoundRobin::register();
+		ManageBrackets::register();
 		flush_rewrite_rules(); //necessary to make permlinks work for tennis templates
 		$this->seedData();
 

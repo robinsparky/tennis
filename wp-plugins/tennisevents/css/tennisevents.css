@@ -44,14 +44,14 @@
   clear: both;
 }
 
-.tennis-event-brackets li {
-  float: left;
+.tennis-event-brackets li span {
+  font-weight: bold;
 }
 
 .tennis-event-brackets li a {
-  font-size: large;
+  font-size: medium;
   text-decoration: double;
-  margin: 0 2em 0 0;
+  margin: 0 0 0 0;
   color: black;
 }
 .tennis-event-brackets li a:hover {

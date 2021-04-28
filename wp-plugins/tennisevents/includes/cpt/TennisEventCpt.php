@@ -1118,7 +1118,7 @@ class TennisEventCpt {
 		}
 
 		//Number of brackets
-		$numBrackets = $_POST['tennis_number_brackets_field'] ?? 2;
+		$numBrackets = $_POST['tennis_number_brackets_field'] ?? 1;
 		update_post_meta( $post_id, self::NUMBER_OF_BRACKETS_KEY, $numBrackets );
 
 		//Min and Max ages

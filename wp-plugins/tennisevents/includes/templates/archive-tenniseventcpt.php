@@ -1,14 +1,20 @@
 <?php
 use cpt\TennisEventCpt;
+use commonlib\BaseLogger;
 // $dir = plugin_dir_path( __DIR__ );
 // include_once(__DIR__ . '/../commonlib/support.php' );
 
 get_header();  
 
+$logger = new BaseLogger( true );
+//$jsurl =  TE()->getPluginUrl() . 'js/brackets.js';
+//wp_register_script( 'modify_brackets', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
+
 $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
 $club = Club::get( $homeClubId ); 
 $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : $club->getName();
-$season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
+$season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) ); 
+
 ?>
 
 <!-- Page Content ---->
@@ -25,7 +31,11 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 ?>
 	<div class="tennis-events-container">
 		<section class="tennis-events"> <!-- Root events -->
-			<?php				
+			<?php	
+				wp_enqueue_script( 'manage_brackets' ); 
+				global $jsDataForTennisBrackets;        
+				wp_localize_script( 'manage_brackets', 'tennis_bracket_obj', $jsDataForTennisBrackets );
+  			
 				while ( have_posts() ) : 
 					the_post();
 					global $more;
@@ -132,17 +142,28 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 								}
 								else {
 							?>
-							<ul class="tennis-event-brackets">
+							<ul id="tennis-event-brackets" class="tennis-event-brackets">
 
 							<?php 	
 								$td = new TournamentDirector( $leafEvent );
 								$brackets = $td->getBrackets( );
 								foreach( $brackets as $bracket ) {
 							?>
-								<li><a href="<?php the_permalink() ?>?manage=signup&bracket=<?php echo $bracket->getName() ?>"><?php echo $bracket->getName()?> Signup</a></li>
-								<li><a href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo $bracket->getName() ?>"><?php echo $bracket->getName()?> Draw</a></li>	
+								<li class="item-bracket" data-eventid="<?php echo $leafEvent->getID();?>" data-bracketnum="<?php echo $bracket->getBracketNumber(); ?>">
+									<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
+										<span class="bracket-name" contenteditable="true">
+									<?php else: ?>
+										<span class="bracket-name" contenteditable="false">
+									<?php endif ?>
+									<?php echo $bracket->getName()?></span>&colon;
+									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?manage=signup&bracket=<?php echo $bracket->getName(); ?>">Go to Signup, </a>
+									<a class="bracket-draw-link" href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo trim($bracket->getName()); ?>">Go to Draw</a>
+								</li>
 							<?php }} ?>
-							</ul>	
+							<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
+								<li><button type="button" id="add-bracket" data-eventid="<?php echo $leafEvent->getID();?>" >Add Bracket</button></li>
+							<?php endif ?>
+							</ul>								
 						</section> <!-- /leaf events -->	
 						<div style="clear:both"></div>
 						<?php } ?>
@@ -162,12 +183,15 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 				) );
 
 				?>
-
+				<div id="tennis-event-message"></div>
 			<?php
 				// Reset Post Data 
 				wp_reset_postdata();
 			?>	
 		</section>  <!-- /Root events -->
+		
+	<p id='editor-output'></p>
+	<p id='mutation-output'></p>
 	</div> <!-- /Container -->
 
 <?php // Sidebar Right
