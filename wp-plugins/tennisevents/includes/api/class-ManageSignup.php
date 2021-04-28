@@ -178,7 +178,7 @@ class ManageSignup
         $out = '';
         $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
         $out .= 'data-clubid="' . $this->clubId . '" data-bracketname="' . $bracketName . '">' . PHP_EOL;
-        $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;{$bracketName}&nbsp;Bracket</h3>" . PHP_EOL;
+        $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;{$bracketName}</h3>" . PHP_EOL;
         $out .= '<ul class="eventSignup tennis-event-signup">' . PHP_EOL;
         
         $templr = <<<EOT
