@@ -33,14 +33,21 @@ class Autoloader
     }
 
     public static function apiClassRegister( $class ) {
-        $class_filename = __DIR__ . "\\includes\\api\\class-$class" . ".php";
-        $file = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
-        if ( file_exists( $file ) ) {
-            // error_log( __CLASS__ . '::' . __FUNCTION__ . " Register API class - loading: $class_filename" );
-            require $file;
+        $class_filename1  = __DIR__ . "\\includes\\api\\class-$class" . ".php";
+        $class_filename2 = __DIR__ . "\\includes\\api\\$class" . ".php";
+        $file1 = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename1);
+        $file2 = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename2);
+        if ( file_exists( $file1 ) ) {
+            //error_log( __CLASS__ . '::' . __FUNCTION__ . " Register API class - loading: $class_filename1" );
+            require $file1;
             return true;
         }
-        // error_log( __CLASS__ . '::' . __FUNCTION__ . " Register API class failed: $class_filename");
+        elseif( file_exists( $file2 ) ) {
+            //error_log( __CLASS__ . '::' . __FUNCTION__ . " Register API class - loading: $class_filename2" );
+            require $file2;
+            return true;
+        }
+        // error_log( __CLASS__ . '::' . __FUNCTION__ . " Register API class failed: $class_filename1");
         return false;
     }
     
@@ -60,11 +67,11 @@ class Autoloader
         $class_filename = __DIR__ . "\\includes\\$class" . ".php";
         $file = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
         if ( file_exists( $file ) ) {
-            // error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register namespace class - loading: $class_filename" );
+            //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register namespace class - loading: $class_filename" );
             require_once $file;
             return true;
         }
-        // error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register namespace class failed: $class_filename" );
+        //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register namespace class failed: $class_filename" );
         return false;
     }
 
