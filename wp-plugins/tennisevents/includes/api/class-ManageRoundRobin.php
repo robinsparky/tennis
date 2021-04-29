@@ -160,6 +160,9 @@ class ManageRoundRobin
             $this->handleErrors('Not Ajax');
         }
         
+        $this->log->error_log("$loc: action={$_POST['action']}");
+        if( self::ACTION !== $_POST['action']) return;
+        
         $ok = false;
         if( current_user_can( 'manage_options' ) ) $ok = true;
         

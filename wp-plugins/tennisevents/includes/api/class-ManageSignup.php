@@ -234,6 +234,9 @@ EOT;
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
         $this->log->error_log( $_POST, "$loc: _POST:"  );
+        
+        $this->log->error_log("$loc: action={$_POST['action']}");
+        if( self::ACTION !== $_POST['action']) return;
 
         // Handle the ajax request
         check_ajax_referer( self::NONCE, 'security' );
