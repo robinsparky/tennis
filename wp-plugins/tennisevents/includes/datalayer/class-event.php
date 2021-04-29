@@ -760,15 +760,13 @@ class Event extends AbstractData
 			return $result;
 		}
 
-		$prefix = "Bracket_";
+		$prefix = "Bracket";
 		$parentEvt = $this->getParent();
-		if( EventType::LADDER === $parentEvt->getEventType() ) $prefix = "Box_";
+		if( EventType::LADDER === $parentEvt->getEventType() ) $prefix = "Box";
 
 		foreach(range(1,$numBrackets) as $bracket_num ) {
 			$br_name = "{$prefix}{$bracket_num}";
-			$bracket = new Bracket();
-			$bracket->setName( $br_name );
-			$this->addBracket( $bracket );
+			$bracket = $this->createBracket($br_name);
 			++$result;
 			$this->setDirty();
 		}
@@ -1100,7 +1098,7 @@ class Event extends AbstractData
 		$result = false;
 		$found = false;
 		if( $this->isLeaf() ) {
-			if( $this->isLeaf() && $bracket->getEvent()->getID() === $this->getID() && $bracket->isValid() ) {
+			//if( $this->isLeaf() && $bracket->getEvent()->getID() === $this->getID() && $bracket->isValid() ) {
 				foreach( $this->getBrackets() as $b ) {
 					if($b->getBracketNumber() === $bracket->getBracketNumber() ) {
 						$found = true;
@@ -1112,7 +1110,7 @@ class Event extends AbstractData
 					$bracket->setEvent( $this );
 					$result = $this->setDirty();
 				}
-			}
+			//}
 		}
         return $result;
 	}

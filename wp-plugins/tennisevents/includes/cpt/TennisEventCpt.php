@@ -1261,7 +1261,6 @@ class TennisEventCpt {
 			}
 
 			$event->addClub($club);
-			$bracket = $event->getWinnersBracket(); //Ensure at 1 least bracket is available.
 
 			//Set the parent event of the Event before setting other props
 			$event->setParent($parentEvent);

@@ -513,11 +513,11 @@ class TournamentDirector
      */
     public function getBrackets( $force = false ) {
         $brackets = $this->event->getBrackets( $force );
-        if( empty( $brackets ) ) {
-            $this->event->getWinnersBracket();
-            $this->event->getConsolationBracket();
-            $brackets = $this->event->getBrackets();
-        }
+        // if( empty( $brackets ) ) {
+        //     $this->event->getWinnersBracket();
+        //     $this->event->getConsolationBracket();
+        //     $brackets = $this->event->getBrackets();
+        // }
         return $brackets;
     }
 
@@ -789,22 +789,21 @@ class TournamentDirector
         $loserbracket = null;
         $chairUmpire = null;
         $minplayers = self::MINIMUM_ENTRANTS;
+        $bracket = $this->getBracket( $bracketName );
         switch( $bracketName ) {
             case Bracket::WINNERS:
-                $bracket = $this->getEvent()->getWinnersBracket();
+                //$bracket = $this->getEvent()->getWinnersBracket();
                 $loserbracket = $this->getEvent()->getConsolationBracket();
                 $mainbracket = $bracket;
                 break;
             case Bracket::CONSOLATION:
-                $bracket = $this->getEvent()->getConsolationBracket();
+                //$bracket = $this->getEvent()->getConsolationBracket();
                 $mainbracket = $this->getEvent()->getWinnersBracket();
                 $loserbracket = $bracket;
-                $chairUmpire = $this->getChairUmpire();
                 $minplayers =  ceil(self::MINIMUM_ENTRANTS / 2);
                 break;
             case Bracket::LOSERS:
-            default:
-                throw new InvalidBracketException( __("'{$bracketName}' is not valid for this event.", TennisEvents::TEXT_DOMAIN ) );
+            default:                
         }
         
         //Bracket must not be approved already
@@ -821,14 +820,14 @@ class TournamentDirector
         }
         
         $matchesCreated = 0;
-        $entrants = $bracket->getSignup( $chairUmpire );
+        $entrants = $bracket->getSignup( );
         $bracketSignupSize = count( $entrants );
         //Check minimum entrants constraint
         if( $bracketSignupSize < $minplayers ) {
-            $mess = __( "Bracket must have at least $minplayers entrants for an elimination event. $bracketSignupSize entrants found.", TennisEvents::TEXT_DOMAIN );
+            $mess = __( "Bracket must have at least {$minplayers} entrants for an elimination event. {$bracketSignupSize} entrants found.", TennisEvents::TEXT_DOMAIN );
             throw new InvalidBracketException( $mess );
         }
-        $this->log->error_log( "$loc: signup size=$bracketSignupSize" );
+        $this->log->error_log( "$loc: signup size={$bracketSignupSize}" );
 
 
         //Remove any existing matches ... we know they have not started yet
