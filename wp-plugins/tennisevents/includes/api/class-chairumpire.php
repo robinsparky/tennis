@@ -832,7 +832,7 @@ EOT;
     }
        
     public function getPointsPerWin() {
-        return $this->PointsPerWin;
+        return $this->PointsPerWin ?? 0;
     }
     
     /**
