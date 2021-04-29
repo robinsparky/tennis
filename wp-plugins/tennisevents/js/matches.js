@@ -151,21 +151,21 @@
                 console.log("Data is a string");
                 switch(data) {
                     case 'createPrelim':
-                        $('#approveDraw').prop('diabled', false );
+                        $('#approveDraw').prop('disabled', false );
                         $('#createPrelim').prop('disabled', true );
                         $('#removePrelim').prop('disabled', false );
                         $('#advanceMatches').prop('disabled', false );
                         window.location.reload(); 
                         break;
                     case 'reset':
-                        $('#approveDraw').prop('diabled', true );
+                        $('#approveDraw').prop('disabled', true );
                         $('#createPrelim').prop('disabled', false );
                         $('#removePrelim').prop('disabled', true );
                         $('#advanceMatches').prop('disabled', true );
                         window.location.reload(); 
                         break;
                     case 'approve': 
-                        $('#approveDraw').prop('diabled', true );
+                        $('#approveDraw').prop('disabled', true );
                         $('#createPrelim').prop('disabled', true );
                         $('#removePrelim').prop('disabled', true );
                         $('#advanceMatches').prop('disabled', false );

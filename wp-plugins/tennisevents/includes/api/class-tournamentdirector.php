@@ -115,6 +115,20 @@ class TournamentDirector
     }
 
     /**
+     * Get the URL for the event's underlying post object 
+     */
+    public function getPermaLink() {
+        
+        $refs = $this->event->getExternalRefs();
+        $link = "#";
+        if( count($refs) > 0 ) {
+            $postId = $refs[0];
+            $link = get_permalink($postId, false);
+        }
+        return $link;
+    }
+
+    /**
      * Get the name of the Tennis Club for this tournament
      * @return string Name of the club
      */

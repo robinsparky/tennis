@@ -186,7 +186,6 @@ class ManageBrackets
         $this->log->error_log($data,"$loc: data...");
 
         $eventId = $data["eventId"];
-        $bracketNum    = $data["bracketNum"];
         $newBracketName = $data["bracketName"];
         $event = Event::get( $eventId );
         try {
@@ -196,6 +195,13 @@ class ManageBrackets
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("Bracket not created or found", TennisEvents::TEXT_DOMAIN) );
             }
+            $data["bracketNum"] = $bracket->getBracketNumber();
+            $data["bracketName"] = $bracket->getName();
+            $data["imgsrc"] = TE()->getPluginUrl() . 'img/removeIcon.gif';
+ 
+            $data["signuplink"] = $td->getPermaLink() . "?manage=signup&bracket={$bracket->getName()}";
+            $data["drawlink"]   = $td->getPermaLink() . "?manage=draw&bracket={$bracket->getName()}";
+
             $mess = "Added bracket '{$newBracketName}' (with number='{$bracket->getBracketNumber()}')";
         } 
         catch (Exception $ex ) {

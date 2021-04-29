@@ -142,7 +142,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 								}
 								else {
 							?>
-							<ul id="tennis-event-brackets" class="tennis-event-brackets">
+							<ul id="tennis-event-brackets" class="tennis-event-brackets" data-eventid="<?php echo $leafEvent->getID();?>">
 
 							<?php 	
 								$td = new TournamentDirector( $leafEvent );
@@ -156,15 +156,19 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 										<span class="bracket-name" contenteditable="false">
 									<?php endif ?>
 									<?php echo $bracket->getName()?></span>&colon;
-									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?manage=signup&bracket=<?php echo $bracket->getName(); ?>">Go to Signup, </a>
-									<a class="bracket-draw-link" href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo trim($bracket->getName()); ?>">Go to Draw</a>
-									<img class="remove-bracket" src="<?php echo TE()->getPluginUrl() . 'img/removeIcon.gif' ?>">
+									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?manage=signup&bracket=<?php echo $bracket->getName(); ?>">Signup, </a>
+									<a class="bracket-draw-link" href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo trim($bracket->getName()); ?>">Draw</a>
+									<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
+										<img class="remove-bracket" src="<?php echo TE()->getPluginUrl() . 'img/removeIcon.gif' ?>">
+									<?php endif ?>
+
 								</li>
 							<?php }} ?>
+							</ul>
 							<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
-								<li><button type="button" id="add-bracket" data-eventid="<?php echo $leafEvent->getID();?>" >Add Bracket</button></li>
-							<?php endif ?>
-							</ul>								
+								<button class="button" type="button" id="add-bracket" data-eventid="<?php echo $leafEvent->getID();?>" >Add Bracket</button>
+							<?php endif ?>	
+							<p id="tennis-mutation"></p>							
 						</section> <!-- /leaf events -->	
 						<div style="clear:both"></div>
 						<?php } ?>

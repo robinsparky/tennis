@@ -7,6 +7,7 @@
 
         var longtimeout = 60000;
         var shorttimeout = 5000;
+
         const isString = str => ((typeof str === 'string') || (str instanceof String));
         const myTrim = str => str.replace(/^\s+|\s+$/gm,'');
 
@@ -163,9 +164,24 @@
          */
         function addBracket( data ) {
             console.log('addBracket');
-            $parent = $('.tennis-event-brackets');
-            window.location.reload(); //TODO: don't reload, add the necessary elements
-            //let $matchEl = findBracket( data.eventId, data.bracketNum );
+            console.log(data)
+            sel = `.tennis-event-brackets[data-eventid="${data.eventId}"]`;
+            $parent = $(sel);
+
+            let templ = `<li class="item-bracket" data-eventid="${data.eventId}" data-bracketnum="${data.bracketNum}">
+            <span class="bracket-name" contenteditable="true">${data.bracketName}&colon;</span>
+            <a class="bracket-signup-link" href="${data.signuplink}">Signup, </a>
+            <a class="bracket-draw-link" href="${data.drawlink}">Draw</a>
+            <img class="remove-bracket" src="${data.imgsrc}">
+            `;
+
+            $parent.append(templ)
+            $el = findBracket(data.eventId, data.bracketNum)
+            $el.children('span.bracket-name').on('change', onChange)
+                .on('focus', onFocus)
+                .on('blur', onBlur);
+            $('#add-bracket').prop('disabled', false );
+            enableDeleteButton();
         }
 
         /**
@@ -173,7 +189,6 @@
          * @param {*} data 
          */
         function hideBracket( data ) {
-            console.log('hideBracket');
             let eventId = data['eventId']
             let bracketNum = data['bracketNum']
             let $el = findBracket(eventId, bracketNum)
@@ -185,13 +200,14 @@
          * It is very important that this find method is based on event/bracket identifiers and not on css class or element id.
          * @param int eventId 
          * @param int bracketNum 
+         * @return jquery object
          */
         function findBracket( eventId, bracketNum ) {
             console.log("findMatch(%d,%d)", eventId, bracketNum );
             let attFilter = '.item-bracket[data-eventid="' + eventId + '"]';
             attFilter += '[data-bracketnum="' + bracketNum + '"]';
-            let $matchElem = $(attFilter);
-            return $matchElem;
+            let $bracketElem = $(attFilter);
+            return $bracketElem;
         }
         
         /**
@@ -214,20 +230,41 @@
             console.log(data);
             return data;
         }
-        
-        /* ------------------------------User Actions ---------------------------------*/
 
+        function uniqueName( eventId ) {
+            let sel = `.tennis-event-brackets[data-eventid="${eventId}"]`;
+            let $parent = $(sel);
+            let existingNames = [];
+            let newName = '';
+            $parent.find('span.bracket-name').each( function(idx) {
+                existingNames.push(this.innerText)} );
+            for( num=1; num<100; num++ ) {
+                newName = `Bracket${num}`;
+                if(existingNames.every( str => str !== newName  )) {
+                    break;
+                }
+            }            
+            return newName;
+        }
+
+        function enableDeleteButton(){
+            $('.remove-bracket').hover( function(event) {
+                $(this).css('cursor','pointer');
+            }, function(event) {
+                $(this).css('cursor','default');
+            });
+        }
+        
         /**
-         * Change the home player/entrant
-         *  Can only be done if bracket is not yet approved
+         * Change the name of the bracket
          */
-        $('span.bracket-name').on('change', function (event) {
-            console.log("change bracket name");
-            console.log(this);
-            let bracketdata = getBracketData(this);
-            let bracketName = this.innerText;
-            let oldBracketName = $(this).data('beforeContentEdit');
-            $(this).removeData('beforeContentEdit')
+        const onChange = function( event ) {
+            let bracketdata = getBracketData(event.target);
+            let bracketName = event.target.innerText || '';
+            if( bracketName === '') return;
+
+            let oldBracketName = $(event.target).data('beforeContentEdit');
+            $(event.target).removeData('beforeContentEdit')
             //let eventId = tennis_bracket_obj.eventId; 
             let config =  {"task": "editname"
                             , "eventId": bracketdata.eventid
@@ -236,49 +273,33 @@
                             , "oldBracketName": oldBracketName }
             console.log(config)
             ajaxFun( config );
-        });
+        }
 
-        // console.log("All Brack Spans")
-        // console.log($('span.bracket-name'));
-        $('span.bracket-name').on('focus', function(event) {
-            console.log("on focus");
-            console.log(this);
-            console.log(this.innerText);
-            $(this).data('beforeContentEdit', this.innerText);
+        /**
+         * Callback for focus event on the name of the bracket
+         * @param {*} event 
+         */
+        const onFocus = function( event ) {
+            console.log(event.target.innerText);
+            $(event.target).data('beforeContentEdit', event.target.innerText);
             //$(this).attr('data-beforeContentEdit',this.innerText);
-        });
-        
-        $('span.bracket-name').on('blur', function(event) {
-            console.log("on blur")
-            console.log(this)     
-            if ($(this).data('beforeContentEdit') !== this.innerText) {
-                $(this).trigger('change');
+        }
+
+        /**
+         * Callback function for the blur event of the name of the bracket
+         * @param {*} event 
+         */
+        const onBlur = function( event ) {
+            if ($(event.target).data('beforeContentEdit') !== event.target.innerText) {
+                $(event.target).trigger('change');
             }
-        });
+        }
+        
+        /* ------------------------------User Actions ---------------------------------*/
 
-        // Options for the observer (which mutations to observe)
-        //const config = { attributes: false, characterDataOldValue: true, characterData: true, subtree: true, childList: true};
-
-        // Callback function to execute when mutations are observed
-        // const callback = function(mutationsList, observer) {
-        //     // Use traditional 'for loops' for IE 11
-        //     for(const mutation of mutationsList) {
-        //         console.log(mutation.target.parentNode);
-        //         if (mutation.type === 'childList') {
-        //             console.log('A child node has been added or removed.');
-        //         }
-        //         else if (mutation.type === 'attributes') {
-        //             console.log('The ' + mutation.attributeName + ' attribute was modified.');
-        //         }
-        //         else if (mutation.type === 'characterData') {
-        //             console.log('The text was modified from: ' + myTrim(mutation.oldValue) + ' to ' + myTrim(mutation.target.textContent));
-        //         }
-        //     }
-        // };       
-        // create an observer instance
-        // let observer = new MutationObserver( callback );
-        // const targetNode = document.getElementById('tennis-event-brackets');
-        // observer.observe(targetNode, config)
+         $('span.bracket-name').on('change', onChange);
+         $('span.bracket-name').on('focus', onFocus);
+         $('span.bracket-name').on('blur', onBlur);
 
         /**
          * Add a new bracket
@@ -286,46 +307,46 @@
         $('#add-bracket').on('click', function (event) {
             console.log("add bracket");
             console.log(event.target);
+            $(this).prop('disabled', true );
             let eventId = event.target.getAttribute("data-eventid");
-            let bracketName = prompt("Please enter name of bracket.",eventId);
-            if( null == bracketName ) {
-                return;
-            }
+            // let bracketName = prompt("Please enter name of bracket.",eventId);
+            // if( null == bracketName ) {
+            //     return;
+            // }
+            let newName = uniqueName(eventId);
 
             ajaxFun( {"task": "addbracket"
                     , "eventId": eventId
-                    , "bracketName": bracketName } );
+                    , "bracketName": newName } );
         });
 
-        $('.remove-bracket').hover( function(event) {
-            $(this).css('cursor','pointer');
-        }, function(event) {
-            $(this).css('cursor','default');
-        });
+        enableDeleteButton();
 
         /**
          * Remove a bracket
          */
-        $('.remove-bracket').on('click', function (event) {
+        $('.tennis-event-brackets').on('click', '.remove-bracket', function (event) {
             console.log("remove bracket");
             console.log(this);
             let bracketdata = getBracketData(this);
             $(this).removeData('beforeContentEdit')
             //let eventId = tennis_bracket_obj.eventId; 
-            let config =  {"task": "removebracket"
-                          , "eventId": bracketdata.eventid
-                          , "bracketNum": bracketdata.bracketnum
-                          , "bracketName": bracketdata.bracketName }
-            console.log(config)
-            ajaxFun( config );
+            if(confirm("Are you sure you want to delete this bracket?")) {
+                let config =  {"task": "removebracket"
+                            , "eventId": bracketdata.eventid
+                            , "bracketNum": bracketdata.bracketnum
+                            , "bracketName": bracketdata.bracketName }
+                console.log(config)
+                ajaxFun( config );
+            }
         });
         
         //Test
-        if (storageAvailable('localStorage')) {
-            console.log("Yippee! We can use localStorage awesomeness");
-          }
-          else {
-            console.log("Too bad, no localStorage for us");
-          }
+        // if (storageAvailable('localStorage')) {
+        //     console.log("Yippee! We can use localStorage awesomeness");
+        //   }
+        //   else {
+        //     console.log("Too bad, no localStorage for us");
+        //   }
     });
 })(jQuery);
