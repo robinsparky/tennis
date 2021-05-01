@@ -156,6 +156,8 @@
             console.log('updateBracketBracket');
             let $matchEl = findBracket( data.eventId, data.bracketNum );
             $matchEl.children('.bracket-name').text(data.bracketName);
+            $matchEl.children('.bracket-signup-link').attr("href",data.signuplink);
+            $matchEl.children('.bracket-draw-link').attr("href",data.drawlink);
         }
 
         /**

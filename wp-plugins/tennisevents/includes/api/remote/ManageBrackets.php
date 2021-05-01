@@ -169,6 +169,8 @@ class ManageBrackets
             }
             $mess = "Changed bracket name from '{$oldBracketName}' to '{$newBracketName}'";
             $bracket->setName($newBracketName);
+            $data["signuplink"] = $td->getPermaLink() . "?manage=signup&bracket={$bracket->getName()}";
+            $data["drawlink"]   = $td->getPermaLink() . "?manage=draw&bracket={$bracket->getName()}";
             $td->save();
         } 
         catch (Exception $ex ) {
