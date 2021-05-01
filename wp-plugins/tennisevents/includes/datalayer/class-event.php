@@ -726,12 +726,8 @@ class Event extends AbstractData
 			$this->num_brackets = $numBrackets;
 			$result = $this->setDirty();
 
-			if( $numBrackets === 0 ) {
-				$this->removeBrackets();
-			}
-			else {
-				$this->generateBrackets( $this->num_brackets );
-			}		
+			$this->generateBrackets( $this->num_brackets );
+	
 		}
 		return $result;
 	}
@@ -755,6 +751,7 @@ class Event extends AbstractData
 		$result = 0;
 
 		if( $this->isParent() || ($numBrackets <= 0) ) return $result;
+		
 		if( count($this->getBrackets()) > 0 ) {
 			$this->log->error_log("$loc: Cannot generate brackets when they already exist.");
 			return $result;
@@ -762,14 +759,18 @@ class Event extends AbstractData
 
 		$prefix = "Bracket";
 		$parentEvt = $this->getParent();
-		if( EventType::LADDER === $parentEvt->getEventType() ) $prefix = "Box";
+		if(!is_null($parentEvt)) {
 
-		foreach(range(1,$numBrackets) as $bracket_num ) {
-			$br_name = "{$prefix}{$bracket_num}";
-			$bracket = $this->createBracket($br_name);
-			++$result;
-			$this->setDirty();
+			if( EventType::LADDER === $parentEvt->getEventType() ) $prefix = "Box";
+
+			foreach(range(1,$numBrackets) as $bracket_num ) {
+				$br_name = "{$prefix}{$bracket_num}";
+				$bracket = $this->createBracket($br_name);
+				++$result;
+				$this->setDirty();
+			}
 		}
+
 		return $result;
 	}
 
@@ -1508,6 +1509,9 @@ class Event extends AbstractData
 		//Save brackets
 		if( isset( $this->brackets ) ) {
 			foreach( $this->brackets as $bracket ) {
+				if( $bracket->getEventId() <= 0 || is_null($bracket->getEvent()) ) {
+					$bracket->setEvent( $this );
+				}
 				$result += $bracket->save();
 			}
 		}
