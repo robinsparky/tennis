@@ -115,15 +115,44 @@ class TournamentDirector
     }
 
     /**
+     * Get the underlying event's ID.
+     */
+    public function getEventId() :int {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $id = 0;
+        if( !is_null( $this->event) ) {
+            $id = $this->event->getID();
+        }
+        return $id;
+    }
+
+    /**
+     * Get the underlying event's parent event's name.
+     */
+    public function getParentEventName() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $pname = '';
+        if( !is_null( $this->event) ) {
+            if( $this->event->isLeaf() ) {
+                $pname = $this->event->getParent()->getName();
+            }
+        }
+        return $pname;
+    }
+
+    /**
      * Get the URL for the event's underlying post object 
      */
     public function getPermaLink() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
         
-        $refs = $this->event->getExternalRefs();
         $link = "#";
-        if( count($refs) > 0 ) {
-            $postId = $refs[0];
-            $link = get_permalink($postId, false);
+        if( !is_null( $this->event) ) {
+            $refs = $this->event->getExternalRefs();
+            if( count($refs) > 0 ) {
+                $postId = $refs[0];
+                $link = get_permalink($postId, false);
+            }
         }
         return $link;
     }
