@@ -779,11 +779,12 @@ class ManageDraw
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
 
         $begin = <<<EOT
+<h2 id="parent-event-name">%s</h2>
 <table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
 <caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;(%s)</caption>
 <thead><tr>
 EOT;
-        $out = sprintf( $begin, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc );
+        $out = sprintf( $begin,$parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc );
 
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $bracket->roundOf( $i );
