@@ -169,7 +169,7 @@
             $parent = $(sel);
 
             let templ = `<li class="item-bracket" data-eventid="${data.eventId}" data-bracketnum="${data.bracketNum}">
-            <span class="bracket-name" contenteditable="true">${data.bracketName}&colon;</span>
+            <span class="bracket-name" contenteditable="true">${data.bracketName}</span>&colon;
             <a class="bracket-signup-link" href="${data.signuplink}">Signup, </a>
             <a class="bracket-draw-link" href="${data.drawlink}">Draw</a>
             <img class="remove-bracket" src="${data.imgsrc}">
