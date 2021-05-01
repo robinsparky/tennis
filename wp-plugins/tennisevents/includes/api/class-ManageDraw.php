@@ -763,7 +763,8 @@ class ManageDraw
 
         $scoreType     = $td->getEvent()->getScoreType();
         $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
-        $this->eventId = $td->getEvent()->getID();
+        $this->eventId = $td->getEventId();
+        $parentName    = $td->getParentEventName();
 
         $jsData = $this->get_ajax_data();
         $jsData["eventId"] = $this->eventId;

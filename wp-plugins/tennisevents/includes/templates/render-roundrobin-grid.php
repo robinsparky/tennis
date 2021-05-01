@@ -1,3 +1,4 @@
+<h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php  
     echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>
     (<?php echo $scoreRuleDesc; ?>)</h3>

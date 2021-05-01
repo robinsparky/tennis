@@ -129,6 +129,7 @@ class ManageSignup
 
         $this->log->error_log($my_shorts, "$loc: My Shorts" );   
 
+        //TODO: Put all references into functions in TD
         $evts = Event::find( array( "club" => $club->getID() ) );
         $found = false;
         $target = null;
@@ -143,7 +144,7 @@ class ManageSignup
         } 
         
         if( !$found ) return __('No such event for this club', TennisEvents::TEXT_DOMAIN );
-        
+
         //Get the bracket from attributes
         $bracketName = $my_shorts["bracketname"];
         $bracket = $target->getBracket( $bracketName );
@@ -156,6 +157,7 @@ class ManageSignup
         
         $td = new TournamentDirector( $target );
         $eventName = str_replace("\'", "&apos;", $td->getName());
+        $parentName = str_replace("\'", "&apos;", $td->getParentEventName());
         $clubName = $club->getName();
         $isApproved = $bracket->isApproved();
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
@@ -178,6 +180,7 @@ class ManageSignup
         $out = '';
         $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
         $out .= 'data-clubid="' . $this->clubId . '" data-bracketname="' . $bracketName . '">' . PHP_EOL;
+        $out .= "<h2 class='tennis-signup-title'>${parentName}</h2>" . PHP_EOL;
         $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;{$bracketName}</h3>" . PHP_EOL;
         $out .= '<ul class="eventSignup tennis-event-signup">' . PHP_EOL;
         
