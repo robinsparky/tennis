@@ -136,6 +136,7 @@ section.roundrobin-round {
 article.item-player {
   margin-top: 3px;
   border: 1px solid black;
+  min-width: 120px;
 }
 
 table.bracketrobin {
