@@ -156,8 +156,8 @@ class ManageBrackets
         $this->log->error_log($data,"$loc: data...");
 
         $eventId = $data["eventId"];
-        $newBracketName   = $data["bracketName"];
-        $oldBracketName   = $data['oldBracketName'];
+        $newBracketName   = strip_tags( htmlspecialchars( $data["bracketName"] ));
+        $oldBracketName   = strip_tags( htmlspecialchars( $data['oldBracketName'] ));
         $bracketNum    = $data["bracketNum"];
         $mess = "";
         try {
@@ -188,7 +188,7 @@ class ManageBrackets
         $this->log->error_log($data,"$loc: data...");
 
         $eventId = $data["eventId"];
-        $newBracketName = $data["bracketName"];
+        $newBracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
         $event = Event::get( $eventId );
         try {
             $event = Event::get( $eventId );
@@ -222,7 +222,7 @@ class ManageBrackets
 
         $eventId = $data["eventId"];
         $bracketNum    = $data["bracketNum"];
-        $bracketName = $data["bracketName"];
+        $bracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
         $event = Event::get( $eventId );
         try {
             $event = Event::get( $eventId );
