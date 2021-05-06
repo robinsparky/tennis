@@ -1015,7 +1015,7 @@ EOT;
 
         $winnerClass = "matchwinner";
 
-        $tournamentName = $td->getName();
+        $tournamentName = str_replace("\'","'",$td->getName());
         $bracketName    = $bracket->getName();
         $champion = $td->getChampion( $bracketName );
         $championName = empty( $champion ) ? 'tba' : $champion->getName();
