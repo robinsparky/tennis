@@ -66,9 +66,16 @@ class TennisEventCpt {
 		add_action('manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array($tennisEvt, 'getColumnValues'), 10, 2);
 		add_filter('manage_edit-' . self::CUSTOM_POST_TYPE . '_sortable_columns', array($tennisEvt, 'sortableColumns'));
 		add_action('pre_get_posts', array($tennisEvt, 'orderby'));
+		
+		//Gender type filter
 		add_action('restrict_manage_posts', array($tennisEvt, 'genderTypeFilter'));
 		add_filter('parse_query', array($tennisEvt, 'genderTypeParseFilter'));
-
+		
+		//Parent event filter
+		add_action('restrict_manage_posts', array($tennisEvt, 'parentEventFilter'));
+		add_filter('parse_query', array($tennisEvt, 'parentEventParseFilter'));
+		
+		//Bulk Actions
 		add_filter('bulk_actions-edit-' . self::CUSTOM_POST_TYPE, array($tennisEvt, 'addResetBulkAction'));
 		add_filter('handle_bulk_actions-edit-' . self::CUSTOM_POST_TYPE, array($tennisEvt, 'handleBulkReset'), 10, 3 );
 
@@ -245,6 +252,65 @@ class TennisEventCpt {
 			$query->query_vars['meta_compare'] = '=';
 		}
 	}
+		/**
+	 * Add a filter dropdown in the Event admin page
+	 */
+	public function parentEventFilter($post_type)	{
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+
+		if ($post_type === self::CUSTOM_POST_TYPE) {
+			$this->log->error_log("$loc using post_type: $post_type");
+			
+			$parentEvents = Event::getAllParentEvents();
+			if (empty($parentEvents)) return;
+
+			$selected = -1;
+			if (isset($_GET['parent_event_id']) && !empty($_GET['parent_event_id'])) {
+				$selected = $_GET['parent_event_id'];
+			}
+			$options[] = sprintf('<option value="-1">%1$s</option>', __('All Events', TennisEvents::TEXT_DOMAIN));
+			foreach ($parentEvents as $evt) {
+				$key = $evt->getID();
+				$val = $evt->getName();
+				if ($evt->getID() === $selected) {
+					$options[] = sprintf('<option value="%1$s" selected>%2$s</option>', esc_attr($key), $val);
+				} else {
+					$options[] = sprintf('<option value="%1$s">%2$s</option>', esc_attr($key), $val);
+				}
+			} 
+
+			/** Output the dropdown menu */
+			echo '<select class="" id="parent_event_id" name="parent_event_id">';
+			echo join('\n', $options);
+			echo '</select>';
+		}
+	}
+
+	/**
+	 * Modify the WP_QUERY using the value from the request query string
+	 */
+	public function parentEventParseFilter($query) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc");
+
+		global $pagenow;
+		$current_page = isset($_GET['post_type']) ? $_GET['post_type'] : '';
+
+		if (
+			is_admin()
+			&& self::CUSTOM_POST_TYPE == $current_page
+			&& 'edit.php' == $pagenow
+			&& isset($_GET['parent_event_id'])
+			&& $_GET['parent_event_id'] != ''
+			&& $_GET['parent_event_id'] != '-1'
+		) {
+			$evtId = (int)$_GET['parent_event_id'];
+			$cptId = Event::getExtEventRefByEventId( $evtId );
+			$query->query_vars['meta_key'] = self::PARENT_EVENT_META_KEY;
+			$query->query_vars['meta_value'] = $cptId;
+			$query->query_vars['meta_compare'] = '=';
+		}
+	}
 
 	// Populate the Tennis Event columns with values
 	public function getColumnValues($column_name, $postID) {
@@ -403,11 +469,17 @@ class TennisEventCpt {
 		);
 	}
 	
+	/**
+	 * Adds the 'reset' bulk action to the bulk action drop down
+	 */
 	public function addResetBulkAction( $bulk_actions ) {
 		$bulk_actions['tennis-event-reset'] = __('Reset the Draw', TennisEvents::TEXT_DOMAIN );
 		return $bulk_actions;
 	}
 
+	/**
+	 * Perform the 'reset' bulk action
+	 */
 	public function handleBulkReset( $redirect_url, $action, $post_ids ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($post_ids, "$loc($redirect_url, $action)");

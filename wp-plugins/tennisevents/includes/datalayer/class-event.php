@@ -74,6 +74,32 @@ class Event extends AbstractData
 		}
 		return $col;
     }
+	
+    /**
+     * Get all parent Events
+     */
+    public static function getAllParentEvents( ) {
+		global $wpdb;
+		$table = $wpdb->prefix . self::$tablename;
+				
+		$sql = "SELECT `ID`,`event_type`,`name`
+		       ,`format`, `match_type`,`score_type`,`gender_type`
+			   ,`age_min`,`age_max`
+			   ,`parent_ID`,`num_brackets`
+			   ,`signup_by`,`start_date`, `end_date` 
+		        FROM $table WHERE `parent_ID` is null";
+		$rows = $wpdb->get_results($sql, ARRAY_A);
+		
+		//error_log("Event::allParentEvents $wpdb->num_rows rows returned using criteria: $criteria");
+
+		$col = array();
+		foreach($rows as $row) {
+            $obj = new Event;
+            self::mapData($obj,$row);
+			$col[] = $obj;
+		}
+		return $col;
+    }
     
     /**
      * Find all Events belonging to a specific club
@@ -190,6 +216,33 @@ class Event extends AbstractData
 		}
 		elseif( count( $rows ) === 1 ) {
 			$result = $rows[0]['event_ID'];
+		}
+		return $result;
+	}
+
+	/**
+	 * Fetches one or more Event external refs from the db with the given an event id
+	 * @param int $id 
+	 * @return string external reference or array of external refs or '' if not found
+	 */
+	static public function getExtEventRefByEventId( int $id ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'tennis_external_event';		
+		$sql = "SELECT `external_ID`
+				FROM $table WHERE `event_ID`='%d'";
+		$safe = $wpdb->prepare( $sql, $id );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
+		error_log( sprintf("Event::getExtEventRefByEventId(%d) -> %d rows returned.", $id, $wpdb->num_rows ) );
+		
+		$result = '';
+		if( count( $rows ) > 1) {
+			$result = array();
+			foreach( $rows as $row ) {
+				$result[] = $row['external_ID'];
+			}
+		}
+		elseif( count( $rows ) === 1 ) {
+			$result = $rows[0]['external_ID'];
 		}
 		return $result;
 	}
