@@ -175,7 +175,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 								</li>
 							</ul>
 								<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
-									<button class="button" type="button" id="add-bracket" data-eventid="<?php echo $leafEvent->getID();?>" >Add Bracket</button>
+									<button type="button" class="button tennis-add-bracket" data-eventid="<?php echo $leafEvent->getID();?>" >Add Bracket</button>
 								<?php endif ?>
 							<?php } ?>	<!-- /Each bracket for a leaf events -->
 						</section> <!-- /leaf events -->	

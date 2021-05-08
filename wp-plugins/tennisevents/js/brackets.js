@@ -182,7 +182,7 @@
             $el.children('span.bracket-name').on('change', onChange)
                 .on('focus', onFocus)
                 .on('blur', onBlur);
-            $('#add-bracket').prop('disabled', false );
+            $('.tennis-add-bracket').prop('disabled', false );
             enableDeleteButton();
         }
 
@@ -306,7 +306,7 @@
         /**
          * Add a new bracket
          */
-        $('#add-bracket').on('click', function (event) {
+        $('.tennis-add-bracket').on('click', function (event) {
             console.log("add bracket");
             console.log(event.target);
             $(this).prop('disabled', true );
