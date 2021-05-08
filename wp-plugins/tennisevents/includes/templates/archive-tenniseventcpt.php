@@ -7,8 +7,6 @@ use commonlib\BaseLogger;
 get_header();  
 
 $logger = new BaseLogger( true );
-//$jsurl =  TE()->getPluginUrl() . 'js/brackets.js';
-//wp_register_script( 'modify_brackets', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
 
 $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
 $club = Club::get( $homeClubId ); 
@@ -30,12 +28,13 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 
 ?>
 	<div class="tennis-events-container">
-		<section class="tennis-events"> <!-- Root events -->
+		<section class="tennis-events">
+			<div id="tabs" class="tennis-event-tabs-container">
 			<?php	
 				wp_enqueue_script( 'manage_brackets' ); 
 				global $jsDataForTennisBrackets;        
 				wp_localize_script( 'manage_brackets', 'tennis_bracket_obj', $jsDataForTennisBrackets );
-  			
+  		
 				while ( have_posts() ) : 
 					the_post();
 					global $more;
@@ -76,9 +75,11 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 					if(empty($startDate)) $startDate = 'tba';
 
 				?>	
-				<h3>&quot;<?php the_title(); ?>&quot; <?php echo $eventType ?></h3>		
-				<?php the_content() ?> 			
-				<ul class='tennis-event-meta tennis-event-meta-detail'>							
+				 <!-- Root events -->
+				<div id="<?php echo get_the_ID()?>" class="tennis-parent-event">
+				<h3 class="tennis-parent-event-title"><?php the_title(); ?></h3>					
+				<ul class='tennis-event-meta tennis-event-meta-detail'>		
+					<li><?php the_content(); ?></li>					
 					<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
 					<li><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
 				</ul>
@@ -103,6 +104,8 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 					if( $myQuery->have_posts() ) {
 						while( $myQuery->have_posts() ) { 
 							$myQuery->the_post(); 
+							$genderType = get_post_meta( get_the_ID(), TennisEventCpt::GENDER_TYPE_META_KEY, true);
+							$genderType = GenderType::AllTypes()[$genderType];
 							$matchType = get_post_meta( get_the_ID(), TennisEventCpt::MATCH_TYPE_META_KEY, true );
 							$matchType   = MatchType::AllTypes()[$matchType];
 							$eventFormat = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_FORMAT_META_KEY, true );
@@ -113,16 +116,26 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 							$signupBy = get_post_meta( get_the_ID(), TennisEventCpt::SIGNUP_BY_DATE_META_KEY, true );
 							$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
 							$endDate = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
-							$leafEvent = Event::getEventByExtRef( get_the_ID() );
+							$leafEvent = Event::getEventByExtRef( get_the_ID() );					
+							$minAge = get_post_meta( get_the_ID(), TennisEventCpt::AGE_MIN_META_KEY, true );
+							$maxAge = get_post_meta( get_the_ID(), TennisEventCpt::AGE_MAX_META_KEY, true );
+		
 
 						?>
 						<section class="tennis-leaf-events"> <!-- Leaf Events -->
-							<?php echo the_title("<h3>","</h3>") ?>
+							<?php echo the_title("<h3 class='tennis-leaf-event-title'>","</h3>") ?>
 							<div><?php the_content() ?> </div>
 							<table class='tennis-event-meta'>
-							<tbody>
+							<tbody>									
+								<tr class="event-meta-detail"><td><strong><?php echo __("Gender Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $genderType; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Min Age", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $minAge; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Max Age", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $maxAge; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php echo $eventFormat; ?></td></tr>
+
+								<tr class="event-meta-detail"><td><strong><?php echo __("Signup Deadline", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php   echo $signupBy; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Event Starts", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $startDate; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Event Ends", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $endDate; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Score Rules", TennisEvents::TEXT_DOMAIN);?></td></strong><td><strong><?php echo $scoreRuleDesc; ?></strong>
 								<ul class="tennis-score-rules">
 								<?php foreach($scoreRules as $name=>$rule ) { ?>
@@ -130,9 +143,6 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 									<?php } ?>
 									</ul>
 								</td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Signup Deadline", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php   echo $signupBy; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Event Starts", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $startDate; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Event Ends", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $endDate; ?></td></tr>
 							</tbody>
 							</table>
 							<?php						
@@ -178,14 +188,13 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 						/* Restore original Post Data */
 						wp_reset_postdata();
 					?>
-
+				</div>
 				<?php endwhile;
 				// Previous/next page navigation.
 				the_posts_pagination( array(
 					'prev_text'          => '<i class="fa fa-angle-double-left"></i>',
 					'next_text'          => '<i class="fa fa-angle-double-right"></i>',
 				) );
-
 				?>
 				<div id="tennis-event-message"></div>
 			<?php
@@ -193,6 +202,8 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 				wp_reset_postdata();
 			?>	
 		</section>  <!-- /Root events -->
+		
+		</div> <!-- /Tabs -->
 		
 	<p id='editor-output'></p>
 	<p id='mutation-output'></p>

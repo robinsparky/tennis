@@ -9,6 +9,41 @@
 /*-------------------------------------------
   Tennis Event styling
 ---------------------------------------------*/
+
+.tennis-event-tabs {
+  list-style: none;
+  padding: 0px;
+}
+
+.tennis-tab-name {
+  float: left;
+  background-color: beige;
+  padding: 10px 16px 10px 16px;
+  border-left-color: blue;
+  border-left-style: solid;
+  border-left-width: 1px;
+  border-right-color: blue;
+  border-right-style: solid;
+  border-right-width: 1px;
+  border-top-color: blue;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom-color: blue;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+}
+
+.tennis-parent-event-title {
+  display: none;
+}
+
+.tennis-parent-event {
+  clear: both;
+  display: none;
+}
+
 .tennis-leaf-events {
   margin: 7% 0 0 3rem;
   border-top: dashed black 2px;
@@ -22,8 +57,9 @@
   height: auto;
   margin: 0 0 1rem 0;
 }
+
 .tennis-event-meta-detail {
-  font-size: small;
+  font-size: medium;
 }
 .tennis-event-meta-detail:nth-of-type(1) {
   font-weight: bold !important;

@@ -342,13 +342,38 @@
                 ajaxFun( config );
             }
         });
+
+        /**
+         * The following creates tabs based on parent events
+         */
+        let $parentEvents = $('.tennis-parent-event');
+        if($parentEvents.length > 1 ) {
+            $("#tabs").prepend(`<ul class="tennis-event-tabs"></ul>`);
+            $parentEvents.each( function(idx, el ) {
+                let title = $(this).children('h3').text();
+                let id = $(this).attr("id");
+                $( "#tabs > ul" ).append( `<li class="tennis-tab-name"><a href="#${id}">${title}</a></li>` );
+            } )
+
+            $( ".tennis-event-tabs-container" ).tabs( {active: false, activate: function( event, ui ) {
+                ui.newTab.css('border-bottom-width','0');
+                ui.newTab.css('background-color','white');
+                console.log(ui.newTab.siblings());
+                ui.oldTab.css('border-bottom-width','1px');
+                ui.oldTab.css('background-color','beige');
+            }});
+            
+            // Setter
+            $( ".tennis-event-tabs-container" ).tabs( "option", "collapsible", true );
+            $( ".tennis-event-tabs-container" ).tabs( "option", "active", false );
+            $( ".tennis-event-tabs-container" ).tabs( "option", "event", "click" );
+            $( ".tennis-event-tabs-container" ).tabs( "option", "hide", { effect: "fold", duration: 1000 } );
+            $( ".tennis-event-tabs-container" ).tabs( "option", "show", { effect: "blind", duration: 1000 } );
+
+            //Classes
+            $('.tennis-event-tabs-container').tabs({"ui-tabs-nav": "tennis-event-tabs", "ui-tabs-tab": "tennis-tab-name ui-corner-all"
+                                                    });
+        }
         
-        //Test
-        // if (storageAvailable('localStorage')) {
-        //     console.log("Yippee! We can use localStorage awesomeness");
-        //   }
-        //   else {
-        //     console.log("Too bad, no localStorage for us");
-        //   }
     });
 })(jQuery);

@@ -153,8 +153,8 @@ class TennisEventCpt {
 		$newColumns['taxonomy-tenniseventcategory'] = __('Category', TennisEvents::TEXT_DOMAIN);
 		$newColumns['event_type'] = __('Event Type', TennisEvents::TEXT_DOMAIN);
 		$newColumns['signup_by_date'] = __('Signup By', TennisEvents::TEXT_DOMAIN);
-		$newColumns['start_date'] = __('Start Date', TennisEvents::TEXT_DOMAIN);
-		$newColumns['end_date'] = __('End Date', TennisEvents::TEXT_DOMAIN);
+		$newColumns['start_date'] = __('Start', TennisEvents::TEXT_DOMAIN);
+		$newColumns['end_date'] = __('End', TennisEvents::TEXT_DOMAIN);
 		$newColumns['gender_type'] = __('Gender Type', TennisEvents::TEXT_DOMAIN );
 		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN);
 		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN);
@@ -170,7 +170,6 @@ class TennisEventCpt {
 	public function sortableColumns($columns) {
 		$columns['start_date'] = 'startDate';
 		$columns['taxonomy-tenniseventcategory'] = 'categorySort';
-		$columns['parent_event'] = 'parentEventSort';
 		$columns['tennis_season'] = 'seasonSort';
 		return $columns;
 	}
@@ -188,10 +187,6 @@ class TennisEventCpt {
 			$query->set('meta_key', self::START_DATE_META_KEY);
 		} elseif ('categorySort' === $query->get('orderby')) {
 			$query->set('orderby', self::CUSTOM_POST_TYPE_TAX);
-		} elseif ('parentEventSort' === $query->get('orderby')) {
-			$query->set('orderby', 'meta_value');
-			$query->set('meta_key', self::PARENT_EVENT_META_KEY);
-			//$query->set( 'meta_type', 'numeric' );
 		} elseif ('seasonSort' === $query->get('orderby')) {
 			$query->set('orderby', 'meta_value');
 			$query->set('meta_key', self::START_DATE_META_KEY);
@@ -252,8 +247,10 @@ class TennisEventCpt {
 			$query->query_vars['meta_compare'] = '=';
 		}
 	}
-		/**
+		
+	/**
 	 * Add a filter dropdown in the Event admin page
+	 * to permit filtering out events except children of selected parent
 	 */
 	public function parentEventFilter($post_type)	{
 		$loc = __CLASS__ . '::' . __FUNCTION__;
@@ -288,6 +285,7 @@ class TennisEventCpt {
 
 	/**
 	 * Modify the WP_QUERY using the value from the request query string
+	 * so that only the children of the given parent are shown
 	 */
 	public function parentEventParseFilter($query) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
