@@ -356,12 +356,11 @@
             } )
 
             $( ".tennis-event-tabs-container" ).tabs( {active: false, activate: function( event, ui ) {
-                ui.newTab.css('border-bottom-width','0');
-                ui.newTab.css('background-color','white');
-                console.log(ui.newTab.siblings());
-                ui.oldTab.css('border-bottom-width','1px');
-                ui.oldTab.css('background-color','beige');
-            }});
+                ui.newTab.css({'border-bottom-width':'0', 'background-color':'white', 'color': 'black'});
+                ui.newTab.children('a').css({'color': 'black'})
+                ui.oldTab.css({'border-bottom-width':'1px', 'background-color':'gray', 'color': 'white'});
+                ui.oldTab.children('a').css({'color': 'white'})
+            }})
             
             // Setter
             $( ".tennis-event-tabs-container" ).tabs( "option", "collapsible", true );

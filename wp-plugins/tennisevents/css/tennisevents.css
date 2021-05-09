@@ -17,22 +17,27 @@
 
 .tennis-tab-name {
   float: left;
-  background-color: beige;
+  background-color: gray;
+  color: white;
   padding: 10px 16px 10px 16px;
-  border-left-color: blue;
+  border-left-color: black;
   border-left-style: solid;
   border-left-width: 1px;
-  border-right-color: blue;
+  border-right-color: black;
   border-right-style: solid;
   border-right-width: 1px;
-  border-top-color: blue;
+  border-top-color: black;
   border-top-style: solid;
   border-top-width: 1px;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
-  border-bottom-color: blue;
+  border-bottom-color: black;
   border-bottom-style: solid;
   border-bottom-width: 1px;
+}
+
+.tennis-tab-name a {
+  color: white;
 }
 
 .tennis-parent-event-title {
@@ -100,23 +105,24 @@
 }
 
 button.tennis-add-bracket {
-  max-width: 200px;
+  max-width: 175px;
   max-height: 50px;
-  background-color: blue;
-  border-left-color: blue;
+  color: white;
+  background-color: black;
+  border-left-color: black;
   border-left-style: solid;
   border-left-width: 1px;
-  border-right-color: blue;
+  border-right-color: black;
   border-right-style: solid;
   border-right-width: 1px;
-  border-top-color: blue;
+  border-top-color: black;
   border-top-style: solid;
   border-top-width: 1px;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
   border-bottom-right-radius: 5px;
   border-bottom-right-radius: 5px;
-  border-bottom-color: blue;
+  border-bottom-color: black;
   border-bottom-style: solid;
   border-bottom-width: 1px;
 }
