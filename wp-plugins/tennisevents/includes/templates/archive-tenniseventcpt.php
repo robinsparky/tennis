@@ -165,8 +165,8 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 										<span class="bracket-name" contenteditable="false">
 									<?php endif ?>
 									<?php echo $bracket->getName()?></span>&colon;
-									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?manage=signup&bracket=<?php echo $bracket->getName(); ?>">Signup, </a>
-									<a class="bracket-draw-link" href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo trim($bracket->getName()); ?>">Draw</a>
+									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?manage=signup&bracket=<?php echo $bracket->getName(); ?>">View Signup, </a>
+									<a class="bracket-draw-link" href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo trim($bracket->getName()); ?>">View Draw</a>
 									<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
 										<img class="remove-bracket" src="<?php echo TE()->getPluginUrl() . 'img/removeIcon.gif' ?>">
 									<?php endif ?>
