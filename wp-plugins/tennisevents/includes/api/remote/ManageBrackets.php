@@ -189,7 +189,6 @@ class ManageBrackets
 
         $eventId = $data["eventId"];
         $newBracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
-        $event = Event::get( $eventId );
         try {
             $event = Event::get( $eventId );
             $td = new TournamentDirector( $event );
