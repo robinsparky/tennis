@@ -28,13 +28,13 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 
 ?>
 	<div class="tennis-events-container">
+  		<!-- Root tennis events -->
 		<section class="tennis-events">
 			<div id="tabs" class="tennis-event-tabs-container">
 			<?php	
 				wp_enqueue_script( 'manage_brackets' ); 
 				global $jsDataForTennisBrackets;        
 				wp_localize_script( 'manage_brackets', 'tennis_bracket_obj', $jsDataForTennisBrackets );
-  		
 				while ( have_posts() ) : 
 					the_post();
 					global $more;
@@ -75,7 +75,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 					if(empty($startDate)) $startDate = 'tba';
 
 				?>	
-				 <!-- Root events -->
+				 <!-- Root event -->
 				<div id="<?php echo get_the_ID()?>" class="tennis-parent-event">
 				<h3 class="tennis-parent-event-title"><?php the_title(); ?></h3>					
 				<ul class='tennis-event-meta tennis-event-meta-detail'>		
@@ -84,7 +84,8 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 					<li><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
 				</ul>
 				
-				<!-- Now the child events -->
+				<!-- leaf event container -->
+				<section class="tennis-leaf-event-container">
 				<?php
 					$args = array( "post_type" => TennisEventCpt::CUSTOM_POST_TYPE
 								, "orderby" => "title"
@@ -122,20 +123,21 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 		
 
 						?>
-						<section class="tennis-leaf-events"> <!-- Leaf Events -->
+						<!-- Leaf Event -->
+						<section class="tennis-leaf-event"> 
 							<?php echo the_title("<h3 class='tennis-leaf-event-title'>","</h3>") ?>
-							<div><?php the_content() ?> </div>
+							<?php the_content() ?>
 							<table class='tennis-event-meta'>
 							<tbody>									
-								<tr class="event-meta-detail"><td><strong><?php echo __("Gender Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $genderType; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Gender", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $genderType; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Min Age", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $minAge; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Max Age", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $maxAge; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Signup Deadline", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php   echo $signupBy; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Event Starts", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $startDate; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Event Ends", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $endDate; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Signup By", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php   echo $signupBy; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Starts", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $startDate; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Ends", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php  echo $endDate; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php echo $eventFormat; ?></td></tr>
-								<tr class="event-meta-detail"><td><strong><?php echo __("Score Rules", TennisEvents::TEXT_DOMAIN);?></td></strong><td><strong><?php echo $scoreRuleDesc; ?></strong>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Scoring", TennisEvents::TEXT_DOMAIN);?></td></strong><td><strong><?php echo $scoreRuleDesc; ?></strong>
 								<ul class="tennis-score-rules">
 								<?php foreach($scoreRules as $name=>$rule ) { ?>
 										<li><?php echo "{$name}: {$rule}"?></li>
@@ -151,8 +153,8 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 								}
 								else {
 							?>
+							<!-- Brackets for a leaf event -->
 							<ul id="tennis-event-brackets" class="tennis-event-brackets" data-eventid="<?php echo $leafEvent->getID();?>">
-
 							<?php 	
 								$td = new TournamentDirector( $leafEvent );
 								$brackets = $td->getBrackets( );
@@ -176,10 +178,11 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 								<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
 									<button type="button" class="button tennis-add-bracket" data-eventid="<?php echo $leafEvent->getID();?>" >Add Bracket</button>
 								<?php endif ?>
-							<?php } ?>	<!-- /Each bracket for a leaf events -->
+							<!-- /Brackets -->
+							<?php } ?>	
 						</section> <!-- /leaf events -->	
-						<div style="clear:both"></div>
 						<?php } ?>
+					</section> <!-- /leaf event container-->
 					<?php }
 					else {
 						echo "<div class='eventmessage'>NO LEAF EVENTS FOUND!</div>";
@@ -203,9 +206,6 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 		</section>  <!-- /Root events -->
 		
 		</div> <!-- /Tabs -->
-		
-	<p id='editor-output'></p>
-	<p id='mutation-output'></p>
 	</div> <!-- /Container -->
 
 <?php // Sidebar Right

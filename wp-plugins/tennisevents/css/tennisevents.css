@@ -10,6 +10,10 @@
   Tennis Event styling
 ---------------------------------------------*/
 
+.tennis-events-container {
+  width: 100%;
+}
+
 .tennis-event-tabs {
   list-style: none;
   padding: 0px;
@@ -49,15 +53,33 @@
   display: none;
 }
 
-.tennis-leaf-events {
-  margin: 7% 0 0 3rem;
-  border-top: dashed black 2px;
+.tennis-leaf-event-container {
+  margin: 0 0 0 0;
+  display: grid;
+  /*grid-template-columns: repeat(auto-fit, minmax(200px, 700px));*/
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-column-gap: 10px;
+  grid-row-gap: 10px;
+  border-top: 1px solid black;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid black;
+}
+
+/*
+.tennis-leaf-event {
+  border: 1px solid black;
+}
+*/
+
+h3.tennis-leaf-event-title {
+  margin: 0 0 0 0;
 }
 
 .tennis-event-meta {
   text-decoration: none;
   list-style: none;
-  flex: 1 1 auto;
+  /*flex: 1 1 auto;*/
   width: auto;
   height: auto;
   margin: 0 0 1rem 0;
@@ -70,18 +92,13 @@
   font-weight: bold !important;
 }
 
-.tennis-events-container {
-  width: 70%;
-  /*float: right;*/
-}
-
 .tennis-event-brackets {
   text-decoration: none;
   list-style: none;
   flex: 1 1 auto;
   width: auto;
   height: auto;
-  margin: 0 2rem 2rem 0;
+  margin: 0 0 0 0;
   clear: both;
 }
 
