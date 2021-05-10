@@ -18,8 +18,6 @@ class PointsMatchUmpire extends ChairUmpire
 	//This class's singleton
 	private static $_instance;
 
-    protected $PointsPerWin = 1;
-
 	/**
 	 * RegulationMatchUmpire Singleton
 	 *

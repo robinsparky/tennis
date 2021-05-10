@@ -40,6 +40,7 @@ abstract class ChairUmpire
     protected $TieBreakDecider = false;
     protected $NoTieBreakerFinalSet = false;
     protected $MustWinBy = 2;
+    protected $PointsPerWin = 1;
 	
 	protected $log;
 
