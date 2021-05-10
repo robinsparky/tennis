@@ -1,5 +1,5 @@
 <table class="tennis-score-summary">
-<caption>Summary of <?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?> Bracket</caption>
+<caption>Summary of <?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?></caption>
 <thead><tr><th>&#x23;</th><th>Entrant</th>
 <?php 
 for( $r = 1; $r <= $numRounds; $r++) :
