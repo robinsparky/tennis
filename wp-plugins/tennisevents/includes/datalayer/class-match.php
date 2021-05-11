@@ -23,15 +23,17 @@ class Match extends AbstractData
     private const MAX_ROUNDS = 7;
 
     private static $tablename = 'tennis_match';
-	private static $datetimeformat = "Y-m-d H:i:s";
-    private static $indateformat = "!Y-m-d";
+
+    //Date and time output formats
+    private static $outdatetimeformat1 = "Y-m-d G:i"; 
+    private static $outdatetimeformat2 = "Y-m-d g:i a"; 
+
+    //Date only output formats
     private static $outdateformat = "Y-m-d";
-    private static $outdateformat2 = "Y-m-d G:i:s";
-    private static $intimeformat1 = "g:i";
-    private static $intimeformat2 = "g:i a";
-    private static $intimeformat3 = "g:i:s";
-    private static $intimeformat4 = "g:i:s a";
-    private static $outtimeformat = "g:i a";
+
+    //Time only output formats
+    private static $outtimeformat1 = "G:i"; 
+    private static $outtimeformat2 = "g:i a";
     
     private $match_type; 
     private $bracket;
@@ -524,19 +526,18 @@ class Match extends AbstractData
                 $this->log->error_log("$loc: failed to construct using '{$date}'");
             }
 
-            $test = DateTime::createFromFormat( self::$indateformat, $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y-m-d G:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y-m-d H:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y-m-d g:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y-m-d h:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y/m/d G:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y/m/d H:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y/m/d g:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y/m/d h:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("d/m/Y G:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("d/m/Y H:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("d/m/Y g:i:s", $date );
-            if(false === $test) $test = DateTime::createFromFormat("d/m/Y h:i:s", $date );
+            $test = DateTime::createFromFormat("Y-m-d G:i", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y-m-d H:i", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y-m-d g:i a", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y-m-d h:i a", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y/m/d G:i", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y/m/d H:i", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y/m/d g:i a", $date );
+            if(false === $test) $test = DateTime::createFromFormat("Y/m/d h:i a", $date );
+            if(false === $test) $test = DateTime::createFromFormat("d/m/Y G:i", $date );
+            if(false === $test) $test = DateTime::createFromFormat("d/m/Y H:i", $date );
+            if(false === $test) $test = DateTime::createFromFormat("d/m/Y g:i a", $date );
+            if(false === $test) $test = DateTime::createFromFormat("d/m/Y h:i a", $date );
             
             $last = DateTIme::getLastErrors();
             if( $last['error_count'] > 0 ) {
@@ -595,16 +596,26 @@ class Match extends AbstractData
 	}
     
 	/**
-	 * Get the Match date and time in string format
+	 * Get the Match date AND time in string format
 	 */
-	public function getMatchDateTime_Str() {
+	public function getMatchDateTime_Str( int $formatNum=1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log($loc);
 
-        $result = '0-0-0 00:00:00';
+        $result = '';
+        $format = self::$outdatetimeformat1;
+        switch($formatNum) {
+            case 1:
+                $format = self::$outdatetimeformat1;
+                break;
+            case 2:
+                $format = self::$outdatetimeformat2;
+                break;
+            default:
+                $format = self::$outdatetimeformat1;
+        }
+        
 		if( isset( $this->match_datetime ) ) {
-            $this->log->error_log($this->match_datetime);
-            $result = $this->match_datetime->format( self::$outdateformat2 );
+            $result = $this->match_datetime->format($format);
         }
 		
         $this->log->error_log("$loc: returning {$result}");
@@ -621,7 +632,7 @@ class Match extends AbstractData
 
     /**
      * Set the time of the match
-     * @param string $time is a string in hh-mm-ss am/pm format
+     * @param string $time is a string in hh:mm am/pm format
      */
     public function setMatchTime_Str( string $time ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
@@ -629,11 +640,14 @@ class Match extends AbstractData
 
 		$result = false;
         if( is_null( $time ) || empty( $time ) ) return $result;
+        
+        $intimeformat1 = "G:i"; //input
+        $intimeformat2 = "g:i a"; //input
 
-        $test = DateTime::createFromFormat( self::$intimeformat1, $time );		
-        if(false === $test) $test = DateTime::createFromFormat( self::$intimeformat2, $time );		
-        if(false === $test) $test = DateTime::createFromFormat( self::$intimeformat3, $time );		
-        if(false === $test) $test = DateTime::createFromFormat( self::$intimeformat4, $time );
+        $test = DateTime::createFromFormat( "G:i", $time );		
+        if(false === $test) $test = DateTime::createFromFormat( "H:i", $time );
+        if(false === $test) $test = DateTime::createFromFormat( "g:i a", $time );
+        if(false === $test) $test = DateTime::createFromFormat( "h:i a", $time );
 
 		$last = DateTime::getLastErrors();
 		if($last['error_count'] > 0) {
@@ -645,13 +659,14 @@ class Match extends AbstractData
 			throw new InvalidMatchException( $mess );
 		}
 		elseif($test instanceof DateTime) {
+            // $timestamp = strtotime( $time );
+            // $hr = date('h', $timestamp );
+            // $mn = date('i', $timestamp );
             $hours = (int)$test->format('H');
             $minutes = (int)$test->format('i');
             $this->setMatchTime( $hours, $minutes );
-            $this->log->error_log($test, "$loc: setting time to '$time'");
 			$result = $this->setDirty();
 		}
-
         return $result;
     }
 
@@ -671,16 +686,26 @@ class Match extends AbstractData
      * Get the match start time
      * @return string match start time as a string hh:mm am/pm format
      */
-    public function getMatchTime_Str() {
+    public function getMatchTime_Str( int $formatNum=1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc: '{$this->title()}'");
-        
-        // if( !isset( $this->match_time ) ) return '';
 
-        // $result =  $this->match_time->format( self::$outtimeformat );
-        // //if( $result == "00:00") $result='';
-        if( !isset( $this->match_datetime ) ) return '';
-        $result = $this->match_datetime->format( self::$outtimeformat );
+        $format = self::$outtimeformat1;
+        switch($formatNum) {
+            case 1:
+                $format = self::$outtimeformat1;
+                break;
+            case 2:
+                $format = self::$outtimeformat2;
+                break;
+            default:
+                $format = self::$outtimeformat1;
+        }
+        
+        $result = '';
+        if( isset( $this->match_datetime ) ) {
+            $result = $this->match_datetime->format( $format );
+        }
 
         $this->log->error_log("$loc: returning '{$result}'");
         return $result;
