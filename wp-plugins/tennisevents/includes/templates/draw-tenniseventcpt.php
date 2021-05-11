@@ -2,7 +2,6 @@
 	<?php
 		$mode = isset($_GET['manage']) ? $_GET['manage'] : "";
 		$bracketName = isset($_GET['bracket']) ? $_GET['bracket'] : '';
-		//the_title('<h2>','</h2>'); 
 	?>
 		<!-- tennis event content -->
 		<div class="tennis-event-content">
@@ -22,8 +21,7 @@
 				 if( $event->isRoot() ) {
 				   wp_die( __("Root Tennis Event is not expected here!", TennisEvents::TEXT_DOMAIN ) );
 				} 
-				// call editor content of post/page	s
-				//wp_link_pages( );
+
 				?>
 				<!-- tennis event schedule -->
 				<div class="tennis-event-schedule">
@@ -47,7 +45,6 @@
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
 					echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Signup</button></div>";
 				}
-				//the_content( __('Read More', TennisEvents::TEXT_DOMAIN ) );
 				?>
 				</div> <!-- /tennis event schedule -->
 		</div> <!-- /event event content -->

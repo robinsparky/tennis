@@ -4,11 +4,13 @@
  * Template Name: Tennis Event Template
  * description: Template to display Tennis Event custom post types 
  */
+$season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) ); 
 $startFuncTime = microtime( true );
 get_header();
 ?>
 
 <div class="main-tennis-content">
+<h1> Season <?php echo $season; ?> </h1>
 
 	<?php
 		// Sidebar Alt 
