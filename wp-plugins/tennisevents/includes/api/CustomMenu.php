@@ -1,5 +1,5 @@
 <?php
-use api\BaseLoggerEx;
+use commonlib\BaseLogger;
 namespace api;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -34,7 +34,7 @@ class CustomMenu {
     
     /**
      * Logger for debugging
-     * @var BaseLoggerEx
+     * @var BaseLogger
      */
     private $log;
 
@@ -52,7 +52,7 @@ class CustomMenu {
 
 		if ( is_null( $instance ) ){
 			$instance = new self;
-            $instance->log = new BaseLoggerEx( true );
+            $instance->log = new BaseLogger( true );
 		}
 
         $instance->register();

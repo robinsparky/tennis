@@ -1,7 +1,7 @@
 <?php
 
 namespace datalayer\utilities;
-use api\BaseLoggerEx;
+use commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

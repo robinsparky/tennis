@@ -1,6 +1,6 @@
 <?php
 namespace templates;
-use api\BaseLoggerEx;
+use commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -46,7 +46,7 @@ class DrawTemplateGenerator
     }
 
     public function __construct( string $name = 'Generator', int $size = 4, int $eventId = 0, string $bracketName = '' ) {
-        $this->log = new BaseLoggerEx( false );
+        $this->log = new BaseLogger( false );
         $this->name = $name;
         $this->size = $size;
         $this->eventId = $eventId;

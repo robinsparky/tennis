@@ -4,7 +4,7 @@ namespace cpt;
 use \DateTime;
 use \DateTimeInterface;
 use \WP_Error;
-use api\BaseLoggerEx;
+use commonlib\BaseLogger;
 use \TennisEvents;
 use \EventType;
 use \MatchType;
@@ -63,7 +63,7 @@ class TennisClubCpt {
 	
 	public function __construct() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log = new BaseLoggerEx( true );
+		$this->log = new BaseLogger( true );
 	}
 
 	public function enqueue( $hook ) {
