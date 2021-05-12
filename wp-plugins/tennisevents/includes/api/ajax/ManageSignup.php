@@ -1,4 +1,12 @@
 <?php
+namespace api\ajax;
+use commonlib\BaseLogger;
+use Event;
+use Bracket;
+use Club;
+use WP_Error;
+use TennisEvents;
+use TournamentDirector;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -6,9 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** 
  * Data and functions to manage an Event signup using Ajax.
- * NOTE: Always deals with the Winners bracket
  * Supports:
- * 1. Re-ordering the list of entrants
+ * 1. Re-ordering the list of entrants using drag & drop
  * 2. Adding new entrants
  * 3. Deleting entrants
  * 4. Updating entrant's name and/or seed
@@ -80,7 +87,6 @@ class ManageSignup
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 
-        add_shortcode( self::SHORTCODE, array( $this, 'signupManagementShortcode' ) );
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
         add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
     }
@@ -94,141 +100,6 @@ class ManageSignup
         $this->handleErrors("You've been a bad boy.");
     }
      
-    /**
-     * Render shortcode showing Webinar statuses for current user
-     */
-	public function signupManagementShortcode( $atts, $content = null )  {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-
-        //The following was setting user_id to 0
-        $my_shorts = shortcode_atts( array(
-            'clubname' => '',
-            'eventid' => 0,
-            'bracketname' => Bracket::WINNERS
-        ), $atts, 'manage_signup' );
-
-        $club = null;
-        if(!empty( $my_shorts['clubname'] ) ) {
-            $arrClubs = Club::search( $my_shorts['clubName'] );
-            if( count( $arrClubs) > 0 ) {
-                $club = $arrClubs[0];
-            }
-        }
-        else {
-            $homeClubId = esc_attr( get_option(self::HOME_CLUBID_OPTION_NAME, 0) );
-            $club = Club::get( $homeClubId );
-        }
-
-        if( is_null( $club ) ) return __('Please set home club id in options or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
-        $this->clubId = $club->getID();
-
-        $this->eventId = (int)$my_shorts['eventid'];
-        $this->log->error_log("$loc: EventId=$this->eventId");
-        if( $this->eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
-
-        $this->log->error_log($my_shorts, "$loc: My Shorts" );   
-
-        //TODO: Put all references into functions in TD
-        $evts = Event::find( array( "club" => $club->getID() ) );
-        $found = false;
-        $target = null;
-        if( count( $evts ) > 0 ) {
-            foreach( $evts as $evt ) {
-                $target = Event::getEventRecursively( $evt, $this->eventId );//gw_support
-                if( isset( $target ) ) {
-                    $found = true;
-                    break;
-                }
-            }
-        } 
-        
-        if( !$found ) return __('No such event for this club', TennisEvents::TEXT_DOMAIN );
-
-        //Get the bracket from attributes
-        $bracketName = $my_shorts["bracketname"];
-        $bracket = $target->getBracket( $bracketName );
-        if( is_null( $bracket ) ) {
-            //$bracket = $target->getWinnersBracket();   
-            $mess =  __('No such bracket:', TennisEvents::TEXT_DOMAIN ); 
-            $mess .= $bracketName;
-            return $mess;    
-        }
-        
-        $td = new TournamentDirector( $target );
-        $eventName = str_replace("\'", "&apos;", $td->getName());
-        $parentName = str_replace("\'", "&apos;", $td->getParentEventName());
-        $clubName = $club->getName();
-        $isApproved = $bracket->isApproved();
-        $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
-        //Get the signup for this bracket
-        $this->signup = $td->getSignup( $bracketName );
-        $this->log->error_log( $this->signup, "$loc: Signup");
-        $numSignedUp = count( $this->signup );
-
-        $jsData = $this->get_ajax_data();
-        $jsData["clubId"] = $club->getID();
-        $jsData["eventId"] = $this->eventId;
-        $jsData["bracketName"] = $bracketName;
-        $jsData["numSignedUp"] = $numSignedUp;
-        $jsData["numPreliminary"] = $numPrelimMatches;
-        $jsData["isBracketApproved"] = $isApproved ? 1:0;
-        wp_enqueue_script( 'manage_signup' );   
-        wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $jsData );
-        
-        //Signup
-        $out = '';
-        $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
-        $out .= 'data-clubid="' . $this->clubId . '" data-bracketname="' . $bracketName . '">' . PHP_EOL;
-        $out .= "<h2 class='tennis-signup-title'>${parentName}</h2>" . PHP_EOL;
-        $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;{$bracketName}</h3>" . PHP_EOL;
-        $out .= '<ul class="eventSignup tennis-event-signup">' . PHP_EOL;
-        
-        $templr = <<<EOT
-<li id="%s" class="entrantSignupReadOnly">
-<div class="entrantPosition">%d.</div>
-<div class="entrantName">%s</div>
-</li>
-EOT;
-        $templw = <<<EOT
-<li id="%s" class="entrantSignup sortable-container ui-state-default" data-currentpos="%d">
-<div class="entrantPosition">%d.</div>
-<input name="entrantName" type="text" maxlength="35" size="15" class="entrantName" value="%s">
-<input name="entrantSeed" type="number" maxlength="2" size="2" class="entrantSeed" step="any" value="%d">
-<button class="button entrantDelete" type="button" id="%s">Delete</button>
-</li>
-EOT;
-
-        $ctr = 1;
-        foreach( $this->signup as $entrant ) {
-            $pos = $entrant->getPosition();
-            $name = str_replace("\'","&apos;", $entrant->getName());
-            $nameId = str_replace( [' ',"\'","'"], ['_','',''], $entrant->getName() );
-            $seed = $entrant->getSeed();
-            $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
-            if( $numPrelimMatches > 0 || !is_user_logged_in() || !current_user_can( 'manage_options' ) ) {
-                $tbl = sprintf( $templr, $nameId, $pos, $rname );
-            }
-            else {
-                $tbl = sprintf( $templw, $nameId, $pos, $ctr++, $name, $seed, $nameId );
-            }
-            $out .= $tbl;
-        }
-        $out .= '</ul>' . PHP_EOL;
-
-        if( $numPrelimMatches < 1 && is_user_logged_in() && current_user_can( 'manage_options' )  ) {
-            $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="createPrelim">Initialize Draw</button>' . PHP_EOL;
-        }
-        // elseif( $numPrelimMatches < 1 && $bracketName === Bracket::CONSOLATION ) {
-        //     $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;   
-        // }
-        $out .= '</div>'; //container
-        $out .= '<div id="tennis-event-message"></div>';
-
-        return $out;
-    }
 
     /**
      * Perform the CRUD or Move tasks as indicated by the Ajax request

@@ -1,5 +1,6 @@
 <?php
 use api\Math_Combinatorics;
+use commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

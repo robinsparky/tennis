@@ -1,34 +1,35 @@
 <?php
+namespace api;
 use templates\DrawTemplateGenerator;
 use commonlib\BaseLogger;
+use Event;
+use WP_Error;
+use TennisEvents;
+use TournamentDirector;
+use Bracket;
+use Club;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /** 
- * Renders a draw/schedule of matches using shortcode
- * Shows the status of a match and identifies the winner
- * depending on the scoring rules for the elimination draw
- * Performs ajax actions to manage the draw:
- * Preliminary schedules:
- *  Approve preliminary schedule
- *  Change the home
- *  Change the visitor
- * Approved schedules:
- *  Set the start date and time
- *  Record scores
- *  Default the home
- *  Default the visitor
- *  Advance completed matches thru the schedule
- *  Comment a match
- *  Reset the draw (i.e. remove all matches)
- * @class  ManageDraw
+ * Renders elimination rounds of matches
+ * Uses shortcode so the rendering can be placed anywhere on a WP page
+ * Is is also invoked by the tennis events templates
+ * Shows the status
+ *       the players (home and visitor)
+ *       the start date 
+ *       the score by games within set
+ *       any comments about a match
+ *       the champion when the tournament is completed
+ * Identifies the winner depending on the scoring rules for the elimination draw
+ * @class  RenderDraw
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
 */
-class ManageDraw
+class RenderDraw
 { 
     public const HOME_CLUBID_OPTION_NAME = 'gw_tennis_home_club';
 
@@ -53,11 +54,14 @@ class ManageDraw
         $this->log = new BaseLogger( true );
     }
 
-
+    /**
+     * Register css and javascript scripts.
+     * The javavscript calls methods in ManageDraw via ajax
+     */
     public function registerScripts() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
-        
+               
         //By entrant
         $jsurl =  TE()->getPluginUrl() . 'js/draw.js';
         wp_register_script( 'manage_draw', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
@@ -70,26 +74,21 @@ class ManageDraw
         wp_enqueue_style( 'tennis_css', $cssurl );
     }
     
+    /**
+     * The shortcode method is added to WP's shortcodes handler
+     */
     public function registerHandlers() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
 
         add_shortcode( self::SHORTCODE, array( $this, 'renderShortcode' ) );
-        add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
-        add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
-    }
-    
-    public function noPrivilegesHandler() {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log($loc);
-
-        // Handle the ajax request
-        check_ajax_referer(  self::NONCE, 'security'  );
-        $this->errobj->add( $this->errcode++, __( 'You have been reported to the authorities!', TennisEvents::TEXT_DOMAIN ));
-        $this->handleErrors("You've been a bad boy.");
     }
      
-
+    /**
+     * Renders the html and data for the elimination rounds
+     * Decides based on the privileges of the user whether 
+     * to render with menus and buttons or without (i.e. readonly)
+     */
 	public function renderShortcode( $atts = [], $content = null ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $atts = array_change_key_case((array)$atts, CASE_LOWER);
@@ -180,563 +179,12 @@ class ManageDraw
             return  __("No such Bracket {$bracketName}", TennisEvents::TEXT_DOMAIN );
         }
     }
-    
-    /**
-     * Perform the tasks as indicated by the Ajax request
-     */
-    public function performTask() {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc");
-        $this->log->error_log( $_POST, "$loc: _POST:"  );
-
-        // Handle the ajax request
-        check_ajax_referer( self::NONCE, 'security' );
-
-        if( defined( 'DOING_AJAX' ) && ! DOING_AJAX ) {
-            $this->handleErrors('Not Ajax');
-        }
-        
-        $this->log->error_log("$loc: action={$_POST['action']}");
-        if( self::ACTION !== $_POST['action']) return;
-        
-        $ok = false;
-        if( current_user_can( 'manage_options' ) ) $ok = true;
-        
-        if ( !$ok ) {         
-            $this->errobj->add( $this->errcode++, __( 'Only administrators can modify draw.', TennisEvents::TEXT_DOMAIN ));
-        }
-        
-        if(count($this->errobj->errors) > 0) {
-            $this->handleErrors(__("Errors were encountered", TennisEvents::TEXT_DOMAIN  ) );
-        }
-
-        $response = array();
-
-        $data = $_POST["data"];
-        $task = $data["task"];
-        $this->eventId = $data["eventId"];
-        $event = Event::get( $this->eventId );
-        $bracketName = $data["bracketName"];
-        $bracket = $event->getBracket( $bracketName );
-        $returnData = $task;
-        $mess = '';
-        switch( $task ) {
-            case "getdata":
-                $td = new TournamentDirector( $event );
-                $arrData = $this->getMatchesAsArray( $td, $bracket );
-                $mess = "Data for $bracketName bracket";
-                break;
-            case "reset":
-                $mess = $this->removePreliminary( $data );
-                break;
-            case "approve":
-                $mess = $this->approvePreliminary( $data );
-                break;
-            case 'changehome':
-                $mess = $this->changeHomeEntrant( $data );
-                $returnData = $data;
-                break;
-            case 'changevisitor':
-                $mess = $this->changeVisitorEntrant( $data );
-                $returnData = $data;
-                break;
-            case 'savescore':
-                $mess = $this->recordScore( $data );
-                $returnData = $data;
-                break;
-            case 'defaultentrant':
-                $mess = $this->defaultEntrant( $data );
-                $returnData = $data;
-                break;
-            case 'setcomments':
-                $mess = $this->setComments( $data );
-                $returnData = $data;
-                break;
-            case 'setmatchstart':
-                $mess = $this->setMatchStart( $data );
-                $returnData = $data;
-                break;
-            case 'advance':
-                $mess = $this->advanceMatches( $data );
-                $returnData = $data;
-                break;
-            default:
-                $mess =  __( 'Illegal task.', TennisEvents::TEXT_DOMAIN );
-                $this->errobj->add( $this->errcode++, $mess );
-                break;
-        }
-
-        if(count($this->errobj->errors) > 0) {
-            $this->handleErrors( $mess );
-        }
-
-        $response["message"] = $mess;
-        $response["returnData"] = $returnData;
-
-        //Send the response
-        wp_send_json_success( $response );
-    
-        wp_die(); // All ajax handlers die when finished
-    }
-
-    /**
-     * Modify the Home Entrant in a match identified in the data
-     * @param array $data array of event/match identifiers and new home player name
-     */
-    private function changeHomeEntrant( &$data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $data, "$loc" );
-
-        $this->eventId = $data["eventId"];
-        $bracketName   = $data["bracketName"];
-        $bracketNum    = $data["bracketNum"];
-        $roundNum      = $data["roundNum"];
-        $matchNum      = $data["matchNum"];
-        $player        = strip_tags( htmlspecialchars( $data["player"] ) );
-        $mess          = __("Modified home entrant.", TennisEvents::TEXT_DOMAIN );
-        try {            
-            $event = Event::get( $this->eventId );
-            $newHome = $event->getNamedEntrant( $player );
-            if( is_null( $newHome ) ) {
-                throw new InvalidEntrantException(__("No such player", TennisEvents::TEXT_DOMAIN) );
-            }
-            $td = new TournamentDirector( $event );
-            $bracket = $td->getBracket( $bracketName );
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
-            }
-            $match = $bracket->getMatch( $roundNum, $matchNum );
-            if( is_null( $match ) ) {
-                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
-            }
-            $match->setHomeEntrant( $newHome );
-            $match->save();
-            $returnName = $newHome->getSeededName();
-            $data['player'] = $returnName;
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-            $data['player'] = '';
-        }
-        return $mess;
-    }
-    
-    /**
-     * Modify the Visitor Entrant in a match identified in the data
-     * @param array $data A reference to an array of event/match identifiers and new visitor player name
-     * @return string A message describing success or failure
-     */
-    private function changeVisitorEntrant( &$data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $data, "$loc" );
-
-        $this->eventId = $data["eventId"];
-        $bracketName   = $data["bracketName"];
-        $bracketNum    = $data["bracketNum"];
-        $roundNum      = $data["roundNum"];
-        $matchNum      = $data["matchNum"];
-        $player        = strip_tags( htmlspecialchars( $data["player"] ) );
-        $mess          = __("Modified visitor entrant.", TennisEvents::TEXT_DOMAIN );
-        try {            
-            $event = Event::get( $this->eventId );
-            $newVisitor = $event->getNamedEntrant( $player );
-            if( is_null( $newVisitor ) ) {
-                throw new InvalidEntrantException(__("No such player", TennisEvents::TEXT_DOMAIN) );
-            }
-            $td = new TournamentDirector( $event );
-            $bracket = $td->getBracket( $bracketName );
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
-            }
-            $match = $bracket->getMatch( $roundNum, $matchNum );
-            if( is_null( $match ) ) {
-                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
-            }
-            $match->setVisitorEntrant( $newVisitor );
-            $match->save();
-            $returnName = $newVisitor->getSeededName();
-            $data['player'] = $returnName;
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-            $data['player'] = '';
-        }
-        return $mess;
-    }
-
-    /**
-     * Record the score for a match identified in $data.
-     * @param array A reference to an array of identifying data and the in progress or final score for a match
-     * @return string A message describing success or failure
-     */
-    private function recordScore( &$data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $data, "$loc" );
-
-        $this->eventId = $data["eventId"];
-        $bracketName   = $data["bracketName"];
-        $bracketNum    = $data["bracketNum"];
-        $roundNum      = $data["roundNum"];
-        $matchNum      = $data["matchNum"];
-        //$strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
-        try {            
-            $event = Event::get( $this->eventId );
-            $td = new TournamentDirector( $event );
-
-            $bracket = $td->getBracket( $bracketName );
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
-            }
-
-            $match = $bracket->getMatch( $roundNum, $matchNum );
-            if( is_null( $match ) ) {
-                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
-            }
-
-            $chairUmpire = $td->getChairUmpire();
-            $scores = $data["score"]; //$this->parseScores( $strScore );
-            if( is_string( $scores ) ) {
-                //This is a backdoor to reset an old score
-                // that needs changing but should not affect outcomes of matches
-                $match->removeSets();
-                $match->save();
-                $data['score'] = '';
-                //$data['status'] = $chairUmpire->matchStatus( $match );
-                $mess = __("Score reset.", TennisEvents::TEXT_DOMAIN );
-            }
-            else {
-                //Set the score for this match 
-                foreach( $scores as $score ) {
-                    //Record and save scores
-                    $chairUmpire->recordScores( $match, $score );
-                }
-
-                if( empty($match->getMatchDate_Str()) ) {
-                    $match->setMatchDate_Str( date("Y-m-d G:i:s") );
-                }
-
-                // $numTrimmed = $chairUmpire->trimSets( $match );
-                // $data['setsTrimmed'] = $numTrimmed;
-                $match->save();//Now save the match
-
-                $statusObj = $chairUmpire->matchStatusEx( $match );
-                $data['majorStatus'] = $statusObj->getMajorStatus();
-                $data['minorStatus'] = $statusObj->getMinorStatus();
-                $data['status'] = $statusObj->toString();
-
-                $data['matchdate'] = $match->getMatchDate_Str();
-                $data['matchtime'] = $match->getMatchTime_Str();
-
-                $data['advanced'] = $td->advance( $bracketName );
-                $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
-                $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
-                
-                $winner = $chairUmpire->matchWinner( $match );
-                $data['winner'] = '';
-                if( !is_null( $winner ) ) {
-                    if( $chairUmpire->winnerIsVisitor( $match ) ) {
-                        $data['winner'] = 'visitor';
-                    }
-                    else {
-                        $data['winner'] = 'home';
-                    }
-                }
-                $mess = __("Score recorded.", TennisEvents::TEXT_DOMAIN );
-            }
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-            $data['score'] = '';
-        }
-        return $mess;
-    }
-
-    /**
-     * Parse the scores provided as a string 
-     * E.G. 6-3, 1-6, 6-6(3)
-     * @param string $scores
-     * @return array of score objects by set number
-     */
-    private function parseScores( string $scores ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc($scores)");
-
-        $result = [];
-        if( empty( $scores ) ) return $result; //early return
-
-        if( 'reset' === $scores ) {
-            return $scores;
-        }
-
-        $sets = explode( ',', $scores, 5 );
-        if( count( $sets ) < 1 ) return $result; //early return
-
-        $setNum = 1;
-        foreach( $sets as $setscore ) {
-            $setObj = new \stdClass;
-            $setObj->setNum = $setNum++;
-            $mscore = explode( '-', $setscore, 2 );
-            if( count( $mscore ) !== 2 ) return $result; //early return
-
-            $setObj->homeScore = intval( $mscore[0] );
-            $setObj->visitorScore = intval( $mscore [1]);
-            $setObj->homeTBscore = 0;
-            $setObj->visitorTBscore = 0;
-
-            //Check for tie breaker scores
-            $needle = "(";
-            if( in_array( $set->setNum, [3,5]) ) {
-                if( strpos( $mscore[0], $needle ) > 0 ) {
-                    $setObj->homeTBscore = intval( strstr($mscore[0], $needle ) );
-                }
-                elseif( strpos( $mscore[1], $needle ) > 0 ) {
-                    $setObj->visitorTBscore = intval( strstr($mscore[0], $needle ) );
-                }
-            }
-            $this->log->error_log( $setObj, "$loc" );
-            $result[] = $setObj;
-        }
-
-        return $result;
-    }
-    
-    /**
-     * Adavance the matches in this bracket.
-     * @param array A reference to an array of identifying data and the in progress or final score for a match
-     * @return string A message describing success or failure
-     */
-    private function advanceMatches( &$data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $data, "$loc" );
-
-        $this->eventId = $data["eventId"];
-        $bracketName   = $data["bracketName"];
-        //$strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
-        try {            
-            $event = Event::get( $this->eventId );
-            $td = new TournamentDirector( $event );
-
-            $bracket = $td->getBracket( $bracketName );
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket '{$bracketName}'", TennisEvents::TEXT_DOMAIN) );
-            }
-            
-            $advanced = $td->advance( $bracketName );
-            $data['advanced'] = $advanced; //Could be the name of the champion!!!
-            $mess = __("{$advanced} Matches advanced.", TennisEvents::TEXT_DOMAIN );
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-            $data['advanced'] = 0;
-        }
-        return $mess;
-    }
-    
-    /**
-     * Default an entrant and record the comments for a specific match identified in $data
-     * @param array $data A reference to an array of event/match identifiers and new visitor player name
-     * @return string A message describing success or failure
-     */
-    private function defaultEntrant( &$data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $data, "$loc" );
-
-        $this->eventId = $data["eventId"];
-        $bracketName   = $data["bracketName"];
-        $bracketNum    = $data["bracketNum"];
-        $roundNum      = $data["roundNum"];
-        $matchNum      = $data["matchNum"];
-        $player        = $data["player"];
-        $comments      = $data["comments"];
-        $comments      = strip_tags( htmlspecialchars( $comments ) );
-        $mess          = __("Defaulted '$player'", TennisEvents::TEXT_DOMAIN );
-        try {            
-            $event = Event::get( $this->eventId );
-            $td = new TournamentDirector( $event );
-
-            $bracket = $td->getBracket( $bracketName );
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
-            }
-
-            $match = $bracket->getMatch( $roundNum, $matchNum );
-            if( is_null( $match ) ) {
-                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
-            }
-
-            $chairUmpire = $td->getChairUmpire();
-            switch( $player ) {
-                case "home":
-                    $chairUmpire->defaultHome( $match, $comments );
-                    $status = $chairUmpire->matchStatus( $match );
-                    $data['advanced'] = $td->advance( $bracketName );
-                    break;
-                case "visitor":
-                    $chairUmpire->defaultVisitor( $match, $comments );
-                    $status = $chairUmpire->matchStatus( $match );
-                    $data['advanced'] = $td->advance( $bracketName );
-                    break;
-                default:
-                    $mess  = __("Unable to default '$player'", TennisEvents::TEXT_DOMAIN );
-                    throw new InvalidArgumentException($mess);
-                    break;
-            }
-            $data['status'] = $status;
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-            $data['status'] = '';
-        }
-        return $mess;
-    }
-
-
-    /**
-     * Set the comments for a specific match identified in $data
-     * @param array $data A reference to an array of event/match identifiers and new visitor player name
-     * @return string A message describing success or failure
-     */
-    private function setComments( &$data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $data, "$loc" );
-
-        $this->eventId = $data["eventId"];
-        $bracketName   = $data["bracketName"];
-        $bracketNum    = $data["bracketNum"];
-        $roundNum      = $data["roundNum"];
-        $matchNum      = $data["matchNum"];
-        $comments      = $data["comments"];
-        $comments      = strip_tags( htmlspecialchars( $comments ) );
-        $mess          = __("Set Comments.", TennisEvents::TEXT_DOMAIN );
-        try {            
-            $event = Event::get( $this->eventId );
-            $td = new TournamentDirector( $event );
-            $bracket = $td->getBracket( $bracketName );
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
-            }
-            $match = $bracket->getMatch( $roundNum, $matchNum );
-            if( is_null( $match ) ) {
-                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
-            }
-            $match->setComments( $comments );
-            $match->save();
-            $data['comments'] = $comments;
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-            $data['comments'] = '';
-        }
-        return $mess;
-    }
-
-    /**
-     * Set the match's start date and time
-     * @param array $data A reference to an array of event/match identifiers and new visitor player name
-     * @return string A message describing success or failure
-     */
-    private function setMatchStart( &$data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $data, "$loc" );
-
-        $this->eventId = $data["eventId"];
-        $bracketName   = $data["bracketName"];
-        $bracketNum    = $data["bracketNum"];
-        $roundNum      = $data["roundNum"];
-        $matchNum      = $data["matchNum"];
-        $matchStartDate= $data["matchdate"];
-        $matchStartTime= $data["matchtime"];
-        $mess          = __("Set Start Match Date/Time.", TennisEvents::TEXT_DOMAIN );
-        try {            
-            $event = Event::get( $this->eventId );
-            $td = new TournamentDirector( $event );
-            $bracket = $td->getBracket( $bracketName );
-            $chairUmpire = $td->getChairUmpire();
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
-            }
-            $match = $bracket->getMatch( $roundNum, $matchNum );
-            if( is_null( $match ) ) {
-                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
-            }
-            $timestamp = strtotime( $matchStartDate );
-            $match->setMatchDate_TS( $timestamp );
-            $match->setMatchTime_Str( $matchStartTime );
-            $match->save();
-            $data['matchdate'] = $match->getMatchDate_Str();
-            $data['matchtime'] = $match->getMatchTime_Str();
-            $data['status'] = $chairUmpire->matchStatus( $match );
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-            $data['matchdate'] = '';
-            $data['matchtime'] = '';
-        }
-        return $mess;
-    }
-
-    
-    /**
-     * Approve the preliminary round
-     */
-    private function approvePreliminary( $data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc");
-
-        $this->eventId = $data["eventId"];
-        $bracketName   = $data["bracketName"];
-        $mess          = __('Approve succeeded.', TennisEvents::TEXT_DOMAIN );
-        try {            
-            $event   = Event::get( $this->eventId );
-            $td = new TournamentDirector( $event );
-            $td->approve( $bracketName );
-            $td->advance( $bracketName );
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-        }
-
-        return $mess;
-    }
-    
-    /**
-     * Delete the preliminary round
-     */
-    private function removePreliminary( $data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc");
-
-        $this->eventId = $data["eventId"];
-        $bracketName = $data["bracketName"];
-        try {            
-            $event = Event::get( $this->eventId );
-            $evtName = $event->getName();
-            $td = new TournamentDirector( $event );
-            $td->removeMatches( $bracketName );
-            $numAffected = $event->save();
-            $mess =  __("Removed all matches for {$evtName} - {$bracketName} Bracket.", TennisEvents::TEXT_DOMAIN );
-        }
-        catch( Exception $ex ) {
-            $this->errobj->add( $this->errcode++, $ex->getMessage() );
-            $mess = $ex->getMessage();
-        }
-
-        return $mess;
-    }
-
+ 
     /**
      * Renders rounds and matches for the given bracket
      * in write mode so matches can be modified and scores updated
-     * @param $td The tournament director for this bracket
-     * @param $bracket The bracket
+     * @param TournamentDirecotr $td The tournament director for this bracket
+     * @param Bracket $bracket The bracket to be rendered
      * @return string Table-based HTML showing the draw
      */
     private function renderBracketForWrite( TournamentDirector $td, Bracket $bracket ) {
@@ -1004,9 +452,9 @@ EOT;
     /**
      * Renders rounds and matches for the given bracket
      * in read-only mode
-     * @param $td The tournament director for this bracket
-     * @param $bracket The bracket
-     * @return string Table-based HTML showing the draw
+     * @param TournamentDirector $td The tournament director for this bracket
+     * @param Bracket $bracket The bracket to be rendered
+     * @return string Table-based HTML presenting the elimination draw
      */
     private function renderBracketForRead( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -1302,7 +750,7 @@ EOT;
         return $futureMatches;
     }
 
-    /**
+    /** TODO: Remove this and associated code
      * Renders draw showing entrants for the given bracket
      * @param $td The tournament director for this bracket
      * @param $bracket The bracket

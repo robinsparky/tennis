@@ -1,5 +1,5 @@
 <?php
-namespace api\remote;
+namespace api\ajax;
 use commonlib\BaseLogger;
 use Event;
 use WP_Error;

@@ -1,26 +1,42 @@
 <?php
-use templates\DrawTemplateGenerator;
+namespace api\ajax;
 use commonlib\BaseLogger;
+use Event;
+use WP_Error;
+use TennisEvents;
+use TournamentDirector;
+use InvalidMatchException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /** 
- * Renders a Round Robin by match using shortcodes
- * with actions to manage the RR such as approve
- * @class  ManageRoundRobin
+ * Performs ajax actions to manage the elimination draw:
+ * Preliminary schedules:
+ *  Approve preliminary schedule
+ *  Change the home
+ *  Change the visitor
+ * Approved schedules:
+ *  Set the start date and time
+ *  Record scores
+ *  Default the home
+ *  Default the visitor
+ *  Advance completed matches thru the schedule
+ *  Comment a match
+ *  Reset the draw (i.e. remove all matches)
+ * @class  ManageDraw
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
 */
-class ManageRoundRobin
+class ManageDraw
 { 
     public const HOME_CLUBID_OPTION_NAME = 'gw_tennis_home_club';
 
-    const ACTION    = 'manageTennisRoundRobin';
-    const NONCE     = 'manageTennisRoundRobin';
-    const SHORTCODE = 'manage_roundrobin';
+    const ACTION    = 'manageTennisDraw';
+    const NONCE     = 'manageTennisDraw';
+    const SHORTCODE = 'manage_draw';
 
     private $eventId = 0;
     private $errobj = null;
@@ -40,26 +56,29 @@ class ManageRoundRobin
     }
 
 
+    /**
+     * No scripts to register.
+     * The scripts are registered by RenderDraw
+     */
     public function registerScripts() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-        
-        $jsurl =  TE()->getPluginUrl() . 'js/matches.js';
-        wp_register_script( 'manage_rr', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
-        
-        $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
-        wp_enqueue_style( 'tennis_css', $cssurl );
+        //$this->log->error_log( $loc );
     }
     
+    /**
+     * The ajax methods for Managing the elimination Draw
+     */
     public function registerHandlers() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
 
-        add_shortcode( self::SHORTCODE, array( $this, 'renderShortcode' ) );
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
         add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
     }
     
+    /**
+     * The method called when illegal attempts to request ajax operations are made
+     */
     public function noPrivilegesHandler() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
@@ -70,81 +89,6 @@ class ManageRoundRobin
         $this->handleErrors("You've been a bad boy.");
     }
      
-
-	public function renderShortcode( $atts = [], $content = null ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $atts = array_change_key_case((array)$atts, CASE_LOWER);
-        $this->log->error_log( $atts, $loc );
-
-        if( $_POST ) {
-            $this->log->error_log($_POST, "$loc: POST:");
-        }
-
-        if( $_GET ) {
-            $this->log->error_log($_GET, "$loc: GET:");
-        }
-
-        $my_atts = shortcode_atts( array(
-            'clubname' => '',
-            'eventid' => 0,
-            'bracketname' => Bracket::WINNERS
-        ), $atts, 'render_draw' );
-
-        $this->log->error_log( $my_atts, "$loc: My Atts" );
-
-        //Get the Club from attributes
-        $club = null;
-        if(!empty( $my_atts['clubname'] ) ) {
-            $arrClubs = Club::search( $my_atts['clubName'] );
-            if( count( $arrClubs) > 0 ) {
-                $club = $arrClubs[0];
-            }
-        }
-        else {
-            $homeClubId = esc_attr( get_option(self::HOME_CLUBID_OPTION_NAME, 0) );
-            $club = Club::get( $homeClubId );
-        }
-        if( is_null( $club ) ) return __('Please set home club id or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
-
-        //Get the event from attributes
-        $eventId = (int)$my_atts['eventid'];
-        $this->log->error_log("$loc: EventId=$eventId");
-        if( $eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
-
-        $evts = Event::find( array( "club" => $club->getID() ) );
-        //$this->log->error_log( $evts, "$loc: All events for {$club->getName()}");
-        $found = false;
-        $target = null;
-        if( count( $evts ) > 0 ) {
-            foreach( $evts as $evt ) {
-                $target = Event::getEventRecursively( $evt, $eventId );
-                if( isset( $target ) ) {
-                    $found = true;
-                    break;
-                }
-            }
-        }
-        unset( $evts );
-
-        if( !$found ) {
-            $mess = sprintf("No such event=%d for the club '%s'", $eventId, $club->getName() );
-            return __($mess, TennisEvents::TEXT_DOMAIN );
-        }
-
-        //Get the bracket from attributes
-        $bracketName = $my_atts["bracketname"];
-
-        //Go
-        $td = new TournamentDirector( $target );
-        $bracket = $td->getBracket( $bracketName );
-        if( is_null( $bracket ) ) {            
-            $mess = sprintf("No such bracket='%s' for the event '%s'", $bracketName, $target->getName() );
-            return __($mess, TennisEvents::TEXT_DOMAIN );
-        }
-
-        return $this->renderBracketByMatch( $td, $bracket );
-    }
-    
     /**
      * Perform the tasks as indicated by the Ajax request
      */
@@ -218,6 +162,10 @@ class ManageRoundRobin
                 break;
             case 'setmatchstart':
                 $mess = $this->setMatchStart( $data );
+                $returnData = $data;
+                break;
+            case 'advance':
+                $mess = $this->advanceMatches( $data );
                 $returnData = $data;
                 break;
             default:
@@ -344,6 +292,7 @@ class ManageRoundRobin
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
+
             $bracket = $td->getBracket( $bracketName );
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
@@ -362,27 +311,23 @@ class ManageRoundRobin
                 $match->removeSets();
                 $match->save();
                 $data['score'] = '';
-                $data['status'] = $chairUmpire->matchStatus( $match );
+                //$data['status'] = $chairUmpire->matchStatus( $match );
                 $mess = __("Score reset.", TennisEvents::TEXT_DOMAIN );
             }
             else {
                 //Set the score for this match 
-                $winner = null;
                 foreach( $scores as $score ) {
+                    //Record and save scores
                     $chairUmpire->recordScores( $match, $score );
-                    if( $chairUmpire->isLocked( $match, $winner ) ) break;
                 }
 
                 if( empty($match->getMatchDate_Str()) ) {
-                    $now = date("Y-m-d G:i:s", time());
-                    $this->log->error_log("$loc: setting match date to '{$now}'");
-                    $match->setMatchDate_Str( $now );
-                    //$match->setMatchTime_Str( date("g:i:s") );
+                    $match->setMatchDate_Str( date("Y-m-d G:i:s") );
                 }
 
                 // $numTrimmed = $chairUmpire->trimSets( $match );
                 // $data['setsTrimmed'] = $numTrimmed;
-                $match->save();
+                $match->save();//Now save the match
 
                 $statusObj = $chairUmpire->matchStatusEx( $match );
                 $data['majorStatus'] = $statusObj->getMajorStatus();
@@ -392,27 +337,24 @@ class ManageRoundRobin
                 $data['matchdate'] = $match->getMatchDate_Str();
                 $data['matchtime'] = $match->getMatchTime_Str();
 
-                $data['advanced'] = 0; //$td->advance( $bracketName );
+                $data['advanced'] = $td->advance( $bracketName );
                 $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
                 $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
                 
-                $pointsPerWin = 1;
-                //if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
-                $pointsPerWin = $chairUmpire->getPointsPerWin();
-
-                $summaryTable = $chairUmpire->getEntrantSummary( $bracket );
-                //$this->log->error_log($summaryTable, "$loc - entrant summary");
-                $data["entrantSummary"] = $summaryTable;
-                $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
-
-                $numVars = extract( $chairUmpire->getMatchSummary( $match ) );
-                $data['winner'] = $andTheWinnerIs;
-                $this->log->error_log($data, "$loc: numVars={$numVars} data...");
+                $winner = $chairUmpire->matchWinner( $match );
+                $data['winner'] = '';
+                if( !is_null( $winner ) ) {
+                    if( $chairUmpire->winnerIsVisitor( $match ) ) {
+                        $data['winner'] = 'visitor';
+                    }
+                    else {
+                        $data['winner'] = 'home';
+                    }
+                }
                 $mess = __("Score recorded.", TennisEvents::TEXT_DOMAIN );
             }
         }
         catch( Exception $ex ) {
-            $this->log->error_log($ex,"$loc");
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['score'] = '';
@@ -470,6 +412,39 @@ class ManageRoundRobin
     }
     
     /**
+     * Adavance the matches in this bracket.
+     * @param array A reference to an array of identifying data and the in progress or final score for a match
+     * @return string A message describing success or failure
+     */
+    private function advanceMatches( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        //$strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
+        try {            
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket '{$bracketName}'", TennisEvents::TEXT_DOMAIN) );
+            }
+            
+            $advanced = $td->advance( $bracketName );
+            $data['advanced'] = $advanced; //Could be the name of the champion!!!
+            $mess = __("{$advanced} Matches advanced.", TennisEvents::TEXT_DOMAIN );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $data['advanced'] = 0;
+        }
+        return $mess;
+    }
+    
+    /**
      * Default an entrant and record the comments for a specific match identified in $data
      * @param array $data A reference to an array of event/match identifiers and new visitor player name
      * @return string A message describing success or failure
@@ -490,14 +465,17 @@ class ManageRoundRobin
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
+
             $bracket = $td->getBracket( $bracketName );
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
             }
+
             $match = $bracket->getMatch( $roundNum, $matchNum );
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
+
             $chairUmpire = $td->getChairUmpire();
             switch( $player ) {
                 case "home":
@@ -516,12 +494,6 @@ class ManageRoundRobin
                     break;
             }
             $data['status'] = $status;
-            
-            $pointsPerWin = 1;
-            if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
-            $summaryTable = $chairUmpire->getEntrantSummary( $bracket, $pointsPerWin );
-            $data["entrantSummary"] = $summaryTable;
-            $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -592,8 +564,8 @@ class ManageRoundRobin
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
-            $chairUmpire = $td->getChairUmpire();
             $bracket = $td->getBracket( $bracketName );
+            $chairUmpire = $td->getChairUmpire();
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
             }
@@ -605,15 +577,15 @@ class ManageRoundRobin
             $match->setMatchDate_TS( $timestamp );
             $match->setMatchTime_Str( $matchStartTime );
             $match->save();
-            $data['matchstartdate'] = $match->getMatchDate_Str();
-            $data['matchstarttime'] = $match->getMatchTime_Str();
-            $data['status'] = $chairUmpire->matchStatus($match);
+            $data['matchdate'] = $match->getMatchDate_Str();
+            $data['matchtime'] = $match->getMatchTime_Str();
+            $data['status'] = $chairUmpire->matchStatus( $match );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
-            $data['matchstartdate'] = '';
-            $data['matchstarttime'] = '';
+            $data['matchdate'] = '';
+            $data['matchtime'] = '';
         }
         return $mess;
     }
@@ -669,93 +641,10 @@ class ManageRoundRobin
     }
 
     /**
-     * Renders rounds and matches for the given bracket
-     * @param $td The tournament director for this bracket
-     * @param $bracket The bracket
-     * @return HTML for table-based page showing the draw
-     */
-    private function renderBracketByMatch( TournamentDirector $td, Bracket $bracket ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-        commonlib\gw_print_mem();
-        
-		$startFuncTime = microtime( true );
-
-        $tournamentName = str_replace("\'","&apos;", $td->getName() );
-        $parentName = str_replace("\'","&apos;", $td->getParentEventName() );
-        $bracketName    = $bracket->getName();
-        // if( !$bracket->isApproved() ) {
-        //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
-        // }
-
-        $umpire = $td->getChairUmpire();
-        $scoreType = $td->getEvent()->getScoreType();
-        $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
-
-        $loadedMatches = $bracket->getMatchHierarchy();
-        $numRounds = 0;
-        $numMatches = 0;
-        foreach( $loadedMatches as $r => $m ) {
-            if( $r > $numRounds ) $numRounds = $r;
-            foreach( $m as $match ) {
-                ++$numMatches;
-            }
-        }
-
-        // $numRounds = $td->totalRounds( $bracketName );
-        // $numMatches = $bracket->getNumberOfMatches();
-
-        $pointsPerWin = 1;
-        ///if( $td->getEvent()->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
-        $summaryTable = $umpire->getEntrantSummary( $bracket );
-        $bracketSummary = $umpire->getBracketSummary( $bracket ); //NOTE: calls $bracket->getMatchHierarchy();
-
-        $signupSize = $bracket->signupSize();
-        $this->log->error_log("$loc: num matches:$numMatches; number rounds=$numRounds; signup size=$signupSize");
-
-        $this->eventId = $td->getEvent()->getID();
-        $jsData = $this->get_ajax_data();
-        $jsData["eventId"] = $this->eventId;
-        $jsData["bracketName"] = $bracketName;
-        $jsData["numSignedUp"] = $signupSize;
-        $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
-        $jsData["numSets"] = $umpire->getMaxSets();
-        $arrData = $this->getMatchesAsArray( $td, $bracket );
-        $this->log->error_log($arrData, "$loc: arrData...");
-        $jsData["matches"] = $arrData; 
-        wp_enqueue_script( 'manage_rr' );         
-        wp_localize_script( 'manage_rr', 'tennis_draw_obj', $jsData );        
-        
-	    // Start output buffering we don't output to the page
-        ob_start();
-
-        // Get template file
-        // $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly.php';
-        $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly-grid.php';
-        //$user = wp_get_current_user();
-        if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
-            // $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin.php';
-            $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin-grid.php';
-        }
-        require( $path );
-        
-        //Render the score summary
-        $path = TE()->getPluginPath() . '\includes\templates\summaryscore-template.php';
-        require( $path );
-
-        // Save output and stop output buffering
-        $output = ob_get_clean();
-
-        \commonlib\gw_print_mem();
-        $this->log->error_log( sprintf("%0.6f",\commonlib\micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
-        return $output;
-    }
-
-    /**
      * Get the Draw's match data as array
      * Needed in order to serialize for json
      */
-    private function getMatchesAsArray( TournamentDirector $td,  Bracket $bracket ) {
+    private function getMatchesAsArray(TournamentDirector $td,  Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 
@@ -765,30 +654,12 @@ class ManageRoundRobin
         $arrMatches = [];
         foreach( $matches as $match ) {
             $arrMatch = $match->toArray();
-
+            $winner = $chairUmpire->matchWinner( $match );
             $status = $chairUmpire->matchStatus( $match );
-            $arrMatch["status"] = $status;
-
             $strScores = $chairUmpire->strGetScores( $match );
             $arrMatch["scores"] = $strScores;
-
-            extract( $chairUmpire->getMatchSummary( $match ) );
-            
-            switch( $andTheWinnerIs ) {
-                case 'home':
-                    $winner = $match->getHomeEntrant()->getName();
-                    break;
-                case 'visitor':
-                    $winner = $match->getVisitorEntrant()->getName();
-                    break;
-                case 'tie':
-                    $winner = 'tie';
-                    break;
-                default:
-                    $winner = '';
-            }
-
-            $arrMatch["winner"] = $winner;
+            $arrMatch["status"] = $status;
+            $arrMatch["winner"] = is_null( $winner ) ? '' : $winner->getName();
             $arrMatches[] = $arrMatch;
         }
         return $arrMatches;
