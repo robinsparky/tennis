@@ -295,11 +295,11 @@
 
         function findEntrant( name ) {
             console.log("findEntrant(%s)", name);
-            test = name.trim().replace(/ /g, '_').replace(/'/g,"");
+            test = name.trim().replace(/ /g, '_').replace(/'/g,"").replace(/&/g,"");
             console.log("test=#li%s",test);
             $found = $('li#' + test);
             return $found;
-        }
+        }   
 
 
         //Add an entrant
