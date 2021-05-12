@@ -11,7 +11,13 @@ use api\CustomMenu;
 use commonlib\BaseLogger;
 use cpt\TennisEventCpt;
 use cpt\TennisClubCpt;
-use api\remote\ManageBrackets;
+use api\RenderSignup;
+use api\ajax\ManageSignup;
+use api\RenderDraw;
+use api\ajax\ManageDraw;
+use api\RenderRoundRobin;
+use api\ajax\ManageRoundRobin;
+use api\ajax\ManageBrackets;
 
 //Uncomment this to turn off all logging in this plugin
 //$GLOBALS['TennisEventNoLog'] = 1;
@@ -237,13 +243,26 @@ class TennisEvents {
 	public function init() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log( ">>>>>>>>>>>$loc start>>>>>>>>>" );
-		//Register various 
+
+		//Register custom post types
 		TennisEventCpt::register();
 		TennisClubCpt::register();
+
+		//Register the signup
+		RenderSignup::register();
 		ManageSignup::register();
+
+		//Register Elimination Draws
+		RenderDraw::register();
 		ManageDraw::register();
+
+		//Register Round Robin Draws
+		RenderRoundRobin::register();
 		ManageRoundRobin::register();
+
+		//Bracket maintenance
 		ManageBrackets::register();
+
 		flush_rewrite_rules(); //necessary to make permlinks work for tennis templates
 		$this->seedData();
 
