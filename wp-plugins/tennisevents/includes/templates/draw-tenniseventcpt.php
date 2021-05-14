@@ -43,7 +43,15 @@
 					}
 					$drawUrl = get_permalink() . "?manage=signup&bracket=" . $bracketName;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Signup</button></div>";
+					echo "<div class='tennis-link-container'><a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Signup</a>&nbsp;";
+				
+					foreach( $event->getBrackets() as $bracket) {
+						if( $bracketName !== $bracket->getName() ) {
+							$drawUrl = get_permalink() . "?manage=draw&bracket=" . $bracket->getName();
+							echo "<a class='link-to-draw' href='{$drawUrl}'>{$bracket->getName()}</a>&nbsp;";
+						}
+					}
+					echo "</div>";
 				}
 				?>
 				</div> <!-- /tennis event schedule -->

@@ -65,6 +65,20 @@
   padding-bottom: 1rem;
   border-bottom: 1px solid black;
 }
+.tennis-link-container {
+  text-align: center;
+}
+.tennis-link-container a {
+  border: 2px black solid;
+}
+
+a.link-to-draw:nth-of-type(odd) {
+  color: black;
+}
+
+a.link-to-draw:nth-of-type(even) {
+  color: black;
+}
 
 /*
 .tennis-leaf-event {
