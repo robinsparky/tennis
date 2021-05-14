@@ -2,7 +2,7 @@
 namespace api;
 use templates\DrawTemplateGenerator;
 use commonlib\BaseLogger;
-use commonlib\support;
+use commonlib\GW_Support;
 use Event;
 use WP_Error;
 use TennisEvents;
@@ -157,7 +157,7 @@ class RenderRoundRobin
     private function renderBracketByMatch( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
-        //gw_print_mem();
+        GW_Support::getInstance()->gw_print_mem();
         
 		$startFuncTime = microtime( true );
 
@@ -223,8 +223,8 @@ class RenderRoundRobin
         // Save output and stop output buffering
         $output = ob_get_clean();
 
-        //gw_print_mem();
-        $this->log->error_log( sprintf("%0.6f",\commonlib\micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        GW_Support::getInstance()->gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Support::getInstance()->micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
         return $output;
     }
 

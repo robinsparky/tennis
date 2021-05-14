@@ -2,6 +2,7 @@
 namespace api;
 use templates\DrawTemplateGenerator;
 use commonlib\BaseLogger;
+use commonlib\GW_Support;
 use Event;
 use WP_Error;
 use TennisEvents;
@@ -232,7 +233,7 @@ class RenderDraw
 <caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;(%s)</caption>
 <thead><tr>
 EOT;
-        $out = sprintf( $begin,$parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc );
+        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc );
 
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $bracket->roundOf( $i );
@@ -445,7 +446,7 @@ EOT;
         $out .= "</div>";
 
         $out .= '<div id="tennis-event-message"></div>';
-		$this->log->error_log( sprintf("%0.6f",\commonlib\micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+		$this->log->error_log( sprintf("%0.6f", GW_Support::getInstance()->micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Time");
         return $out;
     }
     
@@ -468,6 +469,7 @@ EOT;
         $champion = $td->getChampion( $bracketName );
         $championName = empty( $champion ) ? 'tba' : $champion->getName();
         $umpire = $td->getChairUmpire();
+        $parentName = $td->getParentEventName();
 
         $loadedMatches = $bracket->getMatchHierarchy( true );
         $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
@@ -492,11 +494,12 @@ EOT;
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
 
         $begin = <<<EOT
+<h2 id="parent-event-name">%s</h2>
 <table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
 <caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket</caption>
 <thead><tr>
 EOT;
-        $out = sprintf( $begin, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName );
+        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName );
 
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $bracket->roundOf( $i );
@@ -669,7 +672,7 @@ EOT;
         $out .= "</table>";	
 
         $out .= '<div id="tennis-event-message"></div>';
-		$this->log->error_log( sprintf("%0.6f",commonlib\micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+		$this->log->error_log( sprintf("%0.6f",GW_Support::getInstance()->micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Time");
         return $out;
     }
 
