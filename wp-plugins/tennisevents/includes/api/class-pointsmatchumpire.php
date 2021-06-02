@@ -1,4 +1,5 @@
 <?php
+use commonlib\GW_Support;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -243,7 +244,7 @@ class PointsMatchUmpire extends ChairUmpire
                     ,"earlyEnd"        => $earlyEnd
                     ,"comments"        => $cmts ];
 
-        $this->log->error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", commonlib\micro_time_elapsed( $startTime )));
+        //$this->log->error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", commonlib\micro_time_elapsed( $startTime )));
         $this->log->error_log($result, "$loc: Match Summary Result");
 
         return $result;
