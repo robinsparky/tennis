@@ -67,6 +67,8 @@ class TennisEventCpt {
 		add_filter('manage_edit-' . self::CUSTOM_POST_TYPE . '_sortable_columns', array($tennisEvt, 'sortableColumns'));
 		add_action('pre_get_posts', array($tennisEvt, 'orderby'));
 		
+		add_action( 'restrict_manage_posts', array($tennisEvt,'addTaxonomyFilter'), 10, 1 );
+
 		//Gender type filter
 		add_action('restrict_manage_posts', array($tennisEvt, 'genderTypeFilter'));
 		add_filter('parse_query', array($tennisEvt, 'genderTypeParseFilter'));
@@ -190,6 +192,37 @@ class TennisEventCpt {
 		} elseif ('seasonSort' === $query->get('orderby')) {
 			$query->set('orderby', 'meta_value');
 			$query->set('meta_key', self::START_DATE_META_KEY);
+		}
+	}
+	
+	public function addTaxonomyFilter( $post_type ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		if( self::CUSTOM_POST_TYPE !== $post_type ) {
+			return;
+		}
+
+		$taxonomies_slugs = array(self::CUSTOM_POST_TYPE_TAX);
+		// loop through the taxonomy filters array
+		foreach( $taxonomies_slugs as $slug ) {
+			$this->log->error_log("$loc: slug='{$slug}'");
+			$taxonomy = get_taxonomy( $slug );
+			$this->log->error_log($taxonomy, "$loc: taxonomy:");
+
+			$selected = '';
+			// if the current page is already filtered, get the selected term slug
+			$selected = isset( $_REQUEST[ $slug ] ) ? $_REQUEST[ $slug ] : '';
+			// render a dropdown for this taxonomy's terms
+			wp_dropdown_categories( array(
+				'show_option_all' =>  $taxonomy->labels->all_items,
+				'taxonomy'        =>  $slug,
+				'name'            =>  $slug,
+				'orderby'         =>  'name',
+				'value_field'     =>  'slug',
+				'selected'        =>  $selected,
+				'hierarchical'    =>  true,
+			) );
 		}
 	}
 
