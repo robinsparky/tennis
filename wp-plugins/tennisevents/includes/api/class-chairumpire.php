@@ -508,7 +508,7 @@ abstract class ChairUmpire
         $this->log->error_log( $mess );
 
         $arrScores = $this->getScores( $match );
-        if( count( $arrScores) === 0 ) return '';
+        if( count( $arrScores) === 0 ) return 'vs';
 
         $strScores = '';
         $sep = ',';
