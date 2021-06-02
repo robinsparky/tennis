@@ -30,7 +30,8 @@
 					echo do_shortcode("[manage_signup eventid={$event->getID()}, bracketname={$bracketName}]");
 					$drawUrl = get_permalink() . "?manage=draw&bracket=" . $bracketName;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Draw</button></div>";
+					//echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Draw</button></div>";
+					echo "<div class='tennis-link-container'><a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Draw</a>&nbsp;";
 				}
 				elseif( $mode === "draw" ) {
 					switch( $event->getFormat() ) {
