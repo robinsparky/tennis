@@ -77,7 +77,7 @@
     // if( !empty($startDate) > 0 ) {
     //     $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
     // }
-    $this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobin Elapsed time", \commonlib\micro_time_elapsed( $begin ), $title));
+    //$this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobin Elapsed time", GW_Support::getInstance()->micro_time_elapsed( $begin ), $title));
 ?>
 
 <article class="item-player" data-eventid="<?php echo $eventId;?>" 

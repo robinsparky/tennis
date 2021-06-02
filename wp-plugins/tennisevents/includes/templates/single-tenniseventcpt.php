@@ -1,5 +1,6 @@
 	
 <?php
+use commonlib\GW_Support;
 /*
  * Template Name: Tennis Event Template
  * description: Template to display Tennis Event custom post types 
@@ -47,5 +48,5 @@ get_header();
 ?>
 <?php 
 get_footer(); 
-echo sprintf("Elapsed time: %0.6f", commonlib\micro_time_elapsed( $startFuncTime ));
+//echo sprintf("Elapsed time: %0.6f", GW_Support::getInstance()->micro_time_elapsed( $startFuncTime ));
 ?>
