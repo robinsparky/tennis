@@ -67,6 +67,8 @@
 }
 .tennis-link-container {
   text-align: center;
+  margin-top: 10px;
+  border-top: 1px black dashed;
 }
 .tennis-link-container a {
   border: 2px black solid;
@@ -839,5 +841,60 @@ button.link-to-draw {
   only screen and (min-width: 380px) and (max-width: 640px) and (orientation: landscape) {
   .breacketdraw img {
     width: 200px;
+  }
+}
+
+/**
+ * Print media
+*/
+@media print {
+  header,
+  nav,
+  footer {
+    display: none !important;
+  }
+
+  video,
+  audio,
+  object,
+  embed,
+  button {
+    display: none !important;
+  }
+
+  @page {
+    margin: 0.2cm;
+  }
+
+  body {
+    font: 12pt Georgia, "Times New Roman", Times, serif;
+    line-height: 1;
+  }
+
+  .header-clone {
+    display: none;
+  }
+
+  .footer-widgets,
+  .widget-area,
+  .site-footer {
+    display: none;
+  }
+  .go-top {
+    display: none;
+  }
+  .site-title {
+    display: none !important;
+  }
+  .tennis-link-container {
+    display: none;
+  }
+
+  img {
+    max-width: 500px;
+  }
+
+  .main-tennis-content {
+    margin-top: -50px;
   }
 }
