@@ -336,7 +336,7 @@ class GW_Support
 	}
 
 	/**
-	 * Function to render taxonomy/tag links
+	 * Function to render taxonomy/tag links (i.e. as a tags)
 	 */
 	public function tennis_events_get_term_links( $postID, $termname ) {
 		$term_list = wp_get_post_terms( $postID, $termname ); 
@@ -358,6 +358,18 @@ class GW_Support
 				echo "<a href='$lnk'>$term->name</a>$sep";
 			}
 		}
+	}
+
+	/**
+	 * Function to return array of term names
+	 */
+	public function tennis_events_get_term_names( $postID, $termname ) {
+		$result = [];
+		$term_list = wp_get_post_terms( $postID, $termname ); 
+		foreach( $term_list as $term ) {
+			$result[] = $term->name;
+		}
+		return $result;
 	}
 
 	/**

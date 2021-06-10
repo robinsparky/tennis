@@ -1,12 +1,14 @@
 <?php
 use cpt\TennisEventCpt;
 use commonlib\BaseLogger;
+use commonlib\GW_Support;
 // $dir = plugin_dir_path( __DIR__ );
 // include_once(__DIR__ . '/../commonlib/support.php' );
 
 get_header();  
 
 $logger = new BaseLogger( true );
+$support = GW_Support::getInstance();
 
 $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
 $club = Club::get( $homeClubId ); 
@@ -109,6 +111,8 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 							$genderType = GenderType::AllTypes()[$genderType];
 							$matchType = get_post_meta( get_the_ID(), TennisEventCpt::MATCH_TYPE_META_KEY, true );
 							$matchType   = MatchType::AllTypes()[$matchType];
+							$terms = $support->tennis_events_get_term_names( get_the_ID(), TennisEventCpt::CUSTOM_POST_TYPE_TAX );
+							$terms = implode(";", $terms);
 							$eventFormat = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_FORMAT_META_KEY, true );
 							$eventFormat = Format::AllFormats()[$eventFormat];	
 							$scoreType   = get_post_meta( get_the_ID(), TennisEventCpt::SCORE_TYPE_META_KEY, true );
@@ -131,6 +135,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 							<tbody>									
 								<tr class="event-meta-detail"><td><strong><?php echo __("Gender", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $genderType; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
+								<tr class="event-meta-detail"><td><strong><?php echo __("Categories", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $terms; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Min Age", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $minAge; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Max Age", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $maxAge; ?></td></tr>
 								<tr class="event-meta-detail"><td><strong><?php echo __("Signup By", TennisEvents::TEXT_DOMAIN);?></td></strong><td><?php   echo $signupBy; ?></td></tr>

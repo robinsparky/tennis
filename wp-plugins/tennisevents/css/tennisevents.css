@@ -897,4 +897,13 @@ button.link-to-draw {
   .main-tennis-content {
     margin-top: -50px;
   }
+
+  .main-tennis-content:before {
+    display: block;
+    content: "Tyandaga Tennis Club";
+    margin-bottom: 10px;
+    border: 1px solid #bbb;
+    padding: 3px 5px;
+    font-style: italic;
+  }
 }
