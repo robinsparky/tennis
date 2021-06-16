@@ -25,6 +25,10 @@ class TE_Install {
 
 	const OPTION_NAME_VERSION = 'tennis_version';
 
+	static public $tennisRoles=array("tennis_player"              => "Tennis Player"
+									,"tennis_chair_umpire"              => "Chair Umpire"
+								    ,"tennis_tournament_director" => "Tournament Director");
+
 	private $dbTableNames; 
 	private $log;
 
@@ -96,8 +100,8 @@ class TE_Install {
 		// clear the permalinks after the post type has been registered
 		flush_rewrite_rules();
 
-		// $this->addRoles();
-		// $this->addCap();
+		$this->addRoles();
+		//$this->addCap();
 		$this->create_options();
 		$this->createSchema();
 		//add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
@@ -122,8 +126,10 @@ class TE_Install {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
 
+		$this->removeRoles();
 		$this->delete_options();
 		$this->delete_customPostTypes();
+		$this->delete_customTaxonomies();
 		$this->dropSchema();
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
@@ -156,32 +162,132 @@ class TE_Install {
 	}
 
 	/**
-	 * Add the role of 'Tennis Player'
+	 * Delete custom taxonomies 
+	 */
+	protected function delete_customTaxonomies() {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		$this->delete_customTerms(TennisEventCpt::CUSTOM_POST_TYPE_TAX);
+		$this->delete_customTerms(TennisClubCpt::CUSTOM_POST_TYPE_TAX);
+
+		/*
+		//Events
+		$terms = get_terms( array('taxonomy' => TennisEventCpt::CUSTOM_POST_TYPE_TAX
+									,'fields' => 'ids'
+									,'hide_empty' => false));
+		
+		if( is_wp_error($terms) ) {
+			$this->log->error_log("$loc: for tax='Tennis Event Tax' with error='{$terms->get_error_message()}'.");
+		}
+		else {
+			foreach($terms as $term_id ) {
+				$this->log->error_log("$loc: for tax='Tennis Event Tax' term id='{$term_id}'.");
+
+				if( wp_delete_category( $term_id) ) {
+					$this->log->error_log("$loc: for tax='Tennis Event Tax' deleted '{$term_id}' successfully.");
+				}
+				else {					
+					$this->log->error_log("$loc: for tax='Tennis Event Tax' delete '{$term_id}' failed.");
+				}
+			}
+		}
+		
+		//Clubs
+		$terms = get_terms( array('taxonomy'=>TennisClubCpt::CUSTOM_POST_TYPE_TAX
+							,'fields' => 'ids'
+							,'hide_empty'=>false));
+		if( is_wp_error($terms) ) {
+			$this->log->error_log("$loc: for tax='Tennis Club Tax' with error='{$terms->get_error_message()}'.");
+		}
+		else {
+			foreach($terms as $term_id ) {					
+				$this->log->error_log("$loc: for tax='Tennis Club Tax' term id='{$term_id}'.");
+				echo("$loc: for tax='Tennis Club Tax' term id='{$term->term_id}'.");
+				if( wp_delete_category( $term_id) ) {
+					$this->log->error_log("$loc: for tax='Tennis Club Tax' deleted '{$term_id}' successfully.");
+				}
+				else {					
+					$this->log->error_log("$loc: for tax='Tennis Club Tax' delete '{$term_id}' failed.");
+				}
+			}
+		}
+		*/
+	}
+	
+	/**
+	 * Delete custom taxonomies using sql
+	 * @param string $taxonomy is the slug of the custom taxonomy
+	 */
+	protected function delete_customTerms($taxonomy) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		global $wpdb;
+	
+		$tax_table = $wpdb->prefix . 'term_taxonomy';
+		$terms_table = $wpdb->prefix . 'terms';
+
+		$query = "SELECT t.name, t.term_id
+				FROM  {$terms_table} AS t
+				INNER JOIN {$tax_table}  AS tt
+				ON t.term_id = tt.term_id
+				WHERE tt.taxonomy = '%s'";
+	
+		$safe = $wpdb->prepare( $query, $taxonomy );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
+	
+		foreach ($rows as $row) {				
+			$this->log->error_log("$loc: for tax='$taxonomy', term id='{$row['term_id']}'.");
+
+			if( wp_delete_term( intval($row['term_id']), $taxonomy ) ) {
+				$this->log->error_log("$loc: for tax='{$taxonomy}' deleted '{$row['term_id']}' successfully.");
+			}
+			else {
+				$this->log->error_log("$loc: for tax='{$taxonomy}' delete '{$row['term_id']}' failed.");
+			}
+		}
+	}
+
+	/**
+	 * Add the roles of 'Tennis Player', 'Tournament Director', etc.
 	 */
 	private function addRoles() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
 
-		$result = add_role( 'tennis_player', 'Tennis Player'
-						  , array( 'read' => true
-						         , 'level_10' => true ) );
-
-		if( null !== $result ) {
-			$this->log->error_log( "Role 'Tennis Player' added." );
+		$caps = ['read','level_0'];
+		foreach(self::$tennisRoles as $slug => $name ) {
+			switch($slug) {
+				case 'tennis_player';
+					$caps = get_role('subscriber')->capabilities;
+					break;
+				case 'tennis_director':
+					$caps = get_role('administrator')->capabilities;
+					break;
+				case 'tennis_umpire':
+					$caps = get_role('editor')->capabilities;
+					break;
+				default;
+					$caps = get_role('subscriber')->capabilities;
+			}
+			$result = add_role( $slug, $name, $caps );
+	
+			if( null !== $result ) {
+				$this->log->error_log( "Role '{$name}' added." );
+			}
+			else {
+				$this->log->error_log( "Could not add role '{$name}'." );
+			}
 		}
-		else {
-			$this->log->error_log( "Could not add role 'Tennis Player'." );
-		}
+	}
 
-		$result = add_role( 'tennis_tournament_director', 'Tournament Director'
-						  , array( 'read' => true
-						         , 'level_10' => true ) );
-
-		if( null !== $result ) {
-			$this->log->error_log( "Role 'Tournament Director' added." );
-		}
-		else {
-			$this->log->error_log( "Could not add role 'Tournament Directors'." );
+	/**
+	 * Remove the roles of 'Tennis Player', 'Tournament Director', etc.
+	 */
+	protected function removeRoles() {
+		foreach (self::$tennisRoles as $slug => $name) {
+			remove_role($slug);
 		}
 	}
 	
@@ -194,6 +300,7 @@ class TE_Install {
 		$this->log->error_log($loc);
 
         $roles = get_editable_roles();
+
         foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
             if (isset($roles[$key]) && $role->has_cap('BUILT_IN_CAP')) {
                 $role->add_cap('THE_NEW_CAP');

@@ -4,7 +4,7 @@
 	Plugin URI: grayware.ca/tennisevents
 	Description: Tennis Events Management
 	Version: 1.0
-	Author: Robin Smith
+	Author: Sparky
 	Author URI: grayware.ca
 */
 use api\CustomMenu;
