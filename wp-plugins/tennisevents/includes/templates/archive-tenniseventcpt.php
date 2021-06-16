@@ -74,7 +74,9 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 					$eventType = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
 					$eventType = EventType::AllTypes()[$eventType];
 					$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
+					$endDate   = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
 					if(empty($startDate)) $startDate = 'tba';
+					if(empty($endDate)) $endDate = 'tba';
 
 				?>	
 				 <!-- Root event -->
@@ -84,6 +86,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 					<li><?php the_content(); ?></li>					
 					<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
 					<li><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
+                    <li><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
 				</ul>
 				
 				<!-- leaf event container -->
@@ -125,7 +128,6 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 							$minAge = get_post_meta( get_the_ID(), TennisEventCpt::AGE_MIN_META_KEY, true );
 							$maxAge = get_post_meta( get_the_ID(), TennisEventCpt::AGE_MAX_META_KEY, true );
 		
-
 						?>
 						<!-- Leaf Event -->
 						<section class="tennis-leaf-event"> 
