@@ -96,8 +96,9 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 				<section class="tennis-leaf-event-container">
 				<?php
 					$args = array( "post_type" => TennisEventCpt::CUSTOM_POST_TYPE
-								, "orderby" => "title"
-								, "order"   => "ASC" 
+								, "meta_key" => TennisEventCpt::START_DATE_META_KEY
+								, "orderby" => "meta_value"
+								, "order"   => "DESC" 
 								, "meta_query" => array( "relation" => "OR"
 										,array(
 											'key' => TennisEventCpt::PARENT_EVENT_META_KEY
