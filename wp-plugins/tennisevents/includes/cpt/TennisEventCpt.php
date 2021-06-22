@@ -91,9 +91,17 @@ class TennisEventCpt {
 		add_action('admin_notices', array($tennisEvt, 'handle_errors') );
 	}
 
-	public function __construct() {
+	public function __construct( TennisEventCpt $copyMe = null ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log = new BaseLogger(true);
+
+		if( !empty( $copyMe ) ) {
+			//$this->post_title = $copyMe->post_title;
+			foreach($copyMe as $key => $value ) {
+				$this->$key = $value;
+			}
+			$this->log->error_log($this,"Copied CPT");
+		}
 	}
 
 	public function enqueue($hook) {
@@ -1124,16 +1132,6 @@ class TennisEventCpt {
 			return;
 		}
 
-		$eventType = '';
-		if (isset($_POST['tennis_event_type_field'])) {
-			$eventType = sanitize_text_field($_POST['tennis_event_type_field']);
-		}
-		if (!empty($eventType)) {
-			update_post_meta($post_id, self::EVENT_TYPE_META_KEY, $eventType);
-		} else {
-			delete_post_meta($post_id, self::EVENT_TYPE_META_KEY);
-		}
-
 		$parentPostId = 0;
 		$parentEvent = $parentPost = null;
 		$currentParentPostId = $_POST['currentExtRefId'];
@@ -1141,6 +1139,7 @@ class TennisEventCpt {
 			$parentPostId = (int)sanitize_text_field($_POST['tennis_parent_event_field']);
 		}
 
+		$parentEventType = '';
 		if (!empty($parentPostId) && $parentPostId > 0) {
 			$parentPost = get_post($parentPostId);
 			if (is_null($parentPost)) {
@@ -1156,19 +1155,32 @@ class TennisEventCpt {
 				$this->add_error( __( 'No such parent event', TennisEvents::TEXT_DOMAIN ) );
 				$this->log->error_log("No such actual parent tennis event: '{$parentPostId}'");
 			}
+			$parentEventType = $parentEvent->getEventType();
 			update_post_meta($post_id, self::PARENT_EVENT_META_KEY, $parentPostId);
 		} else {
 			delete_post_meta($post_id, self::PARENT_EVENT_META_KEY);
 		}
+		
+		$eventType = '';
+		if (isset($_POST['tennis_event_type_field'])) {
+			$eventType = sanitize_text_field($_POST['tennis_event_type_field']);
+		}
+		if (!empty($eventType)) {
+			if( !empty($parentEventType) ) $eventType = $parentEventType;
+			update_post_meta($post_id, self::EVENT_TYPE_META_KEY, $eventType);
+		} else {
+			delete_post_meta($post_id, self::EVENT_TYPE_META_KEY);
+		}
 
 		//TODO: Rationalize Format with ScoreType
-		// If Format is Round Robin then ScoreType can only be: Points1, Points2, etc.
 		// If Format is Elimination then ScoreType cannot be Points1, Points2, etc.
 		$eventFormat = '';
 		if (isset($_POST['tennis_event_format_field'])) {
 			$eventFormat = sanitize_text_field($_POST['tennis_event_format_field']);
 		}
 		if (!empty($eventFormat)) {
+			//Ladders cannot be elimination events
+			if( $parentEventType === EventType::LADDER ) $eventFormat=Format::ROUNDROBIN;
 			update_post_meta($post_id, self::EVENT_FORMAT_META_KEY, $eventFormat);
 		} else {
 			if( !is_null($parentEvent) ) {
@@ -1301,7 +1313,7 @@ class TennisEventCpt {
 		//Now compare the order of the dates
 		if( !is_null( $compareSign ) && !is_null( $compareStart ) ) {
 			$diff = $compareSign->diff( $compareStart );
-			if( $diff->invert === 1 || $diff->days < 3 ) {
+			if( $diff->invert === 1 || $diff->days < 2 ) {
 				$this->add_error(__( 'Signup date must be at least 3 days earlier than start date', TennisEvents::TEXT_DOMAIN ) );
 				$signupBy = '';
 				++$errorsFound;
@@ -1512,7 +1524,7 @@ class TennisEventCpt {
 
 		$result = new WP_Error('unknown error');
 
-		$test = DateTime::createFromFormat('!Y/m/d', $testDate);
+		$test = DateTime::createFromFormat('Y/m/d|', $testDate);
 		if (false === $test) $test = DateTime::createFromFormat('Y/n/j|', $testDate);
 		if (false === $test) $test = DateTime::createFromFormat('Y-m-d|', $testDate);
 		if (false === $test) $test = DateTime::createFromFormat('Y-n-j|', $testDate);
@@ -1548,10 +1560,10 @@ class TennisEventCpt {
 		//DateTimeInterface::ISO8601
 		//DateTimeInterface::W3C
 
-		$test = DateTime::createFromFormat('!Y/m/d', $testDate);
-		if (false === $test) $test = DateTime::createFromFormat('!Y/n/j', $testDate);
-		if (false === $test) $test = DateTime::createFromFormat('!Y-m-d', $testDate);
-		if (false === $test) $test = DateTime::createFromFormat('!Y-n-j', $testDate);
+		$test = DateTime::createFromFormat('Y/m/d', $testDate);
+		if (false === $test) $test = DateTime::createFromFormat('Y/n/j', $testDate);
+		if (false === $test) $test = DateTime::createFromFormat('Y-m-d', $testDate);
+		if (false === $test) $test = DateTime::createFromFormat('Y-n-j', $testDate);
 		if (false === $test) $test = DateTime::createFromFormat(DateTimeInterface::ATOM, $testDate);
 		if (false === $test) $test = DateTime::createFromFormat(DateTimeInterface::ISO8601, $testDate);
 		if (false === $test) $test = DateTime::createFromFormat(DateTimeInterface::W3C, $testDate);
@@ -1570,7 +1582,6 @@ class TennisEventCpt {
 	 */
 	private function getDateStr(DateTime $date)	{
 		static $datetimeformat = "Y-m-d H:i:s";
-		static $dateformat = "!Y-m-d";
 		static $storageformat = "Y-m-d";
 
 		return $date->format($storageformat);

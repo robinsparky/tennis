@@ -71,8 +71,8 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 						}
 					}
 					//commonlib\tennis_events_get_term_links( $post->ID, TennisEventCpt::CUSTOM_POST_TYPE_TAX ); 
-					$eventType = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
-					$eventType = EventType::AllTypes()[$eventType];
+					$eventTypeRaw = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_TYPE_META_KEY, true );
+					$eventType = EventType::AllTypes()[$eventTypeRaw];
 					$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
 					$endDate   = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
 					if(empty($startDate)) $startDate = 'tba';
@@ -80,13 +80,16 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 
 				?>	
 				 <!-- Root event -->
-				<div id="<?php echo get_the_ID()?>" class="tennis-parent-event">
+				<div id="<?php echo get_the_ID()?>" class="tennis-parent-event" data-event-id="<?php echo $event->getID();?>">
 				<h3 class="tennis-parent-event-title"><?php the_title(); ?></h3>					
 				<ul class='tennis-event-meta tennis-event-meta-detail'>		
 					<li><?php the_content(); ?></li>					
 					<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
 					<li><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
                     <li><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
+					<?php if( $eventTypeRaw === EventType::LADDER ) : ?>
+						<li><button type="button" class="button tennis-ladder-next-month">Prepare Next Month</button> </li>
+					<?php endif; ?>
 				</ul>
 				
 				<!-- leaf event container -->

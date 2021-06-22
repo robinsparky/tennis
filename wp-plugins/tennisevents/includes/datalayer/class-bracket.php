@@ -1,4 +1,5 @@
 <?php
+use commonlib\GW_Debug;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -57,18 +58,25 @@ class Bracket extends AbstractData
 	static public function find( ...$fk_criteria ) {
 		global $wpdb;
         $loc = __CLASS__ . '::' .  __FUNCTION__;
+        error_log($loc);
+        error_log(print_r($fk_criteria,true));
+		$strTrace = GW_Debug::get_debug_trace_Str(5);	
+		error_log("{$loc}: {$strTrace}");
 
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
 		$rows;
 
-        //All clubs belonging to specified Event
+        //All Brackets belonging to specified Event
         $eventId = $fk_criteria[0];            
         $sql = "SELECT event_ID, bracket_num, is_approved, `name` 
                 FROM $table 
                 WHERE event_ID = %d;";
         $safe = $wpdb->prepare( $sql, $eventId );
         $rows = $wpdb->get_results( $safe, ARRAY_A );
+
+        error_log("$loc: Sql ...");
+        error_log($safe);
 
 		error_log( sprintf("%s(E(%d)) -> %d rows returned.", $loc, $eventId, $wpdb->num_rows ) );
 
@@ -85,8 +93,8 @@ class Bracket extends AbstractData
 	 */
     static public function get( int ... $pks ) {
         $loc = __CLASS__ . '::' .  __FUNCTION__;	
-		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+		$strTrace = GW_Debug::get_debug_trace_Str(3);	
+		error_log("{$loc}: {$strTrace}");
         
         global $wpdb;
 

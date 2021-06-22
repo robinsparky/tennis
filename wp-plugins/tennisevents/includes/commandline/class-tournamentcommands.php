@@ -5,6 +5,7 @@ use api\events\EventManager;
 use api\events\OverloadedConstructors;
 use templates\DrawTemplateGenerator;
 use api\Math_Combinatorics;
+use commonlib\GW_Debug;
 
 /**
  * Implements all commands for manipulating a tennis tournament and its brackets' matches
@@ -937,7 +938,7 @@ class TournamentCommands extends WP_CLI_Command {
         /**
          * 5. Combinatorics
          */
-        $combinatorics = new Math_Combinatorics;
+        //$combinatorics = new Math_Combinatorics;
         // $set = array(
         //     'one'   => 'a',
         //     'two'   => 'b',
@@ -948,14 +949,79 @@ class TournamentCommands extends WP_CLI_Command {
         //     'seven' => 'g',
         //     'eight' => 'h',
         //     );
-        $set = range(1,8);
-        $combinations = $combinatorics->combinations($set, 2);
-        shuffle_assoc( $combinations );
-        WP_CLI::line("Combinations");
-        $combstr = print_r($combinations, true);
-        WP_CLI::line( $combstr );
+        // $set = range(1,8);
+        // $combinations = $combinatorics->combinations($set, 2);
+        // shuffle_assoc( $combinations );
+        // WP_CLI::line("Combinations");
+        // $combstr = print_r($combinations, true);
+        // WP_CLI::line( $combstr );
+
+        /**
+         * 6. Event Copy constructor
+         */
+
+         //Tennis Event
+        $testId = $n;
+        $event = Event::get($testId);
+        WP_CLI::Line("Leaf Event:");
+        WP_CLI::Line(print_r($event,true));
+
+        $copy = new Event('','',$event);
+        $trace = GW_Debug::get_debug_trace(3);
+        WP_CLI::Line("Copy of Leaf Event:");
+        WP_CLI::Line(print_r($copy,true));
+
+        //Custom post type
+        $eventCPT = get_post(Event::getExtEventRefByEventId($testId));
+        if(empty($eventCPT)) {
+            WP_CLI::Line("Could not find custom post for event id={$testId}");
+            return;
+        }
+        WP_CLI::Line("Event Custom Post:");
+        WP_CLI::Line(print_r($eventCPT,true));
+
+        $id = $eventCPT->ID;
+        WP_CLI::Line("Event Custom Post id={$id}");
+        $copyCptId = $this->duplicate( $id );
+        WP_CLI::Line("Copied CPT id={$copyCptId}");
+        WP_CLI::Line("Event Custom Post Copy:");
+        $copyCpt = get_post($copyCptId);
+        WP_CLI::Line(print_r($copyCpt,true));
+
+        $copy->addExternalRef((string)$copyCptId);
+        $copy->save();
     }
 
+    /**
+     * Duplicates a post & its meta and it returns the new duplicated Post ID
+     * @param  [int] $post_id The Post you want to clone
+     * @return [int] The duplicated Post ID
+    */
+  function duplicate($post_id) {
+    $title   = get_the_title($post_id);
+    $oldpost = get_post($post_id);
+    if(empty($oldpost)) return 0;
+
+    $post    = array(
+      'post_title' => $title . ' Copy',
+      'post_status' => 'publish',
+      'post_type' => $oldpost->post_type,
+      'post_author' => 1,
+      'post_parent' => $oldpost->post_parent,
+      'post_category' => $oldpost->post_category
+    );
+
+    $new_post_id = wp_insert_post($post);
+    // Copy post metadata
+    $data = get_post_custom($post_id);
+    foreach ( $data as $key => $values) {
+      foreach ($values as $value) {
+        add_post_meta( $new_post_id, $key, $value );
+      }
+    }
+    return $new_post_id;
+  }
+    
 
     private function ref( &$array, int $idx = 1, &$ref = array() )
     {

@@ -1,4 +1,5 @@
 <?php
+use commonlib\GW_Debug;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -16,7 +17,7 @@ class Event extends AbstractData
 { 
 	private static $tablename = 'tennis_event';
 	private static $datetimeformat = "Y-m-d H:i:s";
-	private static $dateformat = "!Y-m-d";
+	private static $dateformat = "Y-m-d";
 	private static $storageformat = "Y-m-d";
 
 	private $name; //name or description of the event
@@ -36,7 +37,7 @@ class Event extends AbstractData
     
 	private $clubs; //array of related clubs for this root event
 	private $childEvents; //array of child events
-	private $signup; //array of entrants who signed up for this leaf event
+	//private $signup; //array of entrants who signed up for this leaf event
 	private $brackets; //array of 1 or 2 brackets for this leaf event
 	private $external_refs; //array of external reference to something (e.g. custom post type in WordPress)
 
@@ -106,9 +107,9 @@ class Event extends AbstractData
 	 * Or all child Events of a specific parent Events
      */
     public static function find( ...$fk_criteria ) {
-		$loc = __CLASS__ . '::' . __FUNCTION__;		
-		$calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class']. '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
-		error_log("{$loc} ... called by {$calledBy}");
+		$loc = __CLASS__ . '::' . __FUNCTION__;	
+		$strTrace = GW_Debug::get_debug_trace_Str(3);	
+		error_log("{$loc}: {$strTrace}");
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -252,8 +253,8 @@ class Event extends AbstractData
 	 */
     static public function get( int ...$pks ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;		
-		$calledBy = debug_backtrace()[1]['function'];
-		error_log("{$loc} ... called by {$calledBy}");
+		$strTrace = GW_Debug::get_debug_trace_Str(3);
+		error_log("{$loc}: Trace {$strTrace}");
 		
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -308,22 +309,49 @@ class Event extends AbstractData
     
 
 	/******************************* Instance Methods **************************************/
-	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT ) {
+	/**
+	 * Constructor ... including sneaky copy constructor
+	 */
+	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT, Event $copyMe = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
 		parent::__construct( true );
-
-        // static $numEvents= 0;
-		// ++$numEvents;
-		// $calledBy = debug_backtrace()[1]['function'];		
-		// error_log("{$loc} ... {$numEvents} ... called by {$calledBy}");
-		// error_log( gw_shortCallTrace() );
 		
 		$this->isnew = true;
-		$this->name = $name;
 
-		if( EventType::isValid( $eventType ) ) {
-			$this->event_type = $eventType;
+		if( empty( $copyMe ) ) {
+			$this->name = $name ?? 'unknown name';
+			if( EventType::isValid( $eventType ) ) {
+				$this->event_type = $eventType;
+			}
+		}
+		elseif( $copyMe->IsParent() ) {
+			throw new InvalidArgumentException( __("Cannot copy parent events", TennisEvents::TEXT_DOMAIN) );
+		}
+		else {
+			$this->name = $copyMe->getName() . " Copy";
+			$this->setEventType( $copyMe->getEventType() );
+			$cparent = $copyMe->getParent();
+			$this->setParent( $cparent );
+			$this->setEventType( $copyMe->getEventType() );
+			$this->setFormat( $copyMe->getFormat() );
+			$this->setMatchType( $copyMe->getMatchType() );
+			$this->setScoreType( $copyMe->getScoreType() );
+			$this->setSignupBy( $copyMe->getSignupBy_Str() );
+			$this->setStartDate( $copyMe->getStartDate_Str() );
+			$this->setEndDate( $copyMe->getEndDate_Str() );
+			$this->setGenderType( $copyMe->getGenderType() );
+			$this->setMaxAge( $copyMe->getMaxAge() );
+			$this->setMinAge( $copyMe->getMinAge() );
+			$bracketCol = $copyMe->getBrackets();
+			$numBrackets = count($bracketCol);
+			//$this->log->error_log("$loc: {$copyMe->getName()} has '{$numBrackets}' brackets");
+			$bracket = null;
+			foreach( $copyMe->getBrackets() as $brackToCopy ) {
+				//$this->log->error_log("$loc: adding bracket '{$brackToCopy->getName()}'");
+				$bracket = $this->createBracket($brackToCopy->getName());
+			}
+			//$this->setNumberOfBrackets( $copyMe->getNumberOfBrackets() );
 		}
 	}
 	
@@ -346,11 +374,11 @@ class Event extends AbstractData
 			}
 		}
 
-		if( isset( $this->signup ) ) {
-			foreach($this->signup as &$draw) {
-				unset( $draw );
-			}
-		}
+		// if( isset( $this->signup ) ) {
+		// 	foreach($this->signup as &$draw) {
+		// 		unset( $draw );
+		// 	}
+		// }
 
 		if( isset( $this->brackets ) ) {
 			foreach($this->brackets as &$bracket) {
@@ -623,11 +651,13 @@ class Event extends AbstractData
 		if( empty( $signup ) ) return $result;
 
 		$test = DateTime::createFromFormat( '!Y/m/d', $signup );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y/n/j', $signup );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $signup );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y-n-j', $signup );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y/n/j', $signup );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-d', $signup );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j', $signup );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j H:i:s', $signup );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-j H:i:s', $signup );
 		$last = DateTIme::getLastErrors();
-		if( $last['error_count'] > 0 ) {
+		if( $last['error_count'] > 0 && false === $test ) {
 			$arr = $last['errors'];
 			$mess = 'SignupBy: ';
 			foreach($arr as $err) {
@@ -669,9 +699,11 @@ class Event extends AbstractData
 		if( empty( $start ) ) return $result;
 
 		$test = DateTime::createFromFormat( '!Y/m/d', $start );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y/n/j', $start );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $start );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y-n-j', $start );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y/n/j', $start );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-d', $start );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j', $start );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j H:i:s', $start );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-j H:i:s', $start );
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
@@ -731,9 +763,11 @@ class Event extends AbstractData
 		if( empty( $end ) ) return $result;
 
 		$test = DateTime::createFromFormat('!Y/m/d',$end);
-		if(false === $test) $test = DateTime::createFromFormat( '!Y/n/j', $end );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $end );
-		if(false === $test) $test = DateTime::createFromFormat( '!Y-n-j', $end );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y/n/j', $end );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-d', $end );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j', $end );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j H:i:s', $end );
+		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-j H:i:s', $end );
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
@@ -1139,9 +1173,7 @@ class Event extends AbstractData
 	
     /**
      * Add a Bracket to this Event
-	 * For regulation single elimination tournaments there should be only 1 bracket
-	 * For regulation double elimination tournaments there should be only 2 brackets
-	 * For all other situations it depends on the nature of the event
+	 * This method can only be used when the Event already has an ID
 	 * @param object $bracket The bracket to be added
 	 * @return bool  True if added false otherwise
      */
@@ -1172,6 +1204,7 @@ class Event extends AbstractData
 	/**
 	 * Create a bracket with the given name.
 	 * If a bracket with that name already exists it is returned.
+	 * This method must be used when add brackets to a new Event which has no ID
 	 * @param string $name The name of the bracket
 	 * @return object The bracket or null if this event is not a leaf
 	 */

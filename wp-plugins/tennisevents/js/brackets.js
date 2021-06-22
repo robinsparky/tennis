@@ -120,6 +120,9 @@
                     case 'addbracket':
                         addBracket( data );
                         break;
+                    case 'preparenextmonth':
+                        reloadWindow( data );
+                        break;
                     default:
                         console.log("Unknown task from server: '%s'", task);
                         break;
@@ -141,11 +144,23 @@
                     case 'removebracket':
                         hideBracket( data );
                         break;
+                    case 'preparenextmonth':
+                        reloadWindow( data ); 
+                        break;
                     default:
                         console.log("Unknown task from server: '%s'", task);
                         break;
                 }
             }
+        }
+
+        /**
+         * Reload this window
+         * @param {*} data 
+         */
+        function reloadWindow( data ) {
+            console.log('reloadWindow');
+            window.location.reload(); 
         }
 
         /**
@@ -229,6 +244,17 @@
             let data = {"eventid": eventId, "bracketnum": bracketNum
                         , "bracketName": bracketName };
             console.log("getBracketData....");
+            console.log(data);
+            return data;
+        }
+
+        function getOwningEvent( el ) {
+            console.log("getOwningEvent....");
+            let parent = $(el).parents('.tennis-parent-event');
+            if( parent.length == 0) return {};
+            let eventId = parent.attr("data-event-id");
+            let postId = parent.attr("id");
+            let data = {"eventId": eventId, "postId": postId }
             console.log(data);
             return data;
         }
@@ -342,9 +368,24 @@
                 ajaxFun( config );
             }
         });
+        
+        /**
+         * Remove a bracket
+         */
+         $('.tennis-parent-event').on('click', '.tennis-ladder-next-month', function (event) {
+            console.log("copy event");
+            console.log(this);
+            let eventdata = getOwningEvent(this);
+            if(confirm("Are you sure you want to copy this event?")) {
+                let config =  {"task": "preparenextmonth"
+                            , "eventId": eventdata.eventId }
+                console.log(config)
+                ajaxFun( config );
+            }
+        });
 
         /**
-         * The following creates tabs based on parent events
+         * The following creates JQuery tabs based on parent events
          */
         let $parentEvents = $('.tennis-parent-event');
         $("#tabs").prepend(`<ul class="tennis-event-tabs"></ul>`);
