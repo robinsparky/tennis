@@ -153,7 +153,7 @@ button.tennis-add-bracket {
   border-top-width: 1px;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
-  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
   border-bottom-right-radius: 5px;
   border-bottom-color: black;
   border-bottom-style: solid;
@@ -161,9 +161,10 @@ button.tennis-add-bracket {
 }
 
 button.tennis-ladder-next-month {
-  max-width: 175px;
-  max-height: 60px;
+  max-width: 280px;
+  max-height: 50px;
   color: white;
+  font-size: small;
   background-color: black;
   border-left-color: black;
   border-left-style: solid;
@@ -176,7 +177,7 @@ button.tennis-ladder-next-month {
   border-top-width: 1px;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
-  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
   border-bottom-right-radius: 5px;
   border-bottom-color: black;
   border-bottom-style: solid;
