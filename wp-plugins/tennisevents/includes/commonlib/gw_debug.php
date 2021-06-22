@@ -47,4 +47,51 @@ class GW_Debug {
 
         return $trace;
     }
+    
+    public static function get_debug_trace_CLI( $frames = 2 ) {
+        $trace = self::get_debug_trace( $frames + 1 );
+        array_shift($trace); //remove the frame re this function call
+        $ctr = 0;
+        foreach( $trace as $frame) {
+            ++$ctr;
+            foreach( $frame as $key => $value) {
+                \WP_CLI::Line("Frame#{$ctr}: {$key} = {$value}");
+            }
+            \WP_CLI::Line('-');
+        }
+    }
+    
+    public static function get_debug_trace_Str( $frames = 2 ) {
+        $trace = self::get_debug_trace( $frames + 1 );
+        array_shift($trace); //remove the frame re this function call
+        $res = '***Debug Trace***' . PHP_EOL;
+        $ctr = 0;
+        foreach( $trace as $frame) {
+            ++$ctr;
+            foreach( $frame as $key => $value) {
+                if( \is_array($value) ) {
+                    $value = implode(";", $value);
+                }
+                $res .= \sprintf("Frame#%d %s = %s%s", $ctr, $key, $value, PHP_EOL);
+            }
+            $res .= '----' . PHP_EOL;
+        }
+        return $res;
+    }
+    
+    public static function get_debug_trace_Htm( $frames = 2 ) {
+        $trace = self::get_debug_trace( $frames + 1 );
+        array_shift($trace); //remove the frame re this function call
+        $res = '<h2>***Debug Trace***</h2>' . PHP_EOL;
+        $ctr = 0;
+        foreach( $trace as $frame) {
+            ++$ctr;
+            $res .= "<ul class='debug_trace'>Frame {$ctr}" . PHP_EOL;
+            foreach( $frame as $key => $value) {
+                $res .= \sprintf("<li>%s = %s</li>%s", $key, $value, PHP_EOL);
+            }
+            $res .= '</ul>' . PHP_EOL;
+        }
+        return $res;
+    }
 }
