@@ -309,7 +309,7 @@ class TennisEventCpt {
 			$options[] = sprintf('<option value="-1">%1$s</option>', __('All Events', TennisEvents::TEXT_DOMAIN));
 			foreach ($parentEvents as $evt) {
 				$key = $evt->getID();
-				$val = $evt->getName();
+				$val = str_replace("\'","'",$evt->getName());
 				if ($evt->getID() === $selected) {
 					$options[] = sprintf('<option value="%1$s" selected>%2$s</option>', esc_attr($key), $val);
 				} else {
