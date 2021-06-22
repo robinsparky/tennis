@@ -28,7 +28,7 @@ class TournamentDirector
     public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
     public const MAXIMUM_ENTRANTS = 256; //maximum for an elimination tournament
     
-    public const MINIMUM_RR_ENTRANTS = 3; //minimum for a round robing1220 tournament
+    public const MINIMUM_RR_ENTRANTS = 3; //minimum for a round robin tournament
 
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
