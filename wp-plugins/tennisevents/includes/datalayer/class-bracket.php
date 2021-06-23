@@ -58,10 +58,10 @@ class Bracket extends AbstractData
 	static public function find( ...$fk_criteria ) {
 		global $wpdb;
         $loc = __CLASS__ . '::' .  __FUNCTION__;
-        error_log($loc);
+        error_log("{$loc}: fk_criteria ... ");
         error_log(print_r($fk_criteria,true));
-		$strTrace = GW_Debug::get_debug_trace_Str(5);	
-		error_log("{$loc}: {$strTrace}");
+		// $strTrace = GW_Debug::get_debug_trace_Str(5);	
+		// error_log("{$loc}: {$strTrace}");
 
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
@@ -92,9 +92,11 @@ class Bracket extends AbstractData
 	 * Get instance of a Bracket using it's primary key (event_ID, bracket_num)
 	 */
     static public function get( int ... $pks ) {
-        $loc = __CLASS__ . '::' .  __FUNCTION__;	
-		$strTrace = GW_Debug::get_debug_trace_Str(3);	
-		error_log("{$loc}: {$strTrace}");
+        $loc = __CLASS__ . '::' .  __FUNCTION__;
+        error_log("{$loc}: pks ... ");
+        error_log(print_r($pks,true));	
+		// $strTrace = GW_Debug::get_debug_trace_Str(3);	
+		// error_log("{$loc}: {$strTrace}");
         
         global $wpdb;
 
@@ -123,7 +125,7 @@ class Bracket extends AbstractData
         static $numBrackets = 0;
         $loc = __CLASS__ . '::' . __FUNCTION__;
         ++$numBrackets;
-        $this->log->error_log("{$loc} ... {$numBrackets}");
+        $this->log->error_log("{$loc} ... bracket#{$numBrackets}");
 
 		if( isset( $this->matches ) ) {
 			foreach($this->matches as &$match) {
@@ -1086,6 +1088,7 @@ class Bracket extends AbstractData
 
 	/**
 	 * Delete this Bracket
+     * Deletes cascade down to entrants in the signup
 	 */
 	public function delete() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -1108,6 +1111,12 @@ class Bracket extends AbstractData
     public function title() {
         return sprintf( "%s-%s", $this->toString(), $this->getName() );
     }
+    
+	public function save():int {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}({$this->toString()})");
+		return parent::save();
+	}
 
 	/**
 	 * Fetch event for this bracket
@@ -1152,6 +1161,7 @@ class Bracket extends AbstractData
 
 	protected function create() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}({$this->toString()})");
 		global $wpdb;
 
         parent::create();
@@ -1192,8 +1202,9 @@ class Bracket extends AbstractData
 		$this->isnew = false;
 		$this->isdirty = false;
 		
-        $this->log->error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result) );
+        $this->log->error_log( sprintf("%s(%s) -> %d rows inserted.", $loc, $this->toString(), $result) );
 
+		$result += $this->manageRelatedData();
 		return $result;
 	}
 
@@ -1202,6 +1213,7 @@ class Bracket extends AbstractData
 	 */
 	protected function update() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}({$this->toString()})");
 		global $wpdb;
 
 		parent::update();
@@ -1216,13 +1228,17 @@ class Bracket extends AbstractData
 		$this->isdirty = false;
 		$result = $wpdb->rows_affected;
 
-		$result += $this->manageRelatedData();
 
-        $this->log->error_log( sprintf("%s(%s) -> %d rows affected.", $loc, $this->toString(), $result) );
+        $this->log->error_log( sprintf("%s(%s) -> %d rows updated.", $loc, $this->toString(), $result) );
+        
+		$result += $this->manageRelatedData();
 		return $result;
     }
     
 	private function manageRelatedData():int {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("{$loc}({$this->toString()})");
+
 		$result = 0;
 
 		if( isset( $this->matches ) ) {
@@ -1243,9 +1259,15 @@ class Bracket extends AbstractData
 			foreach($this->signup as $ent) {
                 $ent->setEventID( $this->getEventId() );
                 $ent->setBracketNumber( $this->getBracketNumber() );
-				$result += $ent->save();
+                $this->log->error_log("{$loc}({$ent->toString()}) Saving Entrant {$ent->getName()}");
+                if( $ent->isValid() ) {
+				    $result += $ent->save();
+                }
 			}
 		}
+        else {
+            $this->log->error_log("{$loc}({$this->toString()}) The signup was empty!");
+        }
 
 		//Delete signups (Entrants) that were removed from this Bracket/Event
 		if(count($this->entrantsToBeDeleted) > 0 ) {

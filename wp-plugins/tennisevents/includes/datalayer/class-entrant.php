@@ -81,8 +81,8 @@ class Entrant extends AbstractData
      */
     public static function find(...$fk_criteria) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+        error_log("{$loc}: fk_criteria ... ");
+        error_log(print_r($fk_criteria,true));
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -187,6 +187,9 @@ class Entrant extends AbstractData
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$calledBy = debug_backtrace()[1]['function'];
         error_log("{$loc} ... called by {$calledBy}");
+		
+		// $strTrace = GW_Debug::get_debug_trace_Str(5);	
+		// error_log("{$loc}: {$strTrace}");
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -284,9 +287,9 @@ class Entrant extends AbstractData
     /**
      * Assign this Entrant to an Event
      */
-    public function setEventId( int $eventId ) {
+    public function setEventId( int $eventId = 0 ) {
 		$result = false;
-		if(isset( $eventID )) {
+		if( $eventId > 0 ) {
 			if($eventId < 1) return false;
 			$this->event_ID = $eventId;
 			$result = $this->setDirty();
@@ -428,16 +431,25 @@ class Entrant extends AbstractData
 	public function toArray() {
 		return ["eventId"=>$this->getEventId(),"bracket_num"=>$this->getBracketNumber(), "position"=>$this->getPosition(), "name"=>$this->getName(), "seed"=>$this->getSeed()];
 	}
+	
+	public function save():int {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}({$this->toString()})");
+		return parent::save();
+	}
 
 	/**
 	 * Get all Players for this Entrant.
 	 */
 	private function retrievePlayers($force) {
-		if($this->isNew()) return;
-        //if(count($this->players) === 0 || $force) $this->players = Player::find($this->event_ID);
+		if($this->isNew()) return $this->players ?? array();
+        if( empty($this->players) || count($this->players) === 0 || $force) $this->players = Player::find($this->event_ID);
 	}
 
 	protected function create() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}({$this->toString()})");
+
 		global $wpdb;
 
 		parent::create();
@@ -463,14 +475,14 @@ class Entrant extends AbstractData
 		$this->isnew = FALSE;
 		$this->isdirty = FALSE;
 
-		$this->log->error_log("Entrant::create $result rows affected.");
+		$this->log->error_log("{$loc}({$this->toString()}) inserted $result rows.");
 
 		return $result;
 	}
 
 	protected function update() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log("$loc");
+        $this->log->error_log("{$loc}({$this->toString()})");
 
 		global $wpdb;
 
@@ -490,7 +502,7 @@ class Entrant extends AbstractData
 		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 
-		$this->log->error_log("Entrant::update $result rows affected.");
+		$this->log->error_log("{$loc}({$this->toString()}) updated $result rows.");
 
 		return $result;
 	}

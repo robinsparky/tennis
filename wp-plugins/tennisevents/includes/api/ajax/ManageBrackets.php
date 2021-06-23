@@ -390,13 +390,14 @@ class ManageBrackets
        if( is_wp_error($terms) ) {
            throw new InvalidEventException(__("Could not get terms for {$post_id}", TennisEvents::TEXT_DOMAIN));
        }
-
        $term_slugs = wp_list_pluck( $terms, 'slug' );
+
        $current_user = wp_get_current_user();
        $author = $oldpost->author;    
        if ( $current_user->exists() ) {
-            $author = $curent_user->ID;
+            $author = $current_user->ID;
         }
+
        $currentTime = new \DateTime('NOW');
        $post    = array(
         'post_title' => $newTitle,
@@ -410,7 +411,7 @@ class ManageBrackets
        );
 
        $new_post_id = wp_insert_post($post);
-       wp_set_object_terms($new_post_id,$term_slugs,TennisEventCpt::CUSTOM_POST_TYPE_TAX);
+       wp_set_object_terms( $new_post_id, $term_slugs, TennisEventCpt::CUSTOM_POST_TYPE_TAX );
        // Copy post metadata
        $data = get_post_custom($post_id);
        foreach ( $data as $key => $values) {

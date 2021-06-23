@@ -1,6 +1,7 @@
 <?php
 use commonlib\GW_Debug;
 
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -108,8 +109,8 @@ class Event extends AbstractData
      */
     public static function find( ...$fk_criteria ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;	
-		$strTrace = GW_Debug::get_debug_trace_Str(3);	
-		error_log("{$loc}: {$strTrace}");
+		// $strTrace = GW_Debug::get_debug_trace_Str(3);	
+		// error_log("{$loc}: {$strTrace}");
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -253,8 +254,11 @@ class Event extends AbstractData
 	 */
     static public function get( int ...$pks ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;		
-		$strTrace = GW_Debug::get_debug_trace_Str(3);
-		error_log("{$loc}: Trace {$strTrace}");
+        error_log("{$loc}: pks ... ");
+        error_log(print_r($pks,true));	
+
+		// $strTrace = GW_Debug::get_debug_trace_Str(3);
+		// error_log("{$loc}: Trace {$strTrace}");
 		
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -350,8 +354,27 @@ class Event extends AbstractData
 			foreach( $copyMe->getBrackets() as $brackToCopy ) {
 				//$this->log->error_log("$loc: adding bracket '{$brackToCopy->getName()}'");
 				$bracket = $this->createBracket($brackToCopy->getName());
+				$this->copySignup( $brackToCopy, $bracket );
 			}
 			//$this->setNumberOfBrackets( $copyMe->getNumberOfBrackets() );
+		}
+	}
+
+	/**
+	 * Copy the signup from one Bracket to another Bracket
+	 * @param Bracket $from the bracket to copy signup from
+	 * @param Bracket $to the bracket to receive the signup
+	 */
+	private function copySignup( Bracket $from, Bracket &$to ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("{$loc}");
+		if(empty($to)) return;
+
+		foreach( $from->getSignup() as $entrant ) {
+			$name = $entrant->getName();
+			$seed = $entrant->getSeed();
+			$this->log->error_log("{$loc}: Adding {$name}");
+			$to->addToSignup( $name, $seed );
 		}
 	}
 	
@@ -359,7 +382,7 @@ class Event extends AbstractData
 		static $numEvents = 0;
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		++$numEvents;
-		// error_log("{$loc} ... {$numEvents}");
+		$this->log->error_log("{$loc} ... event #{$numEvents}");
 		
 		$this->parent = null;
 			if(isset($this->childEvents)) {
@@ -1408,7 +1431,7 @@ class Event extends AbstractData
 
 	public function save():int {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log( sprintf("%s called ...", $loc) );
+        $this->log->error_log("{$loc}({$this->toString()})");
 		return parent::save();
 	}
 
@@ -1464,6 +1487,7 @@ class Event extends AbstractData
 	 */
 	protected function create() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}({$this->toString()})");
 
         global $wpdb;
         
@@ -1505,7 +1529,7 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( sprintf( "%s(%s) -> %d rows affected.", $loc, $this->toString(), $result ) );
+		error_log( sprintf( "%s(%s) -> %d rows inserted.", $loc, $this->toString(), $result ) );
 
 		return $result;
 	}
@@ -1515,6 +1539,7 @@ class Event extends AbstractData
 	 */
 	protected function update() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}({$this->toString()})");
 
 		global $wpdb;
 
@@ -1545,7 +1570,7 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( sprintf( "%s(%s) -> %d rows affected.",$loc, $this->toString(), $result ) );
+		error_log( sprintf( "%s(%s) -> %d rows updated.",$loc, $this->toString(), $result ) );
 		
 		return $result;
 	}
@@ -1598,7 +1623,9 @@ class Event extends AbstractData
 				if( $bracket->getEventId() <= 0 || is_null($bracket->getEvent()) ) {
 					$bracket->setEvent( $this );
 				}
-				$result += $bracket->save();
+				if( $bracket->isValid() ) {
+					$result += $bracket->save();
+				}
 			}
 		}
 
