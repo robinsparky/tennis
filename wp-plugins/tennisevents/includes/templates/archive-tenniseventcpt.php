@@ -87,7 +87,7 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 					<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
 					<li><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
                     <li><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
-					<?php if( $eventTypeRaw === EventType::LADDER ) : ?>
+					<?php if( $eventTypeRaw === EventType::LADDER && is_user_logged_in() && current_user_can( 'manage_options' )) : ?>
 						<li><button type="button" class="button tennis-ladder-next-month">Prepare Next Month</button> </li>
 					<?php endif; ?>
 				</ul>
