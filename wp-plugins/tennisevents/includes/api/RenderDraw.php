@@ -2,7 +2,7 @@
 namespace api;
 use templates\DrawTemplateGenerator;
 use commonlib\BaseLogger;
-use commonlib\GW_Support;
+use commonlib\GW_Debug;
 use Event;
 use WP_Error;
 use TennisEvents;
@@ -446,7 +446,7 @@ EOT;
         $out .= "</div>";
 
         $out .= '<div id="tennis-event-message"></div>';
-		$this->log->error_log( sprintf("%0.6f", GW_Support::getInstance()->micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Time");
+		$this->log->error_log( sprintf("%0.6f", GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Time");
         return $out;
     }
     
@@ -672,7 +672,7 @@ EOT;
         $out .= "</table>";	
 
         $out .= '<div id="tennis-event-message"></div>';
-		$this->log->error_log( sprintf("%0.6f",GW_Support::getInstance()->micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Time");
+		$this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Time");
         return $out;
     }
 
