@@ -247,6 +247,8 @@
             console.log("Name change fired for entrantId=%s", entrantId);
             signupData = signupDataMask;
             signupData.task="update";
+            //TODO: This is the incorrect name.
+            //      Must get the value of the element before change
             signupData.name = entrantId.replace(/_/g, ' ');
             signupData.newName = $(this).val();
             if( signupData.newName.length < minNameLength ) {
