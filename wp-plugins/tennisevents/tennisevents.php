@@ -702,11 +702,23 @@ add_action(	'plugins_loaded', array ( $tennisEvents, 'plugin_setup' ) );
 // include_once(__DIR__ . '/includes/commonlib/support.php' );
 
 function tl_save_error() {
+	update_option('plugin_error', '');
     update_option( 'plugin_error',  ob_get_contents() );
 }
 
 //add_action( 'activated_plugin', 'tl_save_error' );
 
-/* Then to display the error message: */
-//error_log( "Extra chars='" . get_option( 'plugin_error' ) ."'" );
+function handleExtraChars() {
+	$extra = get_option( 'plugin_error' );
+	if(strlen($extra) > 0 ) {
+		error_log('+++++++++++++++++++++Start Extra Chars++++++++++++++++++++++++++++++++++');
+		error_log( $extra );
+		error_log('+++++++++++++++++++++End Extra Chars++++++++++++++++++++++++++++++++++');
+		//echo $extra;
+	}
+}
+
+//handleExtraChars();
+
+
 //gc_enable();
