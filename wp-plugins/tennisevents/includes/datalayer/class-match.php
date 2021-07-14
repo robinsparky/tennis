@@ -20,7 +20,7 @@ class Match extends AbstractData
     public const VISITOR = "visitor";
     public const HOME    = "home";
 
-    private const MAX_ROUNDS = 7;
+    private const MAX_ROUNDS = 99;//NOT sure if this is useful
 
     private static $tablename = 'tennis_match';
 
