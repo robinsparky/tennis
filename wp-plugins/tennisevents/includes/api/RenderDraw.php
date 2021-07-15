@@ -1,14 +1,14 @@
 <?php
 namespace api;
+use api\TournamentDirector;
 use templates\DrawTemplateGenerator;
 use commonlib\BaseLogger;
 use commonlib\GW_Debug;
-use Event;
-use WP_Error;
-use TennisEvents;
-use TournamentDirector;
-use Bracket;
-use Club;
+use \WP_Error;
+use \TennisEvents;
+use datalayer\Event;
+use datalayer\Bracket;
+use datalayer\Club;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

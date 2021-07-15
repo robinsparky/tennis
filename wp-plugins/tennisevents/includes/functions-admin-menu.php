@@ -1,5 +1,7 @@
 <?php
 
+use datalayer\Club;
+
 /* WP Admin Menu positions
 2 - Dashboard
 4 - Separator

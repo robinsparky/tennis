@@ -2,6 +2,7 @@
 use cpt\TennisEventCpt;
 use cpt\TennisClubCpt;
 use commonlib\BaseLogger;
+use api\TournamentDirector;
 
 /**
  * Installation related functions and actions.

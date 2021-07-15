@@ -1,5 +1,7 @@
 <?php
 
+use api\TournamentDirector;
+
 WP_CLI::add_command( 'tennis show', 'ShowCommands' );
 
 /**

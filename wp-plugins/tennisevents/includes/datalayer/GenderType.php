@@ -1,4 +1,6 @@
 <?php
+namespace datalayer;
+use TennisEvents;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

@@ -1,4 +1,6 @@
 <?php
+namespace datalayer;
+
 use \commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {

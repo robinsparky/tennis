@@ -179,6 +179,40 @@ class GW_Support
 		return true;
 	}
 
+	/**
+     * Given the size of the draw (or any integer), calculate the highest 
+     * power of 2 which is greater than or equal to that size (or integer)
+     * @param int $size 
+     * @param int $upper The upper limit of the search; default is 8
+     * @return int The exponent if found; zero otherwise
+     */
+	public static function calculateExponent( int $size, $upper = 8 ) {
+        $exponent = 0;
+        foreach( range( 1, $upper ) as $exp ) {
+            if( pow( 2, $exp ) >= $size ) {
+                $exponent = $exp;
+                break;
+            }
+        }
+        return $exponent;
+    }
+	    /**
+     * Determine if this integer is a power of 2
+     * @param $size 
+     * @param $upper The upper limit of the search; default is 8
+     * @return The exponent if found; zero otherwise
+     */
+	public static function isPowerOf2( int $size, $upper = 8 ) {
+        $exponent = 0;
+        foreach( range( 1, $upper ) as $exp ) {
+            if( pow( 2, $exp ) === $size ) {
+                $exponent = $exp;
+                break;
+            }
+        }
+        return $exponent;
+    }
+
 	/* User Capabilities Section*/
 
 	/**

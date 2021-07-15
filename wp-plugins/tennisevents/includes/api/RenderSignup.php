@@ -1,12 +1,12 @@
 <?php
 namespace api;
 use commonlib\BaseLogger;
-use Event;
-use WP_Error;
-use TennisEvents;
-use TournamentDirector;
-use Bracket;
-use Club;
+use datalayer\Event;
+use \WP_Error;
+use \TennisEvents;
+use api\TournamentDirector;
+use datalayer\Bracket;
+use datalayer\Club;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

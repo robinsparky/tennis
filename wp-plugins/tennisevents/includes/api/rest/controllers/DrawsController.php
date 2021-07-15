@@ -1,17 +1,17 @@
 <?php
+namespace controllers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /** 
- * This controller provides access to Courts and their time slots
- * @class  CourtsController
+ * This controller provides access to Draws for an Event 
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
 */
-class CourtsController extends WP_REST_Controller
+class DrawsController extends WP_REST_Controller
 { 
     /**
      * Register the routes for the objects of the controller.
@@ -19,7 +19,7 @@ class CourtsController extends WP_REST_Controller
     public function register_routes() {
       $version = '1';
       $namespace = 'tennis/v' . $version;
-      $base = 'courts';
+      $base = 'draws';
       register_rest_route( $namespace, '/' . $base, array(
         array(
           'methods'         => WP_REST_Server::READABLE,

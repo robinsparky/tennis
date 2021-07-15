@@ -1,15 +1,26 @@
 <?php
-use commonlib\gw_debug;
+namespace api;
+
+use \TennisEvents;
+use commonlib\GW_Debug;
+use commonlib\GW_Support;
 use commonlib\BaseLogger;
+use datalayer\ScoreType;
+use datalayer\Event;
+use datalayer\Match;
+use datalayer\Bracket;
+use datalayer\MatchStatus;
+use datalayer\Entrant;
+use datalayer\Set;
 
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$p2Dir = plugin_dir_path( plugin_dir_path( __DIR__ ) );
-require_once( $p2Dir . 'tennisevents.php' );
-require_once( 'api-exceptions.php' );
+// $p2Dir = plugin_dir_path( plugin_dir_path( __DIR__ ) );
+// require_once( $p2Dir . 'tennisevents.php' );
+// require_once( 'api-exceptions.php' );
 
 /** 
  * ChairUmpire interprets the scores for matches, determines match winners

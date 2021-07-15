@@ -7,14 +7,14 @@ use \DateTimeInterface;
 use \WP_Error;
 use commonlib\BaseLogger;
 use \TennisEvents;
-use \EventType;
-use \MatchType;
-use \GenderType;
-use \ScoreType;
-use \Format;
-use \Event;
-use \Club;
-use \InvalidEventException;
+use datalayer\Event;
+use datalayer\Club;
+use datalayer\EventType;
+use datalayer\MatchType;
+use datalayer\GenderType;
+use datalayer\ScoreType;
+use datalayer\Format;
+use datalayer\InvalidEventException;
 
 /** 
  * Data and functions for the Tennis Event Custom Post Type

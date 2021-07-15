@@ -1,5 +1,8 @@
 <?php
+namespace datalayer;
+
 use commonlib\GW_Debug;
+use commonlib\GW_Support;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -913,7 +916,7 @@ class Bracket extends AbstractData
         $result = $bracketSignupSize;
         if( $r <= 1 ) return $result;
 
-        $exp = TournamentDirector::calculateExponent( $bracketSignupSize );
+        $exp = GW_SUpport::calculateExponent( $bracketSignupSize );
         $result = pow( 2, $exp ) / pow( 2, $r - 1 );
         return $result;        
     }
@@ -981,7 +984,7 @@ class Bracket extends AbstractData
         $loadedMatches = array();
         //Must be approved?
         $eventSize = $this->signupSize();
-        $numRounds = TournamentDirector::calculateExponent( $eventSize );
+        $numRounds = GW_Support::calculateExponent( $eventSize );
         $numToEliminate = $eventSize - pow( 2, $numRounds ) / 2;
         $numExpectedMatches = pow( 2, $numRounds );
         $this->getMatches();

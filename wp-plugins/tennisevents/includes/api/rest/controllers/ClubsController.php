@@ -1,4 +1,5 @@
 <?php
+namespace controllers;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

@@ -1,5 +1,12 @@
 <?php
+namespace api;
+
 use commonlib\GW_Support;
+use datalayer\Event;
+use datalayer\Match;
+use datalayer\EventType;
+use datalayer\MatchType;
+use datalayer\Entrant;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

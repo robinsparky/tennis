@@ -1,11 +1,13 @@
 <?php
 namespace api\ajax;
 use commonlib\BaseLogger;
-use Event;
-use WP_Error;
-use TennisEvents;
-use TournamentDirector;
-use InvalidMatchException;
+use \WP_Error;
+use \TennisEvents;
+use api\TournamentDirector;
+use datalayer\Event;
+use datalayer\Bracket;
+use datalayer\Club;
+use datalayer\InvalidMatchException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

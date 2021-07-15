@@ -1,4 +1,6 @@
 <?php
+namespace controllers;
+use api\TournamentDirector;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,7 +16,7 @@ error_log( "$loc loaded +++++++++++++++++++++");
  * @version 1.0.0
  * @since   0.1.0
 */
-class BracketsController extends WP_REST_Controller
+class BracketsController extends \WP_REST_Controller
 { 
   /**
    * Register the routes for the objects of the controller.

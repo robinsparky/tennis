@@ -18,6 +18,7 @@ use api\ajax\ManageDraw;
 use api\RenderRoundRobin;
 use api\ajax\ManageRoundRobin;
 use api\ajax\ManageBrackets;
+use api\rest\TennisControllerManager;
 
 //Uncomment this to turn off all logging in this plugin
 //$GLOBALS['TennisEventNoLog'] = 1;
@@ -92,7 +93,7 @@ class TennisEvents {
 	}
 
 	static public function getControllerManager() {
-		include_once( 'includes/class-controller-manager.php' );
+		//include_once( 'includes/class-controller-manager.php' );
 		return TennisControllerManager::get_instance();
 	}
 	

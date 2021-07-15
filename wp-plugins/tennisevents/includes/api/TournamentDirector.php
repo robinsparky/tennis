@@ -1,6 +1,15 @@
 <?php
+namespace api;
+
 use api\Math_Combinatorics;
 use commonlib\BaseLogger;
+use commonlib\GW_Support;
+use datalayer\Event;
+use datalayer\Match;
+use datalayer\EventType;
+use datalayer\MatchType;
+use datalayer\Entrant;
+use datalayer\Format;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -274,7 +283,7 @@ class TournamentDirector
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log("$loc($bracketName");
 
-        return self::calculateExponent( $this->signupSize( $bracketName ) );
+        return GW_Support::calculateExponent( $this->signupSize( $bracketName ) );
     }
 
     /**
@@ -478,7 +487,7 @@ class TournamentDirector
         $bracket = $this->getBracket( $bracketName );
         switch($this->getEvent()->getFormat()) {
             case Format::ELIMINATION:
-                $this->numRounds = self::calculateExponent( $bracket->signupSize() );
+                $this->numRounds = GW_Support::calculateExponent( $bracket->signupSize() );
                 //$this->numRounds = $bracket->getNumberOfRounds();
             break;
             case Format::ROUNDROBIN:
@@ -506,7 +515,7 @@ class TournamentDirector
         $bracket = $this->getBracket( $bracketName );
         if( !is_null( $bracket ) ) {
             $entrants = $bracket->getSignup();
-            usort( $entrants, array( 'TournamentDirector', 'sortByPositionAsc' ) );
+            usort( $entrants, array( 'api\TournamentDirector', 'sortByPositionAsc' ) );
         }
 
         return $entrants;
@@ -623,11 +632,11 @@ class TournamentDirector
         else {
             if( is_null( $round ) ) {
                 $matches = $bracket->getMatches( $force );
-                usort( $matches, array( 'TournamentDirector', 'sortByRoundMatchNumberAsc' ) );
+                usort( $matches, array( 'api\TournamentDirector', 'sortByRoundMatchNumberAsc' ) );
             }
             else {
                 $matches = $bracket->getMatchesByRound( $round );
-                usort( $matches, array( 'TournamentDirector', 'sortByMatchNumberAsc' ) );
+                usort( $matches, array( 'api\TournamentDirector', 'sortByMatchNumberAsc' ) );
             }
         }
         
@@ -878,16 +887,16 @@ class TournamentDirector
         $this->removeMatches( $bracketName );
         $this->save();
 
-        $this->numRounds = self::calculateExponent( $bracketSignupSize );
+        $this->numRounds = GW_Support::calculateExponent( $bracketSignupSize );
         $this->numToEliminate = $bracketSignupSize - pow( 2, $this->numRounds ) / 2;
 
         $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
         
         if( $randomizeDraw ) shuffle( $unseeded );
-        else usort( $unseeded, array( 'TournamentDirector', 'sortByPositionAsc' ) );
+        else usort( $unseeded, array( 'api\TournamentDirector', 'sortByPositionAsc' ) );
 
         $seeded = array_filter( array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ) );
-        usort( $seeded, array( 'TournamentDirector', 'sortBySeedAsc') );
+        usort( $seeded, array( 'api\TournamentDirector', 'sortBySeedAsc') );
 
         $numInvolved = 2 * $this->numToEliminate;
         $remainder   = $numInvolved > 0 ? $bracketSignupSize - $numInvolved : 0;
@@ -1339,7 +1348,7 @@ class TournamentDirector
 
         if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
 
-        $lowexp  =  self::calculateExponent( $n );
+        $lowexp  =  GW_Support::calculateExponent( $n );
         $highexp = $lowexp + 1;
         $target  = pow( 2, $lowexp ); //or 2 * $lowexp
         $result  = 2 * $target - $n; // target = (n + b) / 2
@@ -1365,7 +1374,7 @@ class TournamentDirector
 
         if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
 
-        $lowexp   =  self::calculateExponent( $n );
+        $lowexp   =  GW_Support::calculateExponent( $n );
         $highexp  = $lowexp + 1;
         $target   = pow(2, $lowexp );
         $result   = $n - $target;

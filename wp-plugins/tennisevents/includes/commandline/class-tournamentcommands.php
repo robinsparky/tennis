@@ -1,11 +1,13 @@
 <?php
-
-WP_CLI::add_command( 'tennis tourney', 'TournamentCommands' );
+use api\TournamentDirector;
+use commonlib\GW_Support;
+use commonlib\GW_Debug;
 use api\events\EventManager;
 use api\events\OverloadedConstructors;
 use templates\DrawTemplateGenerator;
 use api\Math_Combinatorics;
-use commonlib\GW_Debug;
+
+WP_CLI::add_command( 'tennis tourney', 'TournamentCommands' );
 
 /**
  * Implements all commands for manipulating a tennis tournament and its brackets' matches
@@ -1043,7 +1045,7 @@ class TournamentCommands extends WP_CLI_Command {
         if( $n < TournamentDirector::MINIMUM_ENTRANTS 
         || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
 
-        $exp  =  TournamentDirector::calculateExponent( $n );
+        $exp  =  GW_Support::calculateExponent( $n );
         $target  = pow( 2, $exp );
         $result  = $target - $n;
         if( !($n & 1) && ($result & 1) ) $result = -1;
@@ -1059,7 +1061,7 @@ class TournamentCommands extends WP_CLI_Command {
         $result = array();
         if( $n <= 8 || $n > pow( 2, 8 ) ) return $result;
 
-        $exp2 =  TournamentDirector::calculateExponent( $n );
+        $exp2 =  GW_Suport::calculateExponent( $n );
         $pow2 = pow(2, $exp2 );
         $maxToEliminate = $n - $pow2;
         $elimRange = range( 1, $pow2 - 1 );
@@ -1081,7 +1083,7 @@ class TournamentCommands extends WP_CLI_Command {
         $result = array();
         if( $n < 0 || $n > pow( 2, 8 ) && $n & 1 ) return $result;
 
-        $exp2 =  TournamentDirector::calculateExponent( $n );
+        $exp2 =  GW_Support::calculateExponent( $n );
         $pow2 = pow(2, $exp2 );
         $maxToEliminate = $n - $pow2;
         $elimRange = range( 1, $pow2 - 1 );

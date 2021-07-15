@@ -1,4 +1,10 @@
 <?php
+namespace api\rest;
+use controllers\ClubsController;
+use controllers\BracketsController;
+use controllers\CourtsController;
+use controllers\DrawsController;
+use controllers\EventsController;
 
 /**
  * This plugin class provides logic for Tennis Events:

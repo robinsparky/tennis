@@ -6,13 +6,13 @@ use \DateTimeInterface;
 use \WP_Error;
 use commonlib\BaseLogger;
 use \TennisEvents;
-use \EventType;
-use \MatchType;
-use \ScoreType;
-use \Format;
-use \Event;
-use \Club;
-use \InvalidEventException;
+use datalayer\Club;
+use datalayer\Event;
+use datalayer\EventType;
+use datalayer\MatchType;
+use datalayer\ScoreType;
+use datalayer\Format;
+use datalayer\InvalidEventException;
 
 /** 
  * Data and functions for the Tennis Club Custom Post Type

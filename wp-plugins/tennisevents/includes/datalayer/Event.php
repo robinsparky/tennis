@@ -1,6 +1,7 @@
 <?php
+namespace datalayer;
 use commonlib\GW_Debug;
-
+use \TennisEvents;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -673,12 +674,12 @@ class Event extends AbstractData
 		$result = false;
 		if( empty( $signup ) ) return $result;
 
-		$test = DateTime::createFromFormat( '!Y/m/d', $signup );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y/n/j', $signup );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-d', $signup );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j', $signup );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j H:i:s', $signup );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-j H:i:s', $signup );
+		$test = \DateTime::createFromFormat( '!Y/m/d', $signup );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y/n/j', $signup );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-d', $signup );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j', $signup );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j H:i:s', $signup );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-j H:i:s', $signup );
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 && false === $test ) {
 			$arr = $last['errors'];
@@ -688,7 +689,7 @@ class Event extends AbstractData
 			}
 			throw new InvalidEventException( $mess );
 		}
-		elseif( $test instanceof DateTime ) {
+		elseif( $test instanceof \DateTime ) {
 			$this->signup_by = $test;
 			$result = $this->setDirty();
 		}
@@ -710,7 +711,7 @@ class Event extends AbstractData
 	 */
 	public function getSignupBy_ISO() {
 		if( !isset( $this->signup_by ) ) return '';
-		else return $this->signup_by->format( DateTime::ISO8601 );
+		else return $this->signup_by->format( \DateTime::ISO8601 );
 	}
 
 	public function getSignupBy() {
@@ -721,12 +722,12 @@ class Event extends AbstractData
 		$result = false;
 		if( empty( $start ) ) return $result;
 
-		$test = DateTime::createFromFormat( '!Y/m/d', $start );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y/n/j', $start );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-d', $start );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j', $start );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j H:i:s', $start );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-j H:i:s', $start );
+		$test = \DateTime::createFromFormat( '!Y/m/d', $start );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y/n/j', $start );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-d', $start );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j', $start );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j H:i:s', $start );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-j H:i:s', $start );
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
@@ -736,7 +737,7 @@ class Event extends AbstractData
 			}
 			throw new InvalidEventException( $mess );
 		}
-		elseif( $test instanceof DateTime ) {
+		elseif( $test instanceof \DateTime ) {
 			$this->start_date = $test;
 			$result = $this->setDirty();
 		}
@@ -765,7 +766,7 @@ class Event extends AbstractData
 	 */
 	public function getStartDate_ISO() {
 		if( !isset( $this->start_date ) ) return null;
-		else return $this->start_date->format( DateTime::ISO8601 );
+		else return $this->start_date->format( \DateTime::ISO8601 );
 	}
 
 	/**
@@ -785,12 +786,12 @@ class Event extends AbstractData
 		$result = false;
 		if( empty( $end ) ) return $result;
 
-		$test = DateTime::createFromFormat('!Y/m/d',$end);
-		if(false === $test) $test = DateTime::createFromFormat( 'Y/n/j', $end );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-d', $end );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j', $end );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-n-j H:i:s', $end );
-		if(false === $test) $test = DateTime::createFromFormat( 'Y-m-j H:i:s', $end );
+		$test = \DateTime::createFromFormat('!Y/m/d',$end);
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y/n/j', $end );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-d', $end );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j', $end );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j H:i:s', $end );
+		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-j H:i:s', $end );
 		$last = DateTIme::getLastErrors();
 		if( $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
@@ -800,7 +801,7 @@ class Event extends AbstractData
 			}
 			throw new InvalidEventException( $mess );
 		}
-		elseif( $test instanceof DateTime ) {
+		elseif( $test instanceof \DateTime ) {
 			$this->end_date = $test;
 			$result = $this->setDirty();
 		}
@@ -897,7 +898,7 @@ class Event extends AbstractData
 	 */
 	public function getEndDate_ISO() {
 		if( !isset( $this->end_date ) ) return null;
-		else return $this->end_date->format( DateTime::ISO8601 );
+		else return $this->end_date->format( \DateTime::ISO8601 );
 	}
 
 	/**
@@ -1590,9 +1591,9 @@ class Event extends AbstractData
 		$obj->age_max    = $row["age_max"];
 		$obj->age_min    = $row["age_min"];
 		$obj->num_brackets = $row["num_brackets"];
-		$obj->signup_by  = isset( $row['signup_by'] )  ? new DateTime( $row['signup_by'] ) : null;
-		$obj->start_date = isset( $row['start_date'] ) ? new DateTime( $row['start_date'] ) : null;
-		$obj->end_date   = isset( $row["end_date"] )   ? new DateTime( $row["end_date"] ) : null;
+		$obj->signup_by  = isset( $row['signup_by'] )  ? new \DateTime( $row['signup_by'] ) : null;
+		$obj->start_date = isset( $row['start_date'] ) ? new \DateTime( $row['start_date'] ) : null;
+		$obj->end_date   = isset( $row["end_date"] )   ? new \DateTime( $row["end_date"] ) : null;
 	}
 
 	private function manageRelatedData():int {

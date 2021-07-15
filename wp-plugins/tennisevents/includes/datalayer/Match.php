@@ -1,5 +1,7 @@
 <?php
-use datalayer\utilities\CleanJsonSerializer;
+namespace datalayer;
+use \TennisEvents;
+use utilities\CleanJsonSerializer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -526,18 +528,18 @@ class Match extends AbstractData
                 $this->log->error_log("$loc: failed to construct using '{$date}'");
             }
 
-            $test = DateTime::createFromFormat("Y-m-d G:i", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y-m-d H:i", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y-m-d g:i a", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y-m-d h:i a", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y/m/d G:i", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y/m/d H:i", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y/m/d g:i a", $date );
-            if(false === $test) $test = DateTime::createFromFormat("Y/m/d h:i a", $date );
-            if(false === $test) $test = DateTime::createFromFormat("d/m/Y G:i", $date );
-            if(false === $test) $test = DateTime::createFromFormat("d/m/Y H:i", $date );
-            if(false === $test) $test = DateTime::createFromFormat("d/m/Y g:i a", $date );
-            if(false === $test) $test = DateTime::createFromFormat("d/m/Y h:i a", $date );
+            $test = \DateTime::createFromFormat("Y-m-d G:i", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d H:i", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d g:i a", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d h:i a", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d G:i", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d H:i", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d g:i a", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d h:i a", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y G:i", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y H:i", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date );
             
             $last = DateTIme::getLastErrors();
             if( $last['error_count'] > 0 ) {
@@ -548,7 +550,7 @@ class Match extends AbstractData
                 }
                 throw new InvalidMatchException( $mess );
             }
-            elseif( $test instanceof DateTime ) {
+            elseif( $test instanceof \DateTime ) {
                 $this->match_datetime = $test;
                 $result = $this->setDirty();
             }
@@ -561,7 +563,7 @@ class Match extends AbstractData
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc:{$this->toString()}($year,$month,$day)");
 
-        if( !isset( $this->match_datetime ) ) $this->match_datetime = new DateTime();
+        if( !isset( $this->match_datetime ) ) $this->match_datetime = new \DateTime();
         $this->match_datetime->setDate( $year, $month, $day );
         $this->match_datetime->setTime( 0, 0, 0 );
     }
@@ -570,7 +572,7 @@ class Match extends AbstractData
         $loc = __CLASS__ . ":" . __FUNCTION__;
         //$this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
-        if( !isset( $this->match_datetime ) ) $this->match_datetime = new DateTime();
+        if( !isset( $this->match_datetime ) ) $this->match_datetime = new \DateTime();
         $this->match_datetime->setTimeStamp( $timestamp );
     }
 
@@ -627,7 +629,7 @@ class Match extends AbstractData
 	 */
 	public function getMatchDate_ISO() {
 		if( !isset( $this->match_datetime ) ) return null;
-		else return $this->match_datetime->format(DateTime::ISO8601 );
+		else return $this->match_datetime->format(\DateTime::ISO8601 );
 	}
 
     /**
@@ -644,12 +646,12 @@ class Match extends AbstractData
         $intimeformat1 = "G:i"; //input
         $intimeformat2 = "g:i a"; //input
 
-        $test = DateTime::createFromFormat( "G:i", $time );		
-        if(false === $test) $test = DateTime::createFromFormat( "H:i", $time );
-        if(false === $test) $test = DateTime::createFromFormat( "g:i a", $time );
-        if(false === $test) $test = DateTime::createFromFormat( "h:i a", $time );
+        $test = \DateTime::createFromFormat( "G:i", $time );		
+        if(false === $test) $test = \DateTime::createFromFormat( "H:i", $time );
+        if(false === $test) $test = \DateTime::createFromFormat( "g:i a", $time );
+        if(false === $test) $test = \DateTime::createFromFormat( "h:i a", $time );
 
-		$last = DateTime::getLastErrors();
+		$last = \DateTime::getLastErrors();
 		if($last['error_count'] > 0) {
 			$arr = $last['errors'];
 			$mess = $this->toString() . ':';
@@ -658,7 +660,7 @@ class Match extends AbstractData
 			}
 			throw new InvalidMatchException( $mess );
 		}
-		elseif($test instanceof DateTime) {
+		elseif($test instanceof \DateTime) {
             // $timestamp = strtotime( $time );
             // $hr = date('h', $timestamp );
             // $mn = date('i', $timestamp );
@@ -1329,7 +1331,7 @@ class Match extends AbstractData
         $obj->round_num    = (int) $row["round_num"];
         $obj->match_num    = (int) $row["match_num"];
         $obj->match_type   = (float) $row["match_type"];
-        //$obj->match_date   = isset( $row["match_date"] ) ? new DateTime( $row["match_date"] ) : null;
+        //$obj->match_date   = isset( $row["match_date"] ) ? new \DateTime( $row["match_date"] ) : null;
         $timestamp = strtotime($row["match_date"]);
         if( $timestamp > 0 ) {
             // list( $year, $month, $day ) = explode('-', $row["match_date"]);
@@ -1340,7 +1342,7 @@ class Match extends AbstractData
             $obj->match_datetime = null;
         }
 
-        //$obj->match_time   = isset( $row["match_time"] ) ? new DateTime( $row["match_time"] ) : null;
+        //$obj->match_time   = isset( $row["match_time"] ) ? new \DateTime( $row["match_time"] ) : null;
         // if( isset( $row["match_time"] ) ) {
         //     $obj->setMatchTime_Str($row["match_time"]);
         // }

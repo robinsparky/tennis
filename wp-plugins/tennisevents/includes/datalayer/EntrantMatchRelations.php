@@ -1,4 +1,5 @@
 <?php
+namespace datalayer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

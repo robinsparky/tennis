@@ -1,7 +1,16 @@
 <?php
+use api\TournamentDirector;
 use cpt\TennisEventCpt;
 use commonlib\BaseLogger;
 use commonlib\GW_Support;
+use datalayer\Club;
+use datalayer\Event;
+use datalayer\EventType;
+use datalayer\Format;
+use datalayer\MatchType;
+use datalayer\ScoreType;
+use datalayer\GenderType;
+
 // $dir = plugin_dir_path( __DIR__ );
 // include_once(__DIR__ . '/../commonlib/support.php' );
 

@@ -1,3 +1,8 @@
+<?php 
+use datalayer\Event;
+use datalayer\Bracket;
+use datalayer\Format;
+?>
 <div id="post-<?php the_ID(); ?>"> <!-- post -->
 	<?php
 		$mode = isset($_GET['manage']) ? $_GET['manage'] : "";
