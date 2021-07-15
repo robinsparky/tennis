@@ -7,6 +7,7 @@ use datalayer\Match;
 use datalayer\EventType;
 use datalayer\MatchType;
 use datalayer\Entrant;
+use datalayer\ScoreType;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

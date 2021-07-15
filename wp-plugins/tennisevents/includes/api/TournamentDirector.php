@@ -1,7 +1,7 @@
 <?php
 namespace api;
 
-use api\Math_Combinatorics;
+use commonlib\Math_Combinatorics;
 use commonlib\BaseLogger;
 use commonlib\GW_Support;
 use datalayer\Event;
@@ -515,7 +515,7 @@ class TournamentDirector
         $bracket = $this->getBracket( $bracketName );
         if( !is_null( $bracket ) ) {
             $entrants = $bracket->getSignup();
-            usort( $entrants, array( 'api\TournamentDirector', 'sortByPositionAsc' ) );
+            usort( $entrants, array( __CLASS__, 'sortByPositionAsc' ) );
         }
 
         return $entrants;
@@ -632,11 +632,11 @@ class TournamentDirector
         else {
             if( is_null( $round ) ) {
                 $matches = $bracket->getMatches( $force );
-                usort( $matches, array( 'api\TournamentDirector', 'sortByRoundMatchNumberAsc' ) );
+                usort( $matches, array( __CLASS__, 'sortByRoundMatchNumberAsc' ) );
             }
             else {
                 $matches = $bracket->getMatchesByRound( $round );
-                usort( $matches, array( 'api\TournamentDirector', 'sortByMatchNumberAsc' ) );
+                usort( $matches, array( __CLASS__, 'sortByMatchNumberAsc' ) );
             }
         }
         
@@ -893,10 +893,10 @@ class TournamentDirector
         $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
         
         if( $randomizeDraw ) shuffle( $unseeded );
-        else usort( $unseeded, array( 'api\TournamentDirector', 'sortByPositionAsc' ) );
+        else usort( $unseeded, array( __CLASS__, 'sortByPositionAsc' ) );
 
         $seeded = array_filter( array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ) );
-        usort( $seeded, array( 'api\TournamentDirector', 'sortBySeedAsc') );
+        usort( $seeded, array( __CLASS__, 'sortBySeedAsc') );
 
         $numInvolved = 2 * $this->numToEliminate;
         $remainder   = $numInvolved > 0 ? $bracketSignupSize - $numInvolved : 0;

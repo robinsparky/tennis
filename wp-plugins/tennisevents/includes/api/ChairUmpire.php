@@ -6,6 +6,7 @@ use commonlib\GW_Debug;
 use commonlib\GW_Support;
 use commonlib\BaseLogger;
 use datalayer\ScoreType;
+use datalayer\Format;
 use datalayer\Event;
 use datalayer\Match;
 use datalayer\Bracket;
