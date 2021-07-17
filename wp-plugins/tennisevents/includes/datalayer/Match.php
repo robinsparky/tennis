@@ -1,14 +1,12 @@
 <?php
 namespace datalayer;
 use \TennisEvents;
+use commonlib\GW_Support;
 use utilities\CleanJsonSerializer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
-$dir = plugin_dir_path( __DIR__ );
-include_once($dir . '/commonlib/support.php' );
 
 /** 
  * Data and functions for a Tennis Event Match

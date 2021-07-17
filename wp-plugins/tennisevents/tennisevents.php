@@ -691,7 +691,7 @@ function TE() {
 }
 
 include_once( 'autoloader.php' );
-require_once( 'includes/commonlib/support.php' );
+require_once( 'includes/commonlib/GW_Support.php' );
 
 // Register activation/deactivation hooks
 register_activation_hook( __FILE__, array( 'TennisEvents', 'on_activate' ) );
