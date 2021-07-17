@@ -1,13 +1,27 @@
 <?php
+namespace commandline;
+
+use \WP_CLI;
+use \WP_CLI_Command;
+
 use api\TournamentDirector;
+use api\ChairUmpire;
+
 use commonlib\GW_Support;
 use commonlib\GW_Debug;
+use commonlib\Math_Combinatorics;
+
+use datalayer\Club;
+use datalayer\Event;
+use datalayer\Bracket;
+use datalayer\Match;
+use datalayer\Entrant;
+
 use api\events\EventManager;
 use api\events\OverloadedConstructors;
 use templates\DrawTemplateGenerator;
-use api\Math_Combinatorics;
 
-WP_CLI::add_command( 'tennis tourney', 'TournamentCommands' );
+WP_CLI::add_command( 'tennis tourney', 'commandline\TournamentCommands' );
 
 /**
  * Implements all commands for manipulating a tennis tournament and its brackets' matches

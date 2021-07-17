@@ -1,9 +1,18 @@
 <?php
+namespace commandline;
+
+use \WP_CLI;
+use \WP_CLI_Command;
+
+use datalayer\Club;
+use datalayer\Bracket;
+use datalayer\Event;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( !class_exists( 'CmdlineSupport' ) ) :
+if ( !class_exists( 'commandline\CmdlineSupport' ) ) :
 
 /**
  * Supporting functions for Command Line interface

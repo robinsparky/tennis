@@ -1,6 +1,15 @@
 <?php
+namespace commandline;
 
-WP_CLI::add_command( 'tennis clubs', 'ClubCommands' );
+use \WP_CLI;
+use \WP_CLI_Command;
+
+use datalayer\Club;
+use datalayer\Court;
+use datalayer\Event;
+
+WP_CLI::add_command( 'tennis clubs', 'commandline\ClubCommands' );
+
 
 /**
  * Implements all commands for creating and deleting Clubs

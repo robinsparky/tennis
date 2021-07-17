@@ -1,7 +1,16 @@
 <?php
-use api\events\EventManager;
+namespace commandline;
 
-WP_CLI::add_command( 'tennis events', 'EventCommands' );
+use \WP_CLI;
+use \WP_CLI_Command;
+
+use \DateTime;
+use \DateTimeInterface;
+use datalayer\Club;
+use datalayer\Event;
+use datalayer\EventType;
+
+WP_CLI::add_command( 'tennis events', 'commandline\EventCommands' );
 
 /**
  * Implements all commands for creating and deleting Events

@@ -5,6 +5,7 @@ use commonlib\Math_Combinatorics;
 use commonlib\BaseLogger;
 use commonlib\GW_Support;
 use datalayer\Event;
+use datalayer\Bracket;
 use datalayer\Match;
 use datalayer\EventType;
 use datalayer\MatchType;

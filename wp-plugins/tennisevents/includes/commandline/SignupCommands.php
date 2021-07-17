@@ -1,7 +1,22 @@
 <?php
+namespace commandline;
+
+use \WP_CLI;
+use \WP_CLI_Command;
+
 use api\TournamentDirector;
 
-WP_CLI::add_command( 'tennis signup', 'SignupCommands' );
+use commonlib\GW_Support;
+use commonlib\GW_Debug;
+
+use datalayer\Club;
+use datalayer\Event;
+use datalayer\Bracket;
+use datalayer\Match;
+use datalayer\Entrant;
+
+
+WP_CLI::add_command( 'tennis signup', 'commandline\SignupCommands' );
 
 /**
  * Implements all commands for manipulating tennis event signup

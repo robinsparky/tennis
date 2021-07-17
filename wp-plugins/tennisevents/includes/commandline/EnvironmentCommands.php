@@ -1,6 +1,19 @@
 <?php
+namespace commandline;
 
-WP_CLI::add_command( 'tennis env', 'EnvironmentCommands' );
+use \WP_CLI;
+use \WP_CLI_Command;
+
+use commonlib\GW_Support;
+use commonlib\GW_Debug;
+
+use datalayer\Club;
+use datalayer\Event;
+use datalayer\Bracket;
+use datalayer\Match;
+use datalayer\Entrant;
+
+WP_CLI::add_command( 'tennis env', 'commandline\EnvironmentCommands' );
 
 /**
  * Implements all commands for managing the tennis commandline environment

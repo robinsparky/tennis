@@ -195,13 +195,13 @@ class TennisEvents {
 		include_once( 'includes/tennis-template-loader.php' );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			include_once( 'includes/commandline/class-clubcommands.php' );
-			include_once( 'includes/commandline/class-eventcommands.php' );
-			include_once( 'includes/commandline/class-cmdlinesupport.php' );
-			include_once( 'includes/commandline/class-environmentcommands.php' );
-			include_once( 'includes/commandline/class-showcommands.php' );
-			include_once( 'includes/commandline/class-tournamentcommands.php' );
-			include_once( 'includes/commandline/class-signupcommands.php' );
+			include_once( 'includes/commandline/ClubCommands.php' );
+			include_once( 'includes/commandline/EventCommands.php' );
+			include_once( 'includes/commandline/CmdlineSupport.php' );
+			include_once( 'includes/commandline/EnvironmentCommands.php' );
+			include_once( 'includes/commandline/ShowCommands.php' );
+			include_once( 'includes/commandline/TournamentCommands.php' );
+			include_once( 'includes/commandline/SignupCommands.php' );
 		}
 	}
 
