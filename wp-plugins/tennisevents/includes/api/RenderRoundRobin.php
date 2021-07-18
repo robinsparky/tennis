@@ -208,16 +208,18 @@ class RenderRoundRobin
 
         // Get template file
         // $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly.php';
-        $path = TE()->getPluginPath() . '\includes\templates\render-roundrobinreadonly-grid.php';
+        $path = TE()->getPluginPath() . 'includes\templates\render-roundrobinreadonly-grid.php';
         //$user = wp_get_current_user();
         if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
             // $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin.php';
-            $path = TE()->getPluginPath() . '\includes\templates\render-roundrobin-grid.php';
+            $path = TE()->getPluginPath() . 'includes\templates\render-roundrobin-grid.php';
         }
+        $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
         require( $path );
         
         //Render the score summary
-        $path = TE()->getPluginPath() . '\includes\templates\summaryscore-template.php';
+        $path = TE()->getPluginPath() . 'includes\templates\summaryscore-template.php';
+        $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
         require( $path );
 
         // Save output and stop output buffering
