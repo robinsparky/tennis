@@ -3,6 +3,7 @@ namespace api\ajax;
 use commonlib\BaseLogger;
 use \WP_Error;
 use \TennisEvents;
+use \DateTime;
 use api\TournamentDirector;
 use datalayer\Event;
 use datalayer\EventType;
@@ -401,10 +402,11 @@ class ManageBrackets
             $author = $current_user->ID;
         }
 
-       $currentTime = new \DateTime('NOW');
+       $currentTime = new DateTime('NOW');
        $post    = array(
         'post_title' => $newTitle,
         'post_status' => 'publish',
+        'post_date_gmt' => $currentTime,
         'post_content' => $oldpost->post_content,
         'post_type' => $oldpost->post_type,
         'post_author' => $author,
@@ -430,7 +432,7 @@ class ManageBrackets
         * @param DateTime $initDate
         * @return DateInterval
         */
-    private function getInterval( \DateTime $initDate ) : \DateInterval {
+    private function getInterval( DateTime $initDate ) : \DateInterval {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         
         $month = +$initDate->format("n");
@@ -466,7 +468,7 @@ class ManageBrackets
      * @param DateTime $initDate
      * @return int The last day of the month
      */
-    private function lastDayOfMonth( \DateTime $initDate ) : int {
+    private function lastDayOfMonth( DateTime $initDate ) : int {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         
         $month = +$initDate->format("n");
