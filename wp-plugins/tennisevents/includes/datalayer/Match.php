@@ -22,7 +22,7 @@ class Match extends AbstractData
 
     private const MAX_ROUNDS = 99;//NOT sure if this is useful
 
-    private static $tablename = 'tennis_match';
+    public static $tablename = 'tennis_match';
 
     //Date and time output formats
     private static $outdatetimeformat1 = "Y-m-d G:i"; 
@@ -57,13 +57,11 @@ class Match extends AbstractData
     private $home;
     private $visitor_ID;
     private $visitor;
-    private $entrantsToBeDeleted = array();
 
     private $comments;
     
     //Sets in this Match
     private $sets;
-    private $setsToBeDeleted = array();
 
     /**
      * Search not used
@@ -333,8 +331,8 @@ class Match extends AbstractData
         return $result;
     }
 
-    /**
-     * Resequence the matches for an event. NOT IMPLEMENTED YET.
+    /**  NOT IMPLEMENTED YET.
+     * Resequence the matches for an event. 
      * @param $evtId The event id
      * @param $bracket The bracket of interest
      * @param $start the value of the starting match number
@@ -345,6 +343,62 @@ class Match extends AbstractData
         if( $start > 0 && $inc > 0 ) {
             $result = 0;
         }
+        return $result;
+    }
+
+    public static function deleteMatch( int $eventId, int $bracketNum, int $roundNum, int $matchNum ) : int {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $result = 0;
+
+        //First delete the intersection of entrants with this match
+        $result += EntrantMatchRelations::removeAllFromMatch($eventId
+                                                            , $bracketNum
+                                                            , $roundNum
+                                                            , $matchNum );
+
+        global $wpdb;		
+        //Now delete all the sets for this match
+        $table = $wpdb->prefix . Set::$tablename;
+        $where = array( 'event_ID' => $eventId
+                      , 'bracket_num' => $bracketNum
+                      , 'round_num' => $roundNum
+                      , 'match_num' => $matchNum );
+        $formats_where = array( '%d', '%d', '%d', '%d' );
+        $wpdb->delete( $table, $where, $formats_where );
+        $result += $wpdb->rows_affected;
+
+        //Now delete this match
+        $table = $wpdb->prefix . self::$tablename;
+        $where = array( 'event_ID' => $SeventId
+                      , 'bracket_num' => $bracketNum
+                      , 'round_num' => $roundNum
+                      , 'match_num' => $matchNum );
+        $formats_where = array( '%d', '%d', '%d', '%d' );
+
+        $wpdb->delete( $table, $where, $formats_where );
+        $result += $wpdb->rows_affected;
+        error_log( sprintf( "%s -> deleted %d row(s)", $loc, $result ) );
+
+        return $result;
+    }
+
+    public static function deleteSet( int $eventId, int $bracketNum, int $roundNum, int $matchNum, int $setNum ) : int {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        
+        global $wpdb;		
+        
+        $table = $wpdb->prefix . Set::$tablename;
+        $where = array( 'event_ID' => $eventId
+                      , 'bracket_num' => $bracketNum
+                      , 'round_num' => $roundNum
+                      , 'match_num' => $matchNum
+                      , 'set_num' => $setNum );
+        $formats_where = array( '%d', '%d', '%d', '%d', '%d' );
+
+        $wpdb->delete( $table, $where, $formats_where );
+        $result = $wpdb->rows_affected;
+        error_log( sprintf( "%s -> deleted %d row(s)", $loc, $result ) );
+
         return $result;
     }
 
@@ -881,9 +935,13 @@ class Match extends AbstractData
 			$i=0;
 			foreach($this->getSets() as $s) {
 				if($set == $s->getSetNumber()) {
-					$this->setsToBeDeleted[] = clone $this->sets[$i];
                     unset($this->sets[$i]);
-					$result = $this->setDirty();
+                    self::deleteSet( $this->getBracket()->getEventId()
+                                    , $this->getBracket()->getBracketNumber()
+                                    , $this->getRoundNumber()
+                                    , $this->getMatchNumber()
+                                    , $s->getSetNumber );
+                    $result = $this->setDirty();
 				}
 				$i++;
 			}
@@ -900,7 +958,11 @@ class Match extends AbstractData
         if( isset( $h ) ) {
             $existing = $this->getHomeEntrant();
             if( isset( $existing ) ) {
-                array_push($this->entrantsToBeDeleted, $existing->getPosition());
+                Bracket::deleteEntrant( $this->getBracket()->getEventId()
+                                        , $this->getBracket()->getBracketNumber()
+                                        , $this->getRoundNumber()
+                                        , $this->getMatchNumber()
+                                        , $existing->getPosition() );
             }
             $this->home = $h;
             $this->home_ID = $h->getPosition();
@@ -927,7 +989,11 @@ class Match extends AbstractData
         if( isset( $v ) ) {
             $existing = $this->getVisitorEntrant();
             if( isset( $existing ) ) {
-                array_push($this->entrantsToBeDeleted, $existing->getPosition());
+                Bracket::deleteEntrant( $this->getBracket()->getEventId()
+                                        , $this->getBracket()->getBracketNumber()
+                                        , $this->getRoundNumber()
+                                        , $this->getMatchNumber()
+                                        , $existing->getPosition() );
             }
             $this->visitor = $v;
             $this->visitor_ID = $v->getPosition();
@@ -1027,22 +1093,15 @@ class Match extends AbstractData
     
     /**
      * Delete this match.
-     * The related objects are deleted by db cascade.
+     * The Entrant relationships are deleted too.
      */
     public function delete() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        
-        global $wpdb;		
-        
-        $table = $wpdb->prefix . self::$tablename;
-        $where = array( 'event_ID' => $this->event_ID
-                      , 'bracket_num' => $this->bracket_num
-                      , 'round_num' => $this->round_num
-                      , 'match_num' => $this->match_num );
-        $formats_where = array( '%d', '%d', '%d', '%d' );
-
-        $wpdb->delete( $table, $where, $formats_where );
-        $result = $wpdb->rows_affected;
+        $result = 0;
+        $result = self::deleteMatch( $this->event_ID
+                                    , $this->bracket_num
+                                    , $this->round
+                                    , $this->match_num );
         $this->log->error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
 
         return $result;
@@ -1257,12 +1316,6 @@ class Match extends AbstractData
             }
         }
         
-        foreach( $this->setsToBeDeleted as &$set ) {
-            $result += $set->delete();
-            unset( $set );
-        }
-        $this->setsToBeDeleted = array();
-        
         $result += isset( $this->home ) ? EntrantMatchRelations::add( $this->event_ID, $this->bracket_num, $this->getRoundNumber(), $this->getMatchNumber(), $this->getHomeEntrant()->getPosition() ): 0;
         $result += isset( $this->visitor ) ? EntrantMatchRelations::add( $this->event_ID, $this->bracket_num, $this->getRoundNumber(), $this->getMatchNumber(), $this->getVisitorEntrant()->getPosition(), 1 ) : 0;
 
@@ -1299,20 +1352,7 @@ class Match extends AbstractData
                 $result += $set->save();
             }
         }
-        
-        foreach($this->setsToBeDeleted as &$set) {
-            $result += $set->delete();
-            unset( $set );
-        }
-        $this->setsToBeDeleted = array();
 
-        foreach( $this->entrantsToBeDeleted as $pos ) {
-            $result += EntrantMatchRelations::remove( $this->getBracket()->getEvent()->getID()
-                                                    , $this->getBracket()->getBracketNumber()
-                                                    , $this->getRoundNumber()
-                                                    , $this->getMatchNumber()
-                                                    , $pos );
-        }
         $result += isset( $this->home ) ? EntrantMatchRelations::add( $this->getBracket()->getEvent()->getID(), $this->getBracket()->getBracketNumber(), $this->getRoundNumber(), $this->getMatchNumber(), $this->getHomeEntrant()->getPosition() ) : 0;
         $result += isset( $this->visitor ) ?  EntrantMatchRelations::add( $this->getBracket()->getEvent()->getID(), $this->getBracket()->getBracketNumber(), $this->getRoundNumber(), $this->getMatchNumber(), $this->getVisitorEntrant()->getPosition(), 1 ) : 0;
         

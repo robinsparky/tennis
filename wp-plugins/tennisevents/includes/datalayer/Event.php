@@ -10,7 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** 
  * Data and functions for Event(s)
- * Events are organized into a hierarchy (1 level for now)
+ * A tennis Event is organization of tennis matches.
+ * For example, a tennis tournament which may have sub-events
+ * for Men's Singles, Women's Singles, Mixed Doubles, etc.
+ * which are most often organized as single elimination format.
+ * Event's can also be regular tennis matches organized as Ladders
+ * or as Leagues which are of Round Robin format.
+ * Events are organized into a 2 level hierarchy.
  * @class  Event
  * @package Tennis Events
  * @version 1.0.0
@@ -18,7 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class Event extends AbstractData
 { 
-	private static $tablename = 'tennis_event';
+	public static $tablename = 'tennis_event';
+
 	private static $datetimeformat = "Y-m-d H:i:s";
 	private static $dateformat = "Y-m-d";
 	private static $storageformat = "Y-m-d";
@@ -40,15 +47,8 @@ class Event extends AbstractData
     
 	private $clubs; //array of related clubs for this root event
 	private $childEvents; //array of child events
-	//private $signup; //array of entrants who signed up for this leaf event
 	private $brackets; //array of 1 or 2 brackets for this leaf event
 	private $external_refs; //array of external reference to something (e.g. custom post type in WordPress)
-
-	private $clubsToBeDeleted = array(); //array of club Id's to be removed from relations with this Event
-	private $childEventsToBeDeleted = array(); //array of child ID's events to be deleted
-	private $entrantsToBeDeleted = array(); //array of Entrants to be removed from the draw
-	private $bracketsToBeDeleted = array(); //array of bracket Id's to be deleted
-	private $external_refsToBeDeleted = array(); //array of external references to be deleted
     
     /**
      * Search for Events have a name 'like' the provided criteria
@@ -279,14 +279,40 @@ class Event extends AbstractData
 		return $obj;
 	}
 	
+	/**
+	 * Delete an Event and all it's sub-events from the database
+	 * @param int $eventId the primary key for the event
+	 */
 	static public function deleteEvent( int $eventId ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+
 		$result = 0;
 		global $wpdb;
+
+		//Delete all relationships to clubs
+		$result += ClubEventRelations::removeAllForEvent( $eventId );
+
+		//Delete all brackets for the event		
+		$bracketTable = $wpdb->prefix . Bracket::$tablename;		
+		$sql = "SELECT `bracket_num`
+		FROM $bracketTable WHERE `event_ID`='%d'";
+		$safe = $wpdb->prepare( $sql, $id );
+		$rows = $wpdb->get_results( $safe, ARRAY_N );
+		foreach ($rows as $bracket_num ) {
+			$result += Bracket::deleteBracket( $eventId, $bracket_num );
+		}
+
 		$table = $wpdb->prefix . self::$tablename;
-		$wpdb->delete( $table,array( 'ID'=>$eventId ), array( '%d' ) );
+
+		//Delete sub-events
+		$wpdb->delete($table, array('parent_ID'=>$eventId), array( '%d' ) );
 		$result = $wpdb->rows_affected;
-		error_log( sprintf("%s(%d) -> deleted %d row(s)",$loc, $eventId, $result ) );
+
+		//Delete the event
+		$wpdb->delete( $table, array( 'ID'=>$eventId ), array( '%d' ) );
+		$result += $wpdb->rows_affected;
+
+		error_log( sprintf("%s(%d) -> deleted %d row(s)", $loc, $eventId, $result ) );
 		return $result;
 	}
 	
@@ -411,23 +437,12 @@ class Event extends AbstractData
 			}
 		}
 
-		if( isset( $this->bracketsToBeDeleted ) ) {
-			foreach($this->bracketsToBeDeleted as &$bracket) {
-				unset( $bracket );
-			}
-		}
-
 		if( isset( $this->external_refs ) ) {
 			foreach( $this->external_refs as &$er ) {
 				unset( $er );
 			}
 		}
 
-		if( isset( $this->external_refsToBeDeleted ) ) {
-			foreach( $this->external_refsToBeDeleted as &$er ) {
-				unset( $er );
-			}
-		}
 	}
 	
 	/**
@@ -959,8 +974,8 @@ class Event extends AbstractData
 		$i=0;
 		foreach( $this->getChildEvents() as $ch ) {
 			if( $child === $ch ) {
-				$this->childEventsToBeDeleted[] = $child->getID();
 				$result = $this->setDirty();
+				self::deleteEvent( $ch->getID() );
 			}
 			else {
 				$temp[] = $ch;
@@ -1052,7 +1067,7 @@ class Event extends AbstractData
 			$i=0;
 			foreach( $this->getClubs() as $cl ) {
 				if( $club === $cl ) {
-					$this->clubsToBeDeleted[] = $club->getID();
+					ClubEventRelations::remove($this->getID(), $club->getID() );
 					unset( $this->clubs[$i] );
 					$result = $this->setDirty();
 				}
@@ -1273,8 +1288,8 @@ class Event extends AbstractData
 			foreach( $this->getBrackets() as &$bracket ) {
 				if( $bracket->getName() === $name ) {
 					$result = true;
-					$this->bracketsToBeDeleted[] = $bracket;
 					unset( $this->brackets[$num] );
+					Bracket::deleteBracket( $this->getID(), $bracket->getBracketNumber() );
 				}
 				++$num;
 			}
@@ -1293,15 +1308,11 @@ class Event extends AbstractData
 		$this->fetchBrackets();
 		if( isset( $this->brackets ) ) {
 			foreach( $this->brackets as $bracket ) {
-				//Unnecssary because of cascading deletes??
-				$bracket->removeSignup();
-				$bracket->removeAllMatches(); 
-
-				$this->bracketsToBeDeleted[] = $bracket;
-				$bracket = null;
+				Bracket::deleteBracket( $this->getID(), $bracket->getBracketNumber() );
 			}
 		}
 		$this->brackets = array();
+
 		return $this->setDirty();
 	}
 	
@@ -1347,9 +1358,9 @@ class Event extends AbstractData
 			$i=0;
 			foreach( $this->getExternalRefs() as $er ) {
 				if( $extRef === $er ) {
-					$this->external_refsToBeDeleted[] = $extRef;
 					unset( $this->external_refs[$i] );
 					$result = $this->setDirty();
+					EventExternalRefRelations::remove($this->getID(), $er );
 				}
 				$i++;
 			}
@@ -1411,18 +1422,14 @@ class Event extends AbstractData
 
 	/**
 	 * Delete this event
-	 * All child objects will be deleted via DB Cascade
+	 * All child objects will be deleted
 	 */
 	public function delete() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 
-		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
-		$where = array( 'ID'=>$this->getID() );
-		$formats_where = array( '%d' );
-		$wpdb->delete( $table, $where, $formats_where );
-		$result = $wpdb->rows_affected;
-		$this->log->error_log( sprintf("%s(%s): deleted %d row(s)", $loc, $this->toString(), $result ) );
+		$result = self::deleteEvent( $this->getID() );
+		
+        $this->log->error_log("{$loc}: {$this->title()} Deleted {$result} rows from db.");
 
 		return $result;
 	}
@@ -1608,16 +1615,6 @@ class Event extends AbstractData
 				$evtIds[] = $evt->getID();
 			}
 		}
-
-		//Delete Events removed from being a child of this Event
-		if( count( $this->childEventsToBeDeleted ) > 0 ) {
-			foreach( $this->childEventsToBeDeleted as $id ) {
-				if(!in_array($id,$evtIds)) {
-					$result += Event::deleteEvent( $id );
-				}
-			}
-			$this->childEventsToBeDeleted = array();
-		}
 		
 		//Save brackets
 		if( isset( $this->brackets ) ) {
@@ -1631,16 +1628,6 @@ class Event extends AbstractData
 			}
 		}
 
-		//Delete Brackets removed from this Event
-		foreach( $this->bracketsToBeDeleted as &$bracket ) {
-			//$bracketnums = array_map( function($e){return $e->getBracketNumber();}, $this->getBrackets() );
-			//if( !in_array( $bracket->getBracketNumber(), $bracketnums ) ) {
-				$result += $bracket->delete();
-				unset( $bracket );		
-			//}	
-		}
-		$this->bracketsToBeDeleted = array();
-
 		//Save the Clubs related to this Event
 		if( isset( $this->clubs) ) {
 			foreach($this->clubs as $cb) {
@@ -1649,17 +1636,6 @@ class Event extends AbstractData
 				$result += ClubEventRelations::add( $cb->getID(), $this->getID() );
 			}
 		}
-
-		//Remove relation between this Event and Clubs
-		if( count( $this->clubsToBeDeleted ) > 0 ) {
-			$clubIds = array_map(function($e){return $e->getID();},$this->getClubs());
-			foreach( $this->clubsToBeDeleted as $clubId ) {
-				if( !in_array( $clubId, $clubIds ) ) {
-					$result += ClubEventRelations::remove( $clubId, $this->getID() );
-				}
-			}
-			$this->clubsToBeDeleted = array();
-		}
 		
 		//Save the External references related to this Event
 		if( isset( $this->external_refs ) ) {
@@ -1667,16 +1643,6 @@ class Event extends AbstractData
 				//Create relation between this Event and its external references
 				$result += ExternalRefRelations::add('event', $this->getID(), $er );
 			}
-		}
-
-		//Remove relation between this Event and external referenceds
-		if( count( $this->external_refsToBeDeleted ) > 0 ) {
-			foreach( $this->external_refsToBeDeleted as $er ) {
-				if( !in_array( $er, $this->external_refs ) ) {
-					$result += ExternalRefRelations::remove('event', $this->getID(), $er );
-				}
-			}
-			$this->external_refsToBeDeleted = array();
 		}
 
 		return $result;

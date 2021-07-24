@@ -187,7 +187,7 @@ class EventCommands extends WP_CLI_Command {
     }
 
     /**
-     * Delete an event. This will delete all child events and tournaments!!!
+     * Delete an event. This will delete all child events!!!
      *
      * ## OPTIONS
      * <eventId>
@@ -209,9 +209,9 @@ class EventCommands extends WP_CLI_Command {
             exit;
         }
 
-        Event::deleteEvent( $eventId );
+        $res = Event::deleteEvent( $eventId );
 
-        WP_CLI::success("Deleted event with id $eventId");
+        WP_CLI::success("Deleted {$res} event(s) with ID or parent_ID=$eventId");
     }
     
     /**

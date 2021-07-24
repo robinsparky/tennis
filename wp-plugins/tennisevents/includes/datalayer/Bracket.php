@@ -10,6 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** 
  * Data and functions for Tennis Brackets
+ * A Bracket is a subset of matches associated with an Event.
+ * For example, there can be a Main bracket and a Consolation bracket.
+ * Another take could be a grouping of the Event's matches into sets of 4.
  * @class  Bracket
  * @package Tennis Events
  * @version 1.0.0
@@ -23,7 +26,7 @@ class Bracket extends AbstractData
     public const CONSOLATION = "Consolation";
 
 	//table name
-	private static $tablename = 'tennis_bracket';
+	public static $tablename = 'tennis_bracket';
 
 	//Attributes
     private $event_ID;
@@ -36,25 +39,12 @@ class Bracket extends AbstractData
 
     //All entrants signed up for this bracket in this event
     private $signup = array();	
-    private $entrantsToBeDeleted = array(); //array of Entrants to be removed from the draw
 
     //Matches in this bracket
     private $matches;
-    private $matchesToBeDeleted = array();
     private $matchHierarchy = array();
 
 	/*************** Static methods ******************/
-	/**
-	 * Search not used
-	 */
-	static public function search( $criteria ) {
-		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
-		$col = array();
-
-		return $col;
-    }
-
 	/**
 	 * Find Brackets referenced in a given Event
 	 */
@@ -117,6 +107,132 @@ class Bracket extends AbstractData
 		}
 		return $obj;
 	}
+    
+	/**
+	 * Delete this Bracket and all Entrants in the signup
+     *  and all Matches associated with this Bracket
+     * @param int $eventId The ID of the event
+     * @param int $bracketNum The bracket number 
+     * @return int Number of rows affected
+	 */
+	public static function deleteBracket( int $eventId = 0, int $bracketNum = 0 ) : int {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+		$result = 0;
+        if( 0 === $eventId || 0 === $bracketNum ) return $result;
+
+        global $wpdb;
+        $table = $wpdb->prefix . self::$tablename;
+
+        //Delete the matches
+        $result += self::deleteAllMatches( $eventId, $bracketNum );
+
+        //Delete the entrants
+        $result += self::deleteAllEntrants( $eventId, $bracketNum );
+
+        //Delete the bracket
+        $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum );
+        $formats_where = array( '%d', '%d' );
+        $wpdb->delete( $table, $where, $formats_where );
+        $result += $wpdb->rows_affected;
+
+        return $result;
+    }
+
+    /**
+     * Delete all matches associated with the identified Bracket
+     * And removes all relationships between these Matches and their Entrants
+     * @param int $eventId The ID of the event
+     * @param int $bracketNum The bracket number 
+     * @return int Number of rows affected
+     */
+    public static function deleteAllMatches( int $eventId = 0, int $bracketNum = 0 ) : int {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+		$result = 0;
+        if( 0 === $eventId || 0 === $bracketNum ) return $result;
+
+        global $wpdb;
+        //Delete all entrants for all matches for the identified Bracket
+        $result += EntrantMatchRelations::removeAllFromBracket( $eventId, $bracketNum );
+        
+        //Delete all matches for the identified Bracket
+        $table = $wpdb->prefix . Match::$tablename;
+        $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum );
+        $formats_where = array( '%d', '%d' );
+        $wpdb->delete( $table, $where, $formats_where );
+        $result += $wpdb->rows_affected;
+
+        return $result;
+    }
+    
+    /**
+     * Delete all signups associated with the identified Bracket
+     * Throws exception if matches exist for the identified bracket.
+     * @param int $eventId The ID of the event
+     * @param int $bracketNum The bracket number 
+     * @return int Number of rows affected
+     */
+    public static function deleteAllEntrants( int $eventId = 0, int $bracketNum = 0 ) : int {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+		$result = 0;
+        if( 0 === $eventId || 0 === $bracketNum ) return $result;
+        
+        global $wpdb;
+		$table = $wpdb->prefix . Match::$tablename;
+		$query = "SELECT IFNULL(COUNT(*),0) from $table
+				  WHERE event_ID=%d AND bracket_num=%d;";
+		$safe = $wpdb->prepare( $query, $eventId, $bracketNum );
+		$num = $wpdb->get_var( $safe );
+
+        if( $num > 0 ) {
+            throw new InvalidBracketException("Cannot delete Entrants if Matches exist!");
+        }
+        
+        $table = $wpdb->prefix . Entrant::$tablename;
+        $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum );
+        $formats_where = array( '%d', '%d' );
+        $wpdb->delete( $table, $where, $formats_where );
+        $result = $wpdb->rows_affected;
+
+        return $result;
+    }
+    
+    /**
+     * Delete the given entrant for the identified Bracket
+     * WARNING: Should not do this if matches exist for the identified bracket.
+     * @param int $eventId The ID of the event
+     * @param int $bracketNum The bracket number 
+     * @param int $position The position of the entrant in the signup
+     * @return int Number of rows affected
+     */
+    public static function deleteEntrant( int $eventId = 0, int $bracketNum = 0, $position = 0 ) : int {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+		$result = 0;
+        if( 0 === $eventId || 0 === $bracketNum ) return $result;
+        
+        global $wpdb;
+		$table = $wpdb->prefix . Match::$tablename;
+		$query = "SELECT IFNULL(COUNT(*),0) from $table
+				  WHERE event_ID=%d AND bracket_num=%d;";
+		$safe = $wpdb->prepare( $query, $eventId, $bracketNum );
+		$num = $wpdb->get_var( $safe );
+
+        if( $num > 0 ) {
+            throw new InvalidBracketException("Cannot delete Entrants if Matches exist!");
+        }
+
+        $table = $wpdb->prefix . Entrant::$tablename;
+        $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum, 'position' => $position );
+        $formats_where = array( '%d', '%d', '%d' );
+        $wpdb->delete( $table, $where, $formats_where );
+        $result += $wpdb->rows_affected;
+
+        return $result;
+    }
+
 
 	/***************************** Instance Methods ******************************/
     public function __construct() {
@@ -125,19 +241,13 @@ class Bracket extends AbstractData
 
     
 	public function __destruct() {
-        static $numBrackets = 0;
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        ++$numBrackets;
-        $this->log->error_log("{$loc} ... bracket#{$numBrackets}");
+        //static $numBrackets = 0;
+        //$loc = __CLASS__ . '::' . __FUNCTION__;
+        //++$numBrackets;
+        //$this->log->error_log("{$loc} ... bracket#{$numBrackets}");
 
 		if( isset( $this->matches ) ) {
 			foreach($this->matches as &$match) {
-				unset( $match );
-			}
-        }
-        
-		if( isset( $this->matchesToBeDeleted ) ) {
-			foreach($this->matchesToBeDeleted as &$match) {
 				unset( $match );
 			}
         }
@@ -149,11 +259,6 @@ class Bracket extends AbstractData
 			}
         }
         
-		if( isset( $this->entrantsToBeDeleted ) ) {
-			foreach($this->entrantsToBeDeleted as &$ent) {
-				unset( $ent );
-			}
-        }
     }
     
     public function setDirty() {
@@ -259,6 +364,13 @@ class Bracket extends AbstractData
 	 */
 	public function removeFromSignup( string $name ) {
 		$result = false;
+        
+        if( count( $this->getMatches() > 0 ) ) {
+            $mess = $this->title() . ":Cannot remove anyone from signup because matches exist.";
+            throw new InvalidBracketException( $mess );
+        }
+
+        $numDeleted = 0;
         $temp = array();
         //Need to replace single apostrophe with escaped apostrophe
         // because this is how it comes back from the db        
@@ -266,8 +378,8 @@ class Bracket extends AbstractData
 
 		for( $i = 0; $i < count( $this->getSignup( true ) ); $i++) {
 			if( $test === strtolower(trim(str_replace(["\'","'"],["",""],$this->signup[$i]->getName()))) ) {
-				$this->entrantsToBeDeleted[] = $this->signup[$i]->getPosition();
 				$result = $this->setDirty();
+                $numDeleted = self::deleteEntrant( $this->getEventId(), $this->getBracketNumber(), $this->signup[$i]->getPosition() );
 			}
 			else {
 				$temp[] = $this->signup[$i];
@@ -279,15 +391,25 @@ class Bracket extends AbstractData
 	}
 
 	/**
-	 * Destroy the existing signup and all related brackets.
+	 * Destroy the existing signup.
+     * Cannot do this if matches exist.
 	 */
 	public function removeSignup() {
+        $loc = __CLASS__ . "->" . __FUNCTION__;
+
+        if( count( $this->getMatches() > 0 ) ) {
+            $mess = $this->title() . ":Cannot remove signup. Remove matches first.";
+            throw new InvalidBracketException( $mess );
+        }
+
 		foreach( $this->getSignup() as &$dr ) {
-			$this->entrantsToBeDeleted[] = $dr->getPosition();
 			unset( $dr );
 		}
 		$this->signup = array();
-		return $this->setDirty();
+
+        self::deleteAllEntrants( $this->getEventId(), $this->getBracketNumber() );
+		
+        return $this->setDirty();
 	}
 	
 	/**
@@ -845,15 +967,17 @@ class Bracket extends AbstractData
         $num = 0;
         $this->getMatches();
         foreach( $this->matches as &$match ) {
-            $this->matchesToBeDeleted[] = $match;
             $match = null;
             ++$num;
         }
+        
         $this->UnApprove();
+        $rows = self::deleteAllMatches( $this->getEventId(), $this->getBracketNumber() );
         $rem = count($this->matches);
-        $this->log->error_log("$loc: removed {$num}; remaining {$rem}");
+        $this->log->error_log("$loc: removed {$num}; remaining {$rem}; rows deleted from db {$rows}");
         $this->matches = array();
-		return $this->setDirty();
+		
+        return $this->setDirty();
     }
     
     /**
@@ -921,6 +1045,9 @@ class Bracket extends AbstractData
         return $result;        
     }
 
+    /**
+     * Get the number of rounds for this Bracket's matches
+     */
     public function getNumberOfRounds() : int {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
@@ -1091,20 +1218,15 @@ class Bracket extends AbstractData
 
 	/**
 	 * Delete this Bracket
-     * Deletes cascade down to entrants in the signup
+     * Deletes all matches and their player assigments 
+     * as well as all entrants signed up in this Bracket
 	 */
 	public function delete() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		$result = 0;
-        global $wpdb;
-        $table = $wpdb->prefix . self::$tablename;
-        $where = array( 'event_ID' => $this->event_ID, 'bracket_num' => $this->bracket_num  );
-        $formats_where = array( '%d', '%d' );
-        $wpdb->delete( $table, $where, $formats_where );
-        $result = $wpdb->rows_affected;
+        $result = self::deleteBracket( $this->getEventId(), $this->getBracketNumber() );
+        $this->log->error_log("{$loc}: {$this->title()} Deleted {$result} rows from db.");
 
-		$this->log->error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
-		return $result;
+        return $result;
     }
     
     public function toString() {
@@ -1249,13 +1371,6 @@ class Bracket extends AbstractData
 				$result += $match->save();
 			}
 		}
-
-		//Delete ALL Matches removed from this Bracket
-		foreach( $this->matchesToBeDeleted as &$match ) {
-			$result += $match->delete();
-			unset( $match );			
-		}
-        $this->matchesToBeDeleted = array();
         
 		//Save signups
 		if( isset( $this->signup ) ) {
@@ -1271,17 +1386,6 @@ class Bracket extends AbstractData
         else {
             $this->log->error_log("{$loc}({$this->toString()}) The signup was empty!");
         }
-
-		//Delete signups (Entrants) that were removed from this Bracket/Event
-		if(count($this->entrantsToBeDeleted) > 0 ) {
-			$positions = array_map( function($ent){ return $ent->getPosition();}, $this->getSignup() );
-			foreach( $this->entrantsToBeDeleted as $pos )  {
-				if( !in_array( $pos, $positions ) ) {
-					$result += Entrant::deleteEntrant( $this->getEventId(), $this->getBracketNumber(), $pos );
-				}
-			}
-			$this->entrantsToBeDeleted = array();
-		}
 
 		return $result;
 	}

@@ -6,11 +6,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-//require_once('class-abstractdata.php');
-
 /** 
  * Data and functions for Tennis Set(s)
- * @class  Match
+ * Match class is responsible for deleting Sets.
+ * @class  Set
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
@@ -40,15 +39,7 @@ class Set extends AbstractData
     //Misc
     private $early_end = 0;
     private $comments;
-    private $match; //object whose primary key is event_ID and bracket_num
-    
-    /**
-     * Search for Matches that have a name 'like' the provided criteria
-     */
-    public static function search( $criteria ) {
-		global $wpdb;
-		return array();
-    }
+    private $match; 
     
     /**
      * Find all Sets belonging to a specific Match;
@@ -298,28 +289,6 @@ class Set extends AbstractData
         if( strlen( $mess ) > 0 ) throw new InvalidSetException( $mess );
 
         return true;
-    }
-    
-    /**
-     * Delete this Set
-     */
-    public function delete() {
-        global $wpdb;
-
-        $table = $wpdb->prefix . self::$tablename;
-        $where = array( 'event_ID'    => $this->event_ID
-                       ,'bracket_num' => $this->bracket_num
-                       ,'round_num'   => $this->round_num
-                       ,'match_num'   => $this->match_num
-                       ,'set_num'     => $this->set_num );
-        $formats_where = array( '%d', '%d', '%d', '%d', '%d' );
-
-        $wpdb->delete( $table, $where, $formats_where );
-        $result = $wpdb->rows_affected;
-
-        error_log( sprintf("Set::delete(%s) deleted %d rows", $this->toString(), $result ) );
-
-        return $result;
     }
     
     public function toString() {

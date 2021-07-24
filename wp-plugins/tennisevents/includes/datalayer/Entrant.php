@@ -5,11 +5,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// require_once('class-abstract.php');
-// require_once('class-player.php');
-
 /** 
  * Data and functions for Tennis Event Entrant(s)
+ * An Entrant is a player or team of players who represent either
+ * the Home or the Visitor in a given tennis Match.
+ * NOTE: Entrants cannot be deleted except via their owning Bracket
  * @class  Entrant
  * @package Tennis Events
  * @version 1.0.0
@@ -47,7 +47,7 @@ class Entrant extends AbstractData
 	/**
 	 * 1 player for singles; 2 players for doubles;
 	 */
-	private $players;
+	private $players; //Not Fully Implemented yet
     
     /**
      * Search for Entrants that have a name 'like' the provided criteria
@@ -212,19 +212,37 @@ class Entrant extends AbstractData
 		return $obj;
 	}
 
-	static public function deleteEntrant( int $eventId, int $bracket_num, int $pos ) {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		
-		global $wpdb;
-		$result = 0;
-		$table = $wpdb->prefix . self::$tablename;
-		$wpdb->delete( $table, array( 'event_ID'=>$eventId, 'bracket_num'=>$bracket_num, 'position'=>$pos)
-							 , array( '%d', '%d', '%d' ) );
-		$result = $wpdb->rows_affected;
+	/**
+	 * Delete an idenfified entrant
+	 * Also deletes assignments to matches for this entrant
+	 * @param int $eventId The ID of the owning event
+	 * @param int $bracket_num The number of the bracket for which the entrant signed up
+	 * @param int $pos The position of the entrant in the signup
+	 * @return int The number of rows deleted
+	 */
+	// static public function deleteEntrant( int $eventId = 0, int $bracket_num = 0, int $pos = 0 ) {
+	// 	$loc = __CLASS__ . '::' . __FUNCTION__;
 
-		error_log( sprintf( "%s(%d,%d,%d) -> deleted %d row(s)", $loc, $eventId, $bracket_num, $pos, $result ) );
-		return $result;
-	}
+	// 	return Bracket::deleteEntrant($eventId, $bracket_num, $pos );
+		
+	// 	global $wpdb;
+	// 	$result = 0;
+		
+	// 	if( 0 < $eventId && 0 < $bracket_num && 0 < $pos ) {
+	// 		//First delete the intersection of matches with this entrant
+	// 		$result += EntrantMatchRelations::removeAllFromEntrant($eventId
+	// 												, $bracket_num
+	// 												, $pos );
+	// 		$table = $wpdb->prefix . self::$tablename;
+	// 		$wpdb->delete( $table, array( 'event_ID'=>$eventId, 'bracket_num'=>$bracket_num, 'position'=>$pos)
+	// 							, array( '%d', '%d', '%d' ) );
+	// 		$result = $wpdb->rows_affected;
+
+	// 		error_log( sprintf( "%s(%d,%d,%d) -> deleted %d row(s)", $loc, $eventId, $bracket_num, $pos, $result ) );
+	// 	}
+
+	// 	return $result;
+	// }
 
 
 	/*************** Instance Methods ****************/
@@ -359,31 +377,24 @@ class Entrant extends AbstractData
 	}
 
 	/**
-	 * Get the seeding of this Entrant (player(s))
+	 * Get the seeding of this Entrant
 	 */
 	public function getSeed() {
 		return $this->seed;
 	}
 	
-	public function delete() {
-		$loc = __CLASS__ . '::' . __FUNCTION__;
-		global $wpdb;
-		$result = 0;
-		$eventId = $this->getEventId();
-		$brac = $this->getBracketNumber();
-		$pos = $this->getPosition();
-		if( isset( $eventId ) && isset( $pos ) ) {
-			$table = $wpdb->prefix . self::$tablename;
-			
-			$wpdb->delete( $table,array( 'event_ID'=>$eventId,'bracket_num'=>$brac,'position'=>$pos )
-			                     ,array( '%d', '%d', '%d' ) );
-			$result = $wpdb->rows_affected;
-
-			$this->log->error_log( sprintf("%s(%s): deleted %d rows", $loc, $this->toString(), $result ) );
-		}
-		$this->setDirty();
-		return $result;
-	}
+	/**
+	 * Delete this entrant
+	 * NOTE: This will also remove any relationships with matches and signups
+	 */
+	// public function delete() {
+	// 	$loc = __CLASS__ . '::' . __FUNCTION__;
+		
+	// 	$eventId = $this->getEventId();
+	// 	$brac = $this->getBracketNumber();
+	// 	$pos = $this->getPosition();
+	// 	return self::deleteEntrant( $eventId, $brack, $pos );
+	// }
 
 	/**
 	 * Check to see if this Entrant has valid data

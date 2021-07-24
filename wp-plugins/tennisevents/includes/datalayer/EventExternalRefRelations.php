@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** 
+/**      DO NOT USE!!!!!!!!!
  * Provides functions to support the more complex
  * data operations such as maintaining intersection tables.
  * @class  EventExternalRefRelations
@@ -21,6 +21,7 @@ class EventExternalRefRelations {
 	static function remove(int $eventId, string $extRef ):int {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$result = 0;
+		throw new InvalidEventException("$loc: Don't use me!");
 		global $wpdb;
 		if( isset($extRef) && isset($eventId) ) {
 			$table = $wpdb->prefix . 'tennis_external_event';
@@ -40,6 +41,8 @@ class EventExternalRefRelations {
 	 */
 	static function add( int $eventId, string $extRef ):int {
 		$loc = __CLASS__ . '::' .  __FUNCTION__;
+		
+		throw new InvalidEventException("$loc: Don't use me!");
 		error_log("{$loc}($eventId, $extRef)");
 
 		$result = 0;
@@ -73,6 +76,7 @@ class EventExternalRefRelations {
 	public static function fetchExternalRefs( int $event_ID ) {
 		$loc = __CLASS__ .'::' .  __FUNCTION__;
 
+		throw new InvalidEventException("$loc: Don't use me!");
 		global $wpdb;
 
 		$result = array();

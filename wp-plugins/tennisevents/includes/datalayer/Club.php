@@ -135,13 +135,16 @@ class Club extends AbstractData
 	 *         Or Null if not found
 	 */
 	static public function getClubByExtRef( $extReference ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$result = 0;
+
 		global $wpdb;
 		$table = $wpdb->prefix . 'tennis_external_club';		
 		$sql = "SELECT `club_ID`
 				FROM $table WHERE `external_ID`='%s'";
 		$safe = $wpdb->prepare( $sql, $extReference );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
-		error_log( sprintf("Club::getClubByExtRef(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
+		error_log( sprintf("$loc(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
 		
 		$result = null;
 		if( count( $rows ) > 1) {
@@ -153,6 +156,56 @@ class Club extends AbstractData
 		elseif( count( $rows ) === 1 ) {
 			$result = Club::get( $rows[0]['club_ID'] );
 		}
+		return $result;
+	}
+
+	public static function deleteClubExternalRef( int $clubId = 0 ) : int {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$result = 0;
+
+		if( 0 < $clubId ) {
+			global $wpdb;
+			$table = $wpdb->prefix . 'tennis_external_club';	
+			$where = array( 'club_ID'=>$clubId );
+			$formats_where = array( '%d' );
+			$wpdb->delete( $table, $where, $formats_where );
+			$result += $wpdb->rows_affected;
+		}
+
+		return $result;
+	}
+	
+	/**
+	 * Delete this Club
+	 * NOTE: All club-event relations and associated courts will be deleted too
+	 * @param int $clubId The primary key of the club in the db
+	 */
+	public static function deleteClub( int $clubId = 0 ) : int {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$result = 0;
+
+		if( 0 < $clubId ) {
+			global $wpdb;
+			
+			//Delete all club external references
+			$result += self::deleteClubExternalRef( $clubId );
+			
+			//Delete all of the club's relationships to events
+			$result += ClubEventRelations::removeAllForClub( $clubId );
+
+			//Delete the club's courts
+			$courtTable = $wpdb->prefix . Court::$tablename;
+			$wpdb->delete( $courtTable, array( 'club_ID'=>$clubId ), array( '%d' ) );
+			$result += $wpdb->rows_affected;
+
+			//Delete the club
+			$table = $wpdb->prefix . self::$tablename;
+			$where = array( 'ID'=>$clubId );
+			$formats_where = array( '%d' );
+			$wpdb->delete( $table, $where, $formats_where );
+			$result += $wpdb->rows_affected;
+		}
+
 		return $result;
 	}
 
@@ -391,24 +444,11 @@ class Club extends AbstractData
 	}
 
 	/**
-	 * Delete this Event
-	 * NOTE: All child events, entrants and club-relations
-	 *       will be deleted by DB Cascade
+	 * Delete this Club
 	 */
 	public function delete() {
+		return self::deleteClub( $this->getID() );
 		$result = 0;
-		$clubId = $this->getID();
-		if(isset($clubId)) {
-			global $wpdb;
-			$table = $wpdb->prefix . self::$tablename;
-			$where = array( 'ID'=>$clubId );
-			$formats_where = array( '%d' );
-			$wpdb->delete($table, $where, $formats_where);
-			$result = $wpdb->rows_affected;
-		}
-
-		error_log("Club.delete: deleted $result rows");
-		return $result;
 	}
 
 	/**

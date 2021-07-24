@@ -364,12 +364,13 @@ class TE_Install {
 		if( ! $newSchema ) return;
 
 		/**
-		 * Club or venue that owns tennis courts
+		 * Club or venue that provides tennis courts
 		 */
 		$sql = "CREATE TABLE `$club_table` ( 
-				`ID` INT NOT NULL AUTO_INCREMENT,
-				`name` VARCHAR(255) NOT NULL,
-				PRIMARY KEY (`ID`) );";
+					`ID` INT NOT NULL AUTO_INCREMENT,
+					`name` VARCHAR(255) NOT NULL,
+					PRIMARY KEY (`ID`) 
+				) ENGINE = MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $club_table" : "$club_table Created";
@@ -383,17 +384,19 @@ class TE_Install {
 		 * This table enables a relationship
 		 * between clubs and external clubs in a foreign schema table 
 		 * Namely, the custom post type in WordPress called TennisClubCPT 
+		 * ,
+			CONSTRAINT `fk_ext_club`
+			FOREIGN KEY (`club_ID`)
+				REFERENCES `$club_table` (`ID`)
+				ON DELETE CASCADE
+				ON UPDATE NO ACTION
 		 */
 		$sql = "CREATE TABLE `$ext_club_ref_table` (
 			`club_ID` INT NOT NULL,
 			`external_ID` NVARCHAR(100) NOT NULL,
 			INDEX USING BTREE (`external_ID`),
-			PRIMARY KEY (`club_ID`, `external_ID`),
-			CONSTRAINT `fk_ext_club`
-			FOREIGN KEY (`club_ID`)
-				REFERENCES `$club_table` (`ID`)
-				ON DELETE CASCADE
-				ON UPDATE NO ACTION);";
+			PRIMARY KEY (`club_ID`, `external_ID`)
+			) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $ext_club_ref_table" : "$ext_event_ref_table Created";
@@ -404,18 +407,20 @@ class TE_Install {
 		}
 
 		/**
-		 * Court ... where you play tennis!
+		 * Court is the surface on which you play tennis!
+		 * ,
+				CONSTRAINT `fk_court_club`
+				FOREIGN KEY (`club_ID`)
+				  REFERENCES `$club_table` (`ID`)
+				  ON DELETE CASCADE
+				  ON UPDATE NO ACTION
 		 */
 		$sql = "CREATE TABLE `$court_table` (
 				`club_ID` INT NOT NULL,
 				`court_num` INT NOT NULL,
 				`court_type` VARCHAR(45) NOT NULL DEFAULT 'hard',
-				PRIMARY KEY (`club_ID`,`court_num`),
-				CONSTRAINT `fk_court_club`
-				FOREIGN KEY (`club_ID`)
-				  REFERENCES `$club_table` (`ID`)
-				  ON DELETE CASCADE
-				  ON UPDATE NO ACTION);";
+				PRIMARY KEY (`club_ID`,`court_num`)
+				) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $court_table" : "$court_table Created";
@@ -427,6 +432,12 @@ class TE_Install {
 
 		/**
 		 * Court bookings are recorded in this table.
+		 * ,
+			CONSTRAINT `fk_club_court_booking`
+			FOREIGN KEY (`club_ID`,`court_num`)
+			  REFERENCES $court_table (`club_ID`,`court_num`)
+			  ON DELETE CASCADE
+			  ON UPDATE CASCADE
 		 */
 		$sql = "CREATE TABLE $booking_table (
 			`ID` INT NOT NULL AUTO_INCREMENT,
@@ -434,12 +445,8 @@ class TE_Install {
 			`court_num` INT NOT NULL,
 			`book_date` DATE NULL,
 			`book_time` TIME(6) NULL,
-			PRIMARY KEY (`ID`),
-			CONSTRAINT `fk_club_court_booking`
-			FOREIGN KEY (`club_ID`,`court_num`)
-			  REFERENCES $court_table (`club_ID`,`court_num`)
-			  ON DELETE CASCADE
-			  ON UPDATE CASCADE);";	
+			PRIMARY KEY (`ID`)
+			) ENGINE=MyISAM;";	
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $booking_table" : "$booking_table Created";
@@ -454,6 +461,12 @@ class TE_Install {
 		 * representing leagues, tournaments, ladder, etc.
 		 * For example an event called 'Year End Tournament' 
 		 * having sub-events: 'Mens Singles', 'Mens Doubles', 'Womens Doubles', etc.
+		 * ,
+				CONSTRAINT `fk_hierarchy`
+				FOREIGN KEY (`parent_ID`)
+				  REFERENCES `$event_table` (`ID`)
+				  ON DELETE CASCADE
+				  ON UPDATE CASCADE
 		 */
 		$sql = "CREATE TABLE `$event_table` (
 				`ID` INT NOT NULL AUTO_INCREMENT,
@@ -470,12 +483,8 @@ class TE_Install {
 				`start_date` DATE NULL,
 				`end_date` DATE NULL,
 				`num_brackets` INT DEFAULT 1,
-				PRIMARY KEY (`ID`),
-				CONSTRAINT `fk_hierarchy`
-				FOREIGN KEY (`parent_ID`)
-				  REFERENCES `$event_table` (`ID`)
-				  ON DELETE CASCADE
-				  ON UPDATE CASCADE);";
+				PRIMARY KEY (`ID`)
+				) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $event_table" : "$event_table Created";
@@ -489,17 +498,19 @@ class TE_Install {
 		 * This table enables a relationship
 		 * between events and external events in a foreign schema table 
 		 * Namely, the custom post type in WordPress called TennisEventCPT 
+		 * ,
+				CONSTRAINT `fk_ext_event`
+				FOREIGN KEY (`event_ID`)
+					REFERENCES `$event_table` (`ID`)
+					ON DELETE CASCADE
+					ON UPDATE NO ACTION
 		 */
 		$sql = "CREATE TABLE `$ext_event_ref_table` (
 				`event_ID` INT NOT NULL,
 				`external_ID` NVARCHAR(100) NOT NULL,
 				INDEX `external_event` USING BTREE (`external_ID`),
-				PRIMARY KEY (`event_ID`, `external_ID`),
-				CONSTRAINT `fk_ext_event`
-				FOREIGN KEY (`event_ID`)
-					REFERENCES `$event_table` (`ID`)
-					ON DELETE CASCADE
-					ON UPDATE NO ACTION);";
+				PRIMARY KEY (`event_ID`, `external_ID`)
+				) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $ext_event_ref_table" : "$ext_event_ref_table Created";
@@ -513,11 +524,7 @@ class TE_Install {
 		 * This table enables a many-to-many relationship
 		 * between clubs and events 
 		 * paving the way for interclub leagues and tournaments
-		 */
-		$sql = "CREATE TABLE `$club_event_table` (
-				`club_ID` INT NOT NULL,
-				`event_ID` INT NOT NULL,
-				PRIMARY KEY(`club_ID`,`event_ID`),
+		 * ,
 				CONSTRAINT `fk_club_event`
 				FOREIGN KEY (`club_ID`)
 					REFERENCES `$club_table` (`ID`)
@@ -527,7 +534,13 @@ class TE_Install {
 				FOREIGN KEY (`event_ID`)
 					REFERENCES `$event_table` (`ID`)
 					ON DELETE CASCADE
-					ON UPDATE NO ACTION);";	
+					ON UPDATE NO ACTION
+		 */
+		$sql = "CREATE TABLE `$club_event_table` (
+				`club_ID` INT NOT NULL,
+				`event_ID` INT NOT NULL,
+				PRIMARY KEY(`club_ID`,`event_ID`)
+				) ENGINE=MyISAM;";	
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $club_event_table" : "Created table '$club_event_table'";
@@ -537,17 +550,23 @@ class TE_Install {
 			$this->log->error_log( dbDelta( $sql ), "$club_event_table");
 		}
 
+		/**
+		 * Brackets divide a draw into sections such as Main vs Consolation
+		 * or Box1, Box2, etc for Ladders
+		 * ,
+			CONSTRAINT `fk_bracket_event`
+			FOREIGN KEY (`event_ID`)
+			   REFERENCES `$event_table` (`ID`)
+			  ON DELETE CASCADE
+			  ON UPDATE CASCADE
+		 */
 		$sql = "CREATE TABLE `$bracket_table` (
 			`event_ID` INT NOT NULL,
 			`bracket_num` INT NOT NULL,
 			`is_approved` TINYINT NOT NULL DEFAULT 0,
 			`name` VARCHAR(256) NOT NULL,
-			PRIMARY KEY (`event_ID`,`bracket_num`),
-			CONSTRAINT `fk_bracket_event`
-			FOREIGN KEY (`event_ID`)
-			   REFERENCES `$event_table` (`ID`)
-			  ON DELETE CASCADE
-			  ON UPDATE CASCADE);";
+			PRIMARY KEY (`event_ID`,`bracket_num`)
+			) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $bracket_table" : "Created table '$bracket_table'";
@@ -561,14 +580,7 @@ class TE_Install {
 		 * An entrant into a tournament event.
 		 * The relationship between the event and all entrants is called a draw.
 		 * This can be a single player or a doubles pair.
-		 */
-		$sql = "CREATE TABLE `$entrant_table` (
-				`event_ID` INT NOT NULL,
-				`bracket_num` INT NOT NULL,
-				`position` INT NOT NULL,
-				`name` VARCHAR(100) NOT NULL,
-				`seed` INT NULL,
-				PRIMARY KEY  (`event_ID`,`bracket_num`,`position`),
+		 * ,
 				CONSTRAINT `fk_entrant_bracket`
 				FOREIGN KEY  (`event_ID`,`bracket_num`)
 				  REFERENCES `$bracket_table` (`event_ID`,`bracket_num`)
@@ -578,7 +590,16 @@ class TE_Install {
 				FOREIGN KEY  (`event_ID`)
 				  REFERENCES `$event_table` (`ID`)
 				  ON DELETE CASCADE
-				  ON UPDATE NO ACTION);";
+				  ON UPDATE NO ACTION
+		 */
+		$sql = "CREATE TABLE `$entrant_table` (
+				`event_ID` INT NOT NULL,
+				`bracket_num` INT NOT NULL,
+				`position` INT NOT NULL,
+				`name` VARCHAR(100) NOT NULL,
+				`seed` INT NULL,
+				PRIMARY KEY  (`event_ID`,`bracket_num`,`position`)
+				) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $entrant_table" : "Created table '$entrant_table'";
@@ -591,6 +612,12 @@ class TE_Install {
 		/**
 		 * A tennis match within a round within an event
 		 * Holds pointers to the next round creating a linked list
+		 * , 
+				CONSTRAINT `fk_match_bracket`
+				FOREIGN KEY (`event_ID`,`bracket_num`) 
+				  REFERENCES `$bracket_table` (`event_ID`,`bracket_num`) 
+				  ON DELETE CASCADE 
+				  ON UPDATE CASCADE
 		 */
 		$sql = "CREATE TABLE `$match_table` (
 				`event_ID` INT NOT NULL, 
@@ -603,12 +630,8 @@ class TE_Install {
 				`next_round_num` INT DEFAULT 0, 
 				`next_match_num` INT DEFAULT 0, 
 				`comments` VARCHAR(255) NULL, 
-				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`), 
-				CONSTRAINT `fk_match_bracket`
-				FOREIGN KEY (`event_ID`,`bracket_num`) 
-				  REFERENCES `$bracket_table` (`event_ID`,`bracket_num`) 
-				  ON DELETE CASCADE 
-				  ON UPDATE CASCADE);";
+				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
+				) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $match_table" : "Created table '$match_table'";
@@ -620,15 +643,7 @@ class TE_Install {
 		
 		/**
 		 * Assigns entrants to a matches within a round within an event
-		 */
-		$sql = "CREATE TABLE `$match_entrant_table` (
-			`match_event_ID` INT NOT NULL,
-			`match_bracket_num` INT NOT NULL,
-			`match_round_num` INT NOT NULL,
-			`match_num` INT NOT NULL,
-			`entrant_position` INT NOT NULL,
-			`is_visitor` TINYINT DEFAULT 0,
-			PRIMARY KEY(`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`,`entrant_position`),
+		 * ,
 			CONSTRAINT `fk_entrant_match`
 			FOREIGN KEY (`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`)
 				REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
@@ -638,7 +653,16 @@ class TE_Install {
 			FOREIGN KEY (`match_event_ID`,`match_bracket_num`,`entrant_position`)
 				REFERENCES `$entrant_table` (`event_ID`,`bracket_num`,`position`)
 				ON DELETE CASCADE
-				ON UPDATE CASCADE);";
+				ON UPDATE CASCADE
+		 */
+		$sql = "CREATE TABLE `$match_entrant_table` (
+			`match_event_ID` INT NOT NULL,
+			`match_bracket_num` INT NOT NULL,
+			`match_round_num` INT NOT NULL,
+			`match_num` INT NOT NULL,
+			`entrant_position` INT NOT NULL,
+			`is_visitor` TINYINT DEFAULT 0,
+			PRIMARY KEY(`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`,`entrant_position`)) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $match_entrant_table" : "Created table '$match_entrant_table'";
@@ -650,6 +674,12 @@ class TE_Install {
 
 		/**
 		 * Sets scores are kept here.
+		 * ,
+				CONSTRAINT `fk_set_match`
+				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
+				  REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
+				  ON DELETE CASCADE
+				  ON UPDATE CASCADE
 		 */
 		$sql = "CREATE TABLE `$set_table` (
 				`event_ID` INT NOT NULL,
@@ -661,16 +691,12 @@ class TE_Install {
 				`visitor_wins` INT NOT NULL DEFAULT 0,
 				`home_tb_pts` INT NOT NULL DEFAULT 0,
 				`visitor_tb_pts` INT NOT NULL DEFAULT 0,
-				`home_ties` INT NOT NULL DEFAULT 0 COMMENT 'For leagues, round robins',
-				`visitor_ties` INT NOT NULL DEFAULT 0 COMMENT 'For leagues, round robins',
+				`home_ties` INT NOT NULL DEFAULT 0,
+				`visitor_ties` INT NOT NULL DEFAULT 0,
 				`early_end` TINYINT DEFAULT 0 COMMENT '0 means set completed normally, 1 means abnormal end home defaulted, 2 means abnormal end visitor defaulted, see comments for details',
 				`comments` VARCHAR(512), 
-				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`,`set_num`),
-				CONSTRAINT `fk_set_match`
-				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
-				  REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
-				  ON DELETE CASCADE
-				  ON UPDATE CASCADE);";
+				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`,`set_num`)
+				) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $set_table" : "Created table '$set_table'";
@@ -682,13 +708,7 @@ class TE_Install {
 
 		/**
 		 * A tennis team from a league for example
-		 */
-		$sql = "CREATE TABLE `$team_table` (
-				`event_ID` INT NOT NULL,
-				`team_num` INT NOT NULL,
-				`club_ID` INT NULL,
-				`name` VARCHAR(100) NOT NULL,
-			PRIMARY KEY (`event_ID`,`team_num`),
+		 * ,
 			CONSTRAINT `fk_team_club`
 			FOREIGN KEY (`club_ID`)
 				REFERENCES `$club_table` (`ID`)
@@ -698,7 +718,15 @@ class TE_Install {
 			FOREIGN KEY (`event_ID`)
 				REFERENCES `$event_table` (`ID`)
 				ON DELETE CASCADE
-				ON UPDATE CASCADE);";
+				ON UPDATE CASCADE
+		 */
+		$sql = "CREATE TABLE `$team_table` (
+				`event_ID` INT NOT NULL,
+				`team_num` INT NOT NULL,
+				`club_ID` INT NULL,
+				`name` VARCHAR(100) NOT NULL,
+			PRIMARY KEY (`event_ID`,`team_num`)
+			) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $team_table" : "Created table '$team_table'";
@@ -710,19 +738,20 @@ class TE_Install {
 
 		/**
 		 * Teams can be divided into squads
-		 * This supports things like Team 1 with 'a' anb 'b' divisions for example.
-		 * OR Team "Adrie and Robin", squad MD (for mens doubles)
+		 * This supports things like Team 1 with 'a' and 'b' divisions for example.
+		 * OR Team "Adrie and Robin"
+		 * CONSTRAINT `fk_squad_team`
+		 *	  FOREIGN KEY (`event_ID`,`team_num`)
+		 *		REFERENCES `$team_table` (`event_ID`,`team_num`)
+		 *		ON DELETE CASCADE
+		 *		ON UPDATE CASCADE
 		 */
 		$sql = "CREATE TABLE `$squad_table` (
 				`event_ID` INT NOT NULL,
 			  	`team_num` INT NOT NULL,
 			  	`division` VARCHAR(25) NOT NULL,
-			  PRIMARY KEY (`event_ID`,`team_num`,`division`),
-			  CONSTRAINT `fk_squad_team`
-			  FOREIGN KEY (`event_ID`,`team_num`)
-				REFERENCES `$team_table` (`event_ID`,`team_num`)
-				ON DELETE CASCADE
-				ON UPDATE CASCADE);";
+			  PRIMARY KEY (`event_ID`,`team_num`,`division`)
+			) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $squad_table" : "Created table '$squad_table'";
@@ -747,7 +776,7 @@ class TE_Install {
 			  `phoneHome`     VARCHAR(45),
 			  `phoneMobile`   VARCHAR(45),
 			  `phoneBusiness` VARCHAR(45),
-			  PRIMARY KEY (`ID`));";
+			  PRIMARY KEY (`ID`)) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $player_table" : "Created table '$player_table'";
@@ -759,12 +788,7 @@ class TE_Install {
 		
 		/**
 		 * This table maps players to a team's squads
-		 */
-		$sql = "CREATE TABLE `$team_squad_player_table` ( 
-				`player_ID` INT NOT NULL,
-				`event_ID`  INT NOT NULL,
-				`team_num`  INT NOT NULL,
-				`division`  VARCHAR(2) NOT NULL,
+		 * ,
 				CONSTRAINT `fk_squad_player`
 				FOREIGN KEY (`player_ID`)
 					REFERENCES $player_table (`ID`)
@@ -774,7 +798,14 @@ class TE_Install {
 				FOREIGN KEY (`event_ID`,`team_num`,`division`)
 					REFERENCES $squad_table (`event_ID`,`team_num`,`division`)
 					ON DELETE CASCADE
-					ON UPDATE CASCADE);";	
+					ON UPDATE CASCADE
+		 */
+		$sql = "CREATE TABLE `$team_squad_player_table` ( 
+				`player_ID` INT NOT NULL,
+				`event_ID`  INT NOT NULL,
+				`team_num`  INT NOT NULL,
+				`division`  VARCHAR(2) NOT NULL
+				) ENGINE=MyISAM;";	
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $team_squad_player_table" : "Created table '$team_squad_player_table'";
@@ -787,12 +818,7 @@ class TE_Install {
 		/**
 		 * The player_entrant table is an intersection
 		 * between an an entrant in a draw and the player
-		 */
-		$sql = "CREATE TABLE `$player_entrant_table` (
-				`player_ID`  INT NOT NULL,
-				`event_ID`   INT NOT NULL,
-				`bracket_num`   INT NOT NULL,
-				`position`  INT NOT NULL,
+		 * ,
 				CONSTRAINT `fk_entrant_player`
 				FOREIGN KEY (`player_ID`)
 					REFERENCES `$player_table` (`ID`)
@@ -802,7 +828,14 @@ class TE_Install {
 				FOREIGN KEY (`event_ID`,`bracket_num`,`position`)
 					REFERENCES $entrant_table (`event_ID`,`bracket_num`,`position`)
 					ON DELETE CASCADE
-					ON UPDATE CASCADE );";
+					ON UPDATE CASCADE
+		 */
+		$sql = "CREATE TABLE `$player_entrant_table` (
+				`player_ID`  INT NOT NULL,
+				`event_ID`   INT NOT NULL,
+				`bracket_num`   INT NOT NULL,
+				`position`  INT NOT NULL 
+				) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $player_entrant_table" : "Created table '$player_entrant_table'";
@@ -815,13 +848,7 @@ class TE_Install {
 		/**
 		 * This table is the intersection between
 		 * a court booking and a tennis match
-		 */
-		$sql = "CREATE TABLE $booking_match_table (
-				`booking_ID` INT NOT NULL,
-				`event_ID` INT NOT NULL,
-				`bracket_num` INT NOT NULL,
-				`round_num` INT NOT NULL,
-				`match_num` INT NOT NULL,
+		 * ,
 				CONSTRAINT `fk_match_booking`
 				FOREIGN KEY (`booking_ID`)
 					REFERENCES $booking_table (`ID`)
@@ -831,7 +858,15 @@ class TE_Install {
 				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 					REFERENCES $match_table (`event_ID`,`bracket_num`,`round_num`,`match_num`)
 					ON DELETE CASCADE
-					ON UPDATE CASCADE);";
+					ON UPDATE CASCADE
+		 */
+		$sql = "CREATE TABLE $booking_match_table (
+				`booking_ID` INT NOT NULL,
+				`event_ID` INT NOT NULL,
+				`bracket_num` INT NOT NULL,
+				`round_num` INT NOT NULL,
+				`match_num` INT NOT NULL
+				) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $booking_match_table" : "Created table '$booking_match_table'";

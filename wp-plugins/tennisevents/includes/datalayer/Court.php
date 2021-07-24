@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Court extends AbstractData
 { 
 	//table name
-	private static $tablename = 'tennis_court';
+	public static $tablename = 'tennis_court';
 
 	private $club;
     private $club_ID;
