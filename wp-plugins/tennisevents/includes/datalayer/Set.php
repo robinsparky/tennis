@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class Set extends AbstractData
 { 
-    private static $tablename = 'tennis_set';
+    public static $tablename = 'tennis_set';
 
     const MAXGAMES = 99; //arbitrary
     const MAXSETS  = 99; //arbitrary

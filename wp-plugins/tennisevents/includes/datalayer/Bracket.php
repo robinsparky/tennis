@@ -155,6 +155,13 @@ class Bracket extends AbstractData
         global $wpdb;
         //Delete all entrants for all matches for the identified Bracket
         $result += EntrantMatchRelations::removeAllFromBracket( $eventId, $bracketNum );
+
+        //Delete all sets for all matches in the identified Bracket
+        $table = $wpdb->prefix . Set::$tablename;
+        $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum );
+        $formats_where = array( '%d', '%d' );
+        $wpdb->delete( $table, $where, $formats_where );
+        $result += $wpdb->rows_affected;
         
         //Delete all matches for the identified Bracket
         $table = $wpdb->prefix . Match::$tablename;
@@ -214,15 +221,15 @@ class Bracket extends AbstractData
         if( 0 === $eventId || 0 === $bracketNum ) return $result;
         
         global $wpdb;
-		$table = $wpdb->prefix . Match::$tablename;
-		$query = "SELECT IFNULL(COUNT(*),0) from $table
-				  WHERE event_ID=%d AND bracket_num=%d;";
-		$safe = $wpdb->prepare( $query, $eventId, $bracketNum );
-		$num = $wpdb->get_var( $safe );
+		// $table = $wpdb->prefix . Match::$tablename;
+		// $query = "SELECT IFNULL(COUNT(*),0) from $table
+		// 		  WHERE event_ID=%d AND bracket_num=%d;";
+		// $safe = $wpdb->prepare( $query, $eventId, $bracketNum );
+		// $num = $wpdb->get_var( $safe );
 
-        if( $num > 0 ) {
-            throw new InvalidBracketException("Cannot delete Entrants if Matches exist!");
-        }
+        // if( $num > 0 ) {
+        //     throw new InvalidBracketException("Cannot delete Entrants if Matches exist!");
+        // }
 
         $table = $wpdb->prefix . Entrant::$tablename;
         $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum, 'position' => $position );

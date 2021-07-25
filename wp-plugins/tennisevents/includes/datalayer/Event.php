@@ -1429,7 +1429,7 @@ class Event extends AbstractData
 
 		$result = self::deleteEvent( $this->getID() );
 		
-        $this->log->error_log("{$loc}: {$this->title()} Deleted {$result} rows from db.");
+        $this->log->error_log("{$loc}: {$this->toString()} Deleted {$result} rows from db.");
 
 		return $result;
 	}
