@@ -8,6 +8,9 @@ use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\InvalidMatchException;
+use datalayer\InvalidBracketException;
+use \Exception;
+use \InvalidArgumentException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -497,7 +500,7 @@ class ManageDraw
             }
             $data['status'] = $status;
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['status'] = '';
@@ -538,7 +541,7 @@ class ManageDraw
             $match->save();
             $data['comments'] = $comments;
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidMatchException | InvalidBracketException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['comments'] = '';
@@ -583,7 +586,7 @@ class ManageDraw
             $data['matchtime'] = $match->getMatchTime_Str();
             $data['status'] = $chairUmpire->matchStatus( $match );
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidMatchException | InvalidBracketException  $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['matchdate'] = '';

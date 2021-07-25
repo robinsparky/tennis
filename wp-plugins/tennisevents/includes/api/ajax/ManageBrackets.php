@@ -2,6 +2,7 @@
 namespace api\ajax;
 use commonlib\BaseLogger;
 use \WP_Error;
+use \Exception;
 use \TennisEvents;
 use \DateTime;
 use api\TournamentDirector;
@@ -9,7 +10,6 @@ use datalayer\Event;
 use datalayer\EventType;
 use datalayer\Bracket;
 use datalayer\Club;
-use datalayer\InvalidMatchException;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidEventException;
 use cpt\TennisEventCpt;
@@ -146,8 +146,8 @@ class ManageBrackets
                 $returnData = $data;
                 break;
             default:
-            $mess =  __( 'Illegal Bracket task.', TennisEvents::TEXT_DOMAIN );
-            $errobj->add( $errcode++, $mess );
+                $mess =  __( 'Illegal Bracket task.', TennisEvents::TEXT_DOMAIN );
+                $errobj->add( $errcode++, $mess );
         }
 
         if(count($this->errobj->errors) > 0) {
@@ -188,7 +188,7 @@ class ManageBrackets
             $data["drawlink"]   = $td->getPermaLink() . "?manage=draw&bracket={$bracket->getName()}";
             $td->save();
         } 
-        catch (Exception $ex ) {
+        catch (Exception | InvalidBracketException $ex ) {
             $errobj->add( $errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -220,7 +220,7 @@ class ManageBrackets
 
             $mess = "Added bracket '{$newBracketName}' (with number='{$bracket->getBracketNumber()}')";
         } 
-        catch (Exception $ex ) {
+        catch (Exception | InvalidBracketException $ex ) {
             $errobj->add( $errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -245,7 +245,7 @@ class ManageBrackets
             $td->save();
             $mess = "Removed bracket '{$bracketName}'";
         } 
-        catch (Exception $ex ) {
+        catch (Exception | InvalidEventException $ex ) {
             $errobj->add( $errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -286,7 +286,7 @@ class ManageBrackets
            $copy->addExternalRef((string)$copyCptId);
            $copy->save();
        }
-       catch(Exception $ex ) {
+       catch( Exception | InvalidEventException $ex ) {
            $this->errobj->add( $this->errcode++, $ex->getMessage() );
            $mess = $ex->getMessage();
        }
@@ -337,7 +337,7 @@ class ManageBrackets
            if( $nextStartDate > $parentEvent->getEndDate() ) {
                $parentName = $parentEvent->getName();
                $parentEnd = $parentEvent->getEndDate()->format("Y-m-d");
-               throw new InvalidEventException(__("Parent event '$parentName' ended on '$parentEnd'.",TennisEvents::TEXT_DOMAIN));
+               throw new InvalidEventException(__("Parent event '$parentName' ends on '$parentEnd'.",TennisEvents::TEXT_DOMAIN));
            }
            $newName = $nextStartDate->format("F");
            $nextEvent->setName( $newName );
@@ -368,9 +368,10 @@ class ManageBrackets
            $nextEvent->addExternalRef((string)$nextCptId);
            $nextEvent->save();
        }
-       catch(Exception $ex ) {
+       catch( Exception $ex ) {
            $this->errobj->add( $this->errcode++, $ex->getMessage() );
            $mess = $ex->getMessage();
+           $this->log->error_log("$loc: caught this exception $mess");
        }
        return $mess;
   }

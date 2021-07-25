@@ -1,12 +1,14 @@
 <?php
 namespace api\ajax;
+use \WP_Error;
+use \Exception;
+use \TennisEvents;
 use commonlib\BaseLogger;
+use api\TournamentDirector;
 use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Club;
-use \WP_Error;
-use \TennisEvents;
-use api\TournamentDirector;
+use datalayer\InvalidEntrantException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -280,7 +282,7 @@ class ManageSignup
             $entrant->save();
             $this->signup = [];
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidEntrantException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }

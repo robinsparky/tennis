@@ -2,7 +2,10 @@
 namespace api\ajax;
 use commonlib\BaseLogger;
 use \WP_Error;
+use \Exception;
 use datalayer\InvalidMatchException;
+use datalayer\InvalidBracketException;
+use datalayer\InvalidEntrantException;
 use \TennisEvents;
 use api\TournamentDirector;
 use datalayer\Event;
@@ -208,7 +211,7 @@ class ManageRoundRobin
             $returnName = $newHome->getSeededName();
             $data['player'] = $returnName;
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidBracketException | InvalidMatchException | InvalidEntrantException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['player'] = '';
@@ -252,7 +255,7 @@ class ManageRoundRobin
             $returnName = $newVisitor->getSeededName();
             $data['player'] = $returnName;
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidBracketException | InvalidMatchException | InvalidEntrantException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['player'] = '';
@@ -345,7 +348,7 @@ class ManageRoundRobin
                 $mess = __("Score recorded.", TennisEvents::TEXT_DOMAIN );
             }
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidBracketException | InvalidMatchException $ex ) {
             $this->log->error_log($ex,"$loc");
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
@@ -457,7 +460,7 @@ class ManageRoundRobin
             $data["entrantSummary"] = $summaryTable;
             $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidBracketException | InvalidMatchException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['status'] = '';
@@ -498,7 +501,7 @@ class ManageRoundRobin
             $match->save();
             $data['comments'] = $comments;
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidBracketException | InvalidMatchException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['comments'] = '';
@@ -543,7 +546,7 @@ class ManageRoundRobin
             $data['matchstarttime'] = $match->getMatchTime_Str();
             $data['status'] = $chairUmpire->matchStatus($match);
         }
-        catch( Exception $ex ) {
+        catch( Exception | InvalidBracketException | InvalidMatchException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['matchstartdate'] = '';
@@ -552,7 +555,6 @@ class ManageRoundRobin
         return $mess;
     }
 
-    
     /**
      * Approve the preliminary round
      */
