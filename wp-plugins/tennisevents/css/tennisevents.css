@@ -120,6 +120,17 @@ h3.tennis-leaf-event-title {
 
 .tennis-event-brackets li span {
   font-weight: bold;
+  padding: 2px 3px 2px 3px;
+}
+
+.tennis-event-brackets li span.bracket-name[contenteditable] {
+  /*text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;*/
+
+  font-weight: normal;
+  border: 1px solid grey;
+  border-radius: 5px;
+  font-style: italic;
+  /*box-shadow: 8px 8px grey;*/
 }
 
 .tennis-event-brackets li a {

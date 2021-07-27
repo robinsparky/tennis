@@ -182,9 +182,9 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 							?>
 								<li class="item-bracket" data-eventid="<?php echo $leafEvent->getID();?>" data-bracketnum="<?php echo $bracket->getBracketNumber(); ?>">
 									<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
-										<span class="bracket-name" contenteditable="true">
+										<span class="bracket-name" contenteditable>
 									<?php else: ?>
-										<span class="bracket-name" contenteditable="false">
+										<span class="bracket-name">
 									<?php endif ?>
 									<?php echo $bracket->getName()?></span>&colon;
 									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?manage=signup&bracket=<?php echo $bracket->getName(); ?>">View Signup, </a>
