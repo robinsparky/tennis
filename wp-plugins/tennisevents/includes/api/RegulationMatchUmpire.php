@@ -108,10 +108,11 @@ class RegulationMatchUmpire extends ChairUmpire
     public function getMatchSummary( Match &$match, $force = false ) {
         $startTime = \microtime( true );
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
+        //$calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
 
         $title = $match->toString();
-        $this->log->error_log("$loc($title) called by {$calledBy}" );
+        $tr = GW_Debug::get_debug_trace_Str();
+        $this->log->error_log("$loc($title) trace: $tr" );
         //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
         
         //NOTE: It is imperative that sets be in ascending order of set number
@@ -229,7 +230,7 @@ class RegulationMatchUmpire extends ChairUmpire
                     , "earlyEnd"       => $earlyEnd
                     , "comments"       => $cmts ];
 
-        error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", GW_DEbug::micro_time_elapsed( $startTime )));
+        error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", GW_Debug::micro_time_elapsed( $startTime )));
         $this->log->error_log($result, "$loc: Match Summary Result");
 
         return $result;

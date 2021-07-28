@@ -2,6 +2,7 @@
 namespace datalayer;
 use \TennisEvents;
 use commonlib\GW_Support;
+use commonlib\GW_Debug;
 use utilities\CleanJsonSerializer;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -333,25 +334,29 @@ class Match extends AbstractData
 
     /**  NOT IMPLEMENTED YET.
      * Resequence the matches for an event. 
-     * @param $evtId The event id
-     * @param $bracket The bracket of interest
-     * @param $start the value of the starting match number
-     * @parram $inc the increment to use in generating the match numbers
+     * @param int $evtId The event id
+     * @param int $bracket The bracket of interest
+     * @param int $start the value of the starting match number
+     * @param int $inc the increment to use in generating the match numbers
      */
-    static public function resequence( int $evtId,int $bracket = 1, int $start = 1, $inc = 1 ) {
+    static public function resequence( int $evtId, int $bracket = 1, int $start = 1, $inc = 1 ) {
         $result = 0;
-        if( $start > 0 && $inc > 0 ) {
-            $result = 0;
-        }
         return $result;
     }
 
-    public static function deleteMatch( int $eventId, int $bracketNum, int $roundNum, int $matchNum ) : int {
+    public static function deleteMatch( int $eventId = 0, int $bracketNum = 0, int $roundNum = 0, int $matchNum = 0 ) : int {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $result = 0;
 
+        if( 0 === $eventId 
+        ||  0 === $bracketNum
+        ||  0 === $roundNum
+        ||  0 === $matchNum ) {
+            return $result;
+        }
+
         //First delete the intersection of entrants with this match
-        $result += EntrantMatchRelations::removeAllFromMatch($eventId
+        $result += EntrantMatchRelations::removeAllFromMatch( $eventId
                                                             , $bracketNum
                                                             , $roundNum
                                                             , $matchNum );
@@ -954,15 +959,17 @@ class Match extends AbstractData
      * @param $h The home entrant
      */
     public function setHomeEntrant( Entrant $h ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $tr = GW_Debug::get_debug_trace_Str(2);
+        $this->log->error_log("$loc:{$this->title()} $tr");
+
         $result = false;
         if( isset( $h ) ) {
             $existing = $this->getHomeEntrant();
-            if( isset( $existing ) ) {
-                Bracket::deleteEntrant( $this->getBracket()->getEventId()
-                                        , $this->getBracket()->getBracketNumber()
-                                        , $this->getRoundNumber()
-                                        , $this->getMatchNumber()
-                                        , $existing->getPosition() );
+            if( isset( $existing ) && ($existing->getName() !== $h->getName()) ) {
+                $this->log->error_log("$loc: nulling home entrant {$existing->getName()} from {$this->toString()}");
+                $this->home = null;
+                $this->home_ID = 0;
             }
             $this->home = $h;
             $this->home_ID = $h->getPosition();
@@ -985,15 +992,17 @@ class Match extends AbstractData
      * @param $v The visitor entrant
      */
     public function setVisitorEntrant( Entrant $v ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $tr = GW_Debug::get_debug_trace_Str(2);
+        $this->log->error_log("$loc:{$this->title()} $tr");
+
         $result = false;
         if( isset( $v ) ) {
             $existing = $this->getVisitorEntrant();
-            if( isset( $existing ) ) {
-                Bracket::deleteEntrant( $this->getBracket()->getEventId()
-                                        , $this->getBracket()->getBracketNumber()
-                                        , $this->getRoundNumber()
-                                        , $this->getMatchNumber()
-                                        , $existing->getPosition() );
+            if( isset( $existing )  && ($existing->getName() !== $v->getName())) {
+                $this->log->error_log("$loc: nulling visitor entrant {$existing->getName()} from {$this->toString()}");
+                $this->visitor = null;
+                $this->visitor_ID = 0;
             }
             $this->visitor = $v;
             $this->visitor_ID = $v->getPosition();
@@ -1004,7 +1013,7 @@ class Match extends AbstractData
 
     /**
      * Get the visitor Entrant
-     * @param $force IF true then Entrants will be fetched and overwrite existing.
+     * @param $force If true then Entrants will be fetched from db.
      */
     public function getVisitorEntrant( $force = false ) {
         $fetch = false;
@@ -1043,7 +1052,7 @@ class Match extends AbstractData
             $code = 500;
             $this->log->error_log( $mess );
         } 
-        elseif ( !$this->isNew() &&  !isset( $this->bracket_num ) || $this->bracket_num === 0 ) {
+        elseif ( !$this->isNew() &&  (!isset( $this->bracket_num ) || $this->bracket_num === 0 ) ) {
             $mess = __( "$id must have a bracket number." );
             $code = 510;
             $this->log->error_log( $mess );
@@ -1080,7 +1089,7 @@ class Match extends AbstractData
             $this->log->error_log( $mess );
         }
 
-        if( false === MatchType::isValid( $this->match_type )) {
+        if( false === MatchType::isValid( $this->match_type ) ) {
             $mess = __( "{$id} - Match Type is invalid: {$this->match_type}", TennisEvents::TEXT_DOMAIN );
             $code = 560;
             $this->log->error_log( $mess );

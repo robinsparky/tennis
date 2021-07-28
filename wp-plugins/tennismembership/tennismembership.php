@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 global $wpdb;
 $wpdb->hide_errors(); 
 
-if (isset($tennisMembership) && is_object($tennisMembership) && is_a($tennisMembership, 'TennisMembership') ) return;
+if (isset($tennisMembership) && is_object($tennisMembership) && is_a($tennisMembership, '\TennisMembership') ) return;
 
 /**
  * Main Plugin class.

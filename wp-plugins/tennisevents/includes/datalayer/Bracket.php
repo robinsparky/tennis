@@ -216,21 +216,16 @@ class Bracket extends AbstractData
      */
     public static function deleteEntrant( int $eventId = 0, int $bracketNum = 0, $position = 0 ) : int {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        error_log("$loc($eventId,$bracketNum,$position)");
 
 		$result = 0;
-        if( 0 === $eventId || 0 === $bracketNum ) return $result;
+        if( 0 === $eventId || 0 === $bracketNum || 0 === $position ) return $result;
         
+        //Delete all match assignments for this Entrant
+        $result += EntrantMatchRelations::removeAllFromEntrant( $eventId, $bracketNum, $position );
+
+        //Delete this Entrant from the signup
         global $wpdb;
-		// $table = $wpdb->prefix . Match::$tablename;
-		// $query = "SELECT IFNULL(COUNT(*),0) from $table
-		// 		  WHERE event_ID=%d AND bracket_num=%d;";
-		// $safe = $wpdb->prepare( $query, $eventId, $bracketNum );
-		// $num = $wpdb->get_var( $safe );
-
-        // if( $num > 0 ) {
-        //     throw new InvalidBracketException("Cannot delete Entrants if Matches exist!");
-        // }
-
         $table = $wpdb->prefix . Entrant::$tablename;
         $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum, 'position' => $position );
         $formats_where = array( '%d', '%d', '%d' );
@@ -641,7 +636,7 @@ class Bracket extends AbstractData
         $evtId = $this->getEventId();
         $bracketNum = $this->getBracketNumber();
         $this->log->error_log("{$loc}: eventId='{$evtId}' and bracketNum='{$bracketNum}' ");
-		$sql = "CREATE TEMPORARY TABLE temp_entrant as 
+		$sql = "CREATE TEMPORARY TABLE temp_entrant ENGINE=MyISAM as 
 					SELECT * 
 					FROM `$table` 
 					WHERE `event_ID` = %d

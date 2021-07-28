@@ -148,6 +148,10 @@
 
             console.log($(item).attr('data-currentpos'));
             let currentPos = parseFloat($(item).attr('data-currentpos'));
+            if( isNaN(currentPos ) ) {
+                console.log("Current Position is not a number");
+                return;
+            }
 
             let prevPos = 0;
             if($(item).prev()) {
@@ -166,6 +170,10 @@
                 newPos = maxPos + 1;
             }
             console.log("prevPos=" + prevPos + "; nextPos=" + nextPos + "; moveTo=" + newPos);
+            if( isNaN(newPos) ) {
+                console.log("Move To is not a number");
+                return;
+            }
 
             $(item).attr("data-currentpos", newPos );
             $(item).children('.entrantPosition').html(newPos);

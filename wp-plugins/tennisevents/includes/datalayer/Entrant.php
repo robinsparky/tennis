@@ -82,8 +82,8 @@ class Entrant extends AbstractData
      */
     public static function find(...$fk_criteria) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("{$loc}: fk_criteria ... ");
-        error_log(print_r($fk_criteria,true));
+        // error_log("{$loc}: fk_criteria ... ");
+        // error_log(print_r($fk_criteria,true));
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -211,39 +211,6 @@ class Entrant extends AbstractData
 		}
 		return $obj;
 	}
-
-	/**
-	 * Delete an idenfified entrant
-	 * Also deletes assignments to matches for this entrant
-	 * @param int $eventId The ID of the owning event
-	 * @param int $bracket_num The number of the bracket for which the entrant signed up
-	 * @param int $pos The position of the entrant in the signup
-	 * @return int The number of rows deleted
-	 */
-	// static public function deleteEntrant( int $eventId = 0, int $bracket_num = 0, int $pos = 0 ) {
-	// 	$loc = __CLASS__ . '::' . __FUNCTION__;
-
-	// 	return Bracket::deleteEntrant($eventId, $bracket_num, $pos );
-		
-	// 	global $wpdb;
-	// 	$result = 0;
-		
-	// 	if( 0 < $eventId && 0 < $bracket_num && 0 < $pos ) {
-	// 		//First delete the intersection of matches with this entrant
-	// 		$result += EntrantMatchRelations::removeAllFromEntrant($eventId
-	// 												, $bracket_num
-	// 												, $pos );
-	// 		$table = $wpdb->prefix . self::$tablename;
-	// 		$wpdb->delete( $table, array( 'event_ID'=>$eventId, 'bracket_num'=>$bracket_num, 'position'=>$pos)
-	// 							, array( '%d', '%d', '%d' ) );
-	// 		$result = $wpdb->rows_affected;
-
-	// 		error_log( sprintf( "%s(%d,%d,%d) -> deleted %d row(s)", $loc, $eventId, $bracket_num, $pos, $result ) );
-	// 	}
-
-	// 	return $result;
-	// }
-
 
 	/*************** Instance Methods ****************/
 	public function __construct( int $eventID=null, int $bracket=null, string $pname=null,int $seed=null ) {

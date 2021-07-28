@@ -4,6 +4,7 @@ namespace api;
 use commonlib\Math_Combinatorics;
 use commonlib\BaseLogger;
 use commonlib\GW_Support;
+use \TennisEvents;
 use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Match;
@@ -11,6 +12,7 @@ use datalayer\EventType;
 use datalayer\MatchType;
 use datalayer\Entrant;
 use datalayer\Format;
+use datalayer\InvalidBracketException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -306,7 +308,7 @@ class TournamentDirector
      * Advance completed matches to their respective next rounds
      * in a single elimination event. And save the results.
      * @param string $bracketName name of the bracket
-     * @return int Number of entrants advanced
+     * @return mixed Number of entrants advanced or name of the Champion
      */
     private function advanceSingleElimination( $bracketName ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;        
@@ -343,7 +345,7 @@ class TournamentDirector
                 //When the bracket is approved all matches from preliminary to the end of the 
                 // tournament are generated. So we should not have the case where a next match
                 // is null until the very last match
-                $mess = "Match {$title} has invalid next match pointers.";
+                $mess = "Match '{$title}' has invalid next match pointers.";
                 $this->log->error_log( $mess );
                 throw new InvalidTournamentException( $mess );
             }

@@ -195,7 +195,8 @@ class ManageSignup
      */
     private function moveEntrant( array $data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc");
+        $this->log->error_log("$loc...");
+        $this->log->error_log($data);
 
         $this->eventId = $data["eventId"];
         $this->bracketName = $data["bracketName"];
