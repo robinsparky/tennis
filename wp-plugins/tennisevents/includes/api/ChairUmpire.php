@@ -465,7 +465,7 @@ abstract class ChairUmpire
         $winner = $this->matchWinner( $match );
 
         $wname = 'no winner yet';
-        if( is_a( $winner, 'Entrant' ) ) {
+        if( is_a( $winner, 'datalayer\Entrant' ) ) {
             $wname = $winner->getName();
         }
         elseif( is_string( $winner ) ) {
