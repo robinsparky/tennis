@@ -967,9 +967,8 @@ class Match extends AbstractData
         if( isset( $h ) ) {
             $existing = $this->getHomeEntrant();
             if( isset( $existing ) && ($existing->getName() !== $h->getName()) ) {
-                $this->log->error_log("$loc: nulling home entrant {$existing->getName()} from {$this->toString()}");
-                $this->home = null;
-                $this->home_ID = 0;
+                $mess = "$loc: Changing existing  home entrant {$existing->getName()} from {$this->toString()} should not happen?";
+                throw InvalidMatchException($mess);
             }
             $this->home = $h;
             $this->home_ID = $h->getPosition();
@@ -1000,9 +999,8 @@ class Match extends AbstractData
         if( isset( $v ) ) {
             $existing = $this->getVisitorEntrant();
             if( isset( $existing )  && ($existing->getName() !== $v->getName())) {
-                $this->log->error_log("$loc: nulling visitor entrant {$existing->getName()} from {$this->toString()}");
-                $this->visitor = null;
-                $this->visitor_ID = 0;
+                $mess = "$loc: Changing existing  visitor entrant {$existing->getName()} from {$this->toString()} should not happen?";
+                throw InvalidMatchException($mess);
             }
             $this->visitor = $v;
             $this->visitor_ID = $v->getPosition();
