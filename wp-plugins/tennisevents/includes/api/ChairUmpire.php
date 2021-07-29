@@ -235,6 +235,11 @@ abstract class ChairUmpire
         $visitorwins    = $score["visitorGames"];
         $visitor_tb_pts = $score["visitorTieBreaker"];
 
+        if( !is_numeric( $homewins) ) $homewins = 0;
+        if( !is_numeric( $home_tb_pts) ) $home_tb_pts = 0;
+        if( !is_numeric( $visitorwins) ) $visitorwins = 0;
+        if( !is_numeric( $visitor_tb_pts) ) $visitor_tb_pts = 0;
+
         $this->log->error_log("{$loc}: before allowable game score call: home={$homewins}, visitor={$visitorwins}");
         $this->getAllowableGameScore( $homewins, $visitorwins );
         $this->log->error_log("{$loc}: after allowable game score call: home={$homewins}, visitor={$visitorwins}");
