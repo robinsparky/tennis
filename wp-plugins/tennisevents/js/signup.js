@@ -91,12 +91,17 @@
             data = data || [];
             console.log("applyResults:");
             console.log(data);
+            toggleButtons( data.numPreliminary );
+            if(data.task === "reseqSignup") {
+                //window.location.reload();
+            }
+            else if( data.task === "createPrelim" ) {
+                //toggleButtons( data.numPreliminary );
+            }
+
             ctr = 1;
-            for( var i=0; i < data.length; i++ ) {
-                let entrant = data[i];
-                // if(entrant.task === "reseqSignup") {
-                //     window.location.reload();
-                // }
+            for( var i=0; i < data.entrants.length; i++ ) {
+                let entrant = data.entrants[i];
                 let key     = "#" + entrant.name.replace(/ /g,'_');
                 //console.log(entrant);
                 if( $(key).length > 0) {

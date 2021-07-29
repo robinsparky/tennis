@@ -142,6 +142,7 @@ class ManageSignup
         $response = array();
         $data = $_POST["data"];
         $task = $data["task"];
+        $numPreliminary = 0;
         switch( $task ) {
             case "move":
                 $mess = $this->moveEntrant( $data );
@@ -157,6 +158,7 @@ class ManageSignup
                 break;
             case "createPrelim":
                 $mess = $this->createPreliminary( $data );
+                $numPreliminary = $data["numPreliminary"];
                 break;
             case "reseqSignup":
                 $mess = $this->reseqSignup( $data );
@@ -175,11 +177,13 @@ class ManageSignup
           Setup the return data which is the signup or empty array
         */
         $signupArray = [];
+        $signupArray["entrants"] = [];
         foreach( $this->signup as $entrant ) {
             $arrEntrant = $entrant->toArray();
-            $arrEntrant["task"]=$task;
-            $signupArray[] = $arrEntrant;
+            $signupArray["entrants"][] = $arrEntrant;
         }
+        $signupArray["numPreliminary"]=$numPreliminary;
+        $signupArray["task"]=$task;
         //$this->log->error_log($signupArray, "$loc: Signup Array:");
         $response["returnData"] = $signupArray;
 
@@ -194,7 +198,7 @@ class ManageSignup
      * @param array $data Associative array contaning entrant's data
      * @return string message describing the result of the operation
      */
-    private function moveEntrant( array $data ) {
+    private function moveEntrant( array &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc...");
         $this->log->error_log($data);
@@ -224,7 +228,7 @@ class ManageSignup
      * @param array $data Associative array contaning entrant's data
      * @return string message describing the result of the operation
      */
-    private function reseqSignup( array $data ) {
+    private function reseqSignup( array &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -251,7 +255,7 @@ class ManageSignup
      * @param array $data Associative array containing entrant's data
      * @return string message describing result of the operation
      */
-    private function updateEntrant( array $data ) {
+    private function updateEntrant( array &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
 
@@ -297,7 +301,7 @@ class ManageSignup
      * @param array $data Associative array of entrant's data
      * @return string message describing result of the operation
      */
-    private function deleteEntrant( array $data ) {
+    private function deleteEntrant( array &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -328,7 +332,7 @@ class ManageSignup
      * @param array $data Associative array containing the entrant's data
      * @return string message describing result of the operation
      */
-    private function addEntrant( array $data ) {
+    private function addEntrant( array &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -362,7 +366,7 @@ class ManageSignup
      * @param array $data Associative array containing the entrant's data
      * @return string message describing result of the operation
      */
-    private function createPreliminary( $data ) {
+    private function createPreliminary( array &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -373,6 +377,7 @@ class ManageSignup
             $bracketName = $data["bracketName"];
             $this->log->error_log("$loc with bracketName='$bracketName'");
             $numMatches = $td->schedulePreliminaryRounds( $bracketName );
+            $data["numPreliminary"] = $numMatches;
             $mess =  __("Created $numMatches preliminary matches for '$bracketName' bracket.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
