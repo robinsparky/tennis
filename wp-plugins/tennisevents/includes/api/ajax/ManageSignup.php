@@ -2,6 +2,7 @@
 namespace api\ajax;
 use \WP_Error;
 use \Exception;
+use \TypeError;
 use \TennisEvents;
 use commonlib\BaseLogger;
 use api\TournamentDirector;
@@ -210,7 +211,7 @@ class ManageSignup
             $rows = $bracket->moveEntrant( $fromPos, $toPos );
             $this->signup = $bracket->getSignup( true );
         }
-        catch( Exception $ex ) {
+        catch( Exception | TypeError $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }

@@ -161,7 +161,7 @@ class RenderSignup
         $isApproved = $bracket->isApproved();
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
         //Get the signup for this bracket
-        $this->signup = $td->getSignup( $bracketName );
+        $this->signup = $bracket->getSignup();
         $this->log->error_log( $this->signup, "$loc: Signup");
         $numSignedUp = count( $this->signup );
 
@@ -209,7 +209,7 @@ EOT;
                 $htm = sprintf( $templr, $nameId, $pos, $rname );
             }
             else {
-                $htm = sprintf( $templw, $nameId, $pos, $ctr++, $name, $seed, $nameId );
+                $htm = sprintf( $templw, $nameId, $pos, $pos, $name, $seed, $nameId );
             }
             $out .= $htm;
         }

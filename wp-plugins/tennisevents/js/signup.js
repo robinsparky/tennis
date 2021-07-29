@@ -89,22 +89,19 @@
 
         function applyResults( data ) {
             data = data || [];
+            console.log("applyResults:");
+            console.log(data);
             ctr = 1;
             for( var i=0; i < data.length; i++ ) {
                 let entrant = data[i];
-                //Check if prelim rounds were created or removed
-                if( entrant.task == "approve") {
-                    toggleButtons( 1 );
-                    return;
-                }
-                else if( entrant.task = "reset" ) {
-                    toggleButtons( 0 );
-                    return;
-                }
+                // if(entrant.task === "reseqSignup") {
+                //     window.location.reload();
+                // }
                 let key     = "#" + entrant.name.replace(/ /g,'_');
                 //console.log(entrant);
                 if( $(key).length > 0) {
-                    $(key).children(".entrantPosition").html( ctr++ + ".");
+                    //$(key).children(".entrantPosition").html( ctr++ + ".");
+                    $(key).children(".entrantPosition").html( entrant.position + ".");
                     $(key).attr("data-currentPos",entrant.position);
                     $(key).children("input.entrantName").val(entrant.name);
                     $(key).children("input.entrantSeed").val(entrant.seed);
@@ -150,6 +147,8 @@
             let currentPos = parseFloat($(item).attr('data-currentpos'));
             if( isNaN(currentPos ) ) {
                 console.log("Current Position is not a number");
+                alert("Current position is not a number.");
+                window.location.reload();
                 return;
             }
 
@@ -172,6 +171,8 @@
             console.log("prevPos=" + prevPos + "; nextPos=" + nextPos + "; moveTo=" + newPos);
             if( isNaN(newPos) ) {
                 console.log("Move To is not a number");
+                alert("Move to position is not a number.");
+                window.location.reload();
                 return;
             }
 

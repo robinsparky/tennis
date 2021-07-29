@@ -3,6 +3,7 @@ namespace datalayer;
 
 use commonlib\GW_Debug;
 use commonlib\GW_Support;
+use \TennisEvents;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
