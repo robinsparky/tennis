@@ -11,6 +11,8 @@ use api\TournamentDirector;
 use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Club;
+use datalayer\Format;
+use datalayer\ScoreType;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -455,7 +457,7 @@ class ManageRoundRobin
             $data['status'] = $status;
             
             $pointsPerWin = 1;
-            if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+            if( $event->getScoreType() === ScoreType::POINTS2 ) $pointsPerWin = 2;
             $summaryTable = $chairUmpire->getEntrantSummary( $bracket, $pointsPerWin );
             $data["entrantSummary"] = $summaryTable;
             $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
