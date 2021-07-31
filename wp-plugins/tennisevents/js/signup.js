@@ -97,6 +97,7 @@
             }
             else if( data.task === "createPrelim" ) {
                 //toggleButtons( data.numPreliminary );
+                window.location=$('a.link-to-draw').attr("href");
             }
 
             ctr = 1;

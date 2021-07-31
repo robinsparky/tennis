@@ -49,7 +49,7 @@ use datalayer\Format;
 					}
 					$drawUrl = get_permalink() . "?manage=signup&bracket=" . $bracketName;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					echo "<div class='tennis-link-container'><a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Signup</a>&nbsp;";
+					echo "<div class='tennis-link-container'><a class='link-to-signup' href='{$drawUrl}'>{$bracketName} Signup</a>&nbsp;";
 				
 					foreach( $event->getBrackets() as $bracket) {
 						if( $bracketName !== $bracket->getName() ) {

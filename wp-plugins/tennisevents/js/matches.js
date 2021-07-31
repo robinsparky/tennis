@@ -158,11 +158,12 @@
                         window.location.reload(); 
                         break;
                     case 'reset':
+                        window.location=$('a.link-to-signup').attr('href');
                         $('#approveDraw').prop('disabled', true );
                         $('#createPrelim').prop('disabled', false );
                         $('#removePrelim').prop('disabled', true );
                         $('#advanceMatches').prop('disabled', true );
-                        window.location.reload(); 
+                        //window.location.reload(); 
                         break;
                     case 'approve': 
                         $('#approveDraw').prop('disabled', true );
@@ -200,6 +201,9 @@
                     case 'advance':   
                         advanceMatches( data );
                         updateChampion( data );
+                        break;
+                    case 'reset':
+                        window.location=$('a.link-to-signup').attr('href');
                         break;
                     default:
                         console.log("Unknown task from server: '%s'", task);

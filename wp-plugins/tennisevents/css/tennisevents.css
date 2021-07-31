@@ -74,6 +74,10 @@
   border: 2px black solid;
 }
 
+a.link-to-signup:nth-of-type(odd) {
+  color: black;
+}
+
 a.link-to-draw:nth-of-type(odd) {
   color: black;
 }
