@@ -475,6 +475,7 @@ div.modifymatchscores.save-cancel-buttons {
 
 .matchstatus {
   font-size: 100%;
+  font-weight: bold;
 }
 
 .matchcomments {
