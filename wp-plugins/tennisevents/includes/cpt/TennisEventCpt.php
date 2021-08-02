@@ -66,7 +66,12 @@ class TennisEventCpt {
 		add_action('manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array($tennisEvt, 'getColumnValues'), 10, 2);
 		add_filter('manage_edit-' . self::CUSTOM_POST_TYPE . '_sortable_columns', array($tennisEvt, 'sortableColumns'));
 		add_action('pre_get_posts', array($tennisEvt, 'orderby'));
+
+		//Emit css in the header of admin page to hide the "view post" notice from WP
+		add_action( 'admin_head-post-new.php', array($tennisEvt,'hide_view_post_css'));
+		add_action( 'admin_head-post.php', array($tennisEvt,'hide_view_post_css'));
 		
+		//Taxonomy filter
 		add_action( 'restrict_manage_posts', array($tennisEvt,'addTaxonomyFilter'), 10, 1 );
 
 		//Gender type filter
@@ -83,14 +88,21 @@ class TennisEventCpt {
 
 		//Required actions for meta boxes
 		add_action('add_meta_boxes', array($tennisEvt, 'metaBoxes'));
+
 		// Hook for updating/inserting into Tennis tables
 		add_action('save_post', array($tennisEvt, 'updateTennisDB'), 12);
+
 		//Hook for deleting cpt
 		add_action('delete_post', array($tennisEvt, 'deleteTennisDB'));
-		//Error handling function used by updateTennisDB function below it:
+
+		//Error handling function used by updateTennisDB to show admin notices
 		add_action('admin_notices', array($tennisEvt, 'handle_errors') );
 	}
 
+	/**
+	 * Copy constructor
+	 * @param TennisEventCpt $copyMe The optional custom post type to be copied.
+	 */
 	public function __construct( TennisEventCpt $copyMe = null ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log = new BaseLogger(true);
@@ -102,6 +114,19 @@ class TennisEventCpt {
 			}
 			$this->log->error_log($this,"Copied CPT");
 		}
+	}
+	
+	/**
+	 * Emit some css to hide the "view post" message when editing Tennis Events
+	 */
+	public function hide_view_post_css() {
+		global $post_type;
+		/* set post types */
+		$post_types = array(
+				self::CUSTOM_POST_TYPE
+			  );
+		if(in_array($post_type, $post_types))
+		echo "<style type='text/css'>div#message.updated.notice {display: none;}</style>";
 	}
 
 	public function enqueue($hook) {
@@ -1113,6 +1138,7 @@ class TennisEventCpt {
 			return;
 		}
 
+
 		if (isset($_POST['post_title'])) {
 			$evtName = sanitize_text_field($_POST['post_title']);
 		} else {
@@ -1134,29 +1160,43 @@ class TennisEventCpt {
 
 		$parentPostId = 0;
 		$parentEvent = $parentPost = null;
-		$currentParentPostId = $_POST['currentExtRefId'];
 		if (isset($_POST['tennis_parent_event_field'])) {
 			$parentPostId = (int)sanitize_text_field($_POST['tennis_parent_event_field']);
 		}
+		
+		//Test to see if event has matches
+		// because we cannot edit an event that already contains matches
+		$tennisEvt = $this->getEventByExtRef($post_id);
+		if( !empty( $tennisEvt ) && !empty($parentPostId) ) {
+			foreach( $tennisEvt->getBrackets() as $bracket ) {
+				if( count( $bracket->getMatches()) > 0 ) {				
+					$this->log->error_log("$loc - cannot edit an event that already has matches.");
+					$this->add_error(__('Cannot edit event that has matches initiated.', TennisEvents::TEXT_DOMAIN));
+					return;
+				}
+			}
+		}
 
 		$parentEventType = '';
-		if (!empty($parentPostId) && $parentPostId > 0) {
+		if ( !empty($parentPostId) && $parentPostId > 0 ) {
 			$parentPost = get_post($parentPostId);
 			if (is_null($parentPost)) {
 				delete_post_meta( $post_id, self::PARENT_EVENT_META_KEY );
-				$this->add_error( __('No such parent event', TennisEvents::TEXT_DOMAIN ) );
-				$this->log->error_log("No such custom post parent event: '{$parentPostId}'");
+				$this->add_error( __('No such parent custom post type event', TennisEvents::TEXT_DOMAIN ) );
+				$this->log->error_log("No such parent custom post type event: '{$parentPostId}'");
 			}
 			$this->log->error_log($parentPostId, "$loc: Parent post id");
 
 			$parentEvent = $this->getEventByExtRef($parentPostId);
 			if (is_null($parentEvent)) {
 				delete_post_meta($post_id, self::PARENT_EVENT_META_KEY);
-				$this->add_error( __( 'No such parent event', TennisEvents::TEXT_DOMAIN ) );
-				$this->log->error_log("No such actual parent tennis event: '{$parentPostId}'");
+				$this->add_error( __( 'No such parent tennis event', TennisEvents::TEXT_DOMAIN ) );
+				$this->log->error_log("No such parent tennis event with external reference: '{$parentPostId}'");
 			}
-			$parentEventType = $parentEvent->getEventType();
-			update_post_meta($post_id, self::PARENT_EVENT_META_KEY, $parentPostId);
+			else {
+				$parentEventType = $parentEvent->getEventType();
+				update_post_meta($post_id, self::PARENT_EVENT_META_KEY, $parentPostId);
+			}
 		} else {
 			delete_post_meta($post_id, self::PARENT_EVENT_META_KEY);
 		}
