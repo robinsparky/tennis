@@ -960,14 +960,14 @@ class Match extends AbstractData
      */
     public function setHomeEntrant( Entrant $h ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        $tr = GW_Debug::get_debug_trace_Str(2);
-        $this->log->error_log("$loc:{$this->title()} $tr");
+        // $tr = GW_Debug::get_debug_trace_Str(2);
+        // $this->log->error_log("$loc:{$this->title()} $tr");
 
         $result = false;
         if( isset( $h ) ) {
             $existing = $this->getHomeEntrant();
             if( isset( $existing ) && ($existing->getName() !== $h->getName()) ) {
-                $mess = "$loc: Changing existing  home entrant {$existing->getName()} from {$this->toString()} should not happen?";
+                $mess = "$loc:{$this->toString()} Changing existing home entrant from '{$existing->getName()}' to '{$h->getName()}' should not happen?";
                 throw InvalidMatchException($mess);
             }
             $this->home = $h;
@@ -992,14 +992,14 @@ class Match extends AbstractData
      */
     public function setVisitorEntrant( Entrant $v ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        $tr = GW_Debug::get_debug_trace_Str(2);
-        $this->log->error_log("$loc:{$this->title()} $tr");
+        // $tr = GW_Debug::get_debug_trace_Str(2);
+        // $this->log->error_log("$loc:{$this->title()} $tr");
 
         $result = false;
         if( isset( $v ) ) {
             $existing = $this->getVisitorEntrant();
             if( isset( $existing )  && ($existing->getName() !== $v->getName())) {
-                $mess = "$loc: Changing existing  visitor entrant {$existing->getName()} from {$this->toString()} should not happen?";
+                $mess = "$loc:{$this->toString()}  Changing existing visitor entrant from '{$existing->getName()}' to '{$v->getName()}' should not happen?";
                 throw InvalidMatchException($mess);
             }
             $this->visitor = $v;
