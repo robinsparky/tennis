@@ -262,7 +262,8 @@ EOT;
  <li><a class="setmatchstart">Start Date &amp; Time</a></li>
  <li><a class="setcomments">Comment Match</a></li></ul>
 </div>
-<div class="matchinfo matchtitle">%s&nbsp;<span class="matchinfo matchstatus">%s</span></div>
+<div class="matchinfo matchtitle">%s</div>
+<div class="matchinfo matchstatus">%s</div>
 <div class="matchcomments">%s</div>
 <div class="matchinfo matchstart">%s &nbsp; %s</div>
 <div class="changematchstart">
@@ -512,7 +513,8 @@ EOT;
 
         $templ = <<<EOT
 <td class="item-player" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d" data-majorstatus="%d" data-minorstatus="%d">
-<div class="matchinfo matchtitle">%s&nbsp;<span class="matchinfo matchstatus">%s</span></div>
+<div class="matchinfo matchtitle">%s</div>
+<div class="matchinfo matchstatus">%s</div>
 <div class="matchcomments">%s</div>
 <div class="matchinfo matchstart">%s &nbsp; %s</div>
 <div class="homeentrant %s">%s</div>

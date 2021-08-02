@@ -444,6 +444,7 @@ div.modifymatchscores.save-cancel-buttons {
 
 .matchtitle {
   text-decoration: underline;
+  width: 90%;
 }
 
 .matchwinner {
@@ -455,14 +456,14 @@ div.modifymatchscores.save-cancel-buttons {
 .homeentrant {
   color: rgb(0, 0, 139);
   font-size: small;
-  width: 60%;
+  width: 90%;
   margin: 0 auto;
 }
 
 .visitorentrant {
   color: green;
   font-size: small;
-  width: 60%;
+  width: 90%;
   margin: 0 auto;
 }
 
