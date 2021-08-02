@@ -7,6 +7,7 @@ use datalayer\Match;
 use datalayer\EventType;
 use datalayer\MatchType;
 use datalayer\Entrant;
+use datalayer\InvalidBracketException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -256,12 +257,15 @@ class RegulationMatchUmpire extends ChairUmpire
         if( $bracket->isApproved() ) {
             $lastRound = $bracket->getNumberOfRounds();
             $finalMatches = $bracket->getMatchesByRound( $lastRound );
-            // $this->log->error_log("$loc: lastRound={$lastRound}");
+            $this->log->error_log("$loc: lastRound={$lastRound}");
 
             if( count( $finalMatches ) !== 1 ) {
                 $c = count( $finalMatches );
                 $errmess = "Final round in bracket '{$bracketName}' with {$lastRound} rounds does not have exactly one match({$c}).";
-                //$this->log->error_log( $errmess );
+                $this->log->error_log( $errmess );
+                foreach ($finalMatches as $match) {
+                    $this->log->error_log("Last Round Match: {$match->title()}");
+                }
                 throw new InvalidBracketException( $errmess );
             } else {
                 $finalMatch = array_pop($finalMatches);
