@@ -368,8 +368,8 @@ class Bracket extends AbstractData
 	public function removeFromSignup( string $name ) {
 		$result = false;
         
-        if( count( $this->getMatches() > 0 ) ) {
-            $mess = $this->title() . ":Cannot remove anyone from signup because matches exist.";
+        if( count( $this->getMatches() ) > 0 ) {
+            $mess = $this->title() . ": Cannot remove anyone from signup because matches exist.";
             throw new InvalidBracketException( $mess );
         }
 
