@@ -289,17 +289,20 @@ class Event extends AbstractData
 		$result = 0;
 		global $wpdb;
 
-		//Delete all relationships to clubs
+		//Delete all external references
+		$result += ExternalRefRelations::remove( 'event' , $eventId );
+
+		//Delete all relationships to clubs'
 		$result += ClubEventRelations::removeAllForEvent( $eventId );
 
 		//Delete all brackets for the event		
 		$bracketTable = $wpdb->prefix . Bracket::$tablename;		
 		$sql = "SELECT `bracket_num`
 		FROM $bracketTable WHERE `event_ID`='%d'";
-		$safe = $wpdb->prepare( $sql, $id );
+		$safe = $wpdb->prepare( $sql, $eventId );
 		$rows = $wpdb->get_results( $safe, ARRAY_N );
 		foreach ($rows as $bracket_num ) {
-			$result += Bracket::deleteBracket( $eventId, $bracket_num );
+			$result += Bracket::deleteBracket( $eventId, $bracket_num[0] );
 		}
 
 		$table = $wpdb->prefix . self::$tablename;

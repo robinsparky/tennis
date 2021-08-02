@@ -21,15 +21,15 @@ class ExternalRefRelations {
 	/**
 	 * Remove a relationship between and Club and an external reference
 	 */
-	static function remove(string $target, int $Id, string $extRef ):int {
+	static function remove(string $target, int $Id, string $extRef = "" ):int {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log("{$loc}($target, $Id, $extRef)");
 
 		$result = 0;
 		global $wpdb;
 		if( isset($extRef) && isset($Id) ) {
-			switch( $target ) {
-				case 'club':					
+			switch( strtolower($target) ) {
+				case 'club':						
 					$table = $wpdb->prefix . self::ClubExternalTable;
 					$col_ID = 'club_ID';
 					break;
@@ -38,9 +38,17 @@ class ExternalRefRelations {
 					$col_ID = 'event_ID';
 					break;
 				default:
+					error_log("$loc: Unknown Target='$target'");
 					return 0; //early return
 			}
-			$wpdb->delete($table,array( $col_ID => $Id, 'external_ID' => $extRef ),array('%d','%d'));
+			if( !empty( $extRef ) ) {
+				//Delete specific intersection for this club or event
+				$wpdb->delete($table,array( $col_ID => $Id, 'external_ID' => $extRef ),array('%d','%d'));
+			}
+			else {
+				//Delete all intersections for this event or club
+				$wpdb->delete($table,array( $col_ID => $Id ),array('%d'));
+			}
 			$result = $wpdb->rows_affected;
 		}
 		if( $wpdb->last_error ) {
