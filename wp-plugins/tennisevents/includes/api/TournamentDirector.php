@@ -988,7 +988,7 @@ class TournamentDirector
             $match->setHomeEntrant( $home );
             $match->setMatchType( $this->matchType );
             $bracket->addMatch( $match );
-            error_log( sprintf( "%s -> added bye for seeded player %s to round %d using match number %d", $loc, $home->getName(), $initialRound, $lastSlot ) );
+            $this->log->error_log( sprintf( "%s -> added bye for seeded player %s to round %d using match number %d", $loc, $home->getName(), $initialRound, $lastSlot ) );
         }
 
         $matchnum = $lowMatchnum;
@@ -1002,7 +1002,7 @@ class TournamentDirector
             $match->setHomeEntrant( $home );
             $match->setMatchType( $this->matchType );
             $bracket->addMatch( $match );            
-            error_log( sprintf( "%s -> added bye for unseeded player %s in round %d using match number %d", $loc, $home->getName(), $initialRound, $mn ) );
+            $this->log->error_log( sprintf( "%s -> added bye for unseeded player %s in round %d using match number %d", $loc, $home->getName(), $initialRound, $mn ) );
         }
 
         //Set the first lot of matches starting from end of the line
