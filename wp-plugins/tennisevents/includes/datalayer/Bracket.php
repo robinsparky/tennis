@@ -607,7 +607,7 @@ class Bracket extends AbstractData
 
         return $result;
     }
-	
+ 
     /**
      * Resequence the signup for the given event
      */
@@ -981,6 +981,51 @@ class Bracket extends AbstractData
         $this->matches = array();
 		
         return $this->setDirty();
+    }
+
+    /**
+     * This method moves (i.e. swaps) the Home and Visitor of the source Match
+     * with the Home and Visitor of the target match.
+     * Only works for Round 1 (i.e. Preliminary round). The Bracket cannot be approved!
+     * @param int $sourceMatchNum Match number of the source match
+     * @param int $targetMatchNum Match number of the target match
+     * @return array The 2 matches affected by the swap
+     */
+    public function swapPlayers(int $sourceMatchNum, int $targetMatchNum ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("$loc({$sourceMatchNum},{$targetMatchNum })");
+
+        $result = [];
+        if( $this->isApproved() ) {
+            $mess = __("Bracket '{$this->getName()}' has been approved. Cannot swap players.", TennisEvents::TEXT_DOMAIN);
+            return new InvalidTennisOperationException();
+        }
+
+        $sourceMatch = $this->getMatch(1, $sourceMatchNum );
+        $targetMatch = $this->getMatch(1, $targetMatchNum );
+        
+        if( !isset( $sourceMatch ) || !isset( $targetMatch ) ) {
+            return $result;
+        }
+
+        if( $sourceMatch->isBye() || $targetMatch->isBye() ) {
+            return $result;
+        }
+
+        $sourceHome = $sourceMatch->getHomeEntrant();
+        $sourceVisitor = $sourceMatch->getVisitorEntrant();
+        $targetHome = $targetMatch->getHomeEntrant();
+        $targetVisitor = $targetMatch->getVisitorEntrant();
+
+        $sourceMatch->setHomeEntrant($targetHome);
+        $sourceMatch->setVisitorEntrant($targetVisitor);
+        $targetMatch->setHomeEntrant($sourceHome);
+        $targetMatch->setVisitorEntrant($sourceVisitor);
+
+        $result["source"] = ["roundNum" => 1, "matchNum" => $sourceMatchNum, "home" => ["name" => $targetHome->getName(), "seed" => $targetHome->getSeed()], "visitor"=> ["name"=>$targetVisitor->getName(), "seed" => $targetVisitor->getSeed()]];
+        $result["target"] = ["roundNum" => 1, "matchNum" => $targetMatchNum, "home" => ["name" => $sourceHome->getName(), "seed" => $sourceHome->getSeed()], "visitor"=> ["name"=>$sourceVisitor->getName(), "seed" => $sourceVisitor->getSeed()]];
+
+        return $result;
     }
     
     /**

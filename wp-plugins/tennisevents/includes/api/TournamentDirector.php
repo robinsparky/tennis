@@ -172,11 +172,35 @@ class TournamentDirector
 
     /**
      * Get the name of the Tennis Club for this tournament
-     * @return string Name of the club
+     * @return string Name of the club; defaults to home club
      */
     public function getClubName() {
+        $clubName = '';
+        $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
         $clubs = $this->getEvent()->getClubs();
-        return $clubs[0]->getName();
+        foreach( $clubs as $club ) {
+            if( $homeClubId === $club->getID()) {
+                $clubName = $club->getName();
+            }
+        }
+        return $clubName;
+    }
+
+    /**
+     * Get the the ID of Tennis Club for this tournament
+     * @return int Home club Id; defaults to home club
+     */
+    public function getClubId() {
+        $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
+        return $homeClubId;
+        // $clubs = $this->getEvent()->getClubs();
+        // $found = false;
+        // foreach( $clubs as $club ) {
+        //     if( $homeClubId === $club->getID()) {
+        //         $found = true;
+        //     }
+        // }
+        // return $found ? $homeClubId : 0;
     }
 
     /**
@@ -750,9 +774,9 @@ class TournamentDirector
         $result = 0;
         if( isset( $bracket ) ) {
             try {
-                $result = Match::move( $this->event->getID(), $bracket->getBracketNumber(), $fromRoundNum, $fromMatchNum, $toMatchNum, $cmts );
+                $result = $bracket->moveMatch( $this->event->getID(), $bracket->getBracketNumber(), $fromRoundNum, $fromMatchNum, $toMatchNum, $cmts );
             }
-            catch( InvalidMatchException $ex ) {
+            catch( Exception | InvalidMatchException $ex ) {
                 $result = 0;
             }
         }

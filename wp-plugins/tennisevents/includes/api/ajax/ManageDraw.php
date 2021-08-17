@@ -11,6 +11,7 @@ use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\InvalidMatchException;
 use datalayer\InvalidBracketException;
+use datalayer\InvalidTennisOperationException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -171,6 +172,10 @@ class ManageDraw
                 break;
             case 'advance':
                 $mess = $this->advanceMatches( $data );
+                $returnData = $data;
+                break;
+            case 'move':
+                $mess = $this->swapPlayers( $data );
                 $returnData = $data;
                 break;
             default:
@@ -448,6 +453,52 @@ class ManageDraw
         }
         return $mess;
     }
+
+    /**
+     * Exchanges players between 2 matches.
+     * @param array $data
+     * @return string Message about failure or success/
+     *                $data is also modified to return data to the client/browser
+     */
+    private function swapPlayers( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $sourceRn = (int)$data["sourceRn"];//not used
+        $sourceMn = (int)$data["sourceMn"];
+        $targetMn = (int)$data["targetMn"];
+        $mess = __("Failed to swap players!", TennisEvents::TEXT_DOMAIN );
+
+        try {            
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+            $bracketNum = $bracket->getBracketNumber();
+            //Swap players
+            $matchesAffected = $bracket->swapPlayers( $sourceMn, $targetMn );
+            if( !empty( $matchesAffected ) ) { 
+                $mess = __("Swapped players between Match# {$matchesAffected["source"]["matchNum"]} and Match# {$matchesAffected["target"]["matchNum"]}", TennisEvents::TEXT_DOMAIN );
+                $td->save();
+                $data["bracketNum"] = $bracketNum;
+                $data["swap"] = $matchesAffected;
+            }
+            else {
+                throw new InvalidTennisOperationException($mess);
+            }
+        }
+        catch( Exception | InvalidBracketException | InvalidTennisOperationException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+
+    }
     
     /**
      * Default an entrant and record the comments for a specific match identified in $data
@@ -500,7 +551,7 @@ class ManageDraw
             }
             $data['status'] = $status;
         }
-        catch( Exception | InvalidArgumentException $ex ) {
+        catch( Exception | InvalidBracketException | InvalidMatchException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['status'] = '';

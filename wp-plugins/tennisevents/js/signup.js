@@ -194,8 +194,6 @@
             signupData.clubId = $('.signupContainer').attr("data-clubid");
             signupData.eventId = $('.signupContainer').attr("data-eventid");
             signupData.bracketName = $('.signupContainer').attr("data-bracketname");
-
-
             ajaxFun( signupData );
         }
 

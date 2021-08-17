@@ -693,6 +693,23 @@ button.cancelmatchstart {
   text-transform: none;
 }
 
+/*--------------------------------------------------------------------
+ * Animations
+ *-------------------------------------------------------------------*/
+.emphasize-swap {
+  animation-duration: 3s;
+  animation-name: swap-emphasis;
+}
+
+@keyframes swap-emphasis {
+  from {
+    background-color: lightblue;
+  }
+  to {
+    background-color: inherit;
+  }
+}
+
 /*-----------------------------------------------------------------
  * Signup styling
  *----------------------------------------------------------------*/

@@ -18,6 +18,7 @@ class EntrantMatchRelations {
 	
 	/**
 	 * Create a relationship between an Entrant and a Match
+	 * NOTE: This method will delete any existing Home/Visitor relationship first
 	 * @param int $eventId The ID of the event
 	 * @param int $bracket The bracket number
 	 * @param int $roundNum The round number of the match
@@ -40,6 +41,18 @@ class EntrantMatchRelations {
 
 		//Don't add if already there
 		if( $num == 0 ) {
+			//First if adding a Home then any deletee any existing Home
+			//      if adding a Visitor then delete any existing Visitor
+			$wpdb->delete($table
+			 			 , array('match_event_ID'    => $eventId
+						  ,'match_bracket_num' => $bracket
+						  ,'match_round_num'   => $roundNum
+						  ,'match_num'         => $matchNum
+						  ,'is_visitor'        => $visitor )
+						  ,array('%d', '%d', '%d', '%d', '%d'));
+			$result = $wpdb->rows_affected;
+
+			//Now add this entrant position to the match for this Home/Visitor
 			$wpdb->insert($table
 						 ,array('match_event_ID'    => $eventId
 						       ,'match_bracket_num' => $bracket
@@ -48,7 +61,7 @@ class EntrantMatchRelations {
 							   ,'entrant_position'  => $pos
 							   ,'is_visitor'        => $visitor )
 			             ,array('%d', '%d', '%d', '%d', '%d', '%d'));
-			$result = $wpdb->rows_affected;
+			$result += $wpdb->rows_affected;
 		}
 
 		if($wpdb->last_error) {

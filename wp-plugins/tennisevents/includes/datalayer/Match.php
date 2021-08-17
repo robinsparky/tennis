@@ -165,185 +165,6 @@ class Match extends AbstractData
 		return $obj;
     }
 
-
-    /**
-     * Move a match from its current spot to the target match number.
-     * If successful, the change is cacaded to the dependent tables (such as Set and EntrantMatch tables)
-     * @param int $eventId The event id of this match
-     * @param int $bracket The bracket within the event
-     * @param int $round The round number of this match
-     * @param int $fromMatchNum The match's current number (i.e. place in the lineup)
-     * @param int $toMatchNum The intended place for this match
-     * @param string $cmts Comments, if any, associated with the move
-     * @return int The rows affected by this cascading update
-     */
-    static public function move( int $eventId, int $bracket, int $round, int $fromMatchNum, int $toMatchNum, string $cmts = null ) {
-		global $wpdb;
-        $table = $wpdb->prefix . self::$tablename;
-        $fromId = "Match($eventId,$bracket_num,$round,$fromMatchNum)";
-        $toId = "Match($eventId,$bracket_num,$round,$toMatchNum)";
-        $tempMatchNum = 99999;
-        
-        date_default_timezone_set("America/Toronto");
-        $stamp = date("Y-m-d h:i:sa");
-        $comments = isset( $cmts ) ? $cmts : "Moved from $fromId to $toId on $stamp";
-        $result = 0;
-
-        //Check match numbers for appropriate ranges
-        if( $fromMatchNum < 1 || $bracket < 1 || $bracket > 2 || $toMatchNum < 1 || $toMatchNum >= $tempMatchNum || ( $fromMatchNum === $toMatchNum ) ) {
-            error_log("Match::move $fromId to $toId: match number(s) out of range.");
-            return $result; //early return
-        }
-
-        error_log( "Match::move: attempting to move from $fromId to $toId with comments='$comments'" );
-        $sql = "SELECT count(*) 
-                FROM $table WHERE event_ID = %d AND bracket_num=%d AND round_num = %d AND match_num = %d;";
-                
-        $safe = $wpdb->prepare( $sql, array( $eventId, $bracket, $round, $fromMatchNum ) );
-        $sourceExists = (int) $wpdb->get_var( $safe );
-        error_log("Move $fromId to $toId: sourceExists=$sourceExists");
-
-        if( $sourceExists === 1 ) {
-            //Source match exists
-            //Check if target (i.e. the toMatchNum) exists             
-            $safe = $wpdb->prepare( $sql, array( $eventId, $bracket, $round, $toMatchNum ) );
-            $targetExists = (int) $wpdb->get_var( $safe );
-            if( $targetExists === 0 ) {
-                //Target match number does not exist, so just update the match number to the target number
-                $values = array( 'match_num' => $toMatchNum
-                                ,'comments'  => $comments );
-
-                $formats_values = array( '%d', '%s' );
-                $where          = array( 'event_ID'  => $eventId
-                                        ,'bracket_num' => $bracket
-                                        ,'round_num' => $round
-                                        ,'match_num' => $fromMatchNum );
-                $formats_where  = array( '%d', '%d', '%d', '%d' );
-        
-                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
-                $result = $wpdb->rows_affected;
-
-                if( $wpdb->last_error ) {
-                    $mess = "Moving $fromId to $toId: update open match number encountered error: '$wpdb->last_error'";
-                    error_log("Match.move: $mess");
-                    throw new InvalidMatchException( $mess ); 
-                }
-                error_log( "Match::move to open match number $toMatchNum: $result rows affected." );
-            }
-            else {   
-                //Source and target match numbers exist ...
-                //First we have to move the source match to a safe place 
-                // ... give it a temporary match number
-                $values = array( 'match_num' => $tempMatchNum
-                                ,'comments'  => $comments );
-
-                $formats_values = array( '%d', '%s' );
-                $where          = array( 'event_ID'  => $eventId
-                                        ,'bracket_num' => $bracket
-                                        ,'round_num' => $round
-                                        ,'match_num' => $fromMatchNum );
-                $formats_where  = array( '%d', '%d', '%d', '%d' );
-
-                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
-
-                if( $wpdb->last_error ) {
-                    $mess = "Moving $fromId to temporary number $tempMatchNum: encountered error: '$wpdb->last_error'";
-                    error_log("Match.move: $mess");
-                    throw new InvalidMatchException( $mess ); 
-                }
-                error_log( "Match::move $fromId to temporary match number $tempMatchNum: $check rows affected." );
-
-                //Target exists so update match_num by 1 starting from highest to lowest 
-                // i.e. from the highest match_num (but less than temp number) down to the target match_num
-                //Need to start a transaction (default isolation level)
-                $wpdb->query( "start transaction;" );
-
-                $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date 
-                        FROM $table WHERE event_ID = %d AND bracket_num=%d AND round_num = %d AND match_num >= %d and match_num < %d 
-                        ORDER BY match_num DESC FOR UPDATE;";
-                $safe = $wpdb->prepare( $sql, array( $eventId, $bracket, $round, $toMatchNum, $tempMatchNum ) );
-                $trows = $wpdb->get_results( $safe );
-
-                if( $wpdb->last_error ) {
-                    $mess = "Moving $fromId to $toId: select for update encountered error: '$wpdb->last_error'";
-                    error_log( "Match.move: $mess" );
-                    $wpdb->query( "rollback;" ); 
-                    throw new InvalidMatchException( $mess ); 
-                }
-                
-                foreach( $trows as $trow ) {
-                    $oldNum = $trow->match_num;
-                    $newNum = $trow->match_num + 1;
-
-                    $values = array( 'match_num' => $newNum );
-                    $formats_values = array( '%d' );
-                    $where          = array( 'event_ID'  => $eventId
-                                            ,'bracket_num' => $bracket
-                                            ,'round_num' => $round
-                                            ,'match_num' => $oldNum );
-                    $formats_where  = array( '%d', '%d', '%d', '%d' );
-                    $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
-
-                    if( $wpdb->last_error ) {
-                        $mess = "Moving $fromId to $toId: updating $oldNum to $newNum encountered error: '$wpdb->last_error'";
-                        error_log("Match.move: $mess");
-                        $wpdb->query( "rollback;" ); 
-                        throw new InvalidMatchException( $mess ); 
-                    }
-
-                    $result += $wpdb->rows_affected;
-                    error_log( "Match::move making room -> moved match number $oldNum to $newNum:  $result cumulative rows affected." );
-                }
-
-                //Now update the source's temporary match number to the target number
-                $values = array( 'match_num' => $toMatchNum
-                                , 'comments'  => $comments );
-                $formats_values = array( '%d', '%s' );
-                $where          = array( 'event_ID'  => $eventId
-                                        ,'bracket_num' => $bracket
-                                        ,'round_num' => $round
-                                        ,'match_num' => $tempMatchNum );
-                $formats_where  = array( '%d', '%d', '%d' );
-                $check = $wpdb->update( $table, $values, $where, $formats_values, $formats_where );
-
-                if( $wpdb->last_error ) {
-                    $mess = "Moving $fromId to $toId: updating $tempMatchNum to $toMatchNum encountered error: '$wpdb->last_error'";
-                    error_log("Match.move: $mess");
-                    $wpdb->query( "rollback;" ) ; 
-                    throw new InvalidMatchException( $mess ); 
-                }
-                $result += $wpdb->rows_affected;
-                
-                $wpdb->query( "commit;" );  
-                error_log( "Match::move from $tempMatchNum to $toMatchNum: $result cumulative rows affected." );
-            }
-        }
-        elseif( $sourceExists > 1 ) {
-            //Error condition
-            $mess = __( "$fromId: multiple matches found." );
-            error_log( $mess );
-            throw new InvalidMatchException( $mess, 500 );
-        }
-        elseif( $sourceExists === 0 ) {
-            $mess = __( "$fromId: does not exist." );
-            error_log("Match::move $mess" );
-        }
-
-        return $result;
-    }
-
-    /**  NOT IMPLEMENTED YET.
-     * Resequence the matches for an event. 
-     * @param int $evtId The event id
-     * @param int $bracket The bracket of interest
-     * @param int $start the value of the starting match number
-     * @param int $inc the increment to use in generating the match numbers
-     */
-    static public function resequence( int $evtId, int $bracket = 1, int $start = 1, $inc = 1 ) {
-        $result = 0;
-        return $result;
-    }
-
     public static function deleteMatch( int $eventId = 0, int $bracketNum = 0, int $roundNum = 0, int $matchNum = 0 ) : int {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $result = 0;
@@ -958,21 +779,38 @@ class Match extends AbstractData
      * Set the Home opponent for this match
      * @param $h The home entrant
      */
-    public function setHomeEntrant( Entrant $h ) {
+    public function setHomeEntrant( Entrant $h = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         // $tr = GW_Debug::get_debug_trace_Str(2);
         // $this->log->error_log("$loc:{$this->title()} $tr");
 
         $result = false;
+        $existing = $this->getHomeEntrant();
         if( isset( $h ) ) {
-            $existing = $this->getHomeEntrant();
-            if( isset( $existing ) && ($existing->getName() !== $h->getName()) ) {
+            if( isset( $existing ) && ($existing->getName() === $h->getName()) ) {
+                return $result;
+            }
+            elseif( isset( $existing ) ) {
                 $mess = "$loc:{$this->toString()} Changing existing home entrant from '{$existing->getName()}' to '{$h->getName()}' should not happen?";
-                throw InvalidMatchException($mess);
+                $this->log->error_log( $mess );
+                //throw new InvalidOperationException($mess);
             }
             $this->home = $h;
             $this->home_ID = $h->getPosition();
             $result = $this->setDirty();
+        }
+        else {
+            if( isset($existing) ) {
+                $bracket = $this->getBracket();
+                EntrantMatchRelations::remove($bracket->getEventId()
+                                            , $bracket->getBracketNumber()
+                                            , $this->getRoundNumber()
+                                            , $this->getMatchNumber()
+                                            , $existing->getPosition() );
+                $this->home = null;
+                $this->home_ID = 0;
+                $result = $this->setDirty();
+            }
         }
         return $result;
     }
@@ -990,21 +828,38 @@ class Match extends AbstractData
      * Set the Visitor opponent for this match
      * @param $v The visitor entrant
      */
-    public function setVisitorEntrant( Entrant $v ) {
+    public function setVisitorEntrant( Entrant $v = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         // $tr = GW_Debug::get_debug_trace_Str(2);
         // $this->log->error_log("$loc:{$this->title()} $tr");
 
         $result = false;
+        $existing = $this->getVisitorEntrant();
         if( isset( $v ) ) {
-            $existing = $this->getVisitorEntrant();
-            if( isset( $existing )  && ($existing->getName() !== $v->getName())) {
-                $mess = "$loc:{$this->toString()}  Changing existing visitor entrant from '{$existing->getName()}' to '{$v->getName()}' should not happen?";
-                throw InvalidMatchException($mess);
+            if( isset( $existing ) && ($existing->getName() === $v->getName()) ) {
+                return $result;
+            }
+            elseif( isset( $existing ) ) {
+                $mess = "$loc:{$this->toString()} Changing existing home entrant from '{$existing->getName()}' to '{$v->getName()}' should not happen?";
+                $this->log->error_log( $mess );
+                //throw new InvalidOperationException($mess);
             }
             $this->visitor = $v;
             $this->visitor_ID = $v->getPosition();
             $result = $this->setDirty();
+        }
+        else {
+            if( isset($existing) ) {
+                $bracket = $this->getBracket();
+                EntrantMatchRelations::remove($bracket->getEventId()
+                                            , $bracket->getBracketNumber()
+                                            , $this->getRoundNumber()
+                                            , $this->getMatchNumber()
+                                            , $existing->getPosition() );
+                $this->visitor = null;
+                $this->visitor_ID = 0;
+                $result = $this->setDirty();
+            }
         }
         return $result;
     }

@@ -212,15 +212,15 @@ class RenderDraw
 
         $scoreType     = $td->getEvent()->getScoreType();
         $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
-        $this->eventId = $td->getEventId();
         $parentName    = $td->getParentEventName();
 
         $jsData = $this->get_ajax_data();
-        $jsData["eventId"] = $this->eventId;
+        $jsData["clubId"]  = $td->getClubId();
+        $jsData["eventId"] = $this->eventId = $td->getEventId();
         $jsData["bracketName"] = $bracketName;
         $jsData["numSignedUp"] = $signupSize;
         $jsData["numPreliminary"] = $numPreliminaryMatches;
-        $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
+        $jsData["isBracketApproved"] = $bracket->isApproved() ? 1 : 0;
         $jsData["numSets"] = $umpire->getMaxSets();
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
@@ -242,7 +242,12 @@ EOT;
         $out .= "<th>Champion</th>";
         $out .= "</tr></thead>" . PHP_EOL;
 
-        $out .= "<tbody>" . PHP_EOL;
+        if( $bracket->isApproved() ) {
+            $out .= "<tbody>" . PHP_EOL;
+        }
+        else {
+            $out .= "<tbody class='prelimOnly'>" . PHP_EOL;
+        }
 
         $templ = <<<EOT
 <td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d"  data-majorstatus="%d"  data-minorstatus="%d">
@@ -253,8 +258,8 @@ EOT;
 </svg>
 
 <ul class="matchaction unapproved">
- <li><a class="changehome">Replace Home</a></li>
- <li><a class="changevisitor">Replace Visitor</a><li></ul>
+ <!-- <li><a class="changehome">Replace Home</a></li>
+ <li><a class="changevisitor">Replace Visitor</a><li></ul> -->
 <ul class="matchaction approved">
  <li><a class="recordscore">Enter Score</a></li>
  <li><a class="defaulthome">Default Home</a></li>
@@ -262,7 +267,7 @@ EOT;
  <li><a class="setmatchstart">Start Date &amp; Time</a></li>
  <li><a class="setcomments">Comment Match</a></li></ul>
 </div>
-<div class="matchinfo matchtitle">%s</div>
+<div class="matchinfo matchtitle ui-sortable-handle">%s</div>
 <div class="matchinfo matchstatus">%s</div>
 <div class="matchcomments">%s</div>
 <div class="matchinfo matchstart">%s &nbsp; %s</div>
@@ -290,7 +295,13 @@ EOT;
         $row = 0;
         foreach( $preliminaryRound as $match ) {
             ++$row;
-            $out .= "<tr>";
+            if( $bracket->isApproved() ) {
+                $out .= "<tr>";
+            }
+            else {
+                $out .= "<tr data-currentpos={$row} class='drawRow ui-state-default'>";
+            }
+
             $r = 1; //means preliminary round (i.e. first column)
             $nextRow = '';
             try {
@@ -535,8 +546,8 @@ EOT;
         $row = 0;
         foreach( $preliminaryRound as $match ) {
             ++$row;
-            $out .= "<tr>";
             $r = 1; //means preliminary round (i.e. first column)
+            $out .= "<tr>";
             $nextRow = '';
             try {
                 $title = $match->title();
