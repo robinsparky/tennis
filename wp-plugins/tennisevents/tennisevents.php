@@ -19,6 +19,7 @@ use api\RenderRoundRobin;
 use api\ajax\ManageRoundRobin;
 use api\ajax\ManageBrackets;
 use api\rest\TennisControllerManager;
+use special\PickleballSurvey;
 
 //Uncomment this to turn off all logging in this plugin
 //$GLOBALS['TennisEventNoLog'] = 1;
@@ -723,3 +724,23 @@ function handleExtraChars() {
 
 
 //gc_enable();
+
+//Temporary functionality for Pickleball
+add_action('admin_menu', 'create_tools_submenu');
+function create_tools_submenu() {
+    add_management_page( 'Pickleball', 'Pickleball Survey', 'manage_options', 'pickleball', 'generate_page_content' );
+}
+
+function generate_page_content() {
+
+	$psurvey = new PickleballSurvey();
+	$psurvey->run();
+
+	echo '<div>';
+	echo $psurvey->getSurvey();
+	echo '</div>';
+	
+}
+
+//5.8 gutenberg fails totally except in Chrome when using localhost
+//add_filter( 'use_block_editor_for_post', '__return_false' );
