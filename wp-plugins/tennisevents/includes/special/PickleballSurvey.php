@@ -58,7 +58,7 @@ class PickleballSurvey
         return $rows;
     }
 
-    /*
+    /* A SAMPLE POST_CONTENT FROM FLAMINGO INBOUND POST TYPE
     Robin Smith
     robin.sparky@gmail.com
     Pickleball Survey
