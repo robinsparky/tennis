@@ -347,7 +347,7 @@ class ManageDraw
                 $data['matchdate'] = $match->getMatchDate_Str();
                 $data['matchtime'] = $match->getMatchTime_Str();
 
-                $data['advanced'] = $td->advance( $bracketName );
+                $data['advanced'] = 0; //$td->advance( $bracketName );
                 $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
                 $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
                 

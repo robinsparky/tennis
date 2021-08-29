@@ -200,7 +200,7 @@
           case "savescore":
             updateMatchDate(data);
             updateScore(data);
-            advanceMatches(data);
+            //advanceMatches(data);
             break;
           case "setcomments":
             updateComments(data);
@@ -238,8 +238,8 @@
       console.log(data);
       $("#advanceMatches").prop("disabled", false);
       let advanced = data.advanced || data;
-      if (!isString(advanced) && advanced >= 1) {
-        alert(`${advanced} matches should be advanced.`);
+      if (typeof advanced === "number" && advanced >= 1) {
+        console.log(`${advanced} matches will be advanced.`);
         window.location.reload();
       }
     }
@@ -1061,6 +1061,9 @@
      */
     $("#advanceMatches").on("click", function (event) {
       console.log("advanceMatches fired!");
+
+      let ans = confirm("Are you sure you want to advance the matches?");
+      if (false === ans) return;
 
       $(this).prop("disabled", true);
       let eventId = tennis_draw_obj.eventId;

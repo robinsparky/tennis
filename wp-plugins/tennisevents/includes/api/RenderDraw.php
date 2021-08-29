@@ -257,8 +257,8 @@ EOT;
 </path>
 </svg>
 
-<ul class="matchaction unapproved">
- <!-- <li><a class="changehome">Replace Home</a></li>
+<!-- <ul class="matchaction unapproved">
+ <li><a class="changehome">Replace Home</a></li>
  <li><a class="changevisitor">Replace Visitor</a><li></ul> -->
 <ul class="matchaction approved">
  <li><a class="recordscore">Enter Score</a></li>
@@ -448,10 +448,9 @@ EOT;
             if( !$bracket->isApproved() ) {
                 $out .= '<button class="button" type="button" id="approveDraw">Approve</button>' . PHP_EOL;
             }
-            if( !empty($champion) ) {
+            else {
                 $out .= '<button class="button" type="button" id="advanceMatches">Advance Matches</button>' . PHP_EOL;
             }
-
             $out .= '<button class="button" type="button" id="removePrelim">Reset Bracket</button>&nbsp;' . PHP_EOL;
         }
 
