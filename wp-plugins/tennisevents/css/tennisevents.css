@@ -140,6 +140,7 @@ h3.tennis-leaf-event-title {
 .tennis-event-brackets li a {
   font-size: medium;
   text-decoration: double;
+  text-decoration: underline;
   margin: 0 0 0 0;
   color: black;
 }
@@ -372,7 +373,7 @@ table.tennis-display-scores td {
   padding: 0 !important;
   border: none;
   padding-top: 5px;
-  min-width: 2rem;
+  min-width: 30%;
   min-height: 3rem;
 }
 
@@ -450,7 +451,7 @@ div.modifymatchscores.save-cancel-buttons {
 .matchwinner {
   text-decoration: underline;
   text-decoration-style: double;
-  text-decoration-color: green;
+  text-decoration-color: red;
 }
 
 .homeentrant {
@@ -757,7 +758,7 @@ input[type="text"].entrantName {
   background-color: white;
   color: black;
   display: inline-block;
-  width: 40% !important;
+  width: 50% !important;
   padding: 12px 20px;
   margin: 8px 0;
   box-sizing: border-box;
