@@ -1050,13 +1050,14 @@ class TournamentCommands extends WP_CLI_Command {
      * to cause the number of players in round 2 be a power of 2
      * The number of players and the number of byes must be 
      * of the same parity (i.e.both even or both odd)
-     * @param $n The number of entrants
+     * @param int $n The number of entrants
+     * @return int The number of byes in round 1; -1 if $n is out of range
      */
     private function byeCount( int $n ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $result = -1;
-
-        if( $n < TournamentDirector::MINIMUM_ENTRANTS 
+        
+        if( $n < TournamentDirector::getMinPlayersForElimination() 
         || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
 
         $exp  =  GW_Support::calculateExponent( $n );

@@ -1,6 +1,8 @@
 <?php
 
+use api\TournamentDirector;
 use datalayer\Club;
+use datalayer\Event;
 
 /* WP Admin Menu positions
 2 - Dashboard
@@ -70,13 +72,14 @@ function gw_tennis_custom_settings() {
                       ,'description'=>'The relevant season for tennis events.']
                     );
                     
-/*
+
     register_setting( 'gw-tennis-settings-group' //Options group
-                    , 'gw_tennis_main_event' //Option name used in get_option
+                    , TournamentDirector::OPTION_MIN_PLAYERS_ELIM //Option name used in get_option
                     , ['type'=>'number'
-                      ,'sanitize_callback'=>'gw_sanitize_eventId']
+                      ,'sanitize_callback'=>'gw_sanitize_minium_players'
+                      ,'description' => 'The minimum number of players for single elimination.']
                     );
-*/
+
 
     add_settings_section( 'gw-tennis-options' //id
                         , 'Tennis Settings' //title
@@ -99,15 +102,15 @@ function gw_tennis_custom_settings() {
                     , 'gw-tennis-options' // section
                     //,  array of args
                 );
-/*          
-    add_settings_field( 'gw_tennis_main_event' // id
-                    , 'Main Event' // title
-                    , 'gw_tennisMainEvent' // callback
+         
+    add_settings_field( 'gw_tennis_minimum_elim' // id
+                    , 'Minimum Players for Elimination' // title
+                    , 'gw_tennisMinElim' // callback
                     , 'gwtennissettings' // page
                     , 'gw-tennis-options' // section
                     //,  array of args
                 );
-*/
+
 }
 
 function gw_tennis_options() {
@@ -129,8 +132,11 @@ function gw_tennisSeason() {
     echo "<input id='gw_tennis_event_season' name='gw_tennis_event_season' type='number' value='{$season}' min='{$min}' max='{$max}' step='1' >";
 }
 
-function gw_tennisMainEvent() {
-    echo '<select name="gw_tennis_main_event">' . gw_get_events() . '</select>';
+function gw_tennisMinElim() {
+    $maxPlayers = TournamentDirector::MAXIMUM_ENTRANTS;
+    $optName = TournamentDirector::OPTION_MIN_PLAYERS_ELIM;
+    $minPlayers = TournamentDirector::getMinPlayersForElimination();
+    echo "<input id='{$optName}' name='{$optName}' type='number' value='{$minPlayers}' min='6' max='{$maxPlayers}' max= step='1'>";
 }
 
 function gw_sanitize_clubId( $input ) {
@@ -192,36 +198,28 @@ function gw_sanitize_season( $input ) {
     return $output;
 }
 
-function gw_sanitize_eventId( $input ) {
-    $output = 0;
+function gw_sanitize_minium_players( $input ) {
     $message = null;
     $type = null;
+    $output = TournamentDirector::MINIMUM_ENTRANTS;
 
     if( !is_null( $input ) ) {
-        try {
-            $event = Event::get( $input );
-            if( !is_null( $event ) ) {
-                $output = $event->getID();
-                $type = 'success';
-                $message = __('Default tennis event setting updated', TennisEvents::TEXT_DOMAIN );
-            }
-            else {
-                $type = 'error';
-                $message = __('Default event setting failed to find event.', TennisEvents::TEXT_DOMAIN );
-            }
+        if( is_numeric( $input ) ) {
+            $output = $input;
+            $type = 'success';
+            $message = __('Tennis minimum players setting updated', TennisEvents::TEXT_DOMAIN );
         }
-        catch( Exception $ex ) {
-            $output = 0;
+        else {
             $type = 'error';
-            $message = __('Default tennis event setting failed: ', TennisEvents::TEXT_DOMAIN ) . $ex->getMessage();
+            $message = __('Tennis minimum players setting must be numeric', TennisEvents::TEXT_DOMAIN );
         }
     }
     else {
         $type = 'error';
-        $message = __('Default tennis event setting cannot be empty', TennisEvents::TEXT_DOMAIN );
+        $message = __('Tennis minimum players must not be empty', TennisEvents::TEXT_DOMAIN );
     }
 
-    add_settings_error('gw_tennisMainEvent', esc_attr('main_tennis_event_updated'), $message, $type);
+    add_settings_error('gw_tennisMinElim', esc_attr('main_tennis_min_players_updated'), $message, $type);
 
     return $output;
 }

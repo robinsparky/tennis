@@ -37,14 +37,15 @@ require_once( 'api-exceptions.php' );
 class TournamentDirector
 { 
 
-    public const MINIMUM_ENTRANTS = 8; //minimum for an elimination tournament
-    public const MAXIMUM_ENTRANTS = 256; //maximum for an elimination tournament
+    public const MINIMUM_ENTRANTS = 7; //minimum for an elimination tournament
+    public const MAXIMUM_ENTRANTS = 128; //maximum for an elimination tournament 2**7
     
     public const MINIMUM_RR_ENTRANTS = 3; //minimum for a round robin tournament
 
+    public const OPTION_MIN_PLAYERS_ELIM = 'gw_tennis_minimum_for_elimination';
+
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
-    //private $hasChallengerRound = false; //Is a challenger round required
     private $matchType; //The type of match such as singles or doubles
     private $name = '';
     private $event = null;
@@ -69,6 +70,14 @@ class TournamentDirector
             }
         }
         return $exponent;
+    }
+
+    /**
+     * Get the minimum players required for a tournament using single elimination
+     * @return int minimum number required for elimination
+     */
+    public static function getMinPlayersForElimination() : int {
+        return (int)(get_option(TournamentDirector::OPTION_MIN_PLAYERS_ELIM, self::MINIMUM_ENTRANTS) ?? self::MINIMUM_ENTRANTS);
     }
 
     public function __construct( Event $evt ) {
@@ -860,7 +869,7 @@ class TournamentDirector
      * @param bool $randomizeDraw boolean to indicate if the signup should be randomized
      * @return int Number of matches created
      */
-    private function initializeEliminationRounds( string $bracketName, $randomizeDraw = false ) {
+    private function initializeEliminationRounds( string $bracketName, $randomizeDraw = true ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log( ">>>>>>>>>>>>>>>>>>>>>>>>>$loc called with bracket=$bracketName, randomize=$randomizeDraw" ); 
 
@@ -868,12 +877,12 @@ class TournamentDirector
         $mainbracket = null;
         $loserbracket = null;
         $chairUmpire = null;
-        $minplayers = self::MINIMUM_ENTRANTS;
+        $minPlayers = self::getMinPlayersForElimination();
         $bracket = $this->getBracket( $bracketName );
         switch( $bracketName ) {
             case Bracket::WINNERS:
                 //$bracket = $this->getEvent()->getWinnersBracket();
-                $loserbracket = $this->getEvent()->getConsolationBracket();
+                //$loserbracket = $this->getEvent()->getConsolationBracket();
                 $mainbracket = $bracket;
                 break;
             case Bracket::CONSOLATION:
@@ -919,8 +928,13 @@ class TournamentDirector
 
         $unseeded = array_filter( array_map( function( $e ) { if( $e->getSeed() < 1 ) return $e; }, $entrants ) );
         
-        if( $randomizeDraw ) shuffle( $unseeded );
-        else usort( $unseeded, array( __CLASS__, 'sortByPositionAsc' ) );
+        if( $randomizeDraw ) {
+            $this->log->error_log("$loc: Shuffling Unseeded players");
+            shuffle( $unseeded );
+        }
+        else {
+            usort( $unseeded, array( __CLASS__, 'sortByPositionAsc' ) );
+        }
 
         $seeded = array_filter( array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ) );
         usort( $seeded, array( __CLASS__, 'sortBySeedAsc') );
@@ -1374,7 +1388,8 @@ class TournamentDirector
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $result = -1;
 
-        if( $n < TournamentDirector::MINIMUM_ENTRANTS || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
+        $minPlayers = self::getMinPlayersForElimination();
+        if( $n < $minPlayers || $n > TournamentDirector::MAXIMUM_ENTRANTS ) return $result;
 
         $lowexp  =  GW_Support::calculateExponent( $n );
         $highexp = $lowexp + 1;
