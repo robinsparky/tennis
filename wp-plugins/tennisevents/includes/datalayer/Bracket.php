@@ -297,8 +297,15 @@ class Bracket extends AbstractData
 
     /**
      * Is this bracket approved?
+     * @return true if the bracket is approved 
+     *         false if the bracket is not approved or if there are no matches assigned
      */
     public function isApproved() {
+        if( true == $this->is_approved ) {
+            if( 0 === count( $this->getMatches() ) ) {
+                $this->is_approved = false;
+            }
+        }
         return $this->is_approved;
     }
 
@@ -1008,23 +1015,65 @@ class Bracket extends AbstractData
             return $result;
         }
 
-        if( $sourceMatch->isBye() || $targetMatch->isBye() ) {
-            return $result;
+        if( $sourceMatch->isBye() && $targetMatch->isBye() ) {
+            $sourceHome = $sourceMatch->getHomeEntrant();
+            $sourceVisitor = null;
+            $targetHome = $targetMatch->getHomeEntrant();
+            $targetVisitor = null;
+            $sourceMatch->setHomeEntrant($targetHome);
+            $targetMatch->setHomeEntrant($sourceHome);
+
+            $result["source"] = ["roundNum" => 1, "matchNum" => $sourceMatchNum, "home" => ["name" => $targetHome->getName(), "seed" => $targetHome->getSeed()], "visitor"=> ["name"=>'', "seed" => 0]];
+            $result["target"] = ["roundNum" => 1, "matchNum" => $targetMatchNum, "home" => ["name" => $sourceHome->getName(), "seed" => $sourceHome->getSeed()], "visitor"=> ["name"=>'', "seed" => 0]];
         }
+        elseif( $sourceMatch->isBye() ) {
+            $sourceHome = $sourceMatch->getHomeEntrant();
+            $sourceVisitor = null;
+            $targetHome = $targetMatch->getHomeEntrant();
+            $targetVisitor = $targetMatch->getVisitorEntrant();
+            $sourceMatch->setHomeEntrant( $targetHome );
+            $sourceMatch->setVisitorEntrant( $targetVisitor );
+            $sourceMatch->setIsBye( false );
+            $targetMatch->setHomeEntrant( $sourceHome );
+            $targetMatch->setVisitorEntrant();
+            $targetMatch->setIsBye( true );
 
-        $sourceHome = $sourceMatch->getHomeEntrant();
-        $sourceVisitor = $sourceMatch->getVisitorEntrant();
-        $targetHome = $targetMatch->getHomeEntrant();
-        $targetVisitor = $targetMatch->getVisitorEntrant();
+            $result["source"] = ["roundNum" => 1, "matchNum" => $sourceMatchNum, "home" => ["name" => $targetHome->getName(), "seed" => $targetHome->getSeed()], "visitor"=> ["name"=>$targetVisitor->getName(), "seed" => $targetVisitor->getSeed()]];
+            $result["target"] = ["roundNum" => 1, "matchNum" => $targetMatchNum, "home" => ["name" => $sourceHome->getName(), "seed" => $sourceHome->getSeed()], "visitor"=> ["name"=>'', "seed" => 0]];
+        }
+        elseif( $targetMatch->isBye() ) {
+            $sourceHome = $sourceMatch->getHomeEntrant();
+            $sourceVisitor = $sourceMatch->getVisitorEntrant();
+            $targetHome = $targetMatch->getHomeEntrant();
+            $targetVisitor = null;
 
-        $sourceMatch->setHomeEntrant($targetHome);
-        $sourceMatch->setVisitorEntrant($targetVisitor);
-        $targetMatch->setHomeEntrant($sourceHome);
-        $targetMatch->setVisitorEntrant($sourceVisitor);
+            $sourceMatch->setHomeEntrant( $targetHome );
+            $sourceMatch->setVisitorEntrant();
+            $sourceMatch->setIsBye( true );
 
-        $result["source"] = ["roundNum" => 1, "matchNum" => $sourceMatchNum, "home" => ["name" => $targetHome->getName(), "seed" => $targetHome->getSeed()], "visitor"=> ["name"=>$targetVisitor->getName(), "seed" => $targetVisitor->getSeed()]];
-        $result["target"] = ["roundNum" => 1, "matchNum" => $targetMatchNum, "home" => ["name" => $sourceHome->getName(), "seed" => $sourceHome->getSeed()], "visitor"=> ["name"=>$sourceVisitor->getName(), "seed" => $sourceVisitor->getSeed()]];
+            $targetMatch->setHomeEntrant( $sourceHome );
+            $targetMatch->setVisitorEntrant( $sourceVisitor );
+            $targetMatch->setIsBye( false );
 
+            $result["source"] = ["roundNum" => 1, "matchNum" => $sourceMatchNum, "home" => ["name" => $targetHome->getName(), "seed" => $targetHome->getSeed()], "visitor"=> ["name"=>'', "seed" => 0]];
+            $result["target"] = ["roundNum" => 1, "matchNum" => $targetMatchNum, "home" => ["name" => $sourceHome->getName(), "seed" => $sourceHome->getSeed()], "visitor"=> ["name"=>$sourceVisitor->getName(), "seed" => $sourceVisitor->getSeed()]];
+    
+        }
+        else {
+            $sourceHome = $sourceMatch->getHomeEntrant();
+            $sourceVisitor = $sourceMatch->getVisitorEntrant();
+            $targetHome = $targetMatch->getHomeEntrant();
+            $targetVisitor = $targetMatch->getVisitorEntrant();
+
+            $sourceMatch->setHomeEntrant($targetHome);
+            $sourceMatch->setVisitorEntrant($targetVisitor);
+            $targetMatch->setHomeEntrant($sourceHome);
+            $targetMatch->setVisitorEntrant($sourceVisitor);
+
+            $result["source"] = ["roundNum" => 1, "matchNum" => $sourceMatchNum, "home" => ["name" => $targetHome->getName(), "seed" => $targetHome->getSeed()], "visitor"=> ["name"=>$targetVisitor->getName(), "seed" => $targetVisitor->getSeed()]];
+            $result["target"] = ["roundNum" => 1, "matchNum" => $targetMatchNum, "home" => ["name" => $sourceHome->getName(), "seed" => $sourceHome->getSeed()], "visitor"=> ["name"=>$sourceVisitor->getName(), "seed" => $sourceVisitor->getSeed()]];
+    
+        }
         return $result;
     }
     
@@ -1181,9 +1230,12 @@ class Bracket extends AbstractData
 
         //Now fillout the rest
         $numExpectedMatches = pow( 2, $numRounds );
+        $this->log->error_log("$loc: Filling out the rest numExpected=$numExpectedMatches");
         for( $r = 1; $r < $numRounds; $r++ ) {
             $numExpectedMatches /= 2;
             $matchesForRound = $this->getMatchesByRound( $r );
+            $ct = count($matchesForRound);
+            $this->log->error_log("$loc: Matches for Round $r count=$ct");
             $ctr = 0;
             foreach($matchesForRound as $match ) {
                 ++$ctr;
@@ -1194,11 +1246,16 @@ class Bracket extends AbstractData
                     $match->setNextRoundNumber( $nextRoundNum );
                     $match->setNextMatchNumber( $nextMatchNum );
                 }
+                $this->log->error_log("$loc: Round $r nextRoundNumber=$nextRoundNum nextMatchNum=$nextMatchNum");
                 $nextMatch = $this->getMatch( $nextRoundNum, $nextMatchNum );
                 if( is_null( $nextMatch ) ) {
                     $nextMatch = new Match( $this->getEventId(), $this->getID(), $nextRoundNum, $nextMatchNum );
                     $nextMatch->setMatchType( $this->getEvent()->getMatchType() );
                     $this->addMatch( $nextMatch );
+                    $this->log->error_log("$loc: NEW nextMatch = {$nextMatch->toString()}");
+                }
+                else {
+                    $this->log->error_log("$loc: Existing nextMatch = {$nextMatch->toString()}");
                 }
                 $loadedMatches[ $nextRoundNum ][ $nextMatchNum ] = $nextMatch;
             }

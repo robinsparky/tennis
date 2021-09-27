@@ -162,8 +162,9 @@ abstract class ChairUmpire
         $this->GamesPerSet = $GamesPerSet ?? 6;
         $this->TieBreakAt = $TieBreakAt ?? 0; //no tie breakers by default
         $this->TieBreakerMinimum = $TieBreakerMinimum ?? 7;
-        $this->TieBreakDecider = $TieBreakerDecider ?? false;
+        $this->TieBreakDecider = $TieBreakDecider ?? false;
         $this->NoTieBreakerFinalSet = $NoTieBreakerFinalSet ?? false;
+        if( $this->TieBreakDecider ) $this->NoTieBreakerFinalSet = false;
 
         if( $this->TieBreakAt > $this->GamesPerSet ) $this->TieBreakAt = $this->GamesPerSet;
         if( !in_array($this->MustWinBy, array(1,2) ) ) $this->MustWinBy = 2;
@@ -658,7 +659,7 @@ EOT;
      * @param object Match $match
      * @return string HTML markup for table
      */
-    public function tableDisplayScores( Match &$match ) {
+    public function tableDisplayScores( Match &$match ) { 
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $calledBy = debug_backtrace()[1]['function'];
         $mess = sprintf( "%s(%s) called by: ", $loc, $match->toString(), $calledBy );
@@ -689,9 +690,8 @@ EOT;
             $this->log->error_log($mess);
 
             $homeTBScores = $visitorTBScores = '';
-            if( ($scores[0] === $scores[1]) 
-            && (($scores[0] >= $this->GamesPerSet)
-            ||  ($scores[0] === $this->getTieBreakAt() ))) {
+            if( ($scores[0] === $scores[1]) && (($scores[0] >= $this->GamesPerSet) || ($scores[0] >= $this->getTieBreakAt() ))
+            ||  $this->getMaxSets() == $setNum && $this->getTieBreakDecider() ) {
                 if( $this->includeTieBreakerScores( $setNum ) ) {
                     $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
                     $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
@@ -700,7 +700,7 @@ EOT;
                     $homeTBScores = "";
                     $visitorTBScores = '';
                 }
-            } 
+            }
             $homeScores .= sprintf("<td><span class='showmatchscores'>%d %s</span></td>"
                                     , $scores[0]
                                     , $homeTBScores );

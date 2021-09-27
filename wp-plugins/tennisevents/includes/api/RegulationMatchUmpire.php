@@ -109,8 +109,6 @@ class RegulationMatchUmpire extends ChairUmpire
     public function getMatchSummary( Match &$match, $force = false ) {
         $startTime = \microtime( true );
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        //$calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
-
         $title = $match->toString();
         $tr = GW_Debug::get_debug_trace_Str();
         $this->log->error_log("$loc($title) trace: $tr" );
@@ -166,24 +164,35 @@ class RegulationMatchUmpire extends ChairUmpire
                 $this->log->error_log( sprintf( "%s(%s): home W=%d, home TB=%d, visitor W=%d, visitor TB=%d"
                                      , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
                 
-                // the game score can go as high as it wants if there is no tie breaker
+                // Check game scores
+                // the game score can be arbitrarily high if there is no tie breaker
                 if( $homeW    < min($this->getGamesPerSet(),$this->getTieBreakAt()) 
                 &&  $visitorW < min($this->getGamesPerSet(),$this->getTieBreakAt()) ) {
-                    $setInProgress = $set->getSetNumber();
-                    break; //not done yet and don't even consider other sets
+                    //Final set and tie breaker?
+                    $this->log->error_log("$loc: max sets = {$this->getMaxSets()} Tie Break Decider={$this->getTieBreakDecider()}");
+                    if( $setNum === $this->getMaxSets() && $this->getTieBreakDecider() ) {
+                        //Process this set as below
+                        $this->log->error_log("$loc: This is a tie break decider set: $setNum");
+                    }
+                    else {
+                        //not done yet so don't even consider other sets
+                        $setInProgress = $set->getSetNumber();
+                        break; 
+                    }
                 }
 
+                //Process this set
+                //Game scores
                 if( ($homeW - $visitorW) >= $this->getMustWinBy() ) {
                     ++$homeSetsWon;
                 }
                 elseif( ($visitorW - $homeW) >= $this->getMustWinBy() ) {
                     ++$visitorSetsWon;
                 }
+                //Tie breaker scores
                 else {
-                    if( false === $this->includeTieBreakerScores( $setNum ) ) {
-                        //do nothing because there are no tie breakers
-                    }
-                    else { //Tie breakers
+                    if( $this->includeTieBreakerScores( $setNum ) ) {
+                        $this->log->error_log("$loc: include tiebreak scores!set=$setNum: homeTB=$homeTB, visitorTB=$visitorTB");
                         if( ($homeTB - $visitorTB >= $this->MustWinBy ) 
                             && $homeTB >= $this->getTieBreakMinScore() ) {
                             ++$homeSetsWon;
@@ -192,7 +201,7 @@ class RegulationMatchUmpire extends ChairUmpire
                             && $visitorTB >= $this->getTieBreakMinScore() ) {
                             ++$visitorSetsWon;
                         }
-                        else { //match not finished yet
+                        else { //match not finished yet so break out of foreach loop
                             $setInProgress = $set->getSetNumber();
                             $this->log->error_log("$loc($title): set number {$set->getSetNumber()} not finished tie breaker yet");
                             break;
