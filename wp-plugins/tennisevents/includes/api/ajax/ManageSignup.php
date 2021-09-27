@@ -272,6 +272,7 @@ class ManageSignup
         $mess    =  __("Update Entrant from '{$oldName}' to '{$newName}'  succeeded.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
+            console.log("$loc: $mess");
             $bracket = $event->getBracket( $this->bracketName );
             $entrant = $bracket->getNamedEntrant( $oldName );
             if( is_null( $entrant ) ) {
@@ -341,7 +342,7 @@ class ManageSignup
         $fromPos = $data["position"];
         $seed    = $data["seed"];
         $name    = sanitize_text_field($data["name"]); 
-
+        $name    = str_replace("&","and",$name);
         $mess    =  __("Add Entrant '{$name}' succeeded.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
