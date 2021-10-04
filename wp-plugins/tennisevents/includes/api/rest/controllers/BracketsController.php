@@ -93,7 +93,7 @@ class BracketsController extends \WP_REST_Controller
                 foreach( $matches as $match ) {
                     $round   = $match->getRoundNumber();
                     $mn      = $match->getMatchNumber();
-                    $status  = $umpire->matchStatus( $match );
+                    $status  = $umpire->matchStatusEx( $match )->toString();
                     $score   = $umpire->strGetScores( $match );
                     $winner  = $umpire->matchWinner( $match );
                     $winner  = is_null( $winner ) ? 'tba': $winner->getName();
@@ -180,7 +180,7 @@ class BracketsController extends \WP_REST_Controller
             foreach( $matches as $match ) {
                 $round   = $match->getRoundNumber();
                 $mn      = $match->getMatchNumber();
-                $status  = $umpire->matchStatus( $match );
+                $status  = $umpire->matchStatusEx( $match )->toString();
                 $score   = $umpire->strGetScores( $match );
                 $winner  = $umpire->matchWinner( $match );
                 $winner  = is_null( $winner ) ? 'tba': $winner->getName();

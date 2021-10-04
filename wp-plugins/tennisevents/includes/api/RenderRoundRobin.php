@@ -243,7 +243,7 @@ class RenderRoundRobin
         foreach( $matches as $match ) {
             $arrMatch = $match->toArray();
 
-            $status = $chairUmpire->matchStatus( $match );
+            $status = $chairUmpire->matchStatusEx( $match );
             $arrMatch["status"] = $status;
 
             $strScores = $chairUmpire->strGetScores( $match );

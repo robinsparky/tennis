@@ -85,12 +85,12 @@ class tournamentScoringTest extends TestCase
             if($match->isBye() || $match->isWaiting() ) continue;
 
             $this->assertEquals( ChairUmpire::NOTSTARTED
-                                , $umpire->matchStatus( $match )
+                                , $umpire->matchStatusEx( $match )->toString()
                                 , sprintf("Status = Not Started for %s", $match->toString()) );
             $hw = rand( 1, 6 );
             $vw = rand( 0, 6 );
             if( $umpire->recordScores( $match, $setNum, $hw, $vw ) ) {
-                $this->assertEquals( ChairUmpire::INPROGRESS, $umpire->matchStatus( $match ),"Status = In Progress with hw=$hw vw=$vw" );
+                $this->assertEquals( ChairUmpire::INPROGRESS, $umpire->matchStatusEx( $match )->toString(),"Status = In Progress with hw=$hw vw=$vw" );
             }
         }
     }
@@ -108,7 +108,7 @@ class tournamentScoringTest extends TestCase
             if( 1 === $coinFlip && !$match->isBye() && !$match->isWaiting() ) {
                 $umpire->defaultVisitor( $match, 'Sore knee');
                 $this->assertEquals( ChairUmpire::EARLYEND.' visitor:Sore knee' 
-                                   , $umpire->matchStatus( $match )
+                                   , $umpire->matchStatusEx( $match )->toString()
                                    , sprintf("Sore knee for %s",$match->toString()) );
                 break;
             }

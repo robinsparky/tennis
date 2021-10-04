@@ -260,7 +260,7 @@ class ShowCommands extends WP_CLI_Command {
                     foreach( $matches as $match ) {
                         $round   = $match->getRoundNumber();
                         $mn      = $match->getMatchNumber();
-                        $status  = $umpire->matchStatus( $match );
+                        $status  = $umpire->matchStatusEx( $match )->toString();
                         $score   = $umpire->strGetScores( $match );
 
                         $home    = $match->getHomeEntrant();

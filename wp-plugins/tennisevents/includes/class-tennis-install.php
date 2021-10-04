@@ -958,7 +958,7 @@ class TE_Install {
 					}
 					
 
-					$status  = $umpire->matchStatus( $match );
+					$status  = $umpire->matchStatusEx( $match );
 					$score   = $umpire->strGetScores( $match );
 					$winner  = $umpire->matchWinner( $match );
 					$winner  = is_null( $winner ) ? 'tba': $winner->getName();

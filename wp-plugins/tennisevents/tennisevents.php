@@ -97,6 +97,15 @@ class TennisEvents {
 		//include_once( 'includes/class-controller-manager.php' );
 		return TennisControllerManager::get_instance();
 	}
+
+	/**
+	 * Get the DateTimeZone object
+	 * as set in the WordPress settings
+	 */
+	static public function getTimeZone() {
+		$tz = wp_timezone();
+		return $tz;
+	}
 	
 	/**
 	 *  Constructor.
@@ -345,11 +354,14 @@ class TennisEvents {
 	 * @since  1.0
 	 */
 	private function setup() {
-
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		
 		//Set the default time zone
-		date_default_timezone_set(ini_get('date.timezone'));
-		$tz = date_default_timezone_get();
-		$this->log->error_log("TennisEvents: Plugin Setup: time zone={$tz}");
+		//date_default_timezone_set(ini_get('date.timezone'));
+		$tz = wp_timezone_string();
+		$this->log->error_log("$loc: time zone={$tz}");
+		$tz = wp_timezone();
+		$this->log->error_log($tz,"$loc: time zone object:");
 
         // Add actions
 		add_action( 'init', array( $this, 'init') );

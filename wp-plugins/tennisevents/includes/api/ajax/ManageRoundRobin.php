@@ -301,7 +301,7 @@ class ManageRoundRobin
                 $match->removeSets();
                 $match->save();
                 $data['score'] = '';
-                $data['status'] = $chairUmpire->matchStatus( $match );
+                $data['status'] = $chairUmpire->matchStatusEx( $match )->toString();
                 $mess = __("Score reset.", TennisEvents::TEXT_DOMAIN );
             }
             else {
@@ -441,12 +441,12 @@ class ManageRoundRobin
             switch( $player ) {
                 case "home":
                     $chairUmpire->defaultHome( $match, $comments );
-                    $status = $chairUmpire->matchStatus( $match );
+                    $status = $chairUmpire->matchStatusEx( $match )->toString();
                     $data['advanced'] = $td->advance( $bracketName );
                     break;
                 case "visitor":
                     $chairUmpire->defaultVisitor( $match, $comments );
-                    $status = $chairUmpire->matchStatus( $match );
+                    $status = $chairUmpire->matchStatusEx( $match )->toString();
                     $data['advanced'] = $td->advance( $bracketName );
                     break;
                 default:
@@ -540,17 +540,20 @@ class ManageRoundRobin
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
-            $timestamp = strtotime( $matchStartDate );
-            $match->setMatchDate_TS( $timestamp );
+            // $timestamp = strtotime( $matchStartDate );
+            // $match->setMatchDate_TS( $timestamp );
+            $match->setMatchDate_Str( $matchStartDate );
             $match->setMatchTime_Str( $matchStartTime );
             $match->save();
-            $data['matchstartdate'] = $match->getMatchDate_Str();
-            $data['matchstarttime'] = $match->getMatchTime_Str();
-            $data['status'] = $chairUmpire->matchStatus($match);
+            $data['matchdate'] = $match->getMatchDate_Str();
+            $data['matchtime'] = $match->getMatchTime_Str(2);
+            $data['status'] = $chairUmpire->matchStatusEx($match)->toString();
+            $mess = __("Set Start Match Date to '{$data['matchdate']}' and Time to '{$data['matchtime']}'.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception | InvalidBracketException | InvalidMatchException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
+            $this->log->error_log("$loc: exception: '{$mess}'");
             $data['matchstartdate'] = '';
             $data['matchstarttime'] = '';
         }
@@ -621,7 +624,7 @@ class ManageRoundRobin
         foreach( $matches as $match ) {
             $arrMatch = $match->toArray();
 
-            $status = $chairUmpire->matchStatus( $match );
+            $status = $chairUmpire->matchStatusEx( $match )->toString();
             $arrMatch["status"] = $status;
 
             $strScores = $chairUmpire->strGetScores( $match );

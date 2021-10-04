@@ -321,7 +321,7 @@ class ManageDraw
                 $match->removeSets();
                 $match->save();
                 $data['score'] = '';
-                //$data['status'] = $chairUmpire->matchStatus( $match );
+                //$data['status'] = $chairUmpire->matchStatusEx( $match )->toString();
                 $mess = __("Score reset.", TennisEvents::TEXT_DOMAIN );
             }
             else {
@@ -536,12 +536,12 @@ class ManageDraw
             switch( $player ) {
                 case "home":
                     $chairUmpire->defaultHome( $match, $comments );
-                    $status = $chairUmpire->matchStatus( $match );
+                    $status = $chairUmpire->matchStatusEx( $match )->toString();
                     $data['advanced'] = $td->advance( $bracketName );
                     break;
                 case "visitor":
                     $chairUmpire->defaultVisitor( $match, $comments );
-                    $status = $chairUmpire->matchStatus( $match );
+                    $status = $chairUmpire->matchStatusEx( $match )->toString();
                     $data['advanced'] = $td->advance( $bracketName );
                     break;
                 default:
@@ -629,13 +629,13 @@ class ManageDraw
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
-            $timestamp = strtotime( $matchStartDate );
-            $match->setMatchDate_TS( $timestamp );
+            $match->setMatchDate_Str( $matchStartDate );
             $match->setMatchTime_Str( $matchStartTime );
             $match->save();
             $data['matchdate'] = $match->getMatchDate_Str();
-            $data['matchtime'] = $match->getMatchTime_Str();
-            $data['status'] = $chairUmpire->matchStatus( $match );
+            $data['matchtime'] = $match->getMatchTime_Str(2);
+            $data['status'] = $chairUmpire->matchStatusEx( $match )->toString();
+            $mess = __("Set Start Match Date to '{$data['matchdate']}' and Time to '{$data['matchtime']}'.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception | InvalidMatchException | InvalidBracketException  $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -711,7 +711,7 @@ class ManageDraw
         foreach( $matches as $match ) {
             $arrMatch = $match->toArray();
             $winner = $chairUmpire->matchWinner( $match );
-            $status = $chairUmpire->matchStatus( $match );
+            $status = $chairUmpire->matchStatusEx( $match )->toString();
             $strScores = $chairUmpire->strGetScores( $match );
             $arrMatch["scores"] = $strScores;
             $arrMatch["status"] = $status;

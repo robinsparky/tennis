@@ -468,7 +468,7 @@ class TournamentDirector
         $totalRounds = $this->totalRounds( $bracketName );
         for($i = 0; !is_null( $bracket ) && $i < $totalRounds; $i++ ) {
             foreach( $bracket->getMatchesByRound( $i ) as $match ) {
-                $status = $umpire->matchStatus( $match );
+                $status = $umpire->matchStatusEx( $match )->toString();
                 // $mess = sprintf( "%s(%s) -> i=%d status='%s'"
                 //                , $loc, $match->toString()
                 //                , $i, $status );
@@ -497,7 +497,7 @@ class TournamentDirector
         $bracket = $this->getBracket( $bracketName );
         if( !is_null( $bracket ) ) {
             foreach( $bracket->getMatches() as $match ) {
-                $status = $umpire->matchStatus( $match );
+                $status = $umpire->matchStatusEx( $match )->toString();
                 $this->log->error_log( sprintf( "%s(%s) -> %s's bracket has status='%s'", $loc, $match->toString(), $bracketName, $status ) );
                 if( $status != ChairUmpire::NOTSTARTED && $status != ChairUmpire::BYE && $status != ChairUmpire::WAITING ) {
                     $started = true;

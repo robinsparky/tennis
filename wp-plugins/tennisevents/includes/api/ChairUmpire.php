@@ -384,42 +384,6 @@ abstract class ChairUmpire
         $result = $match->save();
         return $result > 0;
 	}
-	 
-    /**
-     * Get status of the Match
-     * @param object Match $match Match whose status is calculated
-     * @return string Status of the given match
-     */
-	public function matchStatus( Match &$match ) {
-        $loc = __CLASS__ . "::" . __FUNCTION__;
-
-        $status = '';
-        if( $match->isBye() ) $status = ChairUmpire::BYE;
-        if( $match->isWaiting() ) $status = ChairUmpire::WAITING;
-
-        if( empty( $status ) ) {
-            $status = ChairUmpire::NOTSTARTED;
-            extract( $this->getMatchSummary( $match ) );
-
-            if( $setInProgress > 0 ) $status = ChairUmpire::INPROGRESS;
-            $now = new \DateTime();
-            $startDate = $match->getMatchDateTime();
-            if( !is_null($startDate) && ($startDate <= $now) ) $status = ChairUmpire::INPROGRESS;
-
-            if( !empty( $andTheWinnerIs ) ) {
-                $status = ChairUmpire::COMPLETED;
-            }
-            
-            if( $earlyEnd > 0 ) {
-                $who = 1 === $earlyEnd ? Match::HOME : Match::VISITOR;
-                $status = sprintf("%s %s:%s", ChairUmpire::EARLYEND, $who, $comments );
-            }
-        }
-
-        $this->log->error_log( sprintf( "%s(%s) is returning status=%s", $loc, $match->toString(), $status ) );
-
-        return $status;
-    }
     
     /**
      * Get status of the Match
@@ -437,10 +401,20 @@ abstract class ChairUmpire
             $status->setMajor(MatchStatus::NotStarted);
             extract( $this->getMatchSummary( $match ) );
 
-            if( $setInProgress > 0 ) $status->setMajor(MatchStatus::InProgress);
-            $now = new \DateTime();
+            $this->log->error_log("$loc: setInProgress={$setInProgress}");
+            if( (int)$setInProgress > 0 ) $status->setMajor(MatchStatus::InProgress);
+            $this->log->error_log("$loc: Status={$status->toString()}");
+            
+            $rightNow = new \DateTime('now', TennisEvents::getTimeZone() );
             $startDate = $match->getMatchDateTime();
-            if( !is_null($startDate) && ($startDate <= $now) ) $status->setMajor(MatchStatus::InProgress);
+            if( !empty($startDate) ) {
+                if( $startDate <= $rightNow ) {
+                    $this->log->error_log("$loc: {$match->toString()} Date Comparison now: {$rightNow->format('Y-m-d H:i:sP')}");
+                    $this->log->error_log("$loc: {$match->toString()} Date Comparison start date: {$startDate->format('Y-m-d H:i:sP')}");
+                    $status->setMajor(MatchStatus::InProgress);
+                    $this->log->error_log("$loc: Status={$status->toString()}");
+                }
+            }
 
             if( !empty( $andTheWinnerIs ) ) {
                 $status->setMajor(MatchStatus::Completed);

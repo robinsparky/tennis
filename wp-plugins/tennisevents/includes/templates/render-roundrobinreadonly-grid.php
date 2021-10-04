@@ -1,7 +1,9 @@
+<?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php 
     echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>
-    (<?php echo $scoreRuleDesc; ?>)</h3>
+    (<?php echo $scoreRuleDesc; ?>)<br><?php echo $now ?></h3>
+
 <main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 <?php 
     $winnerClass = "matchwinner";
@@ -65,7 +67,7 @@
     $status = $statusObj->toString();
 
     $startDate = $match->getMatchDate_Str();
-    $startTime = $match->getMatchTime_Str();
+    $startTime = $match->getMatchTime_Str(2);
     $startedMess = '';
     // if( strlen( $startDate ) > 0 ) {
     //     $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);

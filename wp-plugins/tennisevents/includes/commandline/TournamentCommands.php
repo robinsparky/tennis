@@ -87,7 +87,7 @@ class TournamentCommands extends WP_CLI_Command {
                     foreach( $matches as $match ) {
                         $round   = $match->getRoundNumber();
                         $mn      = $match->getMatchNumber();
-                        $status  = $umpire->matchStatus( $match );
+                        $status  = $umpire->matchStatusEx( $match )->toString();
                         $score   = $umpire->strGetScores( $match );
                         $winner  = $umpire->matchWinner( $match );
                         $winner  = is_null( $winner ) ? 'tba': $winner->getName();

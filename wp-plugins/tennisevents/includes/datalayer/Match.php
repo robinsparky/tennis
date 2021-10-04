@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** 
  * Data and functions for a Tennis Event Match
+ * Note that all dates and times are held in UTC time zone
  * @class  Match
  * @package Tennis Events
  * @version 1.0.0
@@ -385,20 +386,25 @@ class Match extends AbstractData
     }
 
     /**
-     * Set the date of the match
-     * @param $date is a string in Y-m-d format
+     * Set the date of the match. This date will be stored
+     * in the db as a UTC date.
+     * @param $date is local date in string in Y-m-d format
      */
     public function setMatchDate_Str( string $date = '' ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $result = false;
+        $tz = TennisEvents::getTimeZone();
+        $this->log->error_log("$loc:({$date})");
+
         if( empty( $date ) ) {
             $this->match_datetime = null;
 			$result = $this->setDirty();
         }
         else {
             try {
-                $test = new \DateTime($date);
-                $this->match_datetime = $test;
+                $dt_local = new \DateTime( $date, $tz );
+                $this->match_datetime = $dt_local;
+                $this->match_datetime->setTimezone(new \DateTimeZone('UTC'));
                 $result = $this->setDirty();
                 return $result; //early return
             }
@@ -407,17 +413,17 @@ class Match extends AbstractData
             }
 
             $test = \DateTime::createFromFormat("Y-m-d G:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d H:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d g:i a", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d h:i a", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d G:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d H:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d g:i a", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d h:i a", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y G:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y H:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d H:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d g:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d h:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d G:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d H:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d g:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d h:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y G:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y H:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date, $tz );
             
             $last = DateTIme::getLastErrors();
             if( $last['error_count'] > 0 ) {
@@ -430,6 +436,7 @@ class Match extends AbstractData
             }
             elseif( $test instanceof \DateTime ) {
                 $this->match_datetime = $test;
+                $this->match_datetime->setTimezone( new \DateTimeZone('UTC'));
                 $result = $this->setDirty();
             }
         }
@@ -437,35 +444,54 @@ class Match extends AbstractData
         return $result;
     }
 
-    public function setMatchDate( int $year, int $month, int $day ) {
+    private function setMatchDate_TS( int $timestamp ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log("$loc:{$this->toString()}($year,$month,$day)");
+        $this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
-        if( !isset( $this->match_datetime ) ) $this->match_datetime = new \DateTime();
-        $this->match_datetime->setDate( $year, $month, $day );
-        $this->match_datetime->setTime( 0, 0, 0 );
-    }
-
-    public function setMatchDate_TS( int $timestamp ) {
-        $loc = __CLASS__ . ":" . __FUNCTION__;
-        //$this->log->error_log("$loc:{$this->toString()}($timestamp)");
-
-        if( !isset( $this->match_datetime ) ) $this->match_datetime = new \DateTime();
+        if( !isset( $this->match_datetime ) ) $this->match_datetime = new \DateTime('now', new \DateTimeZone('UTC'));
         $this->match_datetime->setTimeStamp( $timestamp );
     }
 
     /**
-     * Get the DateTime object reprsenting the start time of the match
+     * Get the localized DateTime object representing the start date/time of the match
      * @return object DateTime or null
      */
     public function getMatchDateTime() {
-        return $this->match_datetime;
-    }
+        if(empty($this->match_datetime ) ) return null;
+        else {
+            $temp = $this->match_datetime;
+            return $temp->setTimezone(TennisEvents::getTimeZone());
+        }
+    } 
+    
+    /**
+    * Get the UTC DateTime object representing the start time of the match
+    * @return object DateTime or null
+    */
+   public function getMatchUTCDateTime() {
+       return $this->match_datetime;
+   }
 
 	/**
-	 * Get the Match date in string format
+	 * Get the local Match date in string format
 	 */
 	public function getMatchDate_Str() {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->match_datetime, $loc);
+
+		if( !isset( $this->match_datetime ) || is_null( $this->match_datetime ) ) {
+            return '';
+        }
+		else {
+            $temp = $this->match_datetime;
+            return $temp->setTimezone(TennisEvents::getTimeZone())->format( self::$outdateformat );
+        }
+	}
+
+    /**
+	 * Get the UTC Match date in string format
+	 */
+	public function getMatchUTCDate_Str() {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log( $this->match_datetime, $loc);
 
@@ -476,10 +502,40 @@ class Match extends AbstractData
 	}
     
 	/**
-	 * Get the Match date AND time in string format
+	 * Get the local Match date AND time in string format
 	 */
 	public function getMatchDateTime_Str( int $formatNum=1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->match_datetime, $loc);
+
+        $result = '';
+        $format = self::$outdatetimeformat1;
+        switch($formatNum) {
+            case 1:
+                $format = self::$outdatetimeformat1;
+                break;
+            case 2:
+                $format = self::$outdatetimeformat2;
+                break;
+            default:
+                $format = self::$outdatetimeformat1;
+        }
+        
+		if( isset( $this->match_datetime ) ) {
+            $temp = $this->match_datetime;
+            $result = $temp->setTimezone(TennisEvents::getTimeZone())->format($format);
+        }
+		
+        $this->log->error_log("$loc: returning {$result}");
+        return $result;
+	}
+	    
+	/**
+	 * Get the local Match date AND time in string format
+	 */
+	public function getMatchUTCDateTime_Str( int $formatNum=1) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->match_datetime, $loc);
 
         $result = '';
         $format = self::$outdatetimeformat1;
@@ -503,31 +559,48 @@ class Match extends AbstractData
 	}
 	
 	/**
-	 * Get the Match date in ISO 8601 format
+	 * Get the local Match date in ISO 8601 format
 	 */
 	public function getMatchDate_ISO() {
-		if( !isset( $this->match_datetime ) ) return null;
+		if( !isset( $this->match_datetime ) ) return '';
+		else {
+            $temp = $this->match_datetime;
+            return $temp->setTimezone(TennisEvents::getTimeZone())->format(\DateTime::ISO8601 );
+        }
+	}
+    
+	/**
+	 * Get the UTC Match date in ISO 8601 format
+	 */
+	public function getUTCMatchDate_ISO() {
+		if( !isset( $this->match_datetime ) ) return '';
 		else return $this->match_datetime->format(\DateTime::ISO8601 );
 	}
 
     /**
      * Set the time of the match
-     * @param string $time is a string in hh:mm am/pm format
+     * @param string $time is a string in local HH:mm or hh:mm am/pm format
+     * @return bool true if successful; false otherwise
      */
     public function setMatchTime_Str( string $time ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("{$loc}('{$time}')");
+        $tz = TennisEvents::getTimeZone();
+        $tzs = wp_timezone_string();
+        $this->log->error_log("$loc: tz name={$tz->getName()}");
+        $this->log->error_log($tz, "$loc: tz...");
+
 
 		$result = false;
         if( is_null( $time ) || empty( $time ) ) return $result;
         
-        $intimeformat1 = "G:i"; //input
-        $intimeformat2 = "g:i a"; //input
+        $intimeformat1 = "G:i";
+        $intimeformat2 = "g:i a";
 
-        $test = \DateTime::createFromFormat( "G:i", $time );		
-        if(false === $test) $test = \DateTime::createFromFormat( "H:i", $time );
-        if(false === $test) $test = \DateTime::createFromFormat( "g:i a", $time );
-        if(false === $test) $test = \DateTime::createFromFormat( "h:i a", $time );
+        $test = \DateTime::createFromFormat( "G:i", $time, $tz );		
+        if(false === $test) $test = \DateTime::createFromFormat( "H:i", $time, $tz );
+        if(false === $test) $test = \DateTime::createFromFormat( "g:i a", $time, $tz );
+        if(false === $test) $test = \DateTime::createFromFormat( "h:i a", $time, $tz );
 
 		$last = \DateTime::getLastErrors();
 		if($last['error_count'] > 0) {
@@ -539,23 +612,39 @@ class Match extends AbstractData
 			throw new InvalidMatchException( $mess );
 		}
 		elseif($test instanceof \DateTime) {
-            // $timestamp = strtotime( $time );
-            // $hr = date('h', $timestamp );
-            // $mn = date('i', $timestamp );
+            $temp = null;
+            if( isset($this->match_datetime) ) {
+                $temp = $this->match_datetime;
+                $temp->setTimezone($tz);
+            }
+            else {
+                $temp = new \DateTime( 'now', $tz );
+            }
+            //$this->log->error_log($test, "$loc: test ...");
             $hours = (int)$test->format('H');
-            $minutes = (int)$test->format('i');
-            $this->setMatchTime( $hours, $minutes );
+            $seconds = (int)$test->format('i');
+            $temp->setTime($hours,$seconds);
+            //$this->log->error_log($temp, "$loc: temp ...");
+            $this->match_datetime = $temp;
+            $this->match_datetime->setTimezone( new \DateTimeZone('UTC') );
+            //$this->log->error_log($this->match_datetime, "$loc: match_datetime ...");
 			$result = $this->setDirty();
 		}
         return $result;
     }
 
+    /**
+     * Set the time of the match in UTC hours and minutes
+     * @param int $hour UTC hour
+     * @param int $minutes UTC minutes
+     * @return bool true if successful; false otherwise
+     */
     private function setMatchTime( int $hour, int $minutes ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc($hour,$minutes)");
 
         if( !isset( $this->match_datetime ) ) {
-            $this->match_datetime = new \DateTime();
+            $this->match_datetime = new \DateTime('now', new \DateTimeZone('UTC'));
         }
         $this->match_datetime->setTime( $hour, $minutes );
         
@@ -563,10 +652,45 @@ class Match extends AbstractData
     }
 
     /**
-     * Get the match start time
-     * @return string match start time as a string hh:mm am/pm format
+     * Get the local match start time
+     * @param int $formatNum Determines which output format to use
+     * @return string local match start time as a string
      */
-    public function getMatchTime_Str( int $formatNum=1) {
+    public function getMatchTime_Str( int $formatNum = 1) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log("$loc: '{$this->title()}'");
+
+        $format = self::$outtimeformat1;
+        switch($formatNum) {
+            case 1:
+                $format = self::$outtimeformat1;
+                break;
+            case 2:
+                $format = self::$outtimeformat2;
+                break;
+            default:
+                $format = self::$outtimeformat1;
+        }
+        
+        $result = '';
+        $stored = '';
+        if( isset( $this->match_datetime ) ) {
+            $stored = $this->match_datetime->format( $format );
+            $temp = $this->match_datetime;
+            $result = $temp->setTimezone(TennisEvents::getTimeZone())->format( $format );
+        }
+
+        $this->log->error_log("$loc: stored time='{$stored}'");
+        $this->log->error_log("$loc: return time='{$result}'");
+        return $result;
+    }
+    
+    /**
+     * Get the match start time in UTC time zone
+     * @param int $formatNum Determines which output format to use
+     * @return string UTC match start time as a string
+     */
+    public function getUTCMatchTime_Str( int $formatNum = 1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc: '{$this->title()}'");
 
@@ -1154,7 +1278,7 @@ class Match extends AbstractData
                         ,'round_num'   => $this->round_num
                         ,'match_num'   => $this->match_num
                         ,'match_type'  => $this->match_type
-                        ,'match_date'  => $this->getMatchDateTime_Str()
+                        ,'match_date'  => $this->getMatchUTCDateTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'next_round_num' => $this->next_round_num
                         ,'next_match_num' => $this->next_match_num
@@ -1191,7 +1315,7 @@ class Match extends AbstractData
         parent::update();
 
         $values = array( 'match_type'  => $this->match_type
-                        ,'match_date'  => $this->getMatchDateTime_Str()
+                        ,'match_date'  => $this->getMatchUTCDateTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'next_round_num' => $this->next_round_num
                         ,'next_match_num' => $this->next_match_num
@@ -1225,22 +1349,40 @@ class Match extends AbstractData
      * Map incoming data to an instance of Match
      */
     protected static function mapData( $obj, $row ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $mess = print_r($row, true);
+        error_log("$loc: row ...");
+        error_log($mess);
+
         parent::mapData( $obj, $row );
         $obj->event_ID     = (int) $row["event_ID"];
         $obj->bracket_num  = (int) $row["bracket_num"];
         $obj->round_num    = (int) $row["round_num"];
         $obj->match_num    = (int) $row["match_num"];
         $obj->match_type   = (float) $row["match_type"];
-        //$obj->match_date   = isset( $row["match_date"] ) ? new \DateTime( $row["match_date"] ) : null;
-        $timestamp = strtotime($row["match_date"]);
-        if( $timestamp > 0 ) {
-            // list( $year, $month, $day ) = explode('-', $row["match_date"]);
-            // $obj->setMatchDate( $year, $month, $day );
-            $obj->setMatchDate_TS( $timestamp );
+        
+        if( !empty($row["match_date"]) && $row["match_date"] !== '0000-00-00 00:00:00') {
+            $st = new \DateTime( $row["match_date"], new \DateTimeZone('UTC') );
+            $test = $st;
+            $mess = print_r($st,true);
+            error_log("$loc: DateTime using match_date ...");
+            error_log($mess);
+            $obj->match_datetime = $st;
+            $test->setTimezone(TennisEvents::getTimeZone());
+            error_log(print_r($test,true));
         }
         else {
-            $obj->match_datetime = null;
+            $obj->match_date = null;
         }
+        //$timestamp = strtotime($row["match_date"]);
+        // if( $timestamp > 0 ) {
+        //     // list( $year, $month, $day ) = explode('-', $row["match_date"]);
+        //     // $obj->setMatchDate( $year, $month, $day );
+        //     $obj->setMatchDate_TS( $timestamp );
+        // }
+        // else {
+        //     $obj->match_datetime = null;
+        // }
 
         //$obj->match_time   = isset( $row["match_time"] ) ? new \DateTime( $row["match_time"] ) : null;
         // if( isset( $row["match_time"] ) ) {

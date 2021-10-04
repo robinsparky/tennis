@@ -213,6 +213,7 @@ class RenderDraw
         $scoreType     = $td->getEvent()->getScoreType();
         $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
         $parentName    = $td->getParentEventName();
+        $now = (new \DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
 
         $jsData = $this->get_ajax_data();
         $jsData["clubId"]  = $td->getClubId();
@@ -230,10 +231,10 @@ class RenderDraw
         $begin = <<<EOT
 <h2 id="parent-event-name">%s</h2>
 <table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
-<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;(%s)</caption>
+<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;(%s)<br>%s</caption>
 <thead><tr>
 EOT;
-        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc );
+        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc, $now );
 
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $bracket->roundOf( $i );
@@ -343,14 +344,13 @@ EOT;
                     $modifyscores  = $umpire->tableModifyScores( $match );
                 }
 
-                //$generalstatus  = $umpire->matchStatus( $match );
                 $statusObj = $umpire->matchStatusEx( $match );
                 $majorStatus = $statusObj->getMajorStatus();
                 $minorStatus = $statusObj->getMinorStatus();
                 $generalstatus = $statusObj->toString();
 
                 $startDate = $match->getMatchDate_Str();
-                $startTime = $match->getMatchTime_Str();
+                $startTime = $match->getMatchTime_Str(2);
 
                 $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
                                , $match->toString()
@@ -400,7 +400,7 @@ EOT;
                     $cmts = isset( $cmts ) ? $cmts : '';
 
                     $startDate = $futureMatch->getMatchDate_Str();
-                    $startTime = $futureMatch->getMatchTime_Str();
+                    $startTime = $futureMatch->getMatchTime_Str(2);
                     
                     $displayscores = $umpire->tableDisplayScores( $futureMatch );
                     $modifyscores = $umpire->tableModifyScores( $futureMatch );  
@@ -481,6 +481,7 @@ EOT;
         $championName = empty( $champion ) ? 'tba' : $champion->getName();
         $umpire = $td->getChairUmpire();
         $parentName = $td->getParentEventName();
+        $now = (new \DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
 
         $loadedMatches = $bracket->getMatchHierarchy( true );
         $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
@@ -507,10 +508,10 @@ EOT;
         $begin = <<<EOT
 <h2 id="parent-event-name">%s</h2>
 <table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
-<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket</caption>
+<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket<br>%s</caption>
 <thead><tr>
 EOT;
-        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName );
+        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $now );
 
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $bracket->roundOf( $i );
@@ -825,7 +826,7 @@ EOT;
         foreach( $matches as $match ) {
             $arrMatch = $match->toArray();
             $winner = $chairUmpire->matchWinner( $match );
-            $status = $chairUmpire->matchStatus( $match );
+            $status = $chairUmpire->matchStatusEx( $match )->toString();
             $strScores = $chairUmpire->strGetScores( $match );
             $arrMatch["scores"] = $strScores;
             $arrMatch["status"] = $status;
@@ -874,7 +875,7 @@ EOT;
                 $cmts = $match->getComments();
                 $cmts = isset( $cmts ) ? $cmts : '';
                 $score   = $umpire->tableGetScores( $match );                        
-                $status  = $umpire->matchStatus( $match );
+                $status  = $umpire->matchStatusEx( $match )->toString();
                 $winner  = $umpire->matchWinner( $match );
                 $winner  = is_null( $winner ) ? 'tba': $winner->getName();
 
