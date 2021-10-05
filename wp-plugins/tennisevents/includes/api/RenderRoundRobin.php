@@ -63,6 +63,9 @@ class RenderRoundRobin
         $jsurl =  TE()->getPluginUrl() . 'js/matches.js';
         wp_register_script( 'manage_rr', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
         
+        $cturl =  TE()->getPluginUrl() . 'js/digitalclock.js';
+        wp_register_script( 'digital_clock', $cturl, array('jquery'), TennisEvents::VERSION, true );
+        
         $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
         wp_enqueue_style( 'tennis_css', $cssurl );
     }
@@ -200,6 +203,7 @@ class RenderRoundRobin
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $this->log->error_log($arrData, "$loc: arrData...");
         $jsData["matches"] = $arrData; 
+        wp_enqueue_script( 'digital_clock' );  
         wp_enqueue_script( 'manage_rr' );         
         wp_localize_script( 'manage_rr', 'tennis_draw_obj', $jsData );        
         

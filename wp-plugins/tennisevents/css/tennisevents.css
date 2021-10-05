@@ -6,6 +6,12 @@
   --roundWidth: calc(100% / (var(--rounds)+1));
 }
 
+#digiclock {
+  font-size: small;
+  color: #0030c0;
+  background-color: yellow;
+}
+
 /*-------------------------------------------
   Tennis Event styling
 ---------------------------------------------*/

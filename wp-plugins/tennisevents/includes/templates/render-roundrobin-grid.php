@@ -2,7 +2,7 @@
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php  
     echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>
-    (<?php echo $scoreRuleDesc; ?>)<br><?php echo $now ?></h3>
+    (<?php echo $scoreRuleDesc; ?>)<br><span id='digiclock'></span></h3>
 
 <main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 

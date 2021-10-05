@@ -70,7 +70,11 @@ class RenderDraw
         //By match
         $jsurl =  TE()->getPluginUrl() . 'js/matches.js';
         wp_register_script( 'manage_matches', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
-        
+                      
+        //Digital clock
+        $cturl =  TE()->getPluginUrl() . 'js/digitalclock.js';
+        wp_register_script( 'digital_clock', $cturl, array('jquery'), TennisEvents::VERSION, true );
+       
         $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
         wp_enqueue_style( 'tennis_css', $cssurl );
     }
@@ -225,16 +229,17 @@ class RenderDraw
         $jsData["numSets"] = $umpire->getMaxSets();
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
-        wp_enqueue_script( 'manage_matches' );         
+        wp_enqueue_script( 'manage_matches' ); 
+        wp_enqueue_script( 'digital_clock' );         
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
 
         $begin = <<<EOT
 <h2 id="parent-event-name">%s</h2>
 <table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
-<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;(%s)<br>%s</caption>
+<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;(%s)<br><span id='digiclock'></span></caption>
 <thead><tr>
 EOT;
-        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc, $now );
+        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc );
 
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $bracket->roundOf( $i );
@@ -502,16 +507,17 @@ EOT;
         $jsData["numSets"] = $umpire->getMaxSets();
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
-        wp_enqueue_script( 'manage_matches' );         
+        wp_enqueue_script( 'manage_matches' );  
+        wp_enqueue_script( 'digital_clock' );          
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
 
         $begin = <<<EOT
 <h2 id="parent-event-name">%s</h2>
 <table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
-<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket<br>%s</caption>
+<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket<br><span id="digiclock"></span></caption>
 <thead><tr>
 EOT;
-        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $now );
+        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName );
 
         for( $i=1; $i <= $numRounds; $i++ ) {
             $rOf = $bracket->roundOf( $i );
