@@ -14,23 +14,18 @@
       //res = d.toDateString();
       let ampm = d.getHours() >= 12 ? " pm" : " am";
       let hours = d.getHours() <= 12 ? d.getHours() : d.getHours() - 12;
-      res =
-        res +
-        " - " +
-        hours +
-        ":" +
-        d.getMinutes() +
-        ":" +
-        d.getSeconds() +
-        ":" +
-        ampm;
+      let minutes =
+        d.getMinutes() <= 10 ? "0" + d.getMinutes() : d.getMinutes();
+      let seconds =
+        d.getSeconds() <= 10 ? "0" + d.getSeconds() : d.getSeconds();
+      res = res + " " + hours + ":" + minutes + ":" + seconds + ampm;
 
       //return [year, month, day].join("-");
       return res;
     }
 
     function displayDigitalClock() {
-      let dtString = Date();
+      let dtString = Date().toString();
       document.getElementById("digiclock").innerHTML = formatDate(dtString);
     }
 
