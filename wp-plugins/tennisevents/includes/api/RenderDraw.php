@@ -598,10 +598,10 @@ EOT;
                 $generalstatus = $statusObj->toString();
 
                 $startDate = $match->getMatchDate_Str();
-                $startTime = $match->getMatchTime_Str();
-                if( !empty($startDate) || !empty($startTime)) {
-                    $startDate = "Started: " . $startDate;
-                }
+                $startTime = $match->getMatchTime_Str(2);
+                // if( !empty($startDate) || !empty($startTime)) {
+                //     $startDate = "Started: " . $startDate;
+                // }
 
                 $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
                                , $match->toString()
@@ -647,10 +647,10 @@ EOT;
                     $cmts = isset( $cmts ) ? $cmts : '';
 
                     $startDate = $futureMatch->getMatchDate_Str();
-                    $startTime = $futureMatch->getMatchTime_Str();
-                    if( !empty($startDate) || !empty($startTime)) {
-                        $startDate = "Started: " . $startDate;
-                    }
+                    $startTime = $futureMatch->getMatchTime_Str(2);
+                    // if( !empty($startDate) || !empty($startTime)) {
+                    //     $startDate = "Started: " . $startDate;
+                    // }
                     
                     $displayscores = $umpire->strGetScores( $futureMatch );
 
