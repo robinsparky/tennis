@@ -59,19 +59,13 @@ use datalayer\MatchStatus; ?>
                 $vname = empty($vseed) ? $vname : $vname . "($vseed)";
                 $cmts = $match->getComments();
                 $cmts = isset( $cmts ) ? $cmts : '';
-                // if( $match->isBye() ) {
-                //     $displayscores = "<span></span>";
-                //     $modifyscores  = "<span></span>";
-                // }
-                // else {
-                    if( is_user_logged_in() && current_user_can('manage_options')) {
-                        $displayscores = $umpire->tableDisplayScores( $match );
-                        $modifyscores  = $umpire->tableModifyScores( $match );
-                    } else {
-                        $displayscores = $umpire->tableDisplayScores( $match );
-                        $modifyscores   = '';
-                    }
-                // }
+
+                $displayscores = $umpire->tableDisplayScores( $match );
+                if( is_user_logged_in() && current_user_can('manage_options')) {
+                    $modifyscores  = $umpire->tableModifyScores( $match );
+                } else {
+                    $modifyscores   = '';
+                }
 
                 $statusObj = $umpire->matchStatusEx( $match );
                 $majorStatus = $statusObj->getMajorStatus();

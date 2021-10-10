@@ -6,4 +6,5 @@
 
 <ul class="matchaction approved">
  <li><a class="changehome">Undo</a></li>
+</ul>
 </div>

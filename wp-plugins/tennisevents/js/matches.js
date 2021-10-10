@@ -429,29 +429,29 @@
         data.displayscores,
         data.status
       );
-      $matchEl.children(".displaymatchscores").empty();
-      $matchEl.children(".displaymatchscores").append(data.displayscores);
-      $matchEl.children(".modifymatchscores.tennis-modify-scores").empty();
+      $matchEl.find(".displaymatchscores").empty();
+      $matchEl.find(".displaymatchscores").append(data.displayscores);
+      $matchEl.find(".modifymatchscores.tennis-modify-scores").empty();
       $matchEl
-        .children(".modifymatchscores.tennis-modify-scores")
+        .find(".modifymatchscores.tennis-modify-scores")
         .append(data.modifyscores);
-      $matchEl.children(".displaymatchscores").fadeIn(1000);
-      $matchEl.children(".modifymatchscores").hide();
-      $matchEl.children(".matchstatus").text(data.status);
+      $matchEl.find(".displaymatchscores").fadeIn(1000);
+      $matchEl.find(".modifymatchscores").hide();
+      $matchEl.find(".matchstatus").text(data.status);
       switch (data.winner) {
         case "home":
-          $matchEl.children(".homeentrant").addClass(winnerclass);
+          $matchEl.find(".homeentrant").addClass(winnerclass);
           break;
         case "visitor":
-          $matchEl.children(".visitorentrant").addClass(winnerclass);
+          $matchEl.find(".visitorentrant").addClass(winnerclass);
           break;
         case "tie":
-          $matchEl.children(".homeentrant").addClass(winnerclass);
-          $matchEl.children(".visitorentrant").addClass(winnerclass);
+          $matchEl.find(".homeentrant").addClass(winnerclass);
+          $matchEl.find(".visitorentrant").addClass(winnerclass);
           break;
         default:
-          $matchEl.children(".homeentrant").removeClass(winnerclass);
-          $matchEl.children(".visitorentrant").removeClass(winnerclass);
+          $matchEl.find(".homeentrant").removeClass(winnerclass);
+          $matchEl.find(".visitorentrant").removeClass(winnerclass);
           break;
       }
       updateStatus(data);
@@ -542,13 +542,15 @@
      */
     function updateComments(data) {
       console.log("updateComments");
+      console.log(data);
       let $matchEl = findMatch(
         data.eventId,
         data.bracketNum,
         data.roundNum,
         data.matchNum
       );
-      $matchEl.children(".matchcomments").text(data.comments);
+      console.log($matchEl.children());
+      $matchEl.find(".matchcomments").text(data.comments);
     }
 
     /**
@@ -700,6 +702,7 @@
           $(event.target).hasClass("bar4") ||
           $(event.target).hasClass("bar5")
         ) {
+          $(this).children(".matchaction.approved").css("z-index", 999);
           $(this).children(".matchaction.approved").show();
         }
       } else {
@@ -712,6 +715,7 @@
           $(event.target).hasClass("bar4") ||
           $(event.target).hasClass("bar5")
         ) {
+          $(this).children(".matchaction.unapproved").css("z-index", 999);
           $(this).children(".matchaction.unapproved").show();
         }
       }

@@ -210,12 +210,8 @@ class RenderRoundRobin
 	    // Start output buffering we don't output to the page
         ob_start();
 
-        // Get template file
-        $path = TE()->getPluginPath() . 'includes\templates\render-roundrobinreadonly-grid.php';
-        //$user = wp_get_current_user();
-        if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
-            $path = TE()->getPluginPath() . 'includes\templates\render-roundrobin-grid.php';
-        }
+        // Get template file to render the round robin matches
+        $path = TE()->getPluginPath() . 'includes\templates\render-roundrobin-grid.php';
         $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
         require $path;
         

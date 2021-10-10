@@ -65,7 +65,11 @@ use datalayer\MatchStatus; ?>
     $cmts = isset( $cmts ) ? $cmts : '';   
 
     $displayscores = $umpire->tableDisplayScores( $match );
-    $modifyscores = $umpire->tableModifyScores( $match ); 
+    if( is_user_logged_in() && current_user_can('manage_options')) {
+        $modifyscores  = $umpire->tableModifyScores( $match );
+    } else {
+        $modifyscores   = '';
+    }
 
     $statusObj = $umpire->matchStatusEx( $match );
     $majorStatus = $statusObj->getMajorStatus();
@@ -86,8 +90,7 @@ use datalayer\MatchStatus; ?>
  data-matchnum="<?php echo $matchNum;?>" 
  data-majorstatus="<?php echo $majorStatus;?>" 
  data-minorstatus="<?php echo $minorStatus;?>">
- <?php if(!empty($menupath)) require $menupath; ?>
-<div class="menu-icon">
+<?php if(!empty($menupath)) require $menupath; ?>
 <div class="matchinfo matchtitle"><?php echo $title; ?>&nbsp;<span class="matchinfo matchstatus"><?php echo $status; ?></span></div>
 <div class="matchinfo matchstart"><?php echo $startedMess; ?> &nbsp; <?php echo $startDate;?> &nbsp; <?php echo $startTime; ?></div>
 <div class="changematchstart">
