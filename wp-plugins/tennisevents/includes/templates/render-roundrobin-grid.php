@@ -1,7 +1,8 @@
+<?php 
+use datalayer\MatchStatus; ?>
 <?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
-<h3 id="bracket-name"><?php  
-    echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>
+<h3 id="bracket-name"><?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>
     (<?php echo $scoreRuleDesc; ?>)<br><span id='digiclock'></span></h3>
 
 <main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
@@ -74,10 +75,8 @@
     $startDate = $match->getMatchDate_Str();
     $startTime = $match->getMatchTime_Str(2);
     $this->log->error_log("$loc: {$match->toString()} start date: '{$startDate}'; start time: '{$startTime}'");
-    $startedMess = '';
-    // if( !empty($startDate) > 0 ) {
-    //     $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
-    // }
+    $menupath = getMenuPath( $majorStatus );
+
     //$this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobin Elapsed time", GW_Support::getInstance()->micro_time_elapsed( $begin ), $title));
 ?>
 
@@ -87,21 +86,8 @@
  data-matchnum="<?php echo $matchNum;?>" 
  data-majorstatus="<?php echo $majorStatus;?>" 
  data-minorstatus="<?php echo $minorStatus;?>">
+ <?php if(!empty($menupath)) require $menupath; ?>
 <div class="menu-icon">
- <svg class="dots" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
-    <path d="M8 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM1.5 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm13 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z">
-    </path>
- </svg>
- <ul class="matchaction unapproved">
-  <li><a class="changehome">Replace Home</a></li>
-  <li><a class="changevisitor">Replace Visitor</a><li></ul>
- <ul class="matchaction approved">
-  <li><a class="recordscore">Enter Score</a></li>
-  <li><a class="defaulthome">Default Home</a></li>
-  <li><a class="defaultvisitor">Default Visitor</a></li>
-  <li><a class="setmatchstart">Start Date &amp; Time</a></li>
-  <li><a class="setcomments">Comment Match</a></li></ul>
-</div>
 <div class="matchinfo matchtitle"><?php echo $title; ?>&nbsp;<span class="matchinfo matchstatus"><?php echo $status; ?></span></div>
 <div class="matchinfo matchstart"><?php echo $startedMess; ?> &nbsp; <?php echo $startDate;?> &nbsp; <?php echo $startTime; ?></div>
 <div class="changematchstart">
@@ -132,3 +118,30 @@
 <?php } ?>
 </div>
 <div id="tennis-event-message"></div>
+<?php 
+function getMenuPath( int $majorStatus ) {
+    $menupath = '';
+    if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+        switch( $majorStatus ) {
+            case MatchStatus::NotStarted:
+                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
+                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
+                break;
+            case MatchStatus::InProgress:
+                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
+                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
+                break;
+            case MatchStatus::Completed:
+                $menupath = TE()->getPluginPath() . 'includes\templates\menus\undo-menu-template.php';
+                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
+                break;
+            case MatchStatus::Bye:
+            case MatchStatus::Waiting:
+            case MatchStatus::Cancelled:
+            case MatchStatus::Retired:
+            default:
+                $menupath = '';
+        }
+    }
+    return $menupath;
+}?>

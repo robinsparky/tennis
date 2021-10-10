@@ -120,11 +120,11 @@ class MatchStatus {
         return $this->minorstatus > 0 ? $this->majorstatus + ($this->minorstatus / 10) : $this->majorstatus + 0.0;
     }
 
-    public function getMajorStatus() {
+    public function getMajorStatus() : int {
         return $this->majorstatus;
     }
 
-    public function getMinorStatus() {
+    public function getMinorStatus() : int {
         return $this->minorstatus;
     }
 

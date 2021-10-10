@@ -217,12 +217,12 @@ class RenderRoundRobin
             $path = TE()->getPluginPath() . 'includes\templates\render-roundrobin-grid.php';
         }
         $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
-        require( $path );
+        require $path;
         
         //Render the score summary
         $path = TE()->getPluginPath() . 'includes\templates\summaryscore-template.php';
         $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
-        require( $path );
+        require $path;
 
         // Save output and stop output buffering
         $output = ob_get_clean();

@@ -498,11 +498,12 @@ abstract class ChairUmpire
 
         $mess = sprintf( "%s(%s) called", $loc,$match->toString() );
         $this->log->error_log( $mess );
+        $strScores = '';
+        if( $match->isBye() ) return $strScores; //early return
 
         $arrScores = $this->getScores( $match );
         if( count( $arrScores) === 0 ) return 'vs';
 
-        $strScores = '';
         $sep = ',';
         $setNums = range( 1, $this->getMaxSets() );
         foreach( $setNums as $setNum ) {

@@ -9,6 +9,7 @@ use \TennisEvents;
 use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Club;
+use datalayer\MatchStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -170,21 +171,13 @@ class RenderDraw
         }
 
         if( !is_null( $bracket ) ) {
-            //$user = wp_get_current_user();
-            if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
-                wp_deregister_script( 'manage_draw' );
-                return $this->renderBracketForWrite( $td, $bracket );
-            }
-            else {
-                wp_deregister_script( 'manage_matches' );
-                return $this->renderBracketForRead( $td, $bracket );
-            }
+            return $this->renderBracket( $td, $bracket );
         }
         else {
             return  __("No such Bracket {$bracketName}", TennisEvents::TEXT_DOMAIN );
         }
     }
- 
+       
     /**
      * Renders rounds and matches for the given bracket
      * in write mode so matches can be modified and scores updated
@@ -192,13 +185,13 @@ class RenderDraw
      * @param Bracket $bracket The bracket to be rendered
      * @return string Table-based HTML showing the draw
      */
-    private function renderBracketForWrite( TournamentDirector $td, Bracket $bracket ) {
+    private function renderBracket( TournamentDirector $td, Bracket $bracket ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 		$startFuncTime = microtime( true );
-
         $winnerClass = "matchwinner";
 
+        $eventId = $this->eventId;
         $tournamentName = str_replace("\'","'",$td->getName());
         $bracketName    = $bracket->getName();
         $champion = $td->getChampion( $bracketName );
@@ -233,469 +226,20 @@ class RenderDraw
         wp_enqueue_script( 'digital_clock' );         
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
 
-        $begin = <<<EOT
-<h2 id="parent-event-name">%s</h2>
-<table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
-<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;(%s)<br><span id='digiclock'></span></caption>
-<thead><tr>
-EOT;
-        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName, $scoreRuleDesc );
+        // Get template file
+        $path = TE()->getPluginPath() . 'includes\templates\render-draw-template.php';
+        $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+	    // Start output buffering 
+        ob_start();
+        require( $path );
+        // Save output and stop output buffering
+        $output = ob_get_clean();
 
-        for( $i=1; $i <= $numRounds; $i++ ) {
-            $rOf = $bracket->roundOf( $i );
-            $out .= sprintf( "<th>Round Of %d</th>", $rOf );
-        }
-        $out .= "<th>Champion</th>";
-        $out .= "</tr></thead>" . PHP_EOL;
-
-        if( $bracket->isApproved() ) {
-            $out .= "<tbody>" . PHP_EOL;
-        }
-        else {
-            $out .= "<tbody class='prelimOnly'>" . PHP_EOL;
-        }
-
-        $templ = <<<EOT
-<td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d"  data-majorstatus="%d"  data-minorstatus="%d">
-<div class="menu-icon">
-<svg class="dots" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
-<path d="M8 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM1.5 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm13 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z">
-</path>
-</svg>
-
-<!-- <ul class="matchaction unapproved">
- <li><a class="changehome">Replace Home</a></li>
- <li><a class="changevisitor">Replace Visitor</a><li></ul> -->
-<ul class="matchaction approved">
- <li><a class="recordscore">Enter Score</a></li>
- <li><a class="defaulthome">Default Home</a></li>
- <li><a class="defaultvisitor">Default Visitor</a></li>
- <li><a class="setmatchstart">Start Date &amp; Time</a></li>
- <li><a class="setcomments">Comment Match</a></li></ul>
-</div>
-<div class="matchinfo matchtitle ui-sortable-handle">%s</div>
-<div class="matchinfo matchstatus">%s</div>
-<div class="matchcomments">%s</div>
-<div class="matchinfo matchstart">%s &nbsp; %s</div>
-<div class="changematchstart">
-<input type='date' class='changematchstart' name='matchStartDate' value='%s'>
-<input type='time' class='changematchstart' name='matchStartTime' value='%s'>
-<button class='button savematchstart'>Save</button> <button class='button cancelmatchstart'>Cancel</button></div>
-<div class="homeentrant %s">%s</div>
-<div class="displaymatchscores"><!-- Display Scores Container -->
-%s</div>
-<div class="modifymatchscores tennis-modify-scores"><!-- Modify Scores Container -->
-%s</div>
-<div class="visitorentrant %s">%s</div>
-</td>
-EOT;
-
-        $champTemplate = <<<EOT
-<td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d"  data-majorstatus="%d"  data-minorstatus="%d">
-<div class="tennis-champion">%s</div>
-</td>
-EOT;   
-
-        $rowEnder = "</tr>" . PHP_EOL;
-        //rows
-        $row = 0;
-        foreach( $preliminaryRound as $match ) {
-            ++$row;
-            if( $bracket->isApproved() ) {
-                $out .= "<tr>";
-            }
-            else {
-                $out .= "<tr data-currentpos={$row} class='drawRow ui-state-default'>";
-            }
-
-            $r = 1; //means preliminary round (i.e. first column)
-            $nextRow = '';
-            try {
-                $title = $match->title();
-                $this->log->error_log("$loc: preliminary match: $title");
-                $eventId = $match->getBracket()->getEvent()->getID();
-                $bracketNum = $match->getBracket()->getBracketNumber();
-                $roundNum = $match->getRoundNumber();
-                $matchNum = $match->getMatchNumber();
-
-                $winner  = $umpire->matchWinner( $match );
-                $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
-
-                $homeWinner = $visitorWinner = '';
-                $home    = $match->getHomeEntrant();
-                $hname   = !is_null( $home ) ? $home->getName() : 'tba';
-                if( $hname === $winner ) $homeWinner = $winnerClass;
-                
-                $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
-                $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
-
-                $visitor = $match->getVisitorEntrant();
-                $vname   = $match->isBye() ? '' : 'tba';
-                $vseed   = '';
-                if( isset( $visitor ) ) {
-                    $vname   = $visitor->getName();
-                    if( $vname === $winner ) $visitorWinner = $winnerClass;
-                    $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
-                }
-                $vname = empty($vseed) ? $vname : $vname . "($vseed)";
-                $cmts = $match->getComments();
-                $cmts = isset( $cmts ) ? $cmts : '';
-                if( $match->isBye() ) {
-                    $displayscores = "<span></span>";
-                    $modifyscores  = "<span></span>";
-                }
-                else {
-                    $displayscores = $umpire->tableDisplayScores( $match );
-                    $modifyscores  = $umpire->tableModifyScores( $match );
-                }
-
-                $statusObj = $umpire->matchStatusEx( $match );
-                $majorStatus = $statusObj->getMajorStatus();
-                $minorStatus = $statusObj->getMinorStatus();
-                $generalstatus = $statusObj->toString();
-
-                $startDate = $match->getMatchDate_Str();
-                $startTime = $match->getMatchTime_Str(2);
-
-                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
-                               , $match->toString()
-                               , $generalstatus
-                               , $cmts 
-                               , $startDate
-                               , $startTime
-                               , $startDate
-                               , $startTime
-                               , $homeWinner
-                               , $hname
-                               , $displayscores
-                               , $modifyscores
-                               , $visitorWinner
-                               , $vname );
-
-                //Future matches following from this match
-                $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
-                $rowspan = 1;
-                foreach( $futureMatches as $futureMatch ) {
-                    $rowspan = pow( 2, $r++ );//The trick!
-                    $eventId = $futureMatch->getBracket()->getEvent()->getID();
-                    $bracketNum = $futureMatch->getBracket()->getBracketNumber();
-                    $roundNum = $futureMatch->getRoundNumber();
-                    $matchNum = $futureMatch->getMatchNumber();
-                    
-                    $winner  = $umpire->matchWinner( $futureMatch );
-                    $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
-                    
-                    $homeWinner = $visitorWinner = '';
-                    $home    = $futureMatch->getHomeEntrant();
-                    $hname   = !is_null( $home ) ? $home->getName() : 'tba';
-                    if( $hname === $winner ) $homeWinner = $winnerClass;
-                    $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
-                    $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
-    
-                    $visitor = $futureMatch->getVisitorEntrant();      
-                    $vname   = $futureMatch->isBye() ? '' : 'tba';
-                    $vseed   = '';
-                    if( isset( $visitor ) ) {
-                        $vname   = $visitor->getName();
-                        if( $vname === $winner ) $visitorWinner = $winnerClass;
-                        $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
-                    }
-                    $vname = empty($vseed) ? $vname : $vname . "($vseed)";
-                    $cmts = $futureMatch->getComments();
-                    $cmts = isset( $cmts ) ? $cmts : '';
-
-                    $startDate = $futureMatch->getMatchDate_Str();
-                    $startTime = $futureMatch->getMatchTime_Str(2);
-                    
-                    $displayscores = $umpire->tableDisplayScores( $futureMatch );
-                    $modifyscores = $umpire->tableModifyScores( $futureMatch );  
-
-                    $statusObj = $umpire->matchStatusEx( $futureMatch );
-                    $majorStatus = $statusObj->getMajorStatus();
-                    $minorStatus = $statusObj->getMinorStatus();
-                    $generalstatus = $statusObj->toString();
-
-                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
-                                   , $futureMatch->toString() 
-                                   , $generalstatus
-                                   , $cmts       
-                                   , $startDate
-                                   , $startTime  
-                                   , $startDate
-                                   , $startTime        
-                                   , $homeWinner
-                                   , $hname
-                                   , $displayscores
-                                   , $modifyscores
-                                   , $visitorWinner
-                                   , $vname);
-                } //future matches  
-                
-                //Champion column
-                if( 1 === $row && $bracket->isApproved() ) {
-                    $out .= sprintf( $champTemplate, $rowspan, $eventId, $bracketNum, 0, 0, 0, 0
-                                    , $championName );
-                }  
-            }
-            catch( RuntimeException $ex ) {
-                $rowEnder = '';
-                $this->log->error_log("$loc: preliminary round is empty at row $row");
-            }
-            finally {
-                $out .= $rowEnder;
-            }  
-        } //preliminaryRound  
-        
-        $out .= "</tbody><tfooter></tfooter>";
-        $out .= "</table>";	 
-        $out .= "<div class='bracketDrawButtons'>";
-        if( $numPreliminaryMatches > 0 ) {
-            if( !$bracket->isApproved() ) {
-                $out .= '<button class="button" type="button" id="approveDraw">Approve</button>' . PHP_EOL;
-            }
-            else {
-                $out .= '<button class="button" type="button" id="advanceMatches">Advance Matches</button>' . PHP_EOL;
-            }
-            $out .= '<button class="button" type="button" id="removePrelim">Reset Bracket</button>&nbsp;' . PHP_EOL;
-        }
-
-        $out .= "</div>";
-
-        $out .= '<div id="tennis-event-message"></div>';
-		$this->log->error_log( sprintf("%0.6f", GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Time");
-        return $out;
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
     }
-    
-    /**
-     * Renders rounds and matches for the given bracket
-     * in read-only mode
-     * @param TournamentDirector $td The tournament director for this bracket
-     * @param Bracket $bracket The bracket to be rendered
-     * @return string Table-based HTML presenting the elimination draw
-     */
-    private function renderBracketForRead( TournamentDirector $td, Bracket $bracket ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-		$startFuncTime = microtime( true );
-
-        $winnerClass = "matchwinner";
-
-        $tournamentName = str_replace("\'","'",$td->getName());
-        $bracketName    = $bracket->getName();
-        $champion = $td->getChampion( $bracketName );
-        $championName = empty( $champion ) ? 'tba' : $champion->getName();
-        $umpire = $td->getChairUmpire();
-        $parentName = $td->getParentEventName();
-        $now = (new \DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
-
-        $loadedMatches = $bracket->getMatchHierarchy( true );
-        $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
-        $numPreliminaryMatches = count( $preliminaryRound );
-        $numRounds = $td->totalRounds( $bracketName );
-        $numMatches = $bracket->getNumberOfMatches();
-
-        $signupSize = $bracket->signupSize();
-        $this->log->error_log("$loc: num matches:$numMatches; number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
-
-        $this->eventId = $td->getEvent()->getID();
-        $jsData = $this->get_ajax_data();
-        $jsData["eventId"] = $this->eventId;
-        $jsData["bracketName"] = $bracketName;
-        $jsData["numSignedUp"] = $signupSize;
-        $jsData["numPreliminary"] = $numPreliminaryMatches;
-        $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
-        $jsData["numSets"] = $umpire->getMaxSets();
-        $arrData = $this->getMatchesAsArray( $td, $bracket );
-        $jsData["matches"] = $arrData;
-        wp_enqueue_script( 'manage_matches' );  
-        wp_enqueue_script( 'digital_clock' );          
-        wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
-
-        $begin = <<<EOT
-<h2 id="parent-event-name">%s</h2>
-<table id="%s" class="managedraw" data-eventid="%d" data-bracketname="%s">
-<caption class='tennis-draw-caption'>%s&#58;&nbsp;%s&nbsp;Bracket<br><span id="digiclock"></span></caption>
-<thead><tr>
-EOT;
-        $out = sprintf( $begin, $parentName, $bracketName, $this->eventId, $bracketName, $tournamentName, $bracketName );
-
-        for( $i=1; $i <= $numRounds; $i++ ) {
-            $rOf = $bracket->roundOf( $i );
-            $out .= sprintf( "<th>Round Of %d</th>", $rOf );
-        }
-        $out .= "<th>Champion</th>";
-        $out .= "</tr></thead>" . PHP_EOL;
-
-        $out .= "<tbody>" . PHP_EOL;
-
-        $templ = <<<EOT
-<td class="item-player" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d" data-majorstatus="%d" data-minorstatus="%d">
-<div class="matchinfo matchtitle">%s</div>
-<div class="matchinfo matchstatus">%s</div>
-<div class="matchcomments">%s</div>
-<div class="matchinfo matchstart">%s &nbsp; %s</div>
-<div class="homeentrant %s">%s</div>
-<div class="displaymatchscores"><!-- Display Scores -->
-<span>%s</span></div>
-<div class="visitorentrant %s">%s</div>
-</td>
-EOT;
-
-    $champTemplate = <<<EOT
-<td class="item-player sortable-container ui-state-default" rowspan="%d" data-eventid="%d" data-bracketnum="%d" data-roundnum="%d" data-matchnum="%d"  data-majorstatus="%d"  data-minorstatus="%d">
-<div class="tennis-champion">%s</div>
-</td>
-EOT; 
-
-        $rowEnder = "</tr>" . PHP_EOL;
-        //rows
-        $row = 0;
-        foreach( $preliminaryRound as $match ) {
-            ++$row;
-            $r = 1; //means preliminary round (i.e. first column)
-            $out .= "<tr>";
-            $nextRow = '';
-            try {
-                $title = $match->title();
-                $this->log->error_log("$loc: preliminary match: $title");
-                $eventId = $match->getBracket()->getEvent()->getID();
-                $bracketNum = $match->getBracket()->getBracketNumber();
-                $roundNum = $match->getRoundNumber();
-                $matchNum = $match->getMatchNumber();
-
-                $winner  = $umpire->matchWinner( $match );
-                $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
-
-                $homeWinner = $visitorWinner = '';
-                $home    = $match->getHomeEntrant();
-                $hname   = !is_null( $home ) ? $home->getName() : 'tba';
-                if( $hname === $winner ) $homeWinner = $winnerClass;
-                
-                $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
-                $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
-
-                $visitor = $match->getVisitorEntrant();
-                $vname   = $match->isBye() ? '' : 'tba';
-                $vseed   = '';
-                if( isset( $visitor ) ) {
-                    $vname   = $visitor->getName();
-                    if( $vname === $winner ) $visitorWinner = $winnerClass;
-                    $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
-                }
-                $vname = empty($vseed) ? $vname : $vname . "($vseed)";
-                $cmts = $match->getComments();
-                $cmts = isset( $cmts ) ? $cmts : '';
-                if( $match->isBye() ) {
-                    $displayscores = "<span></span>";
-                }
-                else {
-                    $displayscores = $umpire->strGetScores( $match );
-                }
-
-                $statusObj = $umpire->matchStatusEx( $match );
-                $majorStatus = $statusObj->getMajorStatus();
-                $minorStatus = $statusObj->getMinorStatus();
-                $generalstatus = $statusObj->toString();
-
-                $startDate = $match->getMatchDate_Str();
-                $startTime = $match->getMatchTime_Str(2);
-                // if( !empty($startDate) || !empty($startTime)) {
-                //     $startDate = "Started: " . $startDate;
-                // }
-
-                $out .= sprintf( $templ, $r, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
-                               , $match->toString()
-                               , $generalstatus
-                               , $cmts 
-                               , $startDate
-                               , $startTime
-                               , $homeWinner
-                               , $hname
-                               , $displayscores
-                               , $visitorWinner
-                               , $vname );
-
-                $futureMatches = $this->getFutureMatches( $match->getNextRoundNumber(), $match->getNextMatchNumber(), $loadedMatches );
-                $rowspan = 1;
-                foreach( $futureMatches as $futureMatch ) {
-                    $rowspan = pow( 2, $r++ );
-                    $eventId = $futureMatch->getBracket()->getEvent()->getID();
-                    $bracketNum = $futureMatch->getBracket()->getBracketNumber();
-                    $roundNum = $futureMatch->getRoundNumber();
-                    $matchNum = $futureMatch->getMatchNumber();
-                    
-                    $winner  = $umpire->matchWinner( $futureMatch );
-                    $winner  = is_null( $winner ) ? 'no winner yet': $winner->getName();
-                    
-                    $homeWinner = $visitorWinner = '';
-                    $home    = $futureMatch->getHomeEntrant();
-                    $hname   = !is_null( $home ) ? $home->getName() : 'tba';
-                    if( $hname === $winner ) $homeWinner = $winnerClass;
-                    $hseed   = !is_null( $home ) && $home->getSeed() > 0 ? $home->getSeed() : '';
-                    $hname    = empty($hseed) ? $hname : $hname . "($hseed)";
-    
-                    $visitor = $futureMatch->getVisitorEntrant();      
-                    $vname   = $futureMatch->isBye() ? '' : 'tba';
-                    $vseed   = '';
-                    if( isset( $visitor ) ) {
-                        $vname   = $visitor->getName();
-                        if( $vname === $winner ) $visitorWinner = $winnerClass;
-                        $vseed   = $visitor->getSeed() > 0 ? $visitor->getSeed() : '';
-                    }
-                    $vname = empty($vseed) ? $vname : $vname . "($vseed)";
-                    $cmts = $futureMatch->getComments();
-                    $cmts = isset( $cmts ) ? $cmts : '';
-
-                    $startDate = $futureMatch->getMatchDate_Str();
-                    $startTime = $futureMatch->getMatchTime_Str(2);
-                    // if( !empty($startDate) || !empty($startTime)) {
-                    //     $startDate = "Started: " . $startDate;
-                    // }
-                    
-                    $displayscores = $umpire->strGetScores( $futureMatch );
-
-                    $statusObj = $umpire->matchStatusEx( $futureMatch );
-                    $majorStatus = $statusObj->getMajorStatus();
-                    $minorStatus = $statusObj->getMinorStatus();
-                    $generalstatus = $statusObj->toString(); 
-
-                    $out .= sprintf( $templ, $rowspan, $eventId, $bracketNum, $roundNum, $matchNum, $majorStatus, $minorStatus
-                                   , $futureMatch->toString() 
-                                   , $generalstatus
-                                   , $cmts       
-                                   , $startDate
-                                   , $startTime       
-                                   , $homeWinner
-                                   , $hname
-                                   , $displayscores
-                                   , $visitorWinner
-                                   , $vname);
-                }
-                
-                //Champion column
-                if( 1 === $row && $bracket->isApproved() ) {
-                    $out .= sprintf( $champTemplate, $rowspan, $eventId, $bracketNum, 0, 0, 0, 0
-                                    ,$championName );
-                }       
-            }
-            catch( RuntimeException $ex ) {
-                $rowEnder = '';
-                $this->log->error_log("$loc: preliminary round is empty at row $row");
-            }
-            finally {
-                $out .= $rowEnder;
-            }  
-        } //preliminaryRound  
-             
-        $out .= "</tbody><tfooter></tfooter>";
-        $out .= "</table>";	
-
-        $out .= '<div id="tennis-event-message"></div>';
-		$this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Time");
-        return $out;
-    }
-
-
+ 
     /**
      * Recursive function to extract all following matches from the given match
      * @param $startObj The starting match
