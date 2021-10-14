@@ -57,8 +57,9 @@
           } else {
             console.log("Done but failed (res.data):");
             console.log(res.data);
-            var entiremess = res.data.message + " ...<br/>";
-            for (var i = 0; i < res.data.exception.errors.length; i++) {
+            var entiremess = res.data.message;
+            for (var i = 1; i < res.data.exception.errors.length; i++) {
+              entiremess += " ...<br/>";
               entiremess += res.data.exception.errors[i][0] + "<br/>";
             }
             $(sig).addClass("tennis-error");
@@ -145,8 +146,11 @@
           case "move":
             window.location.reload();
             break;
+          case "undomatch":
+            undoMatch(data);
+            break;
           default:
-            console.log("Unknown task from server: '%s'", task);
+            console.log("Unknown task from server(array): '%s'", task);
             break;
         }
       } else if (typeof data == "string") {
@@ -186,7 +190,6 @@
             updateVisitor(data);
             break;
           case "savescore":
-            updateMatchDate(data);
             updateScore(data);
             //advanceMatches(data);
             break;
@@ -210,8 +213,11 @@
             //window.location.reload();
             swapPlayers(data);
             break;
+          case "undomatch":
+            undoMatch(data);
+            break;
           default:
-            console.log("Unknown task from server: '%s'", task);
+            console.log("Unknown task from server(object): '%s'", task);
             break;
         }
       }
@@ -459,6 +465,16 @@
     }
 
     /**
+     * Update the results from undoing a completed match
+     * @param {*} data
+     */
+    function undoMatch(data) {
+      console.log("undoMatch");
+      console.log(data);
+      updateScore(data);
+    }
+
+    /**
      * Update the match status
      * @param {*} data
      */
@@ -682,6 +698,7 @@
       console.log("hide menu....");
       $(".matchaction.approved").hide();
       $(".matchaction.unapproved").hide();
+      $(".matchaction.completed").hide();
     }
 
     /**
@@ -689,9 +706,15 @@
      */
     $(".menu-icon").on("click", function (event) {
       console.log("show menu....");
-      console.log(this);
-      console.log(event.target);
-      console.log(event);
+      // console.log(this);
+      // console.log(event.target);
+      // console.log(event);
+      let $parent = $(this).parents(".item-player");
+      //console.log($parent);
+      let majorStatus = $parent.attr("data-majorstatus");
+      let minorStatus = $parent.attr("data-minorstatus");
+      console.log("major=%d, minor=%d", majorStatus, minorStatus);
+
       if (tennis_draw_obj.isBracketApproved + 0 > 0) {
         if (
           $(event.target).hasClass("menu-icon") ||
@@ -702,8 +725,12 @@
           $(event.target).hasClass("bar4") ||
           $(event.target).hasClass("bar5")
         ) {
-          $(this).children(".matchaction.approved").css("z-index", 999);
-          $(this).children(".matchaction.approved").show();
+          if (majorStatus == MajorStatus.Completed) {
+            $(this).children(".matchaction.completed").show();
+          } else {
+            $(this).children(".matchaction.approved").css("z-index", 999);
+            $(this).children(".matchaction.approved").show();
+          }
         }
       } else {
         if (
@@ -887,6 +914,24 @@
       $parent.find("div.modifymatchscores.tennis-modify-scores").css(pos);
       $parent.find("div.modifymatchscores.tennis-modify-scores").draggable();
       showModifyScores(this);
+    });
+
+    $(".undomatch").on("click", function (event) {
+      console.log("undo match click");
+      console.log(this);
+      hideMenu(event);
+      $parent = $(this).parents(".item-player");
+      let matchdata = getMatchData(this);
+      let eventId = tennis_draw_obj.eventId;
+      let bracketName = tennis_draw_obj.bracketName;
+      ajaxFun({
+        task: "undomatch",
+        eventId: eventId,
+        bracketNum: matchdata.bracketnum,
+        roundNum: matchdata.roundnum,
+        matchNum: matchdata.matchnum,
+        bracketName: bracketName,
+      });
     });
 
     /**

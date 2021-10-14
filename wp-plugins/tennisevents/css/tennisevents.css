@@ -385,10 +385,10 @@ table.tennis-display-scores td {
 
 table.tennis-modify-scores {
   display: none;
-  background-color: gray;
+  background-color: lightblue;
   border-collapse: collapse;
-  border: 1px solid black;
-  box-shadow: 10px 10px gray;
+  border: 1px solid blue;
+  box-shadow: 10px 10px blue;
   color: white;
 }
 
@@ -396,31 +396,46 @@ table.tennis-modify-scores caption {
   display: table-caption;
   text-align: center;
   font-weight: bold;
-  background-color: gray;
+  background-color: blue;
   color: white;
+  font-size: small;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }
 
 table.tennis-modify-scores th {
+  background-color: blue;
   margin: 0;
-  border: 1pt solid black;
+  border: 1pt solid white;
   font-size: small;
   padding: 0;
 }
 
+table.tennis-modify-scores td {
+  margin: 0;
+  border: 1pt solid blue;
+  font-size: small;
+  padding: 0;
+  color: blue;
+}
+table.tennis-modify-scores input {
+  color: blue;
+}
+
 table.tennis-modify-scores td:nth-child(odd) {
   padding: 1px 2px 1px 2px !important;
-  border: 1pt solid black;
-  color: white;
+  border: 1pt solid blue;
+  color: blue;
 }
 
 table.tennis-modify-scores td:nth-child(even) {
   padding: 1px 1px 1px 1px !important;
-  border: 1pt solid black;
-  color: white;
+  border: 1pt solid blue;
+  color: blue;
 }
 
 input.modifymatchscores {
-  background: gray;
+  background: lightblue;
   box-sizing: border-box;
   width: 100%;
   color: white;
@@ -590,7 +605,7 @@ div.modifymatchscores.save-cancel-buttons {
 
 .matchaction {
   display: none;
-  background-color: darkred;
+  background-color: blue;
   border: 1px solid white;
   list-style-type: none;
   width: 60%;
@@ -601,6 +616,7 @@ div.modifymatchscores.save-cancel-buttons {
   padding-left: 2px;
   /*opacity: 0.7;*/
 }
+
 .matchaction > li {
   color: white;
 }

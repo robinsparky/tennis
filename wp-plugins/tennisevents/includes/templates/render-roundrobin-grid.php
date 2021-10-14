@@ -91,8 +91,9 @@ use datalayer\MatchStatus; ?>
  data-majorstatus="<?php echo $majorStatus;?>" 
  data-minorstatus="<?php echo $minorStatus;?>">
 <?php if(!empty($menupath)) require $menupath; ?>
-<div class="matchinfo matchtitle"><?php echo $title; ?>&nbsp;<span class="matchinfo matchstatus"><?php echo $status; ?></span></div>
-<div class="matchinfo matchstart"><?php echo $startedMess; ?> &nbsp; <?php echo $startDate;?> &nbsp; <?php echo $startTime; ?></div>
+<div class="matchinfo matchtitle"><?php echo $title; ?></div>
+<div class="matchinfo matchstatus"><?php echo $status; ?></div>
+<div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $startDate;?>&nbsp;<?php echo $startTime; ?></div>
 <div class="changematchstart">
 <input type='date' class='changematchstart' name='matchStartDate' value='<?php echo $startDate;?>'>
 <input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTime;?>'>
@@ -135,7 +136,7 @@ function getMenuPath( int $majorStatus ) {
                 $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
                 break;
             case MatchStatus::Completed:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\undo-menu-template.php';
+                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
                 $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
                 break;
             case MatchStatus::Bye:

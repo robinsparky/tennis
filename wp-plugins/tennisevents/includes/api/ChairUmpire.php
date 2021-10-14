@@ -547,20 +547,22 @@ abstract class ChairUmpire
 <button class='cancelmatchscores modifymatchscores'>Cancel</button></div>
 EOT;
 
+        $playerHdr = __("Players", TennisEvents::TEXT_DOMAIN);
         $gameHdr = __("Games",TennisEvents::TEXT_DOMAIN);
         $tbHdr   = __("T.B.", TennisEvents::TEXT_DOMAIN);
         //Start the table and place the header row
         $tableScores = '<table class="modifymatchscores tennis-modify-scores ui-sortable-handle">';
-        $tableScores .= '<caption>' . $match->toString() . '</caption>';
+        $tableScores .= "<caption>{$match->toString()}</caption>";
         $tableScores .= '<thead class="modifymatchscores"><tr>';
+        $tableScores .= "<th rowspan='2'>{$playerHdr}</th>";
         foreach( $setNums as $setNum ) {
-            $tableScores .= "<th colspan='2'>$setNum</th>";
+            $tableScores .= "<th colspan='2'>Set {$setNum}</th>";
         }
         $tableScores .= "</tr><tr>";        
         foreach( $setNums as $setNum ) {
             $tableScores .= "<th>{$gameHdr}</th>";
             if( $this->includeTieBreakerScores( $setNum ) ) {
-                $tableScores .= "<th>{$tbHdr}</th>";
+                $tableScores .= "<th class='tiebreakscorehdr'>{$tbHdr}</th>";
             }
             else{
                 $tableScores .= "";
@@ -569,8 +571,10 @@ EOT;
         $tableScores .= "</tr></thead><tbody>";
 
         //Now put the actual scores into the table
-        $homeScores  = "<tr>";
-        $visitorScores = "<tr>";
+        $homePlayer    = empty($match->getHomeEntrant()) ? "" : $match->getHomeEntrant()->getName();
+        $visitorPlayer = empty($match->getVisitorEntrant()) ? "" :$match->getVisitorEntrant()->getName();
+        $homeScores  = "<tr><td>{$homePlayer}</td>";
+        $visitorScores = "<tr><td>{$visitorPlayer}</td>";
         foreach( $setNums as $setNum ) {
             //If set does not exist yet then fake it
             if( !array_key_exists( $setNum, $arrScores ) ) {
@@ -590,12 +594,12 @@ EOT;
 
             $maxGameScore = $this->getGamesPerSet() + 24;
             $maxTBScore   = $this->getTieBreakMinScore() + 21;
-            $homeScores .= sprintf("<td><input type='number' class='modifymatchscores' name='homeGames' value='%d' min='0' max='%d'></td>"
+            $homeScores .= sprintf("<td><input type='number' class='modifymatchscores gamescore' name='homeGames' value='%d' min='0' max='%d'></td>"
                                     ,$scores[0] 
                                     ,$maxGameScore );
                                     
             if( $this->includeTieBreakerScores( $setNum ) ) {                
-                $homeScores .= sprintf("<td><input class='modifymatchscores' type='number' name='homeTieBreak' value='%d' min='0' max='%d'></td>"
+                $homeScores .= sprintf("<td><input class='modifymatchscores tiebreakscore' type='number' name='homeTieBreak' value='%d' min='0' max='%d'></td>"
                                         ,$scores[2]
                                         ,$maxTBScore );
             }
@@ -603,12 +607,12 @@ EOT;
                 $homeScores .= ""; //null op
             }
             
-            $visitorScores .= sprintf("<td><input type='number' class='modifymatchscores' name='visitorGames' value='%d' min='0' max='%d'></td>"
+            $visitorScores .= sprintf("<td><input type='number' class='modifymatchscores gamescore' name='visitorGames' value='%d' min='0' max='%d'></td>"
                                     ,$scores[1] 
                                     ,$maxGameScore );
                                     
             if( $this->includeTieBreakerScores( $setNum ) ) {
-                $visitorScores .= sprintf("<td><input class='modifymatchscores' type='number' name='visitorTieBreak' value='%d' min='0' max='%d'></td>"
+                $visitorScores .= sprintf("<td><input class='modifymatchscores tiebreakscore' type='number' name='visitorTieBreak' value='%d' min='0' max='%d'></td>"
                                         ,$scores[3]
                                         ,$maxTBScore );
             }

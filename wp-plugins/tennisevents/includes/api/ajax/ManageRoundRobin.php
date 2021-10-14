@@ -159,6 +159,10 @@ class ManageRoundRobin
                 $mess = $this->setMatchStart( $data );
                 $returnData = $data;
                 break;
+            case 'undomatch':
+                $mess = $this->undoMatch( $data );
+                $returnData = $data;
+                break;
             default:
                 $mess =  __( 'Illegal task.', TennisEvents::TEXT_DOMAIN );
                 $this->errobj->add( $this->errcode++, $mess );
@@ -310,13 +314,6 @@ class ManageRoundRobin
                 foreach( $scores as $score ) {
                     $chairUmpire->recordScores( $match, $score );
                     if( $chairUmpire->isLocked( $match, $winner ) ) break;
-                }
-
-                if( empty($match->getMatchDate_Str()) ) {
-                    $now = date("Y-m-d G:i:s", time());
-                    $this->log->error_log("$loc: setting match date to '{$now}'");
-                    $match->setMatchDate_Str( $now );
-                    //$match->setMatchTime_Str( date("g:i:s") );
                 }
 
                 // $numTrimmed = $chairUmpire->trimSets( $match );
@@ -540,8 +537,7 @@ class ManageRoundRobin
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
-            // $timestamp = strtotime( $matchStartDate );
-            // $match->setMatchDate_TS( $timestamp );
+
             $match->setMatchDate_Str( $matchStartDate );
             $match->setMatchTime_Str( $matchStartTime );
             $match->save();
@@ -556,6 +552,92 @@ class ManageRoundRobin
             $this->log->error_log("$loc: exception: '{$mess}'");
             $data['matchstartdate'] = '';
             $data['matchstarttime'] = '';
+        }
+        return $mess;
+    }
+       /**
+     * Undo a completed match
+     * @param array $data A reference to an array of event/match identifiers and new visitor player name
+     * @return string A message describing success or failure
+     */
+    private function undoMatch( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $bracketNum    = $data["bracketNum"];
+        $roundNum      = $data["roundNum"];
+        $matchNum      = $data["matchNum"];
+        $mess          = __("Undo match: ", TennisEvents::TEXT_DOMAIN );
+        try {            
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+            $bracket = $td->getBracket( $bracketName );
+            $chairUmpire = $td->getChairUmpire();
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+            $match = $bracket->getMatch( $roundNum, $matchNum );
+            if( is_null( $match ) ) {
+                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
+            }
+
+            //Check if the next match has acceptable properties
+            $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextmatchNumber() );
+            $goodTask = true;
+            if( !empty( $nextMatch ) ) {
+                $nextStatus = $chairUmpire->matchStatusEx( $nextMatch );
+                switch($nextStatus->getMajorStatus()) {
+                    case MatchStatus::Waiting:
+                        $goodTask = true;
+                        break;
+                    default:
+                        $goodTask = false;
+                }
+            }
+
+            if( $goodTask ) {
+                $match->removeSets();
+                $match->save();
+            }
+            else {
+                $exMess = __("Next match not in acceptable state '{$nextStatus->toString()}' must be waiting state.", TennisEvents::TEXT_DOMAIN );
+                throw new InvalidTennisOperationException($exMess);
+            }
+            
+            $statusObj = $chairUmpire->matchStatusEx( $match );
+            $data['majorStatus'] = $statusObj->getMajorStatus();
+            $data['minorStatus'] = $statusObj->getMinorStatus();
+            $data['status'] = $statusObj->toString();
+
+            $data['matchdate'] = $match->getMatchDate_Str();
+            $data['matchtime'] = $match->getMatchTime_Str();
+
+            $data['advanced'] = 0; //$td->advance( $bracketName );
+            $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
+            $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
+            
+            $winner = $chairUmpire->matchWinner( $match );
+            $data['winner'] = '';
+                           
+            $pointsPerWin = 1;
+            //if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+            $pointsPerWin = $chairUmpire->getPointsPerWin();
+
+            $summaryTable = $chairUmpire->getEntrantSummary( $bracket );
+            //$this->log->error_log($summaryTable, "$loc - entrant summary");
+            $data["entrantSummary"] = $summaryTable;
+            $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
+
+            $numVars = extract( $chairUmpire->getMatchSummary( $match ) );
+            $this->log->error_log($data, "$loc: numVars={$numVars} data...");
+
+            $mess .= __("'{$match->toString()}' was successful.", TennisEvents::TEXT_DOMAIN );
+        }
+        catch( Exception | InvalidMatchException | InvalidBracketException  $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess .= $ex->getMessage();
         }
         return $mess;
     }

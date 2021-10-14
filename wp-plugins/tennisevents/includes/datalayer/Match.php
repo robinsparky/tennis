@@ -459,7 +459,7 @@ class Match extends AbstractData
     public function getMatchDateTime() {
         if(empty($this->match_datetime ) ) return null;
         else {
-            $temp = $this->match_datetime;
+            $temp = clone $this->match_datetime;
             return $temp->setTimezone(TennisEvents::getTimeZone());
         }
     } 
@@ -483,7 +483,7 @@ class Match extends AbstractData
             return '';
         }
 		else {
-            $temp = $this->match_datetime;
+            $temp = clone $this->match_datetime;
             return $temp->setTimezone(TennisEvents::getTimeZone())->format( self::$outdateformat );
         }
 	}
@@ -522,7 +522,7 @@ class Match extends AbstractData
         }
         
 		if( isset( $this->match_datetime ) ) {
-            $temp = $this->match_datetime;
+            $temp = clone $this->match_datetime;
             $result = $temp->setTimezone(TennisEvents::getTimeZone())->format($format);
         }
 		
@@ -564,7 +564,7 @@ class Match extends AbstractData
 	public function getMatchDate_ISO() {
 		if( !isset( $this->match_datetime ) ) return '';
 		else {
-            $temp = $this->match_datetime;
+            $temp = clone $this->match_datetime;
             return $temp->setTimezone(TennisEvents::getTimeZone())->format(\DateTime::ISO8601 );
         }
 	}
@@ -676,7 +676,7 @@ class Match extends AbstractData
         $stored = '';
         if( isset( $this->match_datetime ) ) {
             $stored = $this->match_datetime->format( $format );
-            $temp = $this->match_datetime;
+            $temp = clone $this->match_datetime;
             $result = $temp->setTimezone(TennisEvents::getTimeZone())->format( $format );
         }
 
@@ -890,7 +890,7 @@ class Match extends AbstractData
                                     , $this->getBracket()->getBracketNumber()
                                     , $this->getRoundNumber()
                                     , $this->getMatchNumber()
-                                    , $s->getSetNumber );
+                                    , $s->getSetNumber() );
                     $result = $this->setDirty();
 				}
 				$i++;
@@ -1363,34 +1363,14 @@ class Match extends AbstractData
         
         if( !empty($row["match_date"]) && $row["match_date"] !== '0000-00-00 00:00:00') {
             $st = new \DateTime( $row["match_date"], new \DateTimeZone('UTC') );
-            $test = $st;
             $mess = print_r($st,true);
             error_log("$loc: DateTime using match_date ...");
             error_log($mess);
             $obj->match_datetime = $st;
-            $test->setTimezone(TennisEvents::getTimeZone());
-            error_log(print_r($test,true));
         }
         else {
             $obj->match_date = null;
         }
-        //$timestamp = strtotime($row["match_date"]);
-        // if( $timestamp > 0 ) {
-        //     // list( $year, $month, $day ) = explode('-', $row["match_date"]);
-        //     // $obj->setMatchDate( $year, $month, $day );
-        //     $obj->setMatchDate_TS( $timestamp );
-        // }
-        // else {
-        //     $obj->match_datetime = null;
-        // }
-
-        //$obj->match_time   = isset( $row["match_time"] ) ? new \DateTime( $row["match_time"] ) : null;
-        // if( isset( $row["match_time"] ) ) {
-        //     $obj->setMatchTime_Str($row["match_time"]);
-        // }
-        // else {
-        //     $obj->match_time = null;
-        // }
 
         $obj->is_bye       = $row["is_bye"] == 1 ? true : false;
         $obj->comments     = $row["comments"];
