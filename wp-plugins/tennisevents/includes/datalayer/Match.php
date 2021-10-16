@@ -444,7 +444,7 @@ class Match extends AbstractData
         return $result;
     }
 
-    private function setMatchDate_TS( int $timestamp ) {
+    public function setMatchDate_TS( int $timestamp ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
@@ -673,15 +673,11 @@ class Match extends AbstractData
         }
         
         $result = '';
-        $stored = '';
         if( isset( $this->match_datetime ) ) {
-            $stored = $this->match_datetime->format( $format );
             $temp = clone $this->match_datetime;
             $result = $temp->setTimezone(TennisEvents::getTimeZone())->format( $format );
         }
 
-        $this->log->error_log("$loc: stored time='{$stored}'");
-        $this->log->error_log("$loc: return time='{$result}'");
         return $result;
     }
     

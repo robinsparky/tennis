@@ -184,6 +184,10 @@ class ManageDraw
                 $mess = $this->undoMatch( $data );
                 $returnData = $data;
                 break;
+            case 'resetmatch':
+                $mess = $this->undoMatch( $data, true );
+                $returnData = $data;
+                break;
             default:
                 $mess =  __( 'Illegal task.', TennisEvents::TEXT_DOMAIN );
                 $this->errobj->add( $this->errcode++, $mess );
@@ -241,7 +245,7 @@ class ManageDraw
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
-            $data['player'] = '';
+            $data['homeplayer'] = '';
         }
         return $mess;
     }
@@ -280,7 +284,7 @@ class ManageDraw
             $match->setVisitorEntrant( $newVisitor );
             $match->save();
             $returnName = $newVisitor->getSeededName();
-            $data['player'] = $returnName;
+            $data['visitorplayer'] = $returnName;
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -657,7 +661,7 @@ class ManageDraw
      * @param array $data A reference to an array of event/match identifiers and new visitor player name
      * @return string A message describing success or failure
      */
-    private function undoMatch( &$data ) {
+    private function undoMatch( &$data, $reset=false ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $data, "$loc" );
 
@@ -666,7 +670,8 @@ class ManageDraw
         $bracketNum    = $data["bracketNum"];
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
-        $mess          = __("Undo match: ", TennisEvents::TEXT_DOMAIN );
+        $task          = $reset ? "reset match" : "undo match";
+        $mess          = __("{$task}: ", TennisEvents::TEXT_DOMAIN );
         try {            
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
@@ -696,10 +701,16 @@ class ManageDraw
 
             if( $goodTask ) {
                 $match->removeSets();
+                if( $reset ) {
+                    $match->setHomeEntrant();
+                    $match->setVisitorEntrant();
+                    $match->setMatchDate_Str('');
+                    $match->setMatchTime_Str('');
+                }
                 $match->save();
             }
             else {
-                $exMess = __("Next match not in acceptable state '{$nextStatus->toString()}' must be waiting state.", TennisEvents::TEXT_DOMAIN );
+                $exMess = __("Next match not in acceptable state '{$nextStatus->toString()}'. Must be waiting state.", TennisEvents::TEXT_DOMAIN );
                 throw new InvalidTennisOperationException($exMess);
             }
             
@@ -707,15 +718,13 @@ class ManageDraw
             $data['majorStatus'] = $statusObj->getMajorStatus();
             $data['minorStatus'] = $statusObj->getMinorStatus();
             $data['status'] = $statusObj->toString();
+            $data['matchdate'] = '';
+            $data['matchtime'] = '';
+            $data['homeplayer'] = '';
+            $data['visitorplayer'] = '';
 
-            $data['matchdate'] = $match->getMatchDate_Str();
-            $data['matchtime'] = $match->getMatchTime_Str();
-
-            $data['advanced'] = 0; //$td->advance( $bracketName );
             $data['displayscores'] = $chairUmpire->tableDisplayScores( $match );
-            $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );
-            
-            $winner = $chairUmpire->matchWinner( $match );
+            $data['modifyscores'] = $chairUmpire->tableModifyScores( $match );        
             $data['winner'] = '';
             $mess .= __("'{$match->toString()}' was successful.", TennisEvents::TEXT_DOMAIN );
         }
@@ -725,7 +734,7 @@ class ManageDraw
         }
         return $mess;
     }
-    
+ 
     /**
      * Approve the preliminary round
      */
