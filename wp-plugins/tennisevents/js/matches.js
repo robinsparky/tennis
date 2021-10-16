@@ -149,6 +149,9 @@
           case "undomatch":
             undoMatch(data);
             break;
+          case "resetmatch":
+            resetMatch(data);
+            break;
           default:
             console.log("Unknown task from server(array): '%s'", task);
             break;
@@ -215,6 +218,9 @@
             break;
           case "undomatch":
             undoMatch(data);
+            break;
+          case "resetmatch":
+            resetMatch(data);
             break;
           default:
             console.log("Unknown task from server(object): '%s'", task);
@@ -383,7 +389,7 @@
         data.roundNum,
         data.matchNum
       );
-      $matchEl.children(".homeentrant").text(data.player);
+      $matchEl.children(".homeentrant").text(data.homeplayer);
     }
 
     /**
@@ -398,7 +404,7 @@
         data.roundNum,
         data.matchNum
       );
-      $matchEl.children(".visitorentrant").text(data.player);
+      $matchEl.children(".visitorentrant").text(data.visitorplayer);
     }
 
     /**
@@ -472,6 +478,18 @@
       console.log("undoMatch");
       console.log(data);
       updateScore(data);
+    }
+    /**
+     * Update the results from undoing a completed match
+     * @param {*} data
+     */
+    function resetMatch(data) {
+      console.log("resetMatch");
+      console.log(data);
+      updateScore(data);
+      updateMatchDate(data);
+      updateHome(data);
+      updateVisitor(data);
     }
 
     /**
@@ -725,7 +743,10 @@
           $(event.target).hasClass("bar4") ||
           $(event.target).hasClass("bar5")
         ) {
-          if (majorStatus == MajorStatus.Completed) {
+          if (
+            majorStatus == MajorStatus.Completed ||
+            majorStatus == MajorStatus.Retired
+          ) {
             $(this).children(".matchaction.completed").show();
           } else {
             $(this).children(".matchaction.approved").css("z-index", 999);
@@ -926,6 +947,24 @@
       let bracketName = tennis_draw_obj.bracketName;
       ajaxFun({
         task: "undomatch",
+        eventId: eventId,
+        bracketNum: matchdata.bracketnum,
+        roundNum: matchdata.roundnum,
+        matchNum: matchdata.matchnum,
+        bracketName: bracketName,
+      });
+    });
+
+    $(".resetmatch").on("click", function (event) {
+      console.log("reset match click");
+      console.log(this);
+      hideMenu(event);
+      $parent = $(this).parents(".item-player");
+      let matchdata = getMatchData(this);
+      let eventId = tennis_draw_obj.eventId;
+      let bracketName = tennis_draw_obj.bracketName;
+      ajaxFun({
+        task: "resetmatch",
         eventId: eventId,
         bracketNum: matchdata.bracketnum,
         roundNum: matchdata.roundnum,

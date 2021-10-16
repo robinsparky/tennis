@@ -17,6 +17,7 @@
  <li><a class="setcomments">Comment Match</a></li>
 </ul>
 <ul class="matchaction completed">
- <li><a class="undomatch">Undo</a></li>
+ <li><a class="undomatch">Undo Scores</a></li>
+ <li><a class="resetmatch">Reset Match</a></li>
 </ul>
 </div>

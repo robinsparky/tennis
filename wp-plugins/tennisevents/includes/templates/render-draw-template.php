@@ -74,6 +74,7 @@ use datalayer\MatchStatus; ?>
 
                 $startDate = $match->getMatchDate_Str();
                 $startTime = $match->getMatchTime_Str(2);
+                $startTimeVal = $match->getMatchTime_Str();
 
                 // Get menu template file
                 $menupath = getMenuPath( $majorStatus );
@@ -86,8 +87,8 @@ use datalayer\MatchStatus; ?>
 <div class="matchinfo matchstart"><?php echo $startDate; ?>&nbsp;<?php echo $startTime; ?></div>
 <div class="changematchstart">
 <input type='date' class='changematchstart' name='matchStartDate' value='<?php echo $startDate; ?>'>
-<input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTime; ?>'>
-<button class='button savematchstart'>Save</button> <button class='button cancelmatchstart'>Cancel</button></div>
+<input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTimeVal; ?>'>
+<button class='button savematchstart'>Save</button>&nbsp;<button class='button cancelmatchstart'>Cancel</button></div>
 <div class="homeentrant <?php echo $homeWinner; ?>"><?php echo $hname; ?></div>
 <div class="displaymatchscores"><!-- Display Scores Container -->
 <?php echo $displayscores; ?></div>
@@ -130,6 +131,7 @@ use datalayer\MatchStatus; ?>
 
                     $startDate = $futureMatch->getMatchDate_Str();
                     $startTime = $futureMatch->getMatchTime_Str(2);
+                    $startTimeVal = $futureMatch->getMatchTime_Str();
                     
                     $displayscores = $umpire->tableDisplayScores( $futureMatch );
                     $modifyscores = $umpire->tableModifyScores( $futureMatch );  
@@ -150,7 +152,7 @@ use datalayer\MatchStatus; ?>
 <div class="matchinfo matchstart"><?php echo $startDate; ?> &nbsp; <?php echo $startTime; ?></div>
 <div class="changematchstart">
 <input type='date' class='changematchstart' name='matchStartDate' value='<?php echo $startDate; ?>'>
-<input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTime; ?>'>
+<input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTimeVal; ?>'>
 <button class='button savematchstart'>Save</button> <button class='button cancelmatchstart'>Cancel</button></div>
 <div class="homeentrant <?php echo $homeWinner; ?>"><?php echo $hname; ?></div>
 <div class="displaymatchscores"><!-- Display Scores Container -->
@@ -182,14 +184,15 @@ finally {
 </tbody><tfooter></tfooter>
 </table>	 
 <div class='bracketDrawButtons'>
-<?php if( $numPreliminaryMatches > 0 ) {
+<?php if( is_user_logged_in() && current_user_can( 'manage_options' )) {
+    if( $numPreliminaryMatches > 0 ) {
     if( !$bracket->isApproved() ) { ?>
         <button class="button" type="button" id="approveDraw">Approve</button>
     <?php } else { ?>
-        <button class="button" type="button" id="advanceMatches">Advance Matches</button>'
+        <button class="button" type="button" id="advanceMatches">Advance Matches</button>&nbsp;
     <?php } ?>
     <button class="button" type="button" id="removePrelim">Reset Bracket</button>&nbsp;
-<?php } ?>
+<?php }}//if user ?>
 </div>
 <div id="tennis-event-message"></div>
 <?php 
@@ -198,21 +201,15 @@ function getMenuPath( int $majorStatus ) {
     if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
         switch( $majorStatus ) {
             case MatchStatus::NotStarted:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
-                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
-                break;
             case MatchStatus::InProgress:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
-                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
-                break;
             case MatchStatus::Completed:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
+            case MatchStatus::Retired:
+                $menupath = TE()->getPluginPath() . 'includes\templates\menus\elimination-menu-template.php';
                 $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
                 break;
             case MatchStatus::Bye:
             case MatchStatus::Waiting:
             case MatchStatus::Cancelled:
-            case MatchStatus::Retired:
             default:
                 $menupath = '';
         }

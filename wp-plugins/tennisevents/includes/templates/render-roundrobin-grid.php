@@ -78,6 +78,7 @@ use datalayer\MatchStatus; ?>
 
     $startDate = $match->getMatchDate_Str();
     $startTime = $match->getMatchTime_Str(2);
+    $startTimeVal = $match->getMatchTime_Str();
     $this->log->error_log("$loc: {$match->toString()} start date: '{$startDate}'; start time: '{$startTime}'");
     $menupath = getMenuPath( $majorStatus );
 
@@ -96,7 +97,7 @@ use datalayer\MatchStatus; ?>
 <div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $startDate;?>&nbsp;<?php echo $startTime; ?></div>
 <div class="changematchstart">
 <input type='date' class='changematchstart' name='matchStartDate' value='<?php echo $startDate;?>'>
-<input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTime;?>'>
+<input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTimeVal;?>'>
 <button class='savematchstart'>Save</button> <button class='cancelmatchstart'>Cancel</button>
 </div>
 <div class="matchinfo matchcomments"><?php echo $cmts; ?></div>
@@ -113,13 +114,13 @@ use datalayer\MatchStatus; ?>
 </main>
 
 <div class='bracketDrawButtons'>
-<?php 
+<?php if( is_user_logged_in() && current_user_can( 'manage_options' )) {
     if( count( $loadedMatches ) > 1 ) {
     if( !$bracket->isApproved() ) { ?>
         <button class="button" type="button" id="approveDraw">Approve</button>
     <?php } ?>
     <button class="button" type="button" id="removePrelim">Reset</button><br/>
-<?php } ?>
+<?php }} ?>
 </div>
 <div id="tennis-event-message"></div>
 <?php 
@@ -128,21 +129,15 @@ function getMenuPath( int $majorStatus ) {
     if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
         switch( $majorStatus ) {
             case MatchStatus::NotStarted:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
-                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
-                break;
             case MatchStatus::InProgress:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
-                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
-                break;
             case MatchStatus::Completed:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\progress-menu-template.php';
+            case MatchStatus::Retired:
+                $menupath = TE()->getPluginPath() . 'includes\templates\menus\roundrobin-menu-template.php';
                 $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
                 break;
             case MatchStatus::Bye:
             case MatchStatus::Waiting:
             case MatchStatus::Cancelled:
-            case MatchStatus::Retired:
             default:
                 $menupath = '';
         }
