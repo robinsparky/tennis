@@ -831,7 +831,9 @@ class Match extends AbstractData
     public function removeSets() {
         foreach( $this->getSets() as $set ) {
             $this->removeSet( $set->getSetNumber() );
+            $this->setDirty();
         }
+        $this->sets = null;
     }
 
     /**
