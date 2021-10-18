@@ -314,8 +314,7 @@
       );
       $matchEl
         .children(".matchstart")
-        .text(data.matchdate + " " + data.matchtime);
-      //if( data.matchdate || data.matchtime ) $matchEl.css('before','Started: ');
+        .html(data.matchdate + "<br/>" + data.matchtime);
       $matchEl.children(".matchstart").fadeIn(500);
       $matchEl.children(".changematchstart").hide();
       updateStatus(data);

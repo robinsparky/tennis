@@ -149,7 +149,7 @@ use datalayer\MatchStatus; ?>
 <div class="matchinfo matchtitle ui-sortable-handle"><?php echo $futureMatch->toString(); ?></div>
 <div class="matchinfo matchstatus"><?php echo $generalstatus; ?></div>
 <div class="matchcomments"><?php echo $cmts; ?></div>
-<div class="matchinfo matchstart"><?php echo $startDate; ?> &nbsp; <?php echo $startTime; ?></div>
+<div class="matchinfo matchstart"><?php echo $startDate; ?><br/><?php echo $startTime; ?></div>
 <div class="changematchstart">
 <input type='date' class='changematchstart' name='matchStartDate' value='<?php echo $startDate; ?>'>
 <input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTimeVal; ?>'>

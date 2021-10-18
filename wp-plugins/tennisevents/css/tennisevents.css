@@ -667,6 +667,10 @@ button.cancelmatchscores {
   padding: 0 0 0 0;
 }
 
+.matchstart {
+  font-size: smaller;
+}
+
 .changematchstart {
   display: none;
 }
