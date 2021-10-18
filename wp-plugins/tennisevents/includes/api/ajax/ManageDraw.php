@@ -546,20 +546,19 @@ class ManageDraw
             switch( $player ) {
                 case "home":
                     $chairUmpire->defaultHome( $match, $comments );
-                    $status = $chairUmpire->matchStatusEx( $match )->toString();
-                    $data['advanced'] = $td->advance( $bracketName );
                     break;
                 case "visitor":
                     $chairUmpire->defaultVisitor( $match, $comments );
-                    $status = $chairUmpire->matchStatusEx( $match )->toString();
-                    $data['advanced'] = $td->advance( $bracketName );
                     break;
                 default:
                     $mess  = __("Unable to default '$player'", TennisEvents::TEXT_DOMAIN );
                     throw new InvalidArgumentException($mess);
                     break;
             }
-            $data['status'] = $status;
+            $statusObj = $chairUmpire->matchStatusEx($match);
+            $data['status'] = $statusObj->toString();
+            $data['majorStatus'] = $statusObj->getMajorStatus();
+            $data['minorStatus'] = $statusObj->getMinorStatus();
         }
         catch( Exception | InvalidBracketException | InvalidMatchException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
