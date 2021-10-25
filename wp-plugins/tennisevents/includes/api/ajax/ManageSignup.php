@@ -272,7 +272,7 @@ class ManageSignup
         $mess    =  __("Update Entrant from '{$oldName}' to '{$newName}'  succeeded.", TennisEvents::TEXT_DOMAIN );
         try {            
             $event   = Event::get( $this->eventId );
-            console.log("$loc: $mess");
+            $this->log->error_log("$loc: $mess");
             $bracket = $event->getBracket( $this->bracketName );
             $entrant = $bracket->getNamedEntrant( $oldName );
             if( is_null( $entrant ) ) {
