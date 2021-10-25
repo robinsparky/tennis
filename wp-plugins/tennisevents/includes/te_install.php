@@ -26,9 +26,23 @@ class TE_Install {
 
 	const OPTION_NAME_VERSION = 'tennis_version';
 
-	static public $tennisRoles=array("tennis_player"              => "Tennis Player"
-									,"tennis_chair_umpire"              => "Chair Umpire"
-								    ,"tennis_tournament_director" => "Tournament Director");
+	const TOURNAMENTDIRECTOR_ROLENAME = "tennis_tournament_director";
+	const CHAIRUMPIRE_ROLENAME = "tennis_chair_umpire";
+	const TENNISPLAYER_ROLENAME = "tennis_player";
+
+	const SCORE_MATCHES_CAP = 'score_tennis_matches';
+	const RESET_MATCHES_CAP = 'reset_tennis_matches';
+	const MANAGE_EVENTS_CAP = 'manage_tennis_matches';
+
+	static public $tennisRoles=array(self::TENNISPLAYER_ROLENAME => "Tennis Player"
+									,self::CHAIRUMPIRE_ROLENAME  => "Chair Umpire"
+								    ,self::TOURNAMENTDIRECTOR_ROLENAME => "Tournament Director");
+	static private $chairUmpireCaps=array(self::SCORE_MATCHES_CAP => 1
+										 ,self::RESET_MATCHES_CAP => 0
+										 ,self::MANAGE_EVENTS_CAP => 0 );
+	static private $tournamentDirectorCaps=array(self::SCORE_MATCHES_CAP => 1
+												,self::RESET_MATCHES_CAP => 1
+												,self::MANAGE_EVENTS_CAP => 1 );
 
 	private $dbTableNames; 
 	private $log;
@@ -102,10 +116,10 @@ class TE_Install {
 		flush_rewrite_rules();
 
 		$this->addRoles();
-		//$this->addCap();
+		$this->addCap();
 		$this->create_options();
 		$this->createSchema();
-		//add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
+		add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
 
@@ -127,6 +141,7 @@ class TE_Install {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
 
+		$this->removeCap();
 		$this->removeRoles();
 		$this->delete_options();
 		$this->delete_customPostTypes();
@@ -251,27 +266,28 @@ class TE_Install {
 	}
 
 	/**
-	 * Add the roles of 'Tennis Player', 'Tournament Director', etc.
+	 * Add the roles of 'Tennis Player', 'Tournament Director', 'Chair Umpire', etc.
 	 */
 	private function addRoles() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log($loc);
 
-		$caps = ['read','level_0'];
+		$caps = array();
 		foreach(self::$tennisRoles as $slug => $name ) {
 			switch($slug) {
-				case 'tennis_player';
-					$caps = get_role('subscriber')->capabilities;
+				case self::TOURNAMENTDIRECTOR_ROLENAME:			
+					$caps = array_merge(self::$tournamentDirectorCaps, get_role('subscriber')->capabilities );
 					break;
-				case 'tennis_director':
-					$caps = get_role('administrator')->capabilities;
+				case self::CHAIRUMPIRE_ROLENAME:
+					$caps = array_merge(self::$chairUmpireCaps, get_role('subscriber')->capabilities );
 					break;
-				case 'tennis_umpire':
-					$caps = get_role('editor')->capabilities;
-					break;
+				case self::TENNISPLAYER_ROLENAME;
 				default;
 					$caps = get_role('subscriber')->capabilities;
 			}
+
+			$this->log->error_log($caps, "$loc: {$name} caps...");
+			remove_role( $slug );
 			$result = add_role( $slug, $name, $caps );
 	
 			if( null !== $result ) {
@@ -280,7 +296,7 @@ class TE_Install {
 			else {
 				$this->log->error_log( "Could not add role '{$name}'." );
 			}
-		}
+		} //foreach
 	}
 
 	/**
@@ -288,13 +304,12 @@ class TE_Install {
 	 */
 	protected function removeRoles() {
 		foreach (self::$tennisRoles as $slug => $name) {
-			remove_role($slug);
+			remove_role( $slug );
 		}
 	}
 	
     /**
-	 * Add the new capability to all roles having a certain built-in capability
-	 * This is just a model of how to do this
+	 * Add the new tennis capabilities to all roles having the 'manage_options' capability
 	 */
     private function addCap() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -303,15 +318,16 @@ class TE_Install {
         $roles = get_editable_roles();
 
         foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
-            if (isset($roles[$key]) && $role->has_cap('BUILT_IN_CAP')) {
-                $role->add_cap('THE_NEW_CAP');
+            if (isset($roles[$key]) && $role->has_cap('manage_options')) {
+				foreach(self::$tournamentDirectorCaps as $cap => $grant) {
+                	$role->add_cap( $cap );
+				}
             }
         }
 	}
 
 	/**
-	 * Remove the plugin-specific custom capability
-	 * This is just a model of how to do this
+	 * Remove the tennis-specific custom capabilities
 	 */
 	private function removeCap() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -319,8 +335,10 @@ class TE_Install {
 
 		$roles = get_editable_roles();
 		foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
-			if (isset($roles[$key]) && $role->has_cap('THE_NEW_CAP')) {
-				$role->remove_cap('THE_NEW_CAP');
+			if (isset($roles[$key]) && $role->has_cap('manage_options')) {
+				foreach(self::$tournamentDirectorCaps as $cap => $grant) {
+					$role->remove_cap( $cap );
+				}
 			}
 		}
 	}
@@ -998,7 +1016,6 @@ class TE_Install {
 
 	public function enqueue_script() {
 		$loc = __CLASS__  . "::" . __FUNCTION__;
-		// guess current plugin directory URL
 		$plugin_url = plugin_dir_url(__FILE__);
 		wp_register_script( 'tennis_js', $plugin_url . 'js/te-support.js', array('jquery'),false,true );
 		wp_register_script( 'tennis_js', $plugin_url . 'js/create-drawtable.js', array('jquery'),false,true );
@@ -1013,6 +1030,8 @@ class TE_Install {
 
 	public function add_todaysdate_in_menu( $items, $args ) {
 		$loc = __CLASS__  . "::" . __FUNCTION__;
+		$this->log->error_log($items,"$loc: items");
+		$this->log->error_log($args,"$loc: args");
 		
 		if( $args->theme_location == 'primary')  {
 			$todaysdate = date('l jS F Y');

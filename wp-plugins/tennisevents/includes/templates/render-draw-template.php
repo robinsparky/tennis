@@ -1,5 +1,8 @@
 <?php 
-use datalayer\MatchStatus; ?>
+//use \TE_Install;
+use datalayer\MatchStatus; 
+?>
+<?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
 <h2 id="parent-event-name"><?php echo $parentName; ?></h2>
 <table id="<?php echo $bracketName; ?>" class="managedraw" data-eventid="<?php echo $eventId; ?>" data-bracketname="<?php echo $bracketName ?>">
 <caption class='tennis-draw-caption'><?php echo $tournamentName ?>&#58;&nbsp;<?php echo $bracketName ?>&nbsp;(<?php echo $scoreRuleDesc ?>)<br><span id='digiclock'></span></caption>
@@ -184,7 +187,7 @@ finally {
 </tbody><tfooter></tfooter>
 </table>	 
 <div class='bracketDrawButtons'>
-<?php if( is_user_logged_in() && current_user_can( 'manage_options' )) {
+<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP )) {
     if( $numPreliminaryMatches > 0 ) {
     if( !$bracket->isApproved() ) { ?>
         <button class="button" type="button" id="approveDraw">Approve</button>
@@ -198,7 +201,10 @@ finally {
 <?php 
 function getMenuPath( int $majorStatus ) {
     $menupath = '';
-    if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+    
+    if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
+    || current_user_can( TE_Install::RESET_MATCHES_CAP )
+    || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
         switch( $majorStatus ) {
             case MatchStatus::NotStarted:
             case MatchStatus::InProgress:

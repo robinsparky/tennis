@@ -274,6 +274,8 @@ class TennisEvents {
 		//Bracket maintenance
 		ManageBrackets::register();
 
+		//NOTE: Should call addCaps to cover case where admin is added after activation
+
 		flush_rewrite_rules(); //necessary to make permlinks work for tennis templates
 		$this->seedData();
 
@@ -740,10 +742,10 @@ function handleExtraChars() {
 //Temporary functionality for Pickleball
 add_action('admin_menu', 'create_tools_submenu');
 function create_tools_submenu() {
-    add_management_page( 'Pickleball', 'Pickleball Survey', 'manage_options', 'pickleball', 'generate_page_content' );
+    add_management_page( 'Pickleball', 'Pickleball Survey', 'manage_options', 'pickleball', 'generate_page_survey_content' );
 }
 
-function generate_page_content() {
+function generate_page_survey_content() {
 
 	$psurvey = new PickleballSurvey();
 	$psurvey->run();
@@ -752,6 +754,36 @@ function generate_page_content() {
 	echo $psurvey->getSurvey();
 	echo '</div>';
 	
+}
+
+//Temporary functionality for roles & caps
+add_action('admin_menu', 'create_tools_submenu2');
+function create_tools_submenu2() {
+    add_management_page( 'Roles & Caps', 'Roles & Caps', 'manage_options', 'customroles', 'generate_page_role_content' );
+}
+function generate_page_role_content() {
+
+    $blog = get_bloginfo("name");
+	$blogId = get_current_blog_id();
+    $custom_cap = 'score_matches';
+	//print_r($GLOBALS['wp_roles'] );
+
+    $html = "<hr /><table id={$blogId}>";
+    $html .= "<caption>Roles in '{$blog}' ID={$blogId} </caption>";
+    $html .= "<thead><tr><th>Role Name</th><th>Capabilties</th></tr></thead><tbody>";
+	$ro = $GLOBALS['wp_roles'];
+	$roles = $ro->roles;
+    foreach ( $roles as $name => $role_obj )
+    {
+		$stuff = print_r($role_obj, true);
+        // $cap = in_array( $custom_cap, $role_obj->caps ) ? $custom_cap : 'n/a';
+        // $cap = $cap OR in_array( $custom_cap, $role_obj->allcaps ) ? $custom_cap : 'n/a';
+		$cap = 'n/a';
+        $html .= "<tr><td>{$name}</td><td>{$stuff}</td></tr>";
+    }
+    $html .= '</tbody></table>';
+
+	echo $html;
 }
 
 //5.8 gutenberg fails totally except in Chrome when using localhost

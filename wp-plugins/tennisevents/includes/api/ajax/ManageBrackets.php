@@ -4,6 +4,7 @@ use commonlib\BaseLogger;
 use \WP_Error;
 use \Exception;
 use \TennisEvents;
+use \TE_Install;
 use \DateTime;
 use api\TournamentDirector;
 use datalayer\Event;
@@ -101,10 +102,10 @@ class ManageBrackets
         }
         
         $ok = false;
-        if( current_user_can( 'manage_options' ) ) $ok = true;
+        if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) $ok = true;
         
         if ( !$ok ) {         
-            $this->errobj->add( $this->errcode++, __( 'Only administrators can modify draw.', TennisEvents::TEXT_DOMAIN ));
+            $this->errobj->add( $this->errcode++, __( 'Insufficient privileges to modify brackets.', TennisEvents::TEXT_DOMAIN ));
         }
         
         if(count($this->errobj->errors) > 0) {

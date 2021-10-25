@@ -1,4 +1,5 @@
 <?php 
+//use \TE_install;
 use datalayer\MatchStatus; ?>
 <?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
@@ -114,7 +115,7 @@ use datalayer\MatchStatus; ?>
 </main>
 
 <div class='bracketDrawButtons'>
-<?php if( is_user_logged_in() && current_user_can( 'manage_options' )) {
+<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
     if( count( $loadedMatches ) > 1 ) {
     if( !$bracket->isApproved() ) { ?>
         <button class="button" type="button" id="approveDraw">Approve</button>
@@ -126,7 +127,10 @@ use datalayer\MatchStatus; ?>
 <?php 
 function getMenuPath( int $majorStatus ) {
     $menupath = '';
-    if( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+    
+    if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
+    || current_user_can( TE_Install::RESET_MATCHES_CAP )
+    || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
         switch( $majorStatus ) {
             case MatchStatus::NotStarted:
             case MatchStatus::InProgress:

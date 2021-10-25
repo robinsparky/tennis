@@ -1,12 +1,13 @@
 <?php
 namespace api\ajax;
+use \TennisEvents;
+use \TE_Install;
 use commonlib\BaseLogger;
 use \WP_Error;
 use \Exception;
 use datalayer\InvalidMatchException;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidEntrantException;
-use \TennisEvents;
 use api\TournamentDirector;
 use datalayer\Event;
 use datalayer\Bracket;
@@ -102,11 +103,13 @@ class ManageRoundRobin
         $this->log->error_log("$loc: action={$_POST['action']}");
         if( self::ACTION !== $_POST['action']) return;
         
-        $ok = false;
-        if( current_user_can( 'manage_options' ) ) $ok = true;
+        $ok = false;       
+        if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
+        || current_user_can( TE_Install::RESET_MATCHES_CAP )
+        || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) $ok = true;
         
         if ( !$ok ) {         
-            $this->errobj->add( $this->errcode++, __( 'Only administrators can modify draw.', TennisEvents::TEXT_DOMAIN ));
+            $this->errobj->add( $this->errcode++, __( 'Insufficient privileges to modify round robins.', TennisEvents::TEXT_DOMAIN ));
         }
         
         if(count($this->errobj->errors) > 0) {
@@ -197,7 +200,10 @@ class ManageRoundRobin
         $matchNum      = $data["matchNum"];
         $player        = strip_tags( htmlspecialchars( $data["player"] ) );
         $mess          = __("Modified home entrant.", TennisEvents::TEXT_DOMAIN );
-        try {            
+        try {                       
+            if( !current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }           
             $event = Event::get( $this->eventId );
             $newHome = $event->getNamedEntrant( $player );
             if( is_null( $newHome ) ) {
@@ -241,7 +247,10 @@ class ManageRoundRobin
         $matchNum      = $data["matchNum"];
         $player        = strip_tags( htmlspecialchars( $data["player"] ) );
         $mess          = __("Modified visitor entrant.", TennisEvents::TEXT_DOMAIN );
-        try {            
+        try {                           
+            if( !current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }       
             $event = Event::get( $this->eventId );
             $newVisitor = $event->getNamedEntrant( $player );
             if( is_null( $newVisitor ) ) {
@@ -284,7 +293,10 @@ class ManageRoundRobin
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
         //$strScore      = strip_tags( htmlspecialchars( $data["score"] ) );
-        try {            
+        try {                         
+            if( !current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }         
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketName );
@@ -423,7 +435,10 @@ class ManageRoundRobin
         $comments      = $data["comments"];
         $comments      = strip_tags( htmlspecialchars( $comments ) );
         $mess          = __("Defaulted '$player'", TennisEvents::TEXT_DOMAIN );
-        try {            
+        try {                       
+            if( !current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }           
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketName );
@@ -485,7 +500,10 @@ class ManageRoundRobin
         $comments      = $data["comments"];
         $comments      = strip_tags( htmlspecialchars( $comments ) );
         $mess          = __("Set Comments.", TennisEvents::TEXT_DOMAIN );
-        try {            
+        try {                        
+            if( !current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }          
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketName );
@@ -525,7 +543,10 @@ class ManageRoundRobin
         $matchStartDate= $data["matchdate"];
         $matchStartTime= $data["matchtime"];
         $mess          = __("Set Start Match Date/Time.", TennisEvents::TEXT_DOMAIN );
-        try {            
+        try {                        
+            if( !current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }          
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $chairUmpire = $td->getChairUmpire();
@@ -570,7 +591,10 @@ class ManageRoundRobin
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
         $mess          = __("Undo match: ", TennisEvents::TEXT_DOMAIN );
-        try {            
+        try {                           
+            if( !current_user_can( TE_Install::RESET_MATCHES_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }       
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketName );
@@ -652,7 +676,10 @@ class ManageRoundRobin
         $this->eventId = $data["eventId"];
         $bracketName   = $data["bracketName"];
         $mess          = __('Approve succeeded.', TennisEvents::TEXT_DOMAIN );
-        try {            
+        try {                         
+            if( !current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }         
             $event   = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $td->approve( $bracketName );
@@ -675,7 +702,10 @@ class ManageRoundRobin
 
         $this->eventId = $data["eventId"];
         $bracketName = $data["bracketName"];
-        try {            
+        try {                      
+            if( !current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }            
             $event = Event::get( $this->eventId );
             $evtName = $event->getName();
             $td = new TournamentDirector( $event );
