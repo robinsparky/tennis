@@ -1,4 +1,3 @@
-	
 <?php
 use commonlib\GW_Support;
 /*
