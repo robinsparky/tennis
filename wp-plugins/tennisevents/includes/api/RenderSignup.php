@@ -4,6 +4,7 @@ use commonlib\BaseLogger;
 use datalayer\Event;
 use \WP_Error;
 use \TennisEvents;
+use \TE_Install;
 use api\TournamentDirector;
 use datalayer\Bracket;
 use datalayer\Club;
@@ -98,7 +99,7 @@ class RenderSignup
      */
 	public function signupShortcode( $atts, $content = null )  {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
+        $this->log->error_log($atts, "$loc ..." );
 
         //The following was setting user_id to 0
         $my_shorts = shortcode_atts( array(
@@ -145,7 +146,7 @@ class RenderSignup
         if( !$found ) return __('No such event for this club', TennisEvents::TEXT_DOMAIN );
 
         //Get the bracket from attributes
-        $bracketName = $my_shorts["bracketname"];
+        $bracketName = urldecode($my_shorts["bracketname"]);
         $bracket = $target->getBracket( $bracketName );
         if( is_null( $bracket ) ) {
             //$bracket = $target->getWinnersBracket();   
@@ -215,7 +216,7 @@ EOT;
         }
         $out .= '</ul>' . PHP_EOL;
 
-        if( $numPrelimMatches < 1 && is_user_logged_in() && current_user_can( 'manage_options' )  ) {
+        if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP )  ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="createPrelim">Initialize Draw</button>' . PHP_EOL;

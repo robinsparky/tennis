@@ -160,7 +160,7 @@ class RenderDraw
         }
 
         //Get the bracket from attributes
-        $bracketName = $my_atts["bracketname"];
+        $bracketName = urldecode($my_atts["bracketname"]);
 
         //Go
         $td = new TournamentDirector( $target );

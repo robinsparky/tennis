@@ -183,14 +183,14 @@ $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) );
 								foreach( $brackets as $bracket ) {
 							?>
 								<li class="item-bracket" data-eventid="<?php echo $leafEvent->getID();?>" data-bracketnum="<?php echo $bracket->getBracketNumber(); ?>">
-									<?php if( is_user_logged_in() && current_user_can( 'manage_options' ) ) : ?>
+									<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) : ?>
 										<span class="bracket-name" contenteditable>
 									<?php else: ?>
 										<span class="bracket-name">
 									<?php endif ?>
 									<?php echo $bracket->getName()?></span>&colon;
-									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?manage=signup&bracket=<?php echo $bracket->getName(); ?>">View Signup, </a>
-									<a class="bracket-draw-link" href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo trim($bracket->getName()); ?>">View Draw</a>
+									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?manage=signup&bracket=<?php echo urlencode($bracket->getName()); ?>">View Signup, </a>
+									<a class="bracket-draw-link" href="<?php the_permalink() ?>?manage=draw&bracket=<?php echo urlencode($bracket->getName()); ?>">View Draw</a>
 									<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) : ?>
 										<img class="remove-bracket" src="<?php echo TE()->getPluginUrl() . 'img/removeIcon.gif' ?>">
 									<?php endif ?>

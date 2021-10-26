@@ -31,9 +31,10 @@ use datalayer\Format;
 				<!-- tennis event schedule -->
 				<div class="tennis-event-schedule">
 				<?php
+				$bn = urlencode( $bracketName );
 				if( $mode === "signup" ) {
-					echo do_shortcode("[manage_signup eventid={$event->getID()}, bracketname={$bracketName}]");
-					$drawUrl = get_permalink() . "?manage=draw&bracket=" . $bracketName;
+					echo do_shortcode("[manage_signup eventid={$event->getID()}, bracketname={$bn}]");
+					$drawUrl = get_permalink() . "?manage=draw&bracket=" . $bn;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
 					//echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Draw</button></div>";
 					echo "<div class='tennis-link-container'><a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Draw</a>&nbsp;";
@@ -41,19 +42,19 @@ use datalayer\Format;
 				elseif( $mode === "draw" ) {
 					switch( $event->getFormat() ) {
 						case Format::ELIMINATION:
-							echo do_shortcode("[manage_draw by=match eventid={$event->getID()}, bracketname={$bracketName}]");
+							echo do_shortcode("[manage_draw by=match eventid={$event->getID()}, bracketname={$bn}]");
 						break;
 						case Format::ROUNDROBIN:
-							echo do_shortcode("[manage_roundrobin eventid={$event->getID()}, bracketname={$bracketName}]");
+							echo do_shortcode("[manage_roundrobin eventid={$event->getID()}, bracketname={$bn}]");
 						break;
 					}
-					$drawUrl = get_permalink() . "?manage=signup&bracket=" . $bracketName;
+					$drawUrl = get_permalink() . "?manage=signup&bracket=" . $bn;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
 					echo "<div class='tennis-link-container'><a class='link-to-signup' href='{$drawUrl}'>{$bracketName} Signup</a>&nbsp;";
 				
 					foreach( $event->getBrackets() as $bracket) {
 						if( $bracketName !== $bracket->getName() ) {
-							$drawUrl = get_permalink() . "?manage=draw&bracket=" . $bracket->getName();
+							$drawUrl = get_permalink() . "?manage=draw&bracket=" . urlencode($bracket->getName());
 							echo "<a class='link-to-draw' href='{$drawUrl}'>{$bracket->getName()}</a>&nbsp;";
 						}
 					}
