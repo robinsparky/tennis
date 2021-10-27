@@ -5,10 +5,12 @@ use commonlib\BaseLogger;
 use commonlib\GW_Debug;
 use \WP_Error;
 use \TennisEvents;
+use \TE_Install;
 use api\TournamentDirector;
 use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Club;
+use datalayer\MatchStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -93,7 +95,8 @@ class RenderRoundRobin
         $my_atts = shortcode_atts( array(
             'clubname' => '',
             'eventid' => 0,
-            'bracketname' => Bracket::WINNERS
+            'bracketname' => Bracket::WINNERS,
+            'titleprefix' => 'Round'
         ), $atts, 'render_draw' );
 
         $this->log->error_log( $my_atts, "$loc: My Atts" );
@@ -101,7 +104,8 @@ class RenderRoundRobin
         //Get the Club from attributes
         $club = null;
         if(!empty( $my_atts['clubname'] ) ) {
-            $arrClubs = Club::search( $my_atts['clubName'] );
+            $cname = filter_var($my_atts['clubname'], FILTER_SANITIZE_STRING);
+            $arrClubs = Club::search( $cname );
             if( count( $arrClubs) > 0 ) {
                 $club = $arrClubs[0];
             }
@@ -113,7 +117,7 @@ class RenderRoundRobin
         if( is_null( $club ) ) return __('Please set home club id or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
 
         //Get the event from attributes
-        $eventId = (int)$my_atts['eventid'];
+        $eventId = (int)filter_var( $my_atts['eventid'], FILTER_SANITIZE_NUMBER_INT );
         $this->log->error_log("$loc: EventId=$eventId");
         if( $eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
 
@@ -140,6 +144,9 @@ class RenderRoundRobin
         //Get the bracket from attributes
         $bracketName = urldecode($my_atts["bracketname"]);
 
+        //Title prefix
+        $titlePrefix = filter_var($my_atts["titleprefix"], FILTER_SANITIZE_STRING );
+
         //Go
         $td = new TournamentDirector( $target );
         $bracket = $td->getBracket( $bracketName );
@@ -148,7 +155,7 @@ class RenderRoundRobin
             return __($mess, TennisEvents::TEXT_DOMAIN );
         }
 
-        return $this->renderBracketByMatch( $td, $bracket );
+        return $this->renderBracketByMatch( $td, $bracket, $titlePrefix );
     }
     
     /**
@@ -157,7 +164,7 @@ class RenderRoundRobin
      * @param Bracket $bracket The bracket
      * @return string HTML for table-based page showing the round robin draw
      */
-    private function renderBracketByMatch( TournamentDirector $td, Bracket $bracket ) {
+    private function renderBracketByMatch( TournamentDirector $td, Bracket $bracket, string $titlePrefix='Round' ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
         GW_Debug::gw_print_mem();
@@ -226,6 +233,33 @@ class RenderRoundRobin
         GW_Debug::gw_print_mem();
         $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
         return $output;
+    }
+    
+    /**
+     * Get the path to the menu template file for Round Robins
+     */
+    private function getMenuPath( int $majorStatus ) {
+        $menupath = '';
+        
+        if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
+        || current_user_can( TE_Install::RESET_MATCHES_CAP )
+        || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
+            switch( $majorStatus ) {
+                case MatchStatus::NotStarted:
+                case MatchStatus::InProgress:
+                case MatchStatus::Completed:
+                case MatchStatus::Retired:
+                    $menupath = TE()->getPluginPath() . 'includes\templates\menus\roundrobin-menu-template.php';
+                    $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
+                    break;
+                case MatchStatus::Bye:
+                case MatchStatus::Waiting:
+                case MatchStatus::Cancelled:
+                default:
+                    $menupath = '';
+            }
+        }
+        return $menupath;
     }
 
     /**

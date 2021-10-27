@@ -6,6 +6,7 @@ use commonlib\BaseLogger;
 use commonlib\GW_Debug;
 use \WP_Error;
 use \TennisEvents;
+use \TE_Install;
 use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Club;
@@ -314,6 +315,30 @@ class RenderDraw
         $this->log->error_log("$loc: returning $count matches");
 
         return $futureMatches;
+    }
+
+    private function getMenuPath( int $majorStatus ) {
+        $menupath = '';
+        
+        if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
+        || current_user_can( TE_Install::RESET_MATCHES_CAP )
+        || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
+            switch( $majorStatus ) {
+                case MatchStatus::NotStarted:
+                case MatchStatus::InProgress:
+                case MatchStatus::Completed:
+                case MatchStatus::Retired:
+                    $menupath = TE()->getPluginPath() . 'includes\templates\menus\elimination-menu-template.php';
+                    $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
+                    break;
+                case MatchStatus::Bye:
+                case MatchStatus::Waiting:
+                case MatchStatus::Cancelled:
+                default:
+                    $menupath = '';
+            }
+        }
+        return $menupath;
     }
 
     /** TODO: Remove this and associated code

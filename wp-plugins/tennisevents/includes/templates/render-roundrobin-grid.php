@@ -1,6 +1,6 @@
 <?php 
-//use \TE_install;
-use datalayer\MatchStatus; ?>
+use datalayer\MatchStatus; 
+?>
 <?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>
@@ -10,10 +10,15 @@ use datalayer\MatchStatus; ?>
 
 <?php 
     $winnerClass = "matchwinner";
+    $beginDate = clone $td->getEvent()->getStartDate();
+    $endDate = clone $td->getEvent()->getEndDate();
     foreach( $loadedMatches as $roundnum => $matches ) {
+        $roundTitle = "{$titlePrefix} {$roundnum}";
+        // $roundTitle = "Week {$roundnum}. {$beginDate->format("M d, Y")} ";
+        // $beginDate->add(new \DateInterval('P7D')); //weekly interval
 ?>
-<section class="roundrobin-round"><span>Round <?php echo $roundnum; ?></span>
-
+<section class="roundrobin-round"><span><?php echo $roundTitle; ?></span>
+<?php //$roundTitle = "Week {$roundnum}. {$beginDate->format("M d, Y")} "; ?>
 <?php foreach( $matches as $match ) { 
     $begin = microtime( true );
 
@@ -81,7 +86,7 @@ use datalayer\MatchStatus; ?>
     $startTime = $match->getMatchTime_Str(2);
     $startTimeVal = $match->getMatchTime_Str();
     $this->log->error_log("$loc: {$match->toString()} start date: '{$startDate}'; start time: '{$startTime}'");
-    $menupath = getMenuPath( $majorStatus );
+    $menupath = $this->getMenuPath( $majorStatus );
 
     //$this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobin Elapsed time", GW_Support::getInstance()->micro_time_elapsed( $begin ), $title));
 ?>
@@ -124,27 +129,3 @@ use datalayer\MatchStatus; ?>
 <?php }} ?>
 </div>
 <div id="tennis-event-message"></div>
-<?php 
-function getMenuPath( int $majorStatus ) {
-    $menupath = '';
-    
-    if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
-    || current_user_can( TE_Install::RESET_MATCHES_CAP )
-    || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
-        switch( $majorStatus ) {
-            case MatchStatus::NotStarted:
-            case MatchStatus::InProgress:
-            case MatchStatus::Completed:
-            case MatchStatus::Retired:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\roundrobin-menu-template.php';
-                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
-                break;
-            case MatchStatus::Bye:
-            case MatchStatus::Waiting:
-            case MatchStatus::Cancelled:
-            default:
-                $menupath = '';
-        }
-    }
-    return $menupath;
-}?>

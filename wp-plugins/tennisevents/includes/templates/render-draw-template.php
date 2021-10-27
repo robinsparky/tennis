@@ -80,7 +80,7 @@ use datalayer\MatchStatus;
                 $startTimeVal = $match->getMatchTime_Str();
 
                 // Get menu template file
-                $menupath = getMenuPath( $majorStatus );
+                $menupath = $this->getMenuPath( $majorStatus );
 ?>
 <td class="item-player sortable-container ui-state-default" rowspan="<?php echo $r; ?>" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>"  data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>">
 <?php if(!empty($menupath)) require $menupath; ?>
@@ -145,7 +145,7 @@ use datalayer\MatchStatus;
                     $generalstatus = $statusObj->toString();
 
                     // Get menu template file
-                    $menupath = getMenuPath( $majorStatus );
+                    $menupath = $this->getMenuPath( $majorStatus );
                 ?>
 <td class="item-player sortable-container ui-state-default" rowspan="<?php echo $rowspan; ?>" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>"  data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>">
 <?php if( !empty($menupath) ) require $menupath; ?>
@@ -198,27 +198,3 @@ finally {
 <?php }}//if user ?>
 </div>
 <div id="tennis-event-message"></div>
-<?php 
-function getMenuPath( int $majorStatus ) {
-    $menupath = '';
-    
-    if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
-    || current_user_can( TE_Install::RESET_MATCHES_CAP )
-    || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
-        switch( $majorStatus ) {
-            case MatchStatus::NotStarted:
-            case MatchStatus::InProgress:
-            case MatchStatus::Completed:
-            case MatchStatus::Retired:
-                $menupath = TE()->getPluginPath() . 'includes\templates\menus\elimination-menu-template.php';
-                $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
-                break;
-            case MatchStatus::Bye:
-            case MatchStatus::Waiting:
-            case MatchStatus::Cancelled:
-            default:
-                $menupath = '';
-        }
-    }
-    return $menupath;
-}?>
