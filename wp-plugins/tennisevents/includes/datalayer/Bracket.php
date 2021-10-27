@@ -1502,7 +1502,7 @@ class Bracket extends AbstractData
         parent::mapData( $obj, $row );
         $obj->event_ID      = (int) $row["event_ID"];
         $obj->bracket_num   = (int) $row["bracket_num"];
-        $obj->name          = $row["name"];
+        $obj->name          = str_replace("\'","'",$row["name"]);
         $obj->is_approved   = (int) $row["is_approved"];
 		$obj->is_approved   = $obj->is_approved === 0 ? false : true;
 	}

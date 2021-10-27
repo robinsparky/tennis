@@ -1592,7 +1592,7 @@ class Event extends AbstractData
      */
     protected static function mapData( $obj, $row ) {
 		parent::mapData( $obj, $row );
-        $obj->name       = $row["name"];
+        $obj->name       = str_replace("\'", "'",$row["name"]);
         $obj->parent_ID  = $row["parent_ID"];
 		$obj->event_type = $row["event_type"];
 		$obj->match_type = $row["match_type"];
