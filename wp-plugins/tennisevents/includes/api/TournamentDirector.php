@@ -1316,15 +1316,13 @@ class TournamentDirector
         if( $randomizeDraw ) shuffle( $contestants );
 
         $numMatches = $bracketSignupSize * ( $bracketSignupSize - 1 ) / 2;
-        $this->log->error_log( "$loc: Calculated number of matches={$numMatches}" );
+        $this->log->error_log( "$loc: Calculated number of matches={$numMatches} per cycle" );
         //3. Get combinations in groups of 2
         // NOTE: (n choose k) = n!/k!(n-k)! where in this case k=2
         // which represents the team vs team
         $matches = $this->getCombinations( $contestants );
         $matchesCreated = count( $matches );
         $this->log->error_log( $matches, "$loc: Combinatorics created {$matchesCreated} player pairs");
-
-        //shuffle( $matches ); //randomize again to prevent unfair assignment to rounds
 
         if( $matchesCreated !== $numMatches ) {
             $this->log->error_log($matches, "$loc: Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.");
@@ -1383,10 +1381,12 @@ class TournamentDirector
         $this->log->error_log( "$loc: Generated number of rounds={$genRounds} with date '{$curDate->format('Y-m-d')}'");
         //$this->log->error_log( $matchesByRound, "$loc: Matches By Round" );
 
+        $startHour = 19; //7pm
+        $startMinutes = 0;
+        $totalMatches = 0;
         for( $r = 1; $r <= $genRounds; $r++ ) {
             $matches = $matchesByRound[$r];
             $matchDate = clone $datesByRound[$r];
-            $matchDate->setTime(19,0);
             $m = 1;
             foreach( $matches as $mtch ) {
                 $players = array_values( $mtch );
@@ -1398,15 +1398,22 @@ class TournamentDirector
                 $match->setVisitorEntrant( $visitor );
                 $match->setMatchType( $this->matchType );
                 $match->setMatchDate_Str($matchDate->format('Y-m-d'));
+                $matchDate->setTime($startHour,$startMinutes);
                 $match->setMatchTime_Str($matchDate->format('G:i'));
+                ++$totalMatches;
+                $res = $totalMatches % $numMatches;
+                $this->log->error_log("$loc:{$totalMatches} % {$numMatches} = {$res}");
+                if($totalMatches % $numMatches === 0) {
+                    if($startHour === 19) {
+                        $startHour = 20; $startMinutes=30;
+                    }
+                    elseif($startHour === 20) {
+                        $startHour=19; $startMinutes=0;
+                    }
+                }
                 $bracket->addMatch( $match );
             }
         }
-
-        $this->log->error_log($matchesByDateByRound, "$loc: matchesByDateByRound ...");
-
-        // $bsm = array_map( function( $m ) { return $m->toString(); }, $bracket->getMatches());
-        // $this->log->error_log( $bsm,"$loc: Matches before save...");
 
         $matchesCreated = $bracket->numMatches();
         if( $matchesCreated !== $numMatches*$numWeeks ) {
