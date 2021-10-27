@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *       any comments about a match
  *       the champion when the tournament is completed
  * This class also renders a summary of all matches with points earned for wins and ties
- * Identifies the winner depending on the scoring rules for the elimination draw
+ * Identifies the winner depending on the scoring rules for the round robin
  * @class  RenderRoundRobin
  * @package Tennis Events
  * @version 1.0.0
@@ -96,7 +96,7 @@ class RenderRoundRobin
             'clubname' => '',
             'eventid' => 0,
             'bracketname' => Bracket::WINNERS,
-            'titleprefix' => 'Round'
+            'titleprefix' => 'Session'
         ), $atts, 'render_draw' );
 
         $this->log->error_log( $my_atts, "$loc: My Atts" );

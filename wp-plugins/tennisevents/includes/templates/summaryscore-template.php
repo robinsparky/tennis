@@ -4,7 +4,7 @@
 <?php 
 for( $r = 1; $r <= $numRounds; $r++) :
 ?>
-<th>Rnd&nbsp;<?php echo $r;?></th>
+<th><?php echo $titlePrefix;?>&nbsp;<?php echo $r;?></th>
 <?php
 endfor //rounds in table head
 ?>
