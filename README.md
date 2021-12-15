@@ -1,6 +1,6 @@
 # Tennis Event Management
 
-This project will manage Tennis Events such as Tournaments, Leagues, Round Robins
+This software supports Wordpress sites to enable management of Tennis Events such as Tournaments, Leagues, Round Robins
 
 
 ```
