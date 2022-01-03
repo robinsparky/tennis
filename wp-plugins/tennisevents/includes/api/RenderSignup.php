@@ -221,12 +221,6 @@ EOT;
             $out .= '<button class="button" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="createPrelim">Initialize Draw</button>' . PHP_EOL;
         }
-        else {
-            $curUser = wp_get_current_user();
-            $this->log->error_log($curUser, "Current user:");
-            $can = current_user_can( TE_Install::MANAGE_EVENTS_CAP );
-            $this->log->error_log("User can={$can}");
-        }
         // elseif( $numPrelimMatches < 1 && $bracketName === Bracket::CONSOLATION ) {
         //     $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;   
         // }
