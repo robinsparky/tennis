@@ -1,6 +1,6 @@
 <?php
-use commonlib\BaseLogger;
 namespace api;
+use commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

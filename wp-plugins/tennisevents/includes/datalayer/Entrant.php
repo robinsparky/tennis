@@ -159,7 +159,7 @@ class Entrant extends AbstractData
 			$format = "%s(%d,%d) -> %d rows returned.";
 		}
 		else {
-			error_log( sprintf("%s -> incorrect number of args=%d, so 0 rows returned.", $loc, $count( $fk_criteria) ) );
+			error_log( sprintf("%s -> incorrect number of args=%d, so 0 rows returned.", $loc, count( $fk_criteria) ) );
 			return $col;
 		}
 

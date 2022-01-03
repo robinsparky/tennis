@@ -1,6 +1,7 @@
 <?php
 namespace api;
 
+use \TennisEvents;
 use commonlib\gw_debug;
 use datalayer\Event;
 use datalayer\Match;
@@ -8,6 +9,7 @@ use datalayer\EventType;
 use datalayer\MatchType;
 use datalayer\Entrant;
 use datalayer\ScoreType;
+use datalayer\InvalidBracketException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -229,7 +231,7 @@ class Fast4Umpire extends ChairUmpire
                     , "earlyEnd"       => $earlyEnd
                     , "comments"       => $cmts ];
 
-        error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", commonlib\micro_time_elapsed( $startTime )));
+        error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", GW_Debug::micro_time_elapsed( $startTime )));
         $this->log->error_log($result, "$loc: Match Summary Result");
 
         return $result;

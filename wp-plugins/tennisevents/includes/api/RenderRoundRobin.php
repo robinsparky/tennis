@@ -318,18 +318,6 @@ class RenderRoundRobin
 
     }
 
-    private function sendMatchesJson( Bracket $bracket ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-
-        $json = $this->getMatchesJson( $bracket );
-        $this->log->error_log( $json, "$loc: json:");
-
-        $script = "window.bracketmatches = $json; ";
-
-        gw_enqueue_js($script);
-    }
-
     /**
      * Get the AJAX data that WordPress needs to output.
      *

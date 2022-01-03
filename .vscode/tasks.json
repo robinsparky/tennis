@@ -18,24 +18,24 @@
     {
       "label": "Deploy Tennis Events Plugin",
       "type": "shell",
-      "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents C:\\webserver\\htdocs\\tennisadmin\\wp-content\\plugins\\tennisevents /MIR",
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents C:\\webserver\\htdocs\\ttc\\wp-content\\plugins\\tennisevents /MIR",
       "problemMatcher": []
     },
     {
       "label": "Deploy Tennis Members Plugin",
       "type": "shell",
-      "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennismembers C:\\webserver\\htdocs\\tennisadmin\\wp-content\\plugins\\tennismembers /MIR",
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennismembers C:\\webserver\\htdocs\\ttc\\wp-content\\plugins\\tennismembers /MIR",
       "problemMatcher": []
     },
     {
       "label": "Deploy Tests",
       "type": "shell",
-      "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\tennisadmin\\tests *.php"
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\ttc\\tests *.php"
     },
     {
       "label": "Deploy Test Config",
       "type": "shell",
-      "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\tennisadmin *.xml"
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\ttc *.xml"
     },
     {
       "label": "Deploy Common Library",
@@ -52,12 +52,12 @@
     {
       "label": "Deploy Tennis Events WP-CLI Config",
       "type": "shell",
-      "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\includes\\commandline\\ C:\\webserver\\htdocs\\tennisadmin *.yml"
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\includes\\commandline\\ C:\\webserver\\htdocs\\ttc *.yml"
     },
     {
       "label": "Deploy Tennis Events Signup Data",
       "type": "shell",
-      "command": "robocopy C:\\Users\\Costco\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\ C:\\webserver\\htdocs\\tennisadmin *.xml"
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisevents\\ C:\\webserver\\htdocs\\ttc *.xml"
     },
     {
       "type": "npm",

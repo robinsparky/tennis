@@ -119,7 +119,7 @@ class Event extends AbstractData
 		$joinTable = "{$wpdb->prefix}tennis_club_event";
 		$clubTable = "{$wpdb->prefix}tennis_club";
 		$col = array();
-		$col_value;
+		$col_value = '';
 		
 		if(isset( $fk_criteria[0] ) && is_array( $fk_criteria[0]) ) $fk_criteria = $fk_criteria[0];
 
@@ -361,7 +361,7 @@ class Event extends AbstractData
 			}
 		}
 		elseif( $copyMe->IsParent() ) {
-			throw new InvalidArgumentException( __("Cannot copy parent events", TennisEvents::TEXT_DOMAIN) );
+			throw new \InvalidArgumentException( __("Cannot copy parent events", TennisEvents::TEXT_DOMAIN) );
 		}
 		else {
 			$this->name = $copyMe->getName() . " Copy";
@@ -833,7 +833,7 @@ class Event extends AbstractData
 	 * is after the end date then the event is considered closed.
 	 * @return boolean
 	 */
-	public function isClosed() : boolean {
+	public function isClosed() : bool {
 		$result = false;
 		if( !is_null( $this->end_date ) ) {
 			if( $this->end_date < new \DateTime() ) $result = true;

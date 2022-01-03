@@ -151,7 +151,7 @@ class Set extends AbstractData
         $this->round_num   = $match->getRoundNumber();
     }
 
-    public function getMatch() {
+    public function getMatch( $force = false ) {
         if( !isset( $this->match ) || $force ) {
             $this->match = $this->fetchMatch();
         }

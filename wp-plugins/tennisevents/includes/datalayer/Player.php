@@ -92,7 +92,7 @@ class Player extends AbstractData
 		error_log("Player::get(id) $wpdb->num_rows rows returned.");
 
         $obj = NULL;
-		if($rows.length === 1) {
+		if(count($rows) === 1) {
 			$obj = new Player;
             self::mapData($obj,$rows[0]);
 		}
@@ -138,7 +138,7 @@ class Player extends AbstractData
     }
 
     public function setEntrantID(int $id) {
-        if(id < 0) return;
+        if($id < 0) return;
         $this->tennis_entrant_ID = $id;
     }
 
@@ -217,7 +217,7 @@ class Player extends AbstractData
     public function isValid() {
         $isvalid = TRUE;
         if(!isset($this->last_name) || !is_string($this->last_name)) $isvalid = FALSE;
-        if(isset($this->skill) && is_nan($skill)) $isvalid = FALSE;
+        if(isset($this->skill) && is_nan($this->skill)) $isvalid = FALSE;
         
         return $isvalid;
     }
@@ -235,10 +235,8 @@ class Player extends AbstractData
                                ,'mobilePhone' => $this->mobilePhone                               
                                ,'homeEmail' => $this->homeEmail                              
                                ,'businessEmail' => $this->businessEmail
-                               ,'entrant_ID' => $this->entrant_ID
-                               ,'entrant_draw_ID' => $this->entry_draw_ID
-                               ,'squad_ID' => $this->$squad_ID);
-		$formats_values = array('%s','%s','%d','%s','%s','%s','%s','%s','%d','%d','%d');
+                               ,'entrant_ID' => $this->entrant_ID);
+		$formats_values = array('%s','%s','%d','%s','%s','%s','%s','%s','%d');
 		$wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
 		$this->ID = $wpdb->insert_id;
 		$this->isnew = FALSE;
@@ -262,10 +260,8 @@ class Player extends AbstractData
                                ,'mobilePhone' => $this->mobilePhone                               
                                ,'homeEmail' => $this->homeEmail                              
                                ,'businessEmail' => $this->businessEmail
-                               ,'entrant_ID' => $this->entrant_ID
-                               ,'entrant_draw_ID' => $this->entrant_draw_ID
-                               ,'squad_ID' => $this->$tennis_squad_ID);
-        $formats_values = array('%s','%s','%d','%s','%s','%s','%s','%s','%d','%d','%d');
+                               ,'entrant_ID' => $this->entrant_ID);
+        $formats_values = array('%s','%s','%d','%s','%s','%s','%s','%s','%d');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
 		$wpdb->update($wpdb->prefix . self::$tablename, $values, $where, $formats_values, $formats_where);

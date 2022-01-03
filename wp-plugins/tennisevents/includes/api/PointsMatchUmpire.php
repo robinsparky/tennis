@@ -1,6 +1,7 @@
 <?php
 namespace api;
 
+use \TennisEvents;
 use commonlib\GW_Support;
 use datalayer\Event;
 use datalayer\Match;

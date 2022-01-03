@@ -5,6 +5,7 @@ use \WP_CLI;
 use \WP_CLI_Command;
 
 use api\TournamentDirector;
+use api\InvalidTournamentException;
 use api\ChairUmpire;
 
 use commonlib\GW_Support;
@@ -16,6 +17,7 @@ use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Match;
 use datalayer\Entrant;
+use datalayer\InvalidBracketException;
 
 use api\events\EventManager;
 use api\events\OverloadedConstructors;
@@ -198,10 +200,10 @@ class TournamentCommands extends WP_CLI_Command {
                         WP_CLI::success( "tennis tourney initialize ... generated $numMatches preliminary matches" );
                     }
                     else {
-                        throw new Exception( "Failed to generate any matches." );
+                        throw new \Exception( "Failed to generate any matches." );
                     }
                 }
-                catch( Exception $ex ) { 
+                catch( \Exception $ex ) { 
                     WP_CLI::error( sprintf( "tennis tourney initialize ... failed: %s", $ex->getMessage() ) );
                 }
             }
@@ -242,6 +244,7 @@ class TournamentCommands extends WP_CLI_Command {
         $evts = Event::find( array( "club" => $clubId ) );
         $found = false;
         $target = null;
+        $name = 'unkown name';
         if( count( $evts ) > 0 ) {
             foreach( $evts as $evt ) {
                 $target = $support->getEventRecursively( $evt, $eventId );
@@ -263,7 +266,7 @@ class TournamentCommands extends WP_CLI_Command {
                         WP_CLI::error("tennis tourney reset ... unable to reset.");
                     }
                 }
-                catch( Exception $ex ) {
+                catch( \Exception $ex ) {
                     WP_CLI::error( sprintf("tennis tourney reset for Club:'{$name}' - Event:'{$evtName}' ... failed: %s", $ex->getMessage() ) );
                 }
             }
@@ -443,62 +446,62 @@ class TournamentCommands extends WP_CLI_Command {
      *
      * @when after_wp_load
      */
-    function move( $args, $assoc_args ) {
+    // function move( $args, $assoc_args ) {
 
-        $support = CmdlineSupport::preCondtion();
-        list( $clubId, $eventId ) = $support->getEnvError();
-        if( !is_null( error_get_last()  ) ) {
-            WP_CLI::error("Wrong env for ... clubId, eventId");
-            exit;
-        }
+    //     $support = CmdlineSupport::preCondtion();
+    //     list( $clubId, $eventId ) = $support->getEnvError();
+    //     if( !is_null( error_get_last()  ) ) {
+    //         WP_CLI::error("Wrong env for ... clubId, eventId");
+    //         exit;
+    //     }
 
-        error_clear_last();
-        list( $bracketName, $round, $source, $dest ) = $args;
-        $last_error = error_get_last();
-        if( !is_null( $last_error  ) ) {
-            WP_CLI::error("Wrong args for ... bracket round sourceMatch destMatch ");
-            exit;
-        }
+    //     error_clear_last();
+    //     list( $bracketName, $round, $source, $dest ) = $args;
+    //     $last_error = error_get_last();
+    //     if( !is_null( $last_error  ) ) {
+    //         WP_CLI::error("Wrong args for ... bracket round sourceMatch destMatch ");
+    //         exit;
+    //     }
         
-        $fromId = "M($round,$source)";
-        $toId   = "M($round,$dest)";
+    //     $fromId = "M($round,$source)";
+    //     $toId   = "M($round,$dest)";
         
-        date_default_timezone_set("America/Toronto");
-        $stamp = date("Y-m-d h:i:sa");
-        $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved from $fromId to $toId on $stamp";
+    //     date_default_timezone_set("America/Toronto");
+    //     $stamp = date("Y-m-d h:i:sa");
+    //     $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved from $fromId to $toId on $stamp";
 
-        $evts = Event::find( array( "club" => $clubId ) );
-        $found = false;
-        $target = null;
-        if( count( $evts ) > 0 ) {
-            foreach( $evts as $evt ) {
-                $target = $support->getEventRecursively( $evt, $eventId );
-                if( isset( $target ) ) {
-                    $found = true;
-                    break;
-                }
-            }
-            if( $found ) {
-                $club = Club::get( $clubId );
-                $name = $club->getName();
-                $evtName = $target->getName();
-                $td = new TournamentDirector( $target );
-                if( $td->matchMove($bracketName, $round, $source, $dest, $cmts ) ) {
-                    WP_CLI::success("Match moved.");
-                }
-                else {
-                    WP_CLI::warning("Match was not moved");
-                }
-            }
-            else {
-                WP_CLI::warning( "tennis match tourney... could not find event with Id '$eventId' for club with Id '$clubId'" );
-            }
-        }
-        else {
-            WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
-        }
+    //     $evts = Event::find( array( "club" => $clubId ) );
+    //     $found = false;
+    //     $target = null;
+    //     if( count( $evts ) > 0 ) {
+    //         foreach( $evts as $evt ) {
+    //             $target = $support->getEventRecursively( $evt, $eventId );
+    //             if( isset( $target ) ) {
+    //                 $found = true;
+    //                 break;
+    //             }
+    //         }
+    //         if( $found ) {
+    //             $club = Club::get( $clubId );
+    //             $name = $club->getName();
+    //             $evtName = $target->getName();
+    //             $td = new TournamentDirector( $target );
+    //             if( $td->matchMove($bracketName, $round, $source, $dest, $cmts ) ) {
+    //                 WP_CLI::success("Match moved.");
+    //             }
+    //             else {
+    //                 WP_CLI::warning("Match was not moved");
+    //             }
+    //         }
+    //         else {
+    //             WP_CLI::warning( "tennis match tourney... could not find event with Id '$eventId' for club with Id '$clubId'" );
+    //         }
+    //     }
+    //     else {
+    //         WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
+    //     }
 
-    }
+    // }
 
     /**
      * Move a match forward by given steps in the draw.
@@ -528,68 +531,68 @@ class TournamentCommands extends WP_CLI_Command {
      *
      * @when after_wp_load
      */
-    function moveby( $args, $assoc_args ) {
+    // function moveby( $args, $assoc_args ) {
 
-        $support = CmdlineSupport::preCondtion();
+    //     $support = CmdlineSupport::preCondtion();
 
-        list( $clubId, $eventId ) = $support->getEnvError();
-        if( !is_null( error_get_last()  ) ) {
-            WP_CLI::error("Wrong env for ... clubId, eventId");
-            exit;
-        }
+    //     list( $clubId, $eventId ) = $support->getEnvError();
+    //     if( !is_null( error_get_last()  ) ) {
+    //         WP_CLI::error("Wrong env for ... clubId, eventId");
+    //         exit;
+    //     }
 
-        error_clear_last();
-        list($bracketName, $round, $source, $steps ) = $args;
-        $last_error = error_get_last();
-        if( !is_null( $last_error  ) ) {
-            WP_CLI::error("Wrong args for ... bracket round sourceMatch steps ");
-            exit;
-        }
+    //     error_clear_last();
+    //     list($bracketName, $round, $source, $steps ) = $args;
+    //     $last_error = error_get_last();
+    //     if( !is_null( $last_error  ) ) {
+    //         WP_CLI::error("Wrong args for ... bracket round sourceMatch steps ");
+    //         exit;
+    //     }
         
-        $result = 0;
-        $dest   = $source + $steps;
-        if( $steps > 256 || $dest < 1 ) {
-            WP_CLI::error("Invalid step value");
-        }
+    //     $result = 0;
+    //     $dest   = $source + $steps;
+    //     if( $steps > 256 || $dest < 1 ) {
+    //         WP_CLI::error("Invalid step value");
+    //     }
 
-        $fromId = "Match($bracket,$round,$source)";
-        $toId   = "Match($bracket,$round,$dest)";
+    //     $fromId = "Match($bracket,$round,$source)";
+    //     $toId   = "Match($bracket,$round,$dest)";
         
-        date_default_timezone_set("America/Toronto");
-        $stamp = date("Y-m-d h:i:sa");
-        $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved up from $fromId by $steps to $toId on $stamp";
+    //     date_default_timezone_set("America/Toronto");
+    //     $stamp = date("Y-m-d h:i:sa");
+    //     $cmts = array_key_exists( "comments", $assoc_args ) ? $assoc_args["comments"] : "Commandline: moved up from $fromId by $steps to $toId on $stamp";
 
-        $evts = Event::find( array( "club" => $clubId ) );
-        $found = false;
-        $target = null;
-        if( count( $evts ) > 0 ) {
-            foreach( $evts as $evt ) {
-                $target = $support->getEventRecursively( $evt, $eventId );
-                if( isset( $target ) ) {
-                    $found = true;
-                    break;
-                }
-            }
-            if( $found ) {
-                $club = Club::get( $clubId );
-                $name = $club->getName();
-                $evtName = $target->getName();
-                $td = new TournamentDirector( $target );
-                if( $td->matchMove($bracketName, $round, $source, $dest, $cmts ) ) {
-                    WP_CLI::success("Match moved.");
-                }
-                else {
-                    WP_CLI::warning("Match was not moved");
-                }
-            }
-            else {
-                WP_CLI::warning( "tennis match tourney... could not find event with Id '$eventId' for club with Id '$clubId'" );
-            }
-        }
-        else {
-            WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
-        }
-    }
+    //     $evts = Event::find( array( "club" => $clubId ) );
+    //     $found = false;
+    //     $target = null;
+    //     if( count( $evts ) > 0 ) {
+    //         foreach( $evts as $evt ) {
+    //             $target = $support->getEventRecursively( $evt, $eventId );
+    //             if( isset( $target ) ) {
+    //                 $found = true;
+    //                 break;
+    //             }
+    //         }
+    //         if( $found ) {
+    //             $club = Club::get( $clubId );
+    //             $name = $club->getName();
+    //             $evtName = $target->getName();
+    //             $td = new TournamentDirector( $target );
+    //             if( $td->matchMove($bracketName, $round, $source, $dest, $cmts ) ) {
+    //                 WP_CLI::success("Match moved.");
+    //             }
+    //             else {
+    //                 WP_CLI::warning("Match was not moved");
+    //             }
+    //         }
+    //         else {
+    //             WP_CLI::warning( "tennis match tourney... could not find event with Id '$eventId' for club with Id '$clubId'" );
+    //         }
+    //     }
+    //     else {
+    //         WP_CLI::warning( "tennis match tourney ... could not find any events for club with Id '$clubId'" );
+    //     }
+    // }
     
     /**
      * Approve the preliminary matches
@@ -648,7 +651,7 @@ class TournamentCommands extends WP_CLI_Command {
                     }
                     WP_CLI::success("tennis tourney approve ... bracket $bracketName approved.");
                 }
-                catch( Exception $ex ) {
+                catch( \Exception $ex ) {
                     WP_CLI::error( sprintf("tennis tourney approve ... failed:  %s", $ex->getMessage() ) );
                 }
             }
@@ -735,7 +738,7 @@ class TournamentCommands extends WP_CLI_Command {
                     }
                     WP_CLI::success("tennis tourney review ... bracket $bracketName reviewed.");
                 }
-                catch( Exception $ex ) {
+                catch( \Exception $ex ) {
                     WP_CLI::error( sprintf("tennis tourney " . __FUNCTION__ . " ...  failed:  %s", $ex->getMessage() ) );
                 }
             }
@@ -872,26 +875,26 @@ class TournamentCommands extends WP_CLI_Command {
      * @when before_wp_load
      */
 
-    function simulate( $args, $assoc_args ) {
+    // function simulate( $args, $assoc_args ) {
 
-        if( count($args)  != 1) $n = 0;
-        else list( $n ) = $args;
+    //     if( count($args)  != 1) $n = 0;
+    //     else list( $n ) = $args;
 
-        $defbyes = $this->byeCount( $n );
-        if( $defbyes != -1 ) {
-            $bt = new BracketTemplate();
-            $bt->build( $n, $defbyes );
-            // print_r( $bt->getTemplate() );
-            $template = $bt->arrGetTemplate();
-            foreach( $template as $line ) {
-                WP_CLI::line( $line );
-            }
-            WP_CLI::success(__FUNCTION__ . " used $defbyes byes");
-        }
-        else {
-            WP_CLI::warning(__FUNCTION__ . " could not calculate number of byes correctly!");
-        }
-    }
+    //     $defbyes = $this->byeCount( $n );
+    //     if( $defbyes != -1 ) {
+    //         $bt = new BracketTemplate();
+    //         $bt->build( $n, $defbyes );
+    //         // print_r( $bt->getTemplate() );
+    //         $template = $bt->arrGetTemplate();
+    //         foreach( $template as $line ) {
+    //             WP_CLI::line( $line );
+    //         }
+    //         WP_CLI::success(__FUNCTION__ . " used $defbyes byes");
+    //     }
+    //     else {
+    //         WP_CLI::warning(__FUNCTION__ . " could not calculate number of byes correctly!");
+    //     }
+    // }
 
 
     /**
@@ -1076,7 +1079,7 @@ class TournamentCommands extends WP_CLI_Command {
         $result = array();
         if( $n <= 8 || $n > pow( 2, 8 ) ) return $result;
 
-        $exp2 =  GW_Suport::calculateExponent( $n );
+        $exp2 =  GW_Support::calculateExponent( $n );
         $pow2 = pow(2, $exp2 );
         $maxToEliminate = $n - $pow2;
         $elimRange = range( 1, $pow2 - 1 );
@@ -1141,7 +1144,7 @@ class Test extends OverloadedConstructors {
         WP_CLI::success('First construct');
     }
 
-    public function __construct2(stdClass &$test) {
+    public function __construct2(\stdClass &$test) {
         print_r( $test );
         WP_CLI::success('Second construct');
     }

@@ -92,7 +92,7 @@ class Match extends AbstractData
         $eventId = 0;
         $round = 0;
         $bracket = 0;
-        $safe;
+        $safe = null;
 
         if( isset( $fk_criteria[0] ) && is_array( $fk_criteria[0]) ) $fk_criteria = $fk_criteria[0];
         
@@ -102,7 +102,7 @@ class Match extends AbstractData
             $round = $fk_criteria["round_num"];
             $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d AND round_ID = %d;";
-            $safe = $wpdb->prepare( $sql, $eventId, $bracketnum, $round );
+            $safe = $wpdb->prepare( $sql, $eventId, $bracket, $round );
         }
         elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) ) {
             $eventId = $fk_criteria["event_ID"];
@@ -196,7 +196,7 @@ class Match extends AbstractData
 
         //Now delete this match
         $table = $wpdb->prefix . self::$tablename;
-        $where = array( 'event_ID' => $SeventId
+        $where = array( 'event_ID' => $eventId
                       , 'bracket_num' => $bracketNum
                       , 'round_num' => $roundNum
                       , 'match_num' => $matchNum );
@@ -408,7 +408,7 @@ class Match extends AbstractData
                 $result = $this->setDirty();
                 return $result; //early return
             }
-            catch( Exception $ex ) {
+            catch( \Exception $ex ) {
                 $this->log->error_log("$loc: failed to construct using '{$date}'");
             }
 
@@ -425,7 +425,7 @@ class Match extends AbstractData
             if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date, $tz );
             if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date, $tz );
             
-            $last = DateTIme::getLastErrors();
+            $last = \DateTIme::getLastErrors();
             if( $last['error_count'] > 0 ) {
                 $arr = $last['errors'];
                 $mess = '';
@@ -1097,16 +1097,16 @@ class Match extends AbstractData
      * @param $forward If true then move the match forward; otherwise move it backward
      * @return true if successful; false otherwise
      */
-    public function moveBy( int $places, bool $forward = true ) {
-        $result = 0;
-        if( $places > 0 && $places < 257 ) {
-            $from = $this->match_num;
-            $to   = $forward ? $this->match_num + $places : $this->match_num - $places;
-            $to   = max( 1, $to );
-            $result =  Match::move( $this->event_ID, $this->bracket_num, $this->round_num, $from, $to );
-        }
-        return $result > 0;
-    }
+    // public function moveBy( int $places, bool $forward = true ) {
+    //     $result = 0;
+    //     if( $places > 0 && $places < 257 ) {
+    //         $from = $this->match_num;
+    //         $to   = $forward ? $this->match_num + $places : $this->match_num - $places;
+    //         $to   = max( 1, $to );
+    //         $result =  Match::move( $this->event_ID, $this->bracket_num, $this->round_num, $from, $to );
+    //     }
+    //     return $result > 0;
+    // }
 
     /**
      * Get the highest match number used in the given round
@@ -1115,6 +1115,8 @@ class Match extends AbstractData
      */
     public function maxMatchNumber( int $rn = -1 ):int {
         global $wpdb;
+		
+        $table = $wpdb->prefix. self::$tablename;
 
         $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d;";
         if( $rn >= 0 ) {

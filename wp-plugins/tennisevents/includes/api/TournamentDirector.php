@@ -13,6 +13,7 @@ use datalayer\MatchType;
 use datalayer\Entrant;
 use datalayer\Format;
 use datalayer\InvalidBracketException;
+use datalayer\InvalidMatchException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -301,7 +302,7 @@ class TournamentDirector
         $bracket = $this->getBracket( $bracketName );
 
         if( is_null( $bracket ) ) {
-            throw new InvalidTournamentException( __( "Invalid bracket name $bracketNname.", TennisEvents::TEXT_DOMAIN) );
+            throw new InvalidTournamentException( __( "Invalid bracket name $bracketName.", TennisEvents::TEXT_DOMAIN) );
         }
 
         if( !$bracket->isApproved() ) {
@@ -351,7 +352,7 @@ class TournamentDirector
         $bracket = $this->getBracket( $bracketName );
 
         if( is_null( $bracket ) ) {
-            throw new InvalidTournamentException( __( "Invalid bracket name {$bracketNname}.", TennisEvents::TEXT_DOMAIN) );
+            throw new InvalidTournamentException( __( "Invalid bracket name {$bracketName}.", TennisEvents::TEXT_DOMAIN) );
         }
 
         if( !$bracket->isApproved() ) {
@@ -779,18 +780,18 @@ class TournamentDirector
      * @param $toMatchNum The intended place for this match
      * @return true if succeeded; false otherwise
      */
-    public function moveMatch( Bracket $bracket, int $fromRoundNum, int $fromMatchNum, int $toMatchNum , string $cmts = null ) {
-        $result = 0;
-        if( isset( $bracket ) ) {
-            try {
-                $result = $bracket->moveMatch( $this->event->getID(), $bracket->getBracketNumber(), $fromRoundNum, $fromMatchNum, $toMatchNum, $cmts );
-            }
-            catch( Exception | InvalidMatchException $ex ) {
-                $result = 0;
-            }
-        }
-        return $result >= 1;
-    }
+    // public function moveMatch( Bracket $bracket, int $fromRoundNum, int $fromMatchNum, int $toMatchNum , string $cmts = null ) {
+    //     $result = 0;
+    //     if( isset( $bracket ) ) {
+    //         try {
+    //             $result = $bracket->moveMatch( $this->event->getID(), $bracket->getBracketNumber(), $fromRoundNum, $fromMatchNum, $toMatchNum, $cmts );
+    //         }
+    //         catch( \Exception | InvalidMatchException $ex ) {
+    //             $result = 0;
+    //         }
+    //     }
+    //     return $result >= 1;
+    // }
 
     /**
      * Resequence the match numbers for these matches
@@ -798,15 +799,15 @@ class TournamentDirector
      * @param $start The starting match number
      * @param $incr The increment to apply to generate the match numbers
      */
-    public function resequenceMatches( string $bracketName = Bracket::WINNERS, int $start = 1, int $incr = 1 ) {
-        $result = 0;
-        $bracket = $this->event->getBracket( $bracketName );
-        if( isset( $bracket ) ) {
-            $result = Match::resequence( $this->event->getID(), $bracket->getBracketNumber(), $start, $incr );
-        }
-        return $result > 1;
+    // public function resequenceMatches( string $bracketName = Bracket::WINNERS, int $start = 1, int $incr = 1 ) {
+    //     $result = 0;
+    //     $bracket = $this->event->getBracket( $bracketName );
+    //     if( isset( $bracket ) ) {
+    //         $result = Match::resequence( $this->event->getID(), $bracket->getBracketNumber(), $start, $incr );
+    //     }
+    //     return $result > 1;
 
-    }
+    // }
 
     /**
      * Set or remove comments on a match
@@ -831,7 +832,7 @@ class TournamentDirector
         //Match must exist
         $match = $bracket->getMatch( $round, $match_num );
         if(is_null( $match ) ) {
-            $this->log->error_log( sprintf( "%s --> Match %s does not exist in bracket %s", $loc, $match->title(), $bracket->getName() ) );
+            $this->log->error_log( sprintf( "%s --> Match does not exist in bracket %s", $loc, $bracket->getName() ) );
             return $result;
         }
 

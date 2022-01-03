@@ -3,6 +3,7 @@ namespace commandline;
 
 use \WP_CLI;
 use \WP_CLI_Command;
+use \TennisEvents;
 
 use datalayer\Club;
 use datalayer\Bracket;

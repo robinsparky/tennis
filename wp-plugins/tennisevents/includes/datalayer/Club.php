@@ -75,7 +75,6 @@ class Club extends AbstractData
 		$joinTable = "{$wpdb->prefix}tennis_club_event";
 		$eventTable = "{$wpdb->prefix}tennis_event";
 		$col = array();
-		$rows;
 
 		if(is_array($fk_criteria) && count($fk_criteria) === 1) {
 			//All clubs belonging to specified Event
@@ -475,6 +474,8 @@ class Club extends AbstractData
 	}
 	
 	protected function create() {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		
 		global $wpdb;
 
 		parent::create();

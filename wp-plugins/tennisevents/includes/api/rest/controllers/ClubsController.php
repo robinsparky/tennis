@@ -1,6 +1,8 @@
 <?php
 namespace controllers;
 
+use datalayer\Club;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -12,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @version 1.0.0
  * @since   0.1.0
 */
-class ClubsController extends WP_REST_Controller
+class ClubsController extends \WP_REST_Controller
 { 
     /**
      * Register the routes for the objects of the controller.
@@ -24,7 +26,7 @@ class ClubsController extends WP_REST_Controller
 
       register_rest_route( $namespace, '/' . $base, array(
         array(
-          'methods'         => WP_REST_Server::READABLE,
+          'methods'         => \WP_REST_Server::READABLE,
           'callback'        => array( $this, 'get_items' ),
           'permission_callback' => array( $this, 'get_items_permissions_check' ),
           'args'            => array(
@@ -32,7 +34,7 @@ class ClubsController extends WP_REST_Controller
           ),
         ),
         array(
-          'methods'         => WP_REST_Server::CREATABLE,
+          'methods'         => \WP_REST_Server::CREATABLE,
           'callback'        => array( $this, 'create_item' ),
           'permission_callback' => array( $this, 'create_item_permissions_check' ),
           'args'            => $this->get_endpoint_args_for_item_schema( true ),
@@ -41,7 +43,7 @@ class ClubsController extends WP_REST_Controller
 
       register_rest_route( $namespace, '/' . $base . '/(?P<id>[\d]+)', array(
         array(
-          'methods'         => WP_REST_Server::READABLE,
+          'methods'         => \WP_REST_Server::READABLE,
           'callback'        => array( $this, 'get_item' ),
           'permission_callback' => array( $this, 'get_item_permissions_check' ),
           'args'            => array(
@@ -51,13 +53,13 @@ class ClubsController extends WP_REST_Controller
           ),
         ),
         array(
-          'methods'         => WP_REST_Server::EDITABLE,
+          'methods'         => \WP_REST_Server::EDITABLE,
           'callback'        => array( $this, 'update_item' ),
           'permission_callback' => array( $this, 'update_item_permissions_check' ),
           'args'            => $this->get_endpoint_args_for_item_schema( false ),
         ),
         array(
-          'methods'  => WP_REST_Server::DELETABLE,
+          'methods'  => \WP_REST_Server::DELETABLE,
           'callback' => array( $this, 'delete_item' ),
           'permission_callback' => array( $this, 'delete_item_permissions_check' ),
           'args'     => array(
@@ -69,7 +71,7 @@ class ClubsController extends WP_REST_Controller
       ) );
 
       register_rest_route( $namespace, '/' . $base . '/schema', array(
-        'methods'         => WP_REST_Server::READABLE,
+        'methods'         => \WP_REST_Server::READABLE,
         'callback'        => array( $this, 'get_public_item_schema' ),
       ) );
     }
@@ -90,7 +92,7 @@ class ClubsController extends WP_REST_Controller
         $data[] = $this->prepare_response_for_collection( $itemdata );
       }
    
-      return new WP_REST_Response( $data, 200 );
+      return new \WP_REST_Response( $data, 200 );
     }
    
     /**
@@ -109,9 +111,9 @@ class ClubsController extends WP_REST_Controller
    
       //return a response or error based on some conditional
       if ( 1 == 1 ) {
-        return new WP_REST_Response( $data, 200 );
+        return new \WP_REST_Response( $data, 200 );
       } else {
-        return new WP_Error( 'code', __( 'message', 'text-domain' ) );
+        return new \WP_Error( 'code', __( 'message', 'text-domain' ) );
       }
     }
    
@@ -127,11 +129,11 @@ class ClubsController extends WP_REST_Controller
       if ( function_exists( 'slug_some_function_to_create_item')  ) {
         $data = slug_some_function_to_create_item( $item );
         if ( is_array( $data ) ) {
-          return new WP_REST_Response( $data, 200 );
+          return new \WP_REST_Response( $data, 200 );
         }
       }
    
-      return new WP_Error( 'cant-create', __( 'message', 'text-domain'), array( 'status' => 500 ) );
+      return new \WP_Error( 'cant-create', __( 'message', 'text-domain'), array( 'status' => 500 ) );
     }
    
     /**
@@ -146,11 +148,11 @@ class ClubsController extends WP_REST_Controller
       if ( function_exists( 'slug_some_function_to_update_item')  ) {
         $data = slug_some_function_to_update_item( $item );
         if ( is_array( $data ) ) {
-          return new WP_REST_Response( $data, 200 );
+          return new \WP_REST_Response( $data, 200 );
         }
       }
    
-      return new WP_Error( 'cant-update', __( 'message', 'text-domain'), array( 'status' => 500 ) );
+      return new \WP_Error( 'cant-update', __( 'message', 'text-domain'), array( 'status' => 500 ) );
     }
    
     /**
@@ -165,11 +167,11 @@ class ClubsController extends WP_REST_Controller
       if ( function_exists( 'slug_some_function_to_delete_item')  ) {
         $deleted = slug_some_function_to_delete_item( $item );
         if (  $deleted  ) {
-          return new WP_REST_Response( true, 200 );
+          return new \WP_REST_Response( true, 200 );
         }
       }
    
-      return new WP_Error( 'cant-delete', __( 'message', 'text-domain'), array( 'status' => 500 ) );
+      return new \WP_Error( 'cant-delete', __( 'message', 'text-domain'), array( 'status' => 500 ) );
     }
    
     /**

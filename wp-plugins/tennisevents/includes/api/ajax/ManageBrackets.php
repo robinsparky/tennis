@@ -148,7 +148,7 @@ class ManageBrackets
                 break;
             default:
                 $mess =  __( 'Illegal Bracket task.', TennisEvents::TEXT_DOMAIN );
-                $errobj->add( $errcode++, $mess );
+                $this->errobj->add( $this->errcode++, $mess );
         }
 
         if(count($this->errobj->errors) > 0) {
@@ -190,7 +190,7 @@ class ManageBrackets
             $td->save();
         } 
         catch (Exception | InvalidBracketException $ex ) {
-            $errobj->add( $errcode++, $ex->getMessage() );
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
         return $mess;
@@ -222,7 +222,7 @@ class ManageBrackets
             $mess = "Added bracket '{$newBracketName}' (with number='{$bracket->getBracketNumber()}')";
         } 
         catch (Exception | InvalidBracketException $ex ) {
-            $errobj->add( $errcode++, $ex->getMessage() );
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
         return $mess;
@@ -247,7 +247,7 @@ class ManageBrackets
             $mess = "Removed bracket '{$bracketName}'";
         } 
         catch (Exception | InvalidEventException $ex ) {
-            $errobj->add( $errcode++, $ex->getMessage() );
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
         return $mess;
@@ -383,14 +383,18 @@ class ManageBrackets
     * @param  [string] $newTitle The new title for the post.
     * @return [int] The duplicated Post ID
    */
-   private function copyPost($post_id, $newTitle) {
+   private function copyPost($post_id, $newTitle = '') {
        $loc = __CLASS__ . "::" . __FUNCTION__;
-       $this->log->error_log("{$loc}({$post_id},{$newName})");
+       $this->log->error_log("{$loc}({$post_id},{$newTitle})");
 
        if(empty($newTitle)) return 0;
 
        $oldpost = get_post($post_id);
        if(empty($oldpost)) return 0;
+
+       if(empty($newTitle)) {
+           $newTitle = $oldpost->post_title . "_copy";
+       }
 
        $terms = get_the_terms($oldpost, TennisEventCpt::CUSTOM_POST_TYPE_TAX );
        if( is_wp_error($terms) ) {

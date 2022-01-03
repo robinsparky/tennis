@@ -1,6 +1,9 @@
 <?php
 namespace controllers;
+use \TennisEvents;
 use api\TournamentDirector;
+use datalayer\Club;
+use datalayer\Event;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,7 +33,7 @@ class BracketsController extends \WP_REST_Controller
 
     register_rest_route( $namespace, '/' . $base , array(
       array(
-        'methods'         => WP_REST_Server::READABLE,
+        'methods'         => \WP_REST_Server::READABLE,
         'callback'        => array( $this, 'get_items' ),
         'permission_callback' => array( $this, 'get_items_permissions_check' ),
         'args'            => array(
@@ -40,7 +43,7 @@ class BracketsController extends \WP_REST_Controller
     ) );
     register_rest_route( $namespace, '/' . $base . '/(?P<clubId>[\d]+/P<eventId>[\d]+)/(?P<id>[\d]+)', array(
       array(
-        'methods'         => WP_REST_Server::READABLE,
+        'methods'         => \WP_REST_Server::READABLE,
         'callback'        => array( $this, 'get_item' ),
         'permission_callback' => array( $this, 'get_item_permissions_check' ),
         'args'            => array(
@@ -51,7 +54,7 @@ class BracketsController extends \WP_REST_Controller
       ),
     ) );
     register_rest_route( $namespace, '/' . $base . '/schema', array(
-      'methods'         => WP_REST_Server::READABLE,
+      'methods'         => \WP_REST_Server::READABLE,
       'callback'        => array( $this, 'get_item_schema' ),
     ) );
   }
@@ -125,11 +128,11 @@ class BracketsController extends \WP_REST_Controller
             }
         }
         else {
-          return new WP_Error( 500, __( "Could not event with Id '$eventId' for club with Id '$clubId'", TennisEvents::TEXT_DOMAIN) );
+          return new \WP_Error( 500, __( "Could not event with Id '$eventId' for club with Id '$clubId'", TennisEvents::TEXT_DOMAIN) );
         }
     }
     else {
-      return new WP_Error( 500, __( "Could not any events for club with Id '$clubId'", TennisEvents::TEXT_DOMAIN ) );
+      return new \WP_Error( 500, __( "Could not any events for club with Id '$clubId'", TennisEvents::TEXT_DOMAIN ) );
     }
 
     $data = array();
@@ -138,7 +141,7 @@ class BracketsController extends \WP_REST_Controller
       $data[] = $this->prepare_response_for_collection( $itemdata );
     }
  
-    return new WP_REST_Response( $data, 200 );
+    return new \WP_REST_Response( $data, 200 );
   }
  
   /**
@@ -211,18 +214,18 @@ class BracketsController extends \WP_REST_Controller
                                 
                   //return a response or error based on some conditional
                   if ( 1 == 1 ) {
-                    return new WP_REST_Response( $items, 200 );
+                    return new \WP_REST_Response( $items, 200 );
                   } else {
-                    return new WP_Error( 'code', __( 'message', 'text-domain' ) );
+                    return new \WP_Error( 'code', __( 'message', 'text-domain' ) );
                   }
             }
         }
         else {
-          return new WP_Error( 500, __( "Could not event with Id '$eventId' for club with Id '$clubId'", TennisEvents::TEXT_DOMAIN) );
+          return new \WP_Error( 500, __( "Could not event with Id '$eventId' for club with Id '$clubId'", TennisEvents::TEXT_DOMAIN) );
         }
     }
     else {
-      return new WP_Error( 500, __( "Could not any events for club with Id '$clubId'", TennisEvents::TEXT_DOMAIN ) );
+      return new \WP_Error( 500, __( "Could not any events for club with Id '$clubId'", TennisEvents::TEXT_DOMAIN ) );
     }
   }
  

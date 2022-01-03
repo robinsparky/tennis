@@ -59,7 +59,6 @@ class Bracket extends AbstractData
 
 		$table = $wpdb->prefix . self::$tablename;
 		$col = array();
-		$rows;
 
         //All Brackets belonging to specified Event
         $eventId = $fk_criteria[0];            
@@ -407,7 +406,7 @@ class Bracket extends AbstractData
 	public function removeSignup() {
         $loc = __CLASS__ . "->" . __FUNCTION__;
 
-        if( count( $this->getMatches() > 0 ) ) {
+        if( count( $this->getMatches() ) > 0 ) {
             $mess = $this->title() . ":Cannot remove signup. Remove matches first.";
             throw new InvalidBracketException( $mess );
         }
@@ -918,7 +917,7 @@ class Bracket extends AbstractData
      */
     public function numMatchesByRound( int $round ):int {	
         $loc = __CLASS__ . "::" . __FUNCTION__;	
-		return array_reduce( function ( $sum, $m ) use( $round ) { if( $m->getRound() === $round ) ++$sum; }, $this->getMatches(), 0);
+		return array_reduce( $this->getMatches(), function ( $sum, $m ) use($round) { if( $m->getRound() === $round ) ++$sum; },  0);
     }
     
     /**
@@ -960,8 +959,9 @@ class Bracket extends AbstractData
     public function maxMatchNumber( int $rn ):int {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         global $wpdb;
+        $matchTable = $wpdb->prefix . "tennis_match";
 
-        $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d;";
+        $sql = "SELECT IFNULL(MAX(match_num),0) FROM $matchTable WHERE event_ID=%d AND bracket_num=%d AND round_num=%d;";
         $safe = $wpdb->prepare( $sql, $this->getID(), $this->bracket_num, $rn );
         $max = (int)$wpdb->get_var( $safe );
 
@@ -1282,25 +1282,6 @@ class Bracket extends AbstractData
         $prevMatchCount = $prevMatchNumber / 2;
         $nm = $prevMatchCount + 1;
         return $nm;
-    }
-
-    /**
-     * Find the linked list for the given round and match numbers
-     * If current or next matches the list is returned
-     */
-    private function findListFor( int $r, int $m ) {
-        $result = null;
-        foreach( $this->adjacencyMatrix as $dlist ) {
-            $dlist->setIteratorMode( SplDoublyLinkedList::IT_MODE_FIFO );
-            for( $dlist->rewind(); $dlist->valid(); $dlist->next() ) {
-                if( ( $dlist->current()->round_num === $r ) &&  ( $dlist->current()->match_num === $m ) ) {
-                    $dlist->rewind();
-                    $result = $dlist;
-                    break;
-                }
-            }
-        }
-        return $result;
     }
 	
 	public function isValid() {

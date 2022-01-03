@@ -99,7 +99,7 @@ class ManageSignup
         $this->log->error_log("$loc");
         // Handle the ajax request
         check_ajax_referer(  self::NONCE, 'security'  );
-        $this->errobj->add( $this->errcode++, __( 'You have been reported to the authorities!', TennisEvents::TextDomain ));
+        $this->errobj->add( $this->errcode++, __( 'You have been reported to the authorities!', TennisEvents::TEXT_DOMAIN ));
         $this->handleErrors("You've been a bad boy.");
     }
      

@@ -9,11 +9,13 @@ use datalayer\InvalidMatchException;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidEntrantException;
 use api\TournamentDirector;
+use datalayer\InvalidTennisOperationException;
 use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\Format;
 use datalayer\ScoreType;
+use datalayer\MatchStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -402,7 +404,7 @@ class ManageRoundRobin
 
             //Check for tie breaker scores
             $needle = "(";
-            if( in_array( $set->setNum, [3,5]) ) {
+            if( in_array( $setObj->setNum, [3,5]) ) {
                 if( strpos( $mscore[0], $needle ) > 0 ) {
                     $setObj->homeTBscore = intval( strstr($mscore[0], $needle ) );
                 }
@@ -463,7 +465,7 @@ class ManageRoundRobin
                     break;
                 default:
                     $mess  = __("Unable to default '$player'", TennisEvents::TEXT_DOMAIN );
-                    throw new InvalidArgumentException($mess);
+                    throw new \InvalidArgumentException($mess);
                     break;
             }
             $data['status'] = $status;
@@ -775,18 +777,6 @@ class ManageRoundRobin
 
         return $json;
 
-    }
-
-    private function sendMatchesJson( Bracket $bracket ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-
-        $json = $this->getMatchesJson( $bracket );
-        $this->log->error_log( $json, "$loc: json:");
-
-        $script = "window.bracketmatches = $json; ";
-
-        gw_enqueue_js($script);
     }
 
     /**

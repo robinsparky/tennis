@@ -3,6 +3,9 @@ use cpt\TennisEventCpt;
 use cpt\TennisClubCpt;
 use commonlib\BaseLogger;
 use api\TournamentDirector;
+use api\TennisConfigurationException;
+use datalayer\Club;
+use datalayer\Event;
 
 /**
  * Installation related functions and actions.
@@ -30,19 +33,21 @@ class TE_Install {
 	const CHAIRUMPIRE_ROLENAME = "tennis_chair_umpire";
 	const TENNISPLAYER_ROLENAME = "tennis_player";
 
-	const SCORE_MATCHES_CAP = 'score_tennis_matches';
-	const RESET_MATCHES_CAP = 'reset_tennis_matches';
-	const MANAGE_EVENTS_CAP = 'manage_tennis_matches';
+	const SCORE_MATCHES_CAP = 'score_matches';
+	const RESET_MATCHES_CAP = 'reset_matches';
+	const MANAGE_EVENTS_CAP = 'manage_events';
 
 	static public $tennisRoles=array(self::TENNISPLAYER_ROLENAME => "Tennis Player"
 									,self::CHAIRUMPIRE_ROLENAME  => "Chair Umpire"
 								    ,self::TOURNAMENTDIRECTOR_ROLENAME => "Tournament Director");
+	
 	static private $chairUmpireCaps=array(self::SCORE_MATCHES_CAP => 1
-										 ,self::RESET_MATCHES_CAP => 0
-										 ,self::MANAGE_EVENTS_CAP => 0 );
+			,self::RESET_MATCHES_CAP => 0
+			,self::MANAGE_EVENTS_CAP => 0 );
+
 	static private $tournamentDirectorCaps=array(self::SCORE_MATCHES_CAP => 1
-												,self::RESET_MATCHES_CAP => 1
-												,self::MANAGE_EVENTS_CAP => 1 );
+		,self::RESET_MATCHES_CAP => 1
+		,self::TOURNAMENTDIRECTOR_ROLENAME => 1 );
 
 	private $dbTableNames; 
 	private $log;

@@ -31,6 +31,7 @@ class Autoloader
         //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register namespace class failed: $class_filename" );
         return false;
     }
+    
     /*
     public static function cmdClassRegister( $class ) {
         $class_filename = __DIR__ . "\\includes\\commandline\\class-$class" . ".php";

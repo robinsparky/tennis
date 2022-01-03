@@ -85,6 +85,7 @@ use datalayer\MatchStatus;
     $startDate = $match->getMatchDate_Str();
     $startTime = $match->getMatchTime_Str(2);
     $startTimeVal = $match->getMatchTime_Str();
+    $startedMess = '';
     $this->log->error_log("$loc: {$match->toString()} start date: '{$startDate}'; start time: '{$startTime}'");
     $menupath = $this->getMenuPath( $majorStatus );
 

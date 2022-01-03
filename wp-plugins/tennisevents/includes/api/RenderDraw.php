@@ -182,7 +182,7 @@ class RenderDraw
     /**
      * Renders rounds and matches for the given bracket
      * in write mode so matches can be modified and scores updated
-     * @param TournamentDirecotr $td The tournament director for this bracket
+     * @param TournamentDirector $td The tournament director for this bracket
      * @param Bracket $bracket The bracket to be rendered
      * @return string Table-based HTML showing the draw
      */
@@ -422,18 +422,6 @@ class RenderDraw
 
         return $json;
 
-    }
-
-    private function sendMatchesJson( Bracket $bracket ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-
-        $json = $this->getMatchesJson( $bracket );
-        $this->log->error_log( $json, "$loc: json:");
-
-        $script = "window.bracketmatches = $json; ";
-
-        gw_enqueue_js($script);
     }
 
     private function expandMatchesToPlayers( &$umpire, &$matches ) {

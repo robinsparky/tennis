@@ -12,7 +12,7 @@ class GW_Debug {
         global $wp;
         global $_REQUEST, $_SERVER, $_GET, $_POST;
         self::display_my_datetime('GW Debug Info');
-        $func = get_query_var('gw_vars');
+        $func = \get_query_var('gw_vars');
         //echo '<p>WP Version=' . $wp_version . '</p>';
         //echo '<p>DB Version=' . $wp_db_version . '</p>';
         //echo '<p>func=' . $func . '</p>';
@@ -41,7 +41,7 @@ class GW_Debug {
     }
     
 	public static function gw_GetCallingMethodName() {
-		$e = new Exception();
+		$e = new \Exception();
 		$trace = $e->getTrace(); // or use debug_trace
 		//position 0 would be the line that called this function so we ignore it
 		$last_call = $trace[1];
@@ -69,7 +69,7 @@ class GW_Debug {
 
 		echo "<pre style='margin: 0px 0px 10px 0px; display: block; background: white; color: black; font-family: Verdana; border: 1px solid #cccccc; padding: 5px; font-size: 10px; line-height: 13px;'>";
 		if($info != FALSE) echo "<b style='color: red;'>$info:</b><br>";
-		do_dump($var, '$'.$vname);
+		self::do_dump($var, '$'.$vname);
 		echo "</pre>";
 	}
 
@@ -111,21 +111,21 @@ class GW_Debug {
 				foreach($keys as $name)
 				{
 					$value = &$avar[$name];
-					do_dump($value, "['$name']", $indent.$do_dump_indent, $reference);
+					self::do_dump($value, "['$name']", $indent.$do_dump_indent, $reference);
 				}
 				echo "$indent)<br>";
 			}
 			elseif(is_object($avar))
 			{
 				echo "$indent$var_name <span style='color:#a2a2a2'>$type</span><br>$indent(<br>";
-				foreach($avar as $name=>$value) do_dump($value, "$name", $indent.$do_dump_indent, $reference);
+				foreach($avar as $name=>$value) self::do_dump($value, "$name", $indent.$do_dump_indent, $reference);
 				echo "$indent)<br>";
 			}
 			elseif(is_int($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $type_color$avar</span><br>";
 			elseif(is_string($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $type_color\"$avar\"</span><br>";
 			elseif(is_float($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $type_color$avar</span><br>";
 			elseif(is_bool($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $type_color".($avar == 1 ? "TRUE":"FALSE")."</span><br>";
-			elseif(is_null($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> {$type_color}NULL</span><br>";
+			elseif(is_null($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(0)</span> {$type_color}NULL</span><br>";
 			else echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $avar<br>";
 
 			$var = $var[$keyvar];
@@ -148,9 +148,9 @@ class GW_Debug {
         foreach( $trace as $frame) {
             ++$ctr;
             foreach( $frame as $key => $value) {
-                \WP_CLI::Line("Frame#{$ctr}: {$key} = {$value}");
+                WP_CLI::Line("Frame#{$ctr}: {$key} = {$value}");
             }
-            \WP_CLI::Line('-');
+            WP_CLI::Line('-');
         }
     }
     
@@ -231,7 +231,7 @@ class GW_Debug {
 	}
 
 	public static function gw_generateCallTrace() {
-		$e = new Exception();
+		$e = new \Exception();
 		$trace = explode("\n", $e->getTraceAsString());
 		// reverse array to make steps line up chronologically
 		$trace = array_reverse($trace);
@@ -257,12 +257,12 @@ class GW_Debug {
 	
 		for ($i = 0; $i < $length; $i++)
 		{
-			$funName = array_key_exists("function", $trace[$i]) ? $trace[$i]['function'] : '?function?';
-			$fileName = array_key_exists("file", $trace[$i]) ? $trace[$i]['file'] : 'unknown';
-			$lineNum = array_key_exists( "line", $trace[$i]) ? $trace[$i]['line'] : '?';
-			$className = array_key_exists("class", $trace[$i]) ? $trace[$i]['class'] : '';
-			$obj = array_key_exists("object", $trace[$i]) ? $trace[$i]['object'] : '';
-			$callType = array_key_exists("type", $trace[$i]) ? $trace[$i]['type'] : '.';
+			$funName = array_key_exists("function", (array)$trace[$i]) ? $trace[$i]['function'] : '?function?';
+			$fileName = array_key_exists("file", (array)$trace[$i]) ? $trace[$i]['file'] : 'unknown';
+			$lineNum = array_key_exists( "line", (array)$trace[$i]) ? $trace[$i]['line'] : '?';
+			$className = array_key_exists("class", (array)$trace[$i]) ? $trace[$i]['class'] : '';
+			$obj = array_key_exists("object", (array)$trace[$i]) ? $trace[$i]['object'] : '';
+			$callType = array_key_exists("type", (array)$trace[$i]) ? $trace[$i]['type'] : '.';
 			$name = '';
 			if( empty( $className ) && empty( $objName ) ) {
 				$name = $fileName;

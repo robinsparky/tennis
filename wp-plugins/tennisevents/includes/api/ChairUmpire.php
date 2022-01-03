@@ -13,6 +13,8 @@ use datalayer\Bracket;
 use datalayer\MatchStatus;
 use datalayer\Entrant;
 use datalayer\Set;
+use datalayer\InvalidEventException;
+use datalayer\InvalidBracketException;
 
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -64,10 +66,10 @@ abstract class ChairUmpire
      * Return a ChairUmpire based on the type of event
      * But only leaf events can have a ChairUmpire
      * @param string $scoretype which is a title of a set of scoring rules such as 'Fast4' or 'Regulation'
-     * @return object ChairUmpire ... one of several different possibilities
+     * @return ChairUmpire ... one of several different possibilities
      */
-    public static function getUmpire( string $strScoreType ) : ChairUmpire {
-        $loc = __CLASS__ . ':: static ' . __FUNCTION__;
+    public static function getUmpire( string $strScoreType ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
         // $trace = GW_Debug::get_debug_trace( 2 );
         // error_log("{$loc}('{$strScoreType}')");
         // error_log(print_r($trace, true ));
