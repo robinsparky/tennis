@@ -367,8 +367,8 @@ div.displaymatchscores > span {
 table.tennis-display-scores {
   border-collapse: collapse;
   border: none;
-  width: 90%;
   margin: 0 auto;
+  width: 100%;
 }
 
 table.tennis-display-scores tr {
@@ -379,7 +379,7 @@ table.tennis-display-scores td {
   padding: 0 !important;
   border: none;
   padding-top: 5px;
-  min-width: 30%;
+  width:33%;
   min-height: 3rem;
 }
 

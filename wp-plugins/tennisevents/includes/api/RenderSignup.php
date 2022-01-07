@@ -221,9 +221,6 @@ EOT;
             $out .= '<button class="button" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="createPrelim">Initialize Draw</button>' . PHP_EOL;
         }
-        // elseif( $numPrelimMatches < 1 && $bracketName === Bracket::CONSOLATION ) {
-        //     $out .= '<button class="button" type="button" id="createPrelim">Create Preliminary Round</button>' . PHP_EOL;   
-        // }
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';
 

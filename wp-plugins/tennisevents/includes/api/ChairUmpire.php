@@ -78,27 +78,26 @@ abstract class ChairUmpire
         $chairUmpire = null;
 
         switch( $strScoreType ) {
+            case ScoreType::BEST2OF3:
+            case ScoreType::BEST3OF5:
             case ScoreType::PROSET8:
             case ScoreType::PROSET10:
-                //Pro Set
+                //Regulation such as winning majority of sets with tie breaker for set deciders
                 $chairUmpire = RegulationMatchUmpire::getInstance();
                 break;
+            case ScoreType::BEST2OF3TB:
+                //Pro Set & match tie breakers
+                $chairUmpire = MatchTieBreakerUmpire::getInstance();
+                break;
             case ScoreType::FAST4: 
-                //Fast4
-                // $chairUmpire = Fast4Umpire::getInstance();
-                $chairUmpire = RegulationMatchUmpire::getInstance();                
+                //Fast4 or NoAd scoring
+                $chairUmpire = NoAdUmpire::getInstance();                
                 break;
             case ScoreType::POINTS1:
             case ScoreType::POINTS2:
             case ScoreType::POINTS3:
-                //Points
+                //Points such as Round Robins where games are played up to a time limit
                 $chairUmpire = PointsMatchUmpire::getInstance();
-                break;
-            case ScoreType::BEST2OF3:
-            case ScoreType::BEST3OF5:
-            case ScoreType::BEST2OF3TB:
-                //Regulation
-                $chairUmpire = RegulationMatchUmpire::getInstance();
                 break;
             default:
                 $mess = __( 'Invalid Score Type: ', TennisEvents::TEXT_DOMAIN ) . $strScoreType;
@@ -250,6 +249,12 @@ abstract class ChairUmpire
         $this->log->error_log("{$loc}: before allowable tie break score call: home tb={$home_tb_pts}, visitor tb={$visitor_tb_pts}");
         $this->getAllowableTieBreakScore( $home_tb_pts, $visitor_tb_pts );
         $this->log->error_log("{$loc}: after allowable tie break score call: home tb={$home_tb_pts}, visitor tb={$visitor_tb_pts}");
+        
+        if( $setnum === $this->getMaxSets() && $this->getTieBreakDecider() ) {
+            $this->log->error_log("$loc: '{$title}' Set {$setnum} is a tie break decider set.");
+            $homewins = 0;
+            $visitorwins = 0;
+        }
 
         $this->saveScores( $match, $setnum, $homewins, $visitorwins, $home_tb_pts, $visitor_tb_pts );
     }
@@ -672,7 +677,7 @@ EOT;
 
             $homeTBScores = $visitorTBScores = '';
             if( ($scores[0] === $scores[1]) && (($scores[0] >= $this->GamesPerSet) || ($scores[0] >= $this->getTieBreakAt() ))
-            ||  $this->getMaxSets() == $setNum && $this->getTieBreakDecider() ) {
+            ||  ($this->getMaxSets() === $setNum && $this->getTieBreakDecider()) ) {
                 if( $this->includeTieBreakerScores( $setNum ) ) {
                     $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
                     $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
@@ -1012,6 +1017,7 @@ EOT;
                 $visitorScore = min( $visitorScore, $gamesPerSet );
             }
         }
+        
     }
 
     /**

@@ -9,11 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
 * Match scoring:
 * No ad
-    * 'No advantage'. Scoring method created by Jimmy Van Alen. 
-    * The first player or doubles team to win four points wins the game, regardless of whether the player or team is ahead by two points. 
-    * When the game score reaches three points each, the receiver chooses which side of the court (advantage court or deuce court) 
-    * the service is to be delivered on the seventh and game-deciding point in the 6 point tie-breaker. 
-    * Utilized by World Team Tennis professional competition, ATP tours, WTA tours, ITF Pro Doubles and ITF Junior Doubles.
+    * A popular alternative to advantage scoring is "no-advantage" (or "no-ad") scoring, created by James Van Alen in order to shorten match playing time.
+    * No-advantage scoring is a scoring method in which the first player to reach four points wins the game. 
+    * No-ad scoring eliminates the requirement that a player must win by two points. 
+    * Therefore, if the game is tied at deuce, the next player to win a point wins the game. 
+    * This method of scoring is used in most World TeamTennis matches.
+    * When this style of play is implemented, at deuce, the receiver then chooses from which side of the court he or she desires to return the serve. 
+    * However, in no-ad mixed doubles play, each gender always serves to the same gender at game point and during the final point of tiebreaks.
 * Pro set
     * Instead of playing multiple sets, players may play one "pro set".
     * A pro set is first to 8 (or 10) games by a margin of two games, instead of first to 6 games. 
@@ -37,7 +39,7 @@ class ScoreType {
     public const PROSET8         = "proset8"; //Best of 8 games with 7 pt tie break at 8 all
     public const PROSET10        = "proset10"; //Best of 10 games with 7pt tie break at 10 all
     public const BEST2OF3TB      = "2of3matchtiebreaker"; //Best 2 of 3 sets, but 3rd set is 10pt tie breaker. e.g. Laver Cup
-    public const FAST4           = "fast4"; //No ad scoring, lets ignored, 7pt tie breaker at 3 all
+    public const FAST4           = "fast4"; //No ad scoring, lets ignored, single point decider at 3 all
     public const POINTS1         = "1set1point"; //Based on points per win and total games won
     public const POINTS2         = "1set2points"; //Based on points per win and total games won    
     public const POINTS3         = "2sets2points"; //Based on points per win and total games won
@@ -64,9 +66,9 @@ class ScoreType {
     public $ScoreRules = 
              array( self::BEST2OF3   => array("MaxSets"=>3,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
                     self::BEST3OF5   => array("MaxSets"=>5,"GamesPerSet"=>6, "TieBreakAt"=>6, "TieBreakerMinimum"=>7),
-                    self::FAST4      => array("MaxSets"=>3,"GamesPerSet"=>4, "TieBreakAt"=>3, "MustWinBy"=>1, "TieBreakerMinimum"=>7),
-                    self::PROSET8    => array("MaxSets"=>1,"GamesPerSet"=>8, "TieBreakAt"=>8, "TieBreakerMinimum"=>12),
-                    self::PROSET10   => array("MaxSets"=>1,"GamesPerSet"=>10, "TieBreakAt"=>10, "TieBreakerMinimum"=>12),
+                    self::FAST4      => array("MaxSets"=>3,"GamesPerSet"=>4, "TieBreakAt"=>3, "MustWinBy"=>1, "TieBreakerMinimum"=>1),
+                    self::PROSET8    => array("MaxSets"=>1,"GamesPerSet"=>8, "TieBreakAt"=>8, "TieBreakerMinimum"=>7),
+                    self::PROSET10   => array("MaxSets"=>1,"GamesPerSet"=>10, "TieBreakAt"=>10, "TieBreakerMinimum"=>7),
                     self::BEST2OF3TB => array("MaxSets"=>3,"GamesPerSet"=>6,"TieBreakAt"=>6, "TieBreakerMinimum"=>10, "TieBreakDecider"=>true), 
                     self::POINTS1    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>1),
                     self::POINTS2    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>2),

@@ -16,14 +16,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Represents the chair umpire for an tennis tournament 
- * using Fast4 rules to record scores, determine match winners and bracket champion 
+ * The chair umpire for NoAd rules:
+ * 4 points earned, wins the game
+ * 7 points is the maximum points played in a game
+ * 1 point earned after the score is 40-40 (deuce) wins the game (i.e. each side has 3 points)
+ * The receiver or the receiving doubles team decides which service court to receive serve when 4 (or 6) points have been played and the game is tied
+ * For mixed doubles, the 7th point served is served from the server to the receiver of the same gender
  * 
  * @package TennisAdmin
  * @version 1.0.0
  * @since   0.1.0
  */
-class Fast4Umpire extends ChairUmpire
+class NoAdUmpire extends ChairUmpire
 {
 	//This class's singleton
 	private static $_instance;

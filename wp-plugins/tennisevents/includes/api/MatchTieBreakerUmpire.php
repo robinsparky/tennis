@@ -15,15 +15,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * The chair umpire for an tennis tournament in which the best 2 of 3, or 3 of 5, etc is 
- * used to determine match winner. Includes the use of tie breaker to determine winner of a set.
- * What about no tie breakers???
+ * MatchTieBreaker uses a tie breaker instead of a deciding set.
+ * Could be the best 2 of 3, or 3 of 5, but in the final deciding set
+ * a tie breaker is played instead of a whole set. 
  * 
  * @package TennisAdmin
  * @version 1.0.0
  * @since   0.1.0
  */
-class RegulationMatchUmpire extends ChairUmpire
+class MatchTieBreakerUmpire extends ChairUmpire
 {
 	//This class's singleton
 	private static $_instance;
@@ -131,9 +131,11 @@ class RegulationMatchUmpire extends ChairUmpire
         $homeGamesWon = 0;
         $visitorGamesWon = 0;
         $cmts = '';
+        $inTieBreakDecider = false;
 
         foreach( $sets as $set ) {
             $setNum = $set->getSetNumber();
+            $inTieBreakDecider = false;
             $this->log->error_log("{$loc}: set number={$setNum}");
             if( 1 === $this->getMaxSets() && 1 !== $setNum ) {
                 $this->log->error_log("{$loc}: skipping set number={$setNum}");
@@ -174,7 +176,10 @@ class RegulationMatchUmpire extends ChairUmpire
                     $this->log->error_log("$loc: max sets = {$this->getMaxSets()} Tie Break Decider={$this->getTieBreakDecider()}");
                     if( $setNum === $this->getMaxSets() && $this->getTieBreakDecider() ) {
                         //Process this set as below
-                        $this->log->error_log("$loc: This is a tie break decider set: $setNum");
+                        $this->log->error_log("$loc: '{$title}' Set {$setNum} is a tie break decider set.");
+                        $inTieBreakDecider = true;
+                        $homeW = 0;
+                        $visitorW = 0;
                     }
                     else {
                         //not done yet so don't even consider other sets
@@ -195,13 +200,29 @@ class RegulationMatchUmpire extends ChairUmpire
                 else {
                     if( $this->includeTieBreakerScores( $setNum ) ) {
                         $this->log->error_log("$loc: include tiebreak scores!set=$setNum: homeTB=$homeTB, visitorTB=$visitorTB");
+                        $this->log->error_log("$loc: Must win by={$this->MustWinBy}; Tie Break Min Score={$this->getTieBreakMinScore()}");
                         if( ($homeTB - $visitorTB >= $this->MustWinBy ) 
                             && $homeTB >= $this->getTieBreakMinScore() ) {
                             ++$homeSetsWon;
+                            if( $inTieBreakDecider ) {
+                                $andTheWinnerIs = 'home';
+                                $finalSet = $set->getSetNumber();
+                                $setInProgress = 0;
+                                break;
+                            }
                         }
                         elseif( ($visitorTB - $homeTB >= $this->MustWinBy )  
                             && $visitorTB >= $this->getTieBreakMinScore() ) {
                             ++$visitorSetsWon;
+                            if( $inTieBreakDecider ) {
+                                $andTheWinnerIs = 'visitor';
+                                $finalSet = $set->getSetNumber();
+                                $setInProgress = 0;
+                                break;
+                            }
+                        }
+                        elseif( $inTieBreakDecider ) {
+
                         }
                         else { //match not finished yet so break out of foreach loop
                             $setInProgress = $set->getSetNumber();
@@ -288,4 +309,20 @@ class RegulationMatchUmpire extends ChairUmpire
         return $champion;
     }
 
+    /**
+     * Vet the scores for MatchTieBreaker scoring before calling parent version.
+     */
+    public function recordScores( Match &$match, array $score ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $setnum = (int)$score['setNum'];
+        $title = $match->toString();
+
+        if( $setnum === $this->getMaxSets() && $this->getTieBreakDecider() ) {
+            $this->log->error_log("$loc: '{$title}' Set {$setnum} is a tie break decider set.");
+            $score["homeGames"] = 0;
+            $score["visitorGames"] = 0;
+        }
+        parent::recordScores($match, $score );
+
+    }
 } //end of class
