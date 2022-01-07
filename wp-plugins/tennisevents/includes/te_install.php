@@ -42,12 +42,12 @@ class TE_Install {
 								    ,self::TOURNAMENTDIRECTOR_ROLENAME => "Tournament Director");
 	
 	static private $chairUmpireCaps=array(self::SCORE_MATCHES_CAP => 1
-			,self::RESET_MATCHES_CAP => 0
-			,self::MANAGE_EVENTS_CAP => 0 );
+											,self::RESET_MATCHES_CAP => 0
+											,self::MANAGE_EVENTS_CAP => 0 );
 
 	static private $tournamentDirectorCaps=array(self::SCORE_MATCHES_CAP => 1
-		,self::RESET_MATCHES_CAP => 1
-		,self::TOURNAMENTDIRECTOR_ROLENAME => 1 );
+												,self::RESET_MATCHES_CAP => 1
+												,self::MANAGE_EVENTS_CAP => 1 );
 
 	private $dbTableNames; 
 	private $log;
