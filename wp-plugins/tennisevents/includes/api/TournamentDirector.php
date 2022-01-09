@@ -944,6 +944,11 @@ class TournamentDirector
         $seeded = array_filter( array_map( function( $e ) { if( $e->getSeed() > 0 ) return $e; }, $entrants ) );
         usort( $seeded, array( __CLASS__, 'sortBySeedAsc') );
 
+        //Cannot have more that 50% of the field as seeded
+        if( (count( $seeded ) / count( $entrants )) >= 0.5 ) {
+            throw new InvalidBracketException(__("Too many seeded players", TennisEvents::TEXT_DOMAIN ) );
+        }
+
         // $numInvolved = 2 * $this->numToEliminate;
         // $remainder   = $numInvolved > 0 ? $bracketSignupSize - $numInvolved : 0;
 
