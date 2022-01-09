@@ -56,6 +56,7 @@
           } else {
             console.log("Done but failed (res.data):");
             console.log(res.data);
+            toggleButtons(res.data.returnData);
             var entiremess = res.data.message + " ...<br/>";
             for (var i = 0; i < res.data.exception.errors.length; i++) {
               entiremess += res.data.exception.errors[i][0] + "<br/>";
@@ -418,7 +419,7 @@
       });
     });
 
-    //Approve signup by scheduling preliminary rounds
+    //Resequence the signup
     $("#reseqSignup").on("click", function (event) {
       console.log("Resequence signup fired!");
       let clubId = $(".signupContainer").attr("data-clubid");
