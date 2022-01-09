@@ -309,7 +309,7 @@ abstract class ChairUmpire
      */
     public function noTieBreakers(): bool {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        //$this->log->error_log("{$loc}: TieBreakAt={$this->TieBreakAt}");
+        $this->log->error_log("{$loc}: TieBreakAt={$this->TieBreakAt}");
         $result = false;
         if( $this->TieBreakAt < 1 ) $result = true;
  
@@ -563,7 +563,12 @@ EOT;
         $tableScores .= '<thead class="modifymatchscores"><tr>';
         $tableScores .= "<th rowspan='2'>{$playerHdr}</th>";
         foreach( $setNums as $setNum ) {
-            $tableScores .= "<th colspan='2'>Set {$setNum}</th>";
+            if( $this->includeTieBreakerScores( $setNum ) ) {
+                $tableScores .= "<th colspan='2'>Set {$setNum}</th>";
+            }
+            else {
+                $tableScores .= "<th>Set {$setNum}</th>";
+            }
         }
         $tableScores .= "</tr><tr>";        
         foreach( $setNums as $setNum ) {
@@ -955,6 +960,9 @@ EOT;
      */
     protected function includeTieBreakerScores( $setNum ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        
+        $trace = GW_Debug::get_debug_trace_Str();
+        $this->log->error_log("$loc: {$trace}");
 
         $result = True;
 

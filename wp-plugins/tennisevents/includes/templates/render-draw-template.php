@@ -1,6 +1,6 @@
 <?php 
 //use \TE_Install;
-use datalayer\MatchStatus; 
+//use datalayer\MatchStatus; 
 ?>
 <?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
 <h2 id="parent-event-name"><?php echo $parentName; ?></h2>
@@ -12,10 +12,10 @@ use datalayer\MatchStatus;
     for( $i=1; $i <= $numRounds; $i++ ) {
         $rOf = $bracket->roundOf( $i );
 ?>
-<th>Round Of <?php echo $rOf?></th>
-    <?php } ?>
+<th>Round Of <?php echo $rOf ?></th>
+<?php } ?>
 <th>Champion</th>
-</tr></thead>"
+</tr></thead>
 
 <?php $cls = ''; if( $bracket->isApproved() ) $cls = 'prelimOnly'; ?>
 <tbody class="<?php echo $cls;?>">   
@@ -169,7 +169,7 @@ use datalayer\MatchStatus;
     
 //Champion column
 if( 1 === $row && $bracket->isApproved() ) { ?>    
-<td class="item-player sortable-container ui-state-default" rowspan="<?php echo $rowspan;?>" data-eventid="<?php echo $$eventId;?>" data-bracketnum="<?php echo $bracketNum;?>" data-roundnum="0" data-matchnum="0"  data-majorstatus="0"  data-minorstatus="0">
+<td class="item-player sortable-container ui-state-default" rowspan="<?php echo $rowspan;?>" data-eventid="<?php echo $eventId;?>" data-bracketnum="<?php echo $bracketNum;?>" data-roundnum="0" data-matchnum="0"  data-majorstatus="0"  data-minorstatus="0">
 <div class="tennis-champion"><?php echo $championName;?></div>
 </td>
 <?php   
@@ -184,7 +184,7 @@ finally {
     echo $rowEnder;
 } // try 
 } //preliminaryRound  ?>
-</tbody><tfooter></tfooter>
+</tbody>
 </table>	 
 <div class='bracketDrawButtons'>
 <?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP )) {

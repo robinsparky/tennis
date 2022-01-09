@@ -192,7 +192,7 @@ class RenderDraw
 		$startFuncTime = microtime( true );
         $winnerClass = "matchwinner";
 
-        $eventId = $this->eventId;
+        $eventId = $td->getEvent()->getID(); //$this->eventId;
         $tournamentName = str_replace("\'","'",$td->getName());
         $bracketName    = $bracket->getName();
         $champion = $td->getChampion( $bracketName );

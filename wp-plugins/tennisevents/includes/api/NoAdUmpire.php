@@ -171,8 +171,8 @@ class NoAdUmpire extends ChairUmpire
                                      , $loc, $set->toString(), $homeW, $homeTB, $visitorW, $visitorTB ) );
                 
                 // the game score can go as high as it wants if there is no tie breaker
-                if( $homeW < min($this->getGamesPerSet(), $this->getTieBreakAt()) 
-                &&  $visitorW < min($this->getGamesPerSet(), $this->getTieBreakAt()) ) {
+                if( $homeW < $this->getGamesPerSet() 
+                &&  $visitorW < $this->getGamesPerSet() ) {
                     $setInProgress = $set->getSetNumber();
                     break; //not done yet and don't even consider other sets
                 }
@@ -187,7 +187,7 @@ class NoAdUmpire extends ChairUmpire
                     if( false === $this->includeTieBreakerScores( $setNum ) ) {
                         //do nothing because there are no tie breakers
                     }
-                    else { //Tie breakers
+                    else { //Tie breakers ... will never get here for NoAd
                         if( ($homeTB - $visitorTB >= $this->MustWinBy ) 
                             && $homeTB >= $this->getTieBreakMinScore() ) {
                             ++$homeSetsWon;
@@ -239,6 +239,14 @@ class NoAdUmpire extends ChairUmpire
         $this->log->error_log($result, "$loc: Match Summary Result");
 
         return $result;
+    }
+    
+    /**
+     * For NoAd matches this value should be 1
+     * otherwise it defaults to 2
+     */
+    public function getMustWinBy() {
+        return 1;
     }
        
     /**
