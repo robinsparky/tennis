@@ -17,7 +17,7 @@
 <th>Champion</th>
 </tr></thead>
 
-<?php $cls = ''; if( $bracket->isApproved() ) $cls = 'prelimOnly'; ?>
+<?php $cls = ''; if( !$bracket->isApproved() ) $cls = 'prelimOnly'; ?>
 <tbody class="<?php echo $cls;?>">   
 
 <?php
