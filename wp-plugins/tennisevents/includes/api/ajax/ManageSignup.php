@@ -160,6 +160,10 @@ class ManageSignup
                 $mess = $this->createPreliminary( $data );
                 $numPreliminary = $data["numPreliminary"];
                 break;
+            case "createPrelimRandom":
+                $mess = $this->createPreliminary( $data, true );
+                $numPreliminary = $data["numPreliminary"];
+                break;
             case "reseqSignup":
                 $mess = $this->reseqSignup( $data );
                 break;
@@ -364,10 +368,11 @@ class ManageSignup
     
     /**
      * Create preliminary rounds for this event/bracket
-     * @param array $data Associative array containing the entrant's data
+     * @param array $data Associative array containing the entrant's data; passed by reference so data can be returned.
+     * @param bool $withShuffle determines whether to shuffle the players before creating prelim round.
      * @return string message describing result of the operation
      */
-    private function createPreliminary( array &$data ) {
+    private function createPreliminary( array &$data, $withShuffle=false ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -377,7 +382,7 @@ class ManageSignup
             $td = new TournamentDirector( $event );
             $bracketName = $data["bracketName"];
             $this->log->error_log("$loc with bracketName='$bracketName'");
-            $numMatches = $td->schedulePreliminaryRounds( $bracketName );
+            $numMatches = $td->schedulePreliminaryRounds( $bracketName, $withShuffle );
             $data["numPreliminary"] = $numMatches;
             $mess =  __("Created $numMatches preliminary matches for '$bracketName' bracket.", TennisEvents::TEXT_DOMAIN );
         }
