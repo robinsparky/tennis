@@ -24,10 +24,13 @@ $p2Dir = plugin_dir_path( plugin_dir_path( __DIR__ ) );
 require_once( 'api-exceptions.php' );
 
 /** 
- * Responsible for putting together the necessary Events and schedule for a Tournament
- * Calculates the inital rounds of tournament; encapsulates the event, its brackets and scoring of matches
- * Responsible for determining the ultimate champion in any contest.
- * Composes several data level functions for Events, Brackets, Matches as it caches all of these from the db.
+ * Responsible managing creation of the draw and communicating with the chair umpire.
+ * Calculates the number of rounds of tournament. 
+ * Encapsulates the following objects:
+ *  - Tennis event with its brackets and matches. 
+ *  - The appropriate chair umpire for the event.
+ *  - Determining the ultimate champion in the event.
+ * 
  * Other components or functions should expect to get any data re an event's brackets, matches or sets from the
  * Tournament Director.
  * @class  TournamentDirector
@@ -863,6 +866,7 @@ class TournamentDirector
         return 0;
     }
 
+
     /**
      * The purpose of this function is to eliminate enough players 
      * in the first round so that the next round has 2^n players 
@@ -917,7 +921,7 @@ class TournamentDirector
         $entrants = $bracket->getSignup( );
         $bracketSignupSize = count( $entrants );
         //Check minimum entrants constraint
-        if( $bracketSignupSize < $minplayers ) {
+        if( $bracketSignupSize < $minPlayers ) {
             $mess = __( "Bracket must have at least {$minplayers} entrants for an elimination event. {$bracketSignupSize} entrants found.", TennisEvents::TEXT_DOMAIN );
             throw new InvalidBracketException( $mess );
         }
@@ -945,24 +949,9 @@ class TournamentDirector
         usort( $seeded, array( __CLASS__, 'sortBySeedAsc') );
 
         //Cannot have more that 50% of the field as seeded
-        if( (count( $seeded ) / count( $entrants )) >= 0.5 ) {
+        if( (count( $seeded ) / count( $entrants )) > 0.5 ) {
             throw new InvalidBracketException(__("Too many seeded players", TennisEvents::TEXT_DOMAIN ) );
         }
-
-        // $numInvolved = 2 * $this->numToEliminate;
-        // $remainder   = $numInvolved > 0 ? $bracketSignupSize - $numInvolved : 0;
-
-        // if($numInvolved > $remainder ) {
-        //     $seedByes    =  min( count( $seeded ) , $remainder );
-        //     $unseedByes  = $remainder - $seedByes;
-        // }
-        // else {
-        //     $seedByes = min( count( $seeded ), $numInvolved );
-        //     $unseedByes = $numInvolved - $seedByes;
-        // }
-        // $totalByes = $seedByes + $unseedByes;
-        // $highMatchnum = ceil( $bracketSignupSize / 2 );
-        // $this->log->error_log( "$loc: highMatchnum=$highMatchnum seedByes=$seedByes unseedByes=$unseedByes" );
         
         //Heavy lifting done here!
         $this->processByes( $bracket, $seeded, $unseeded );
@@ -980,11 +969,15 @@ class TournamentDirector
     }
         
     /**************************************************  Private functions ********************************************************** */
-    
+
     /**
+     * Initializes the first round be placing unseeded and seeded players into matches.
      * For this case, we could have a large number of players involved in bringing the count
-     * down to a power of 2 for the subsequent round. So this is considered the first round
-     * and only a few byes need to be defined. It is likely that only seeded players will get the byes.
+     * down to a power of 2 for the subsequent round. It is likely that only seeded players will get the byes.
+     * There can be no more than 50% of the field seeded.
+     * @param Bracket $bracket The bracket whose draw is being generated.
+     * @param array $seeded is the array of seeded players
+     * @param array $unseeded is the arrah of unseeded players.
      */
     private function processByes( Bracket $bracket, array &$seeded, array &$unseeded ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -1020,24 +1013,25 @@ class TournamentDirector
         for( $i = 0; $i < $seedByes; $i++ ) {
             if( 0 === $i ) {//first seeded player
                 $lastSlot = $lowMatchnum++;
-                array_push( $usedMatchNums, $lastSlot );
             }
             else if( 1 === $i ) {//second seeded player
                 $lastSlot = $highestMatchnumUsed;
-                array_push( $usedMatchNums, $lastSlot );
             }
             else {//remaining seeded players
                 $lastSlot = ($i * $slot);// + $lowMatchnum;
-                array_push( $usedMatchNums, $lastSlot );
             }
+            array_push( $usedMatchNums, $lastSlot );
             $home = array_shift( $seeded );
             $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
             $match->setIsBye( true );
             $match->setHomeEntrant( $home );
             $match->setMatchType( $this->matchType );
             $bracket->addMatch( $match );
+            $mtchCount = $bracket->getNumberOfMatches();  
             $this->log->error_log( sprintf( "%s -> added bye for seeded player %s to round %d using match number %d", $loc, $home->getName(), $initialRound, $lastSlot ) );
+            $this->log->error_log( "$loc: Bracket:'{$bracket->getName()}' now has {$mtchCount} matches");
         }
+        $this->log->error_log($bracket->getMatches(), "$loc: Bracket's matches after spreading seeded byes!");
 
         $matchnum = $lowMatchnum;
         for( $i = 0; $i < $unseedByes; $i++ ) {
@@ -1049,12 +1043,16 @@ class TournamentDirector
             $match->setIsBye( true );
             $match->setHomeEntrant( $home );
             $match->setMatchType( $this->matchType );
-            $bracket->addMatch( $match );            
+            $bracket->addMatch( $match );  
+            $mtchCount = $bracket->getNumberOfMatches();          
             $this->log->error_log( sprintf( "%s -> added bye for unseeded player %s in round %d using match number %d", $loc, $home->getName(), $initialRound, $mn ) );
+            $this->log->error_log( "$loc: Bracket:'{$bracket->getName()}' now has {$mtchCount} matches");
         }
+        $this->log->error_log($bracket->getMatches(), "$loc: Bracket's matches after spreading unseeded byes!");
+
 
         //Set the first lot of matches starting from end of the line
-        $ctr = 1;
+        $ctr = 0;
         while( count( $unseeded ) > 0 || count( $seeded ) > 0 ) {
             $numSeeded = count($seeded);
             $numUnseeded = count($unseeded);
@@ -1065,17 +1063,19 @@ class TournamentDirector
                 $visitor = array_shift( $unseeded );
 
                 if( $ctr & 2 ) {
+                    //even
                     $lastSlot = (int)($highMatchnum - $ctr * $slot);
-                    if(0 === $lastSlot) $lastSlot = 1;
+                    if($lastSlot <= 0) $lastSlot = 1;
                 }
-                else {          
+                else {
+                    //odd          
                     $lastSlot = (int)($lowMatchnum  + $ctr * $slot);
                 }
                 $this->log->error_log("$loc:$ctr. lastSlot=$lastSlot ");
 
-                if( 0 === $lastSlot ) {
-                    $this->log->error_log("$loc: lastSlot is zero! with ctr=$ctr");
-                    throw new InvalidBracketException( __("$loc: lastSlot is zero! with ctr=$ctr", TennisEvents::TEXT_DOMAIN ) );
+                if( $lastSlot <= 0 ) {
+                    $this->log->error_log("$loc: lastSlot less than or equal to zero! with ctr=$ctr");
+                    throw new InvalidBracketException( __("$loc: lastSlot is less than or equal to zero! with ctr=$ctr", TennisEvents::TEXT_DOMAIN ) );
                 }
 
                 $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
@@ -1117,19 +1117,12 @@ class TournamentDirector
             ++$ctr;
         }
 
-        //Now fix the last match (usually the second seed) so that 
-        // its match number is sequential
-        $prevMatchNum = 0;
-        $this->log->error_log("$loc: Fixing match number $highestMatchnumUsed");
-        foreach( $bracket->getMatchesByRound($initialRound) as $match ) {
-            $m = $match->getMatchNumber();
-            $this->log->error_log("$loc: checking M(1,$m)");
-            if($m == $highestMatchnumUsed) {
-                $newMatchNum = $prevMatchNum + 1;
-                $match->setMatchNumber($newMatchNum);
-                $this->log->error_log("$loc: changing M(1,$m) to M(1,$newMatchNum)");
-            }
-            $prevMatchNum = $m;
+        //Now assign sequential match numbers as the above process can leave gaps.
+        $newMatches = $bracket->getMatchesByRound($initialRound);
+        usort( $newMatches, array( __CLASS__, 'sortByMatchNumberAsc' ) );
+        $matchNum = 1;
+        foreach( $newMatches as $match ) {
+            $match->setMatchNumber($matchNum++);
         }
         $this->log->error_log("----$loc");
     }
