@@ -51,7 +51,7 @@ abstract class ChairUmpire
     protected $GamesPerSet = 6;
     protected $TieBreakAt  = 6; //Can be less than GamesPerSet e.g. Fast4
     protected $TieBreakerMinimum = 7;
-    protected $TieBreakDecider = false;
+    protected $TieBreakDecider = 0; //Minimum of points needed in a tie break decider for a match;
     protected $NoTieBreakerFinalSet = false;
     protected $MustWinBy = 2;
     protected $PointsPerWin = 1;
@@ -163,7 +163,7 @@ abstract class ChairUmpire
         $this->GamesPerSet = $GamesPerSet ?? 6;
         $this->TieBreakAt = $TieBreakAt ?? 0; //no tie breakers by default
         $this->TieBreakerMinimum = $TieBreakerMinimum ?? 7;
-        $this->TieBreakDecider = $TieBreakDecider ?? false;
+        $this->TieBreakDecider = $TieBreakDecider ?? 0;
         $this->NoTieBreakerFinalSet = $NoTieBreakerFinalSet ?? false;
         if( $this->TieBreakDecider ) $this->NoTieBreakerFinalSet = false;
 
@@ -247,7 +247,7 @@ abstract class ChairUmpire
         $this->log->error_log("{$loc}: after allowable game score call: home={$homewins}, visitor={$visitorwins}");
         
         $this->log->error_log("{$loc}: before allowable tie break score call: home tb={$home_tb_pts}, visitor tb={$visitor_tb_pts}");
-        $this->getAllowableTieBreakScore( $home_tb_pts, $visitor_tb_pts );
+        $this->getAllowableTieBreakScore( $setnum, $home_tb_pts, $visitor_tb_pts );
         $this->log->error_log("{$loc}: after allowable tie break score call: home tb={$home_tb_pts}, visitor tb={$visitor_tb_pts}");
         
         if( $setnum === $this->getMaxSets() && $this->getTieBreakDecider() ) {
@@ -327,6 +327,13 @@ abstract class ChairUmpire
      * Is the final set a tie break decider?
      */
     public function getTieBreakDecider() :bool {
+        return ($this->TieBreakDecider > 0 );
+    }
+    
+    /**
+     * Get the minimum games required in a final set tie break decider
+     */
+    public function getTieBreakDeciderMinimum() :int {
         return $this->TieBreakDecider;
     }
 
@@ -1033,31 +1040,36 @@ EOT;
      * @param int $homeScore The home entrant's tie break score
      * @param int $visitorScore the visitor entrant's tie break score
      */
-    protected function getAllowableTieBreakScore( int &$homeScore, int &$visitorScore ) {
+    protected function getAllowableTieBreakScore(int $setNum, int &$homeScore, int &$visitorScore ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         
         if( $this->noTieBreakers() ) return;
 
+        $minTBScore = $this->getTieBreakMinScore();
+        if( $setNum === $this->getMaxSets() && $this->getTieBreakDecider() ) {
+            $minTBScore = $this->getTieBreakDeciderMinimum();
+        }
+
         $diff = $homeScore - $visitorScore;
-        if($homeScore >= $this->getTieBreakMinScore() && $diff > 0 ) {
+        if($homeScore >= $minTBScore && $diff > 0 ) {
             if( $diff >= $this->getMustWinBy() ) {
-                if( $visitorScore === $this->getTieBreakMinScore() - 1 ) {
-                    $homeScore = $this->getTieBreakMinScore() + ($this->getMustWinBy() - 1);
+                if( $visitorScore === $minTBScore - 1 ) {
+                    $homeScore = $minTBScore + ($this->getMustWinBy() - 1);
                 }
                 else {
-                    $homeScore = $this->getTieBreakMinScore();
+                    $homeScore = $minTBScore;
                     $visitorScore = min( $visitorScore, $homeScore - $this->getMustWinBy() );
                 }
             }
         }
-        elseif( $visitorScore >= $this->getTieBreakMinScore() && $diff < 0 ) {
+        elseif( $visitorScore >= $minTBScore&& $diff < 0 ) {
             $diff =  abs($diff);
             if( $diff >= $this->getMustWinBy() ) {
-                if( $homeScore === $this->getTieBreakMinScore() - 1 ) {
-                    $visitorScore = $this->getTieBreakMinScore() + ($this->getMustWinBy() - 1);
+                if( $homeScore === $minTBScore - 1 ) {
+                    $visitorScore = $minTBScore + ($this->getMustWinBy() - 1);
                 }
                 else {
-                    $visitorScore = $this->getTieBreakMinScore();
+                    $visitorScore = $minTBScore;
                     $homeScore = min( $homeScore, $visitorScore - $this->getMustWinBy() );
                 }
             }

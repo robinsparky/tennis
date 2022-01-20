@@ -340,7 +340,7 @@ class NoAdUmpire extends ChairUmpire
     * @param int $homeScore The home entrant's tie break score
     * @param int $visitorScore the visitor entrant's tie break score
     */
-   protected function getAllowableTieBreakScore( int &$homeScore, int &$visitorScore ) {
+   protected function getAllowableTieBreakScore(int $setNum, int &$homeScore, int &$visitorScore ) {
        $loc = __CLASS__ . '::' . __FUNCTION__;
        
        if( $this->noTieBreakers() ) return;

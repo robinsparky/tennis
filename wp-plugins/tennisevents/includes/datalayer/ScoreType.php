@@ -1,6 +1,6 @@
 <?php
 namespace datalayer;
-use \TennisEvents;
+//use \TennisEvents;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -69,7 +69,7 @@ class ScoreType {
                     self::FAST4      => array("MaxSets"=>3,"GamesPerSet"=>4, "TieBreakAt"=>0, "MustWinBy"=>1, "TieBreakerMinimum"=>1),
                     self::PROSET8    => array("MaxSets"=>1,"GamesPerSet"=>8, "TieBreakAt"=>8, "TieBreakerMinimum"=>7),
                     self::PROSET10   => array("MaxSets"=>1,"GamesPerSet"=>10, "TieBreakAt"=>10, "TieBreakerMinimum"=>7),
-                    self::BEST2OF3TB => array("MaxSets"=>3,"GamesPerSet"=>6,"TieBreakAt"=>6, "TieBreakerMinimum"=>10, "TieBreakDecider"=>true), 
+                    self::BEST2OF3TB => array("MaxSets"=>3,"GamesPerSet"=>6,"TieBreakAt"=>6, "TieBreakerMinimum"=>7, "TieBreakDecider"=>10), 
                     self::POINTS1    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>1),
                     self::POINTS2    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>2),
                     self::POINTS3    => array("MaxSets"=>2,"GamesPerSet"=>4,"MustWinBy"=>2,"PointsPerWin"=>2),

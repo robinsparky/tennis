@@ -199,10 +199,16 @@ class MatchTieBreakerUmpire extends ChairUmpire
                 //Tie breaker scores
                 else {
                     if( $this->includeTieBreakerScores( $setNum ) ) {
+                        if( $inTieBreakDecider ) {
+                            $minTBScore = $this->getTieBreakDeciderMinimum();
+                        }
+                        else {
+                            $minTBScore = $this->getTieBreakMinScore();
+                        }
                         $this->log->error_log("$loc: include tiebreak scores!set=$setNum: homeTB=$homeTB, visitorTB=$visitorTB");
-                        $this->log->error_log("$loc: Must win by={$this->MustWinBy}; Tie Break Min Score={$this->getTieBreakMinScore()}");
+                        $this->log->error_log("$loc: Must win by={$this->MustWinBy}; Tie Break Min Score={$minTBScore}");
                         if( ($homeTB - $visitorTB >= $this->MustWinBy ) 
-                            && $homeTB >= $this->getTieBreakMinScore() ) {
+                            && $homeTB >= $minTBScore ) {
                             ++$homeSetsWon;
                             if( $inTieBreakDecider ) {
                                 $andTheWinnerIs = 'home';
@@ -212,7 +218,7 @@ class MatchTieBreakerUmpire extends ChairUmpire
                             }
                         }
                         elseif( ($visitorTB - $homeTB >= $this->MustWinBy )  
-                            && $visitorTB >= $this->getTieBreakMinScore() ) {
+                            && $visitorTB >= $minTBScore ) {
                             ++$visitorSetsWon;
                             if( $inTieBreakDecider ) {
                                 $andTheWinnerIs = 'visitor';
@@ -220,9 +226,6 @@ class MatchTieBreakerUmpire extends ChairUmpire
                                 $setInProgress = 0;
                                 break;
                             }
-                        }
-                        elseif( $inTieBreakDecider ) {
-
                         }
                         else { //match not finished yet so break out of foreach loop
                             $setInProgress = $set->getSetNumber();
@@ -325,4 +328,5 @@ class MatchTieBreakerUmpire extends ChairUmpire
         parent::recordScores($match, $score );
 
     }
+
 } //end of class
