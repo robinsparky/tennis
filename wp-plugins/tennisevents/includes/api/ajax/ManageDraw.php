@@ -701,8 +701,13 @@ class ManageDraw
         $mess          = __("{$task}: ", TennisEvents::TEXT_DOMAIN );
         try {               
             if( !current_user_can( TE_Install::RESET_MATCHES_CAP ) ) {
-                throw new Exception("Insufficient privileges");
-            }           
+                throw new Exception(__("Insufficient privileges", TennisEvents::TEXT_DOMAIN));
+            }
+
+            if( $roundNum < 2 && $reset ) {
+                throw new Exception(__("Cannot reset first round matches", TennisEvents::TEXT_DOMAIN));
+            } 
+                   
             $event = Event::get( $this->eventId );
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketName );
