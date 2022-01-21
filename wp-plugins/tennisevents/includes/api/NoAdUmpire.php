@@ -288,20 +288,25 @@ class NoAdUmpire extends ChairUmpire
 
     /**
     * Edits the game scores before saving them
+    * NOTE: mustWinBy must always be 1; and noTieBreakers always true
     * @param int $homeScore The home entrant's game score
     * @param int $visitorScore the visitor entrant's game score
     */
    protected function getAllowableGameScore( int &$homeScore, int &$visitorScore ) {
        $loc = __CLASS__ . '::' . __FUNCTION__;
+       $this->log->error_log("$loc");
 
        $diff = $homeScore - $visitorScore;
        $gamesPerSet = $this->getGamesPerSet();
-       if( 0 === $diff && $homeScore >= $this->getTieBreakAt() ) $gamesPerSet = $this->getTieBreakAt();
+       //if( 0 === $diff && $homeScore >= $this->getTieBreakAt() ) $gamesPerSet = $this->getTieBreakAt();
 
        if($homeScore >= $gamesPerSet && $diff > 0 ) {
            if( $diff >= $this->getMustWinBy() && $this->noTieBreakers() ) {
-               $homeScore = max( $visitorScore + $this->getMustWinBy(), $gamesPerSet );    
+               //$homeScore = max( $visitorScore + $this->getMustWinBy(), $gamesPerSet );
+               $homeScore = $gamesPerSet;
+               $visitorScore = min($visitorScore, $homeScore - 1);
            }
+           //Should never get here
            elseif( $diff >= $this->getMustWinBy() ) {
                if( $visitorScore === $gamesPerSet - 1 ) {
                    $homeScore = $gamesPerSet;
@@ -315,8 +320,11 @@ class NoAdUmpire extends ChairUmpire
        elseif( $visitorScore >= $gamesPerSet && $diff < 0 ) {
            $diff =  abs($diff);
            if( $diff >= $this->getMustWinBy() && $this->noTieBreakers() ) {
-               $visitorScore = max( $homeScore + $this->getMustWinBy(), $gamesPerSet );  
+               //$visitorScore = max( $homeScore + $this->getMustWinBy(), $gamesPerSet ); 
+               $visitorScore = $gamesPerSet;
+               $homeScore = min($homeScore, $visitorScore - 1); 
            }
+           //Should never get here
            elseif( $diff >= $this->getMustWinBy() ) {
                if( $homeScore === $gamesPerSet - 1 ) {
                    $visitorScore = $gamesPerSet;
@@ -328,46 +336,8 @@ class NoAdUmpire extends ChairUmpire
            }
        }
        elseif( 0 === $diff ) {
-           if( !$this->noTieBreakers() ) {
-               $homeScore = min( $homeScore, $gamesPerSet );
-               $visitorScore = min( $visitorScore, $gamesPerSet );
-           }
-       }
-   }
-
-   /**
-    * Edits the tie breaker scores before saving them
-    * @param int $homeScore The home entrant's tie break score
-    * @param int $visitorScore the visitor entrant's tie break score
-    */
-   protected function getAllowableTieBreakScore(int $setNum, int &$homeScore, int &$visitorScore ) {
-       $loc = __CLASS__ . '::' . __FUNCTION__;
-       
-       if( $this->noTieBreakers() ) return;
-
-       $diff = $homeScore - $visitorScore;
-       if($homeScore >= $this->getTieBreakMinScore() && $diff > 0 ) {
-           if( $diff >= $this->getMustWinBy() ) {
-               if( $visitorScore === $this->getTieBreakMinScore() - 1 ) {
-                   $homeScore = $this->getTieBreakMinScore() + ($this->getMustWinBy() - 1);
-               }
-               else {
-                   $homeScore = $this->getTieBreakMinScore();
-                   $visitorScore = min( $visitorScore, $homeScore - $this->getMustWinBy() );
-               }
-           }
-       }
-       elseif( $visitorScore >= $this->getTieBreakMinScore() && $diff < 0 ) {
-           $diff =  abs($diff);
-           if( $diff >= $this->getMustWinBy() ) {
-               if( $homeScore === $this->getTieBreakMinScore() - 1 ) {
-                   $visitorScore = $this->getTieBreakMinScore() + ($this->getMustWinBy() - 1);
-               }
-               else {
-                   $visitorScore = $this->getTieBreakMinScore();
-                   $homeScore = min( $homeScore, $visitorScore - $this->getMustWinBy() );
-               }
-           }
+            $homeScore = min( $homeScore, $gamesPerSet - 1 );
+            $visitorScore = min( $visitorScore, $gamesPerSet - 1 );
        }
    }
 
