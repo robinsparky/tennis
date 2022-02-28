@@ -117,11 +117,11 @@ class MatchTieBreakerUmpire extends ChairUmpire
         //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
         
         //NOTE: It is imperative that sets be in ascending order of set number
-        $sets = $match->getSets( );
+        $sets = $match->getSets( true );
         $numSets = count( $sets );
     
-        $home = 'home';
-        $visitor = 'visitor';
+        $home = Match::HOME; //'home';
+        $visitor = Match::VISITOR; //'visitor';
         $andTheWinnerIs = '';
         $earlyEnd = 0;
         $setInProgress = 0;
@@ -132,29 +132,32 @@ class MatchTieBreakerUmpire extends ChairUmpire
         $visitorGamesWon = 0;
         $cmts = '';
         $inTieBreakDecider = false;
+        
+        extract($match->findEarlyEnd());
+        $this->log->error_log("$loc: {$match->toString()} Early set=$setNumEarly; Early End=$earlyEnd; Comments={$cmts}");
 
         foreach( $sets as $set ) {
             $setNum = $set->getSetNumber();
-            $inTieBreakDecider = false;
-            $this->log->error_log("{$loc}: set number={$setNum}");
+            $inTieBreakDecider = false;            
+            $this->log->error_log("$loc: {$match->toString()} Setnum=$setNum");
+
             if( 1 === $this->getMaxSets() && 1 !== $setNum ) {
                 $this->log->error_log("{$loc}: skipping set number={$setNum}");
                 break;
             }
 
-            $earlyEnd = $set->earlyEnd();
             if( 1 === $earlyEnd ) {
                 //Home defaulted
+                $this->log->error_log("$loc: home defaulted!!!!!!!!!");
                 $andTheWinnerIs = $visitor;
-                $cmts = $set->getComments();
-                $finalSet = $set->getSetNumber();
+                $finalSet = $setNumEarly;
                 break;
             }
             elseif( 2 === $earlyEnd ) {
                 //Visitor defaulted
+                $this->log->error_log("$loc: visitor defaulted!!!!!!!!!");
                 $andTheWinnerIs = $home;
-                $cmts = $set->getComments();
-                $finalSet = $set->getSetNumber();
+                $finalSet = $setNumEarly;
                 break;
             }
             else {

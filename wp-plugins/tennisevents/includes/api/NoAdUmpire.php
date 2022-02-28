@@ -137,6 +137,9 @@ class NoAdUmpire extends ChairUmpire
         $visitorGamesWon = 0;
         $cmts = '';
 
+        extract($match->findEarlyEnd());
+        $this->log->error_log("$loc: {$match->toString()} Early set=$setNumEarly; Early End=$earlyEnd; Comments={$cmts}");
+
         foreach( $sets as $set ) {
             $setNum = $set->getSetNumber();
             $this->log->error_log("{$loc}: set number={$setNum}");
@@ -148,15 +151,13 @@ class NoAdUmpire extends ChairUmpire
             if( 1 === $earlyEnd ) {
                 //Home defaulted
                 $andTheWinnerIs = $visitor;
-                $cmts = $set->getComments();
-                $finalSet = $set->getSetNumber();
+                $finalSet = $setNumEarly;
                 break;
             }
             elseif( 2 === $earlyEnd ) {
                 //Visitor defaulted
                 $andTheWinnerIs = $home;
-                $cmts = $set->getComments();
-                $finalSet = $set->getSetNumber();
+                $finalSet = $setNumEarly;
                 break;
             }
             else {

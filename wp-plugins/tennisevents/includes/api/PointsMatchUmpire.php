@@ -158,6 +158,9 @@ class PointsMatchUmpire extends ChairUmpire
         $visitorGamesWon = 0;
         $cmts = '';
         $tie = false;
+        
+        extract($match->findEarlyEnd());
+        $this->log->error_log("$loc: {$match->toString()} Early set=$setNumEarly; Early End=$earlyEnd; Comments={$cmts}");
 
         //TODO: Make use of "ties" in the database!!!!!!!!!!
         foreach( $sets as $set ) {
@@ -171,15 +174,13 @@ class PointsMatchUmpire extends ChairUmpire
             if( 1 === $earlyEnd ) {
                 //Home defaulted
                 $andTheWinnerIs = $visitor;
-                $cmts = $set->getComments();
-                $finalSet = $set->getSetNumber();
+                $finalSet = $setNumEarly;
                 break;
             }
             elseif( 2 === $earlyEnd ) {
                 //Visitor defaulted
                 $andTheWinnerIs = $home;
-                $cmts = $set->getComments();
-                $finalSet = $set->getSetNumber();
+                $finalSet = $setNumEarly;
                 break;
             }
             else {

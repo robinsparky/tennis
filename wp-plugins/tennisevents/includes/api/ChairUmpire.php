@@ -380,17 +380,28 @@ abstract class ChairUmpire
      */
     public function defaultEntrant( Match &$match, string $entrantType, string $cmts ) {
         $sets = $match->getSets();
-        $size = count( $sets );
+        $final = array_reduce($sets, function($carry, $set) {
+                                        if($set->getHomeWins() > 0
+                                        || $set->getHomeTieBreaker() > 0
+                                        || $set->getVisitorWins() > 0
+                                        || $set->getVisitorTieBreaker() > 0) {
+                                            $carry = max($carry, $set->getSetNumber());
+                                        }
+                                        return $carry;
+                                    }
+                            , 1 );
+
         $early = $entrantType === Match::HOME ? 1 : 2;
-        if( $size > 0 ) {
-            $sets[$size - 1]->setEarlyEnd( $early );
-            $sets[$size - 1]->setComments( $cmts );
-            $match->setDirty();
-        }
-        else {
+        $set = $match->getSet($final);
+        if(is_null( $set )) {
             $set = new Set();
             $set->setSetNumber( 1 );
             $match->addSet( $set );
+            $set->setEarlyEnd( $early );
+            $set->setComments( $cmts );
+            $match->setDirty();
+        }
+        else {
             $set->setEarlyEnd( $early );
             $set->setComments( $cmts );
             $match->setDirty();
@@ -688,8 +699,9 @@ EOT;
             $this->log->error_log($mess);
 
             $homeTBScores = $visitorTBScores = '';
-            if( ($scores[0] === $scores[1]) && (($scores[0] >= $this->GamesPerSet) || ($scores[0] >= $this->getTieBreakAt() ))
-            ||  ($this->getMaxSets() === $setNum && $this->getTieBreakDecider()) ) {
+            if( ($scores[0] === $scores[1] || absint($scores[0] - $scores[1]) === 1) && (($scores[0] >= $this->GamesPerSet) || ($scores[0] >= $this->getTieBreakAt() ))
+            ||  ($this->getMaxSets() === $setNum && $this->getTieBreakDecider()) 
+            ) {
                 if( $this->includeTieBreakerScores( $setNum ) ) {
                     $homeTBScores = sprintf("<sup>%d</sup>", $scores[2]);
                     $visitorTBScores = sprintf("<sup>%d</sup>", $scores[3]);
@@ -992,6 +1004,7 @@ EOT;
      */
     protected function getAllowableGameScore( int &$homeScore, int &$visitorScore ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc({$homeScore}, {$visitorScore})");
 
         $diff = $homeScore - $visitorScore;
         $gamesPerSet = $this->getGamesPerSet();
@@ -1042,6 +1055,7 @@ EOT;
      */
     protected function getAllowableTieBreakScore(int $setNum, int &$homeScore, int &$visitorScore ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc({$homeScore}, {$visitorScore})");
         
         if( $this->noTieBreakers() ) return;
 
@@ -1056,8 +1070,11 @@ EOT;
                 if( $visitorScore === $minTBScore - 1 ) {
                     $homeScore = $minTBScore + ($this->getMustWinBy() - 1);
                 }
+                elseif( $homeScore > $minTBScore ) {
+                    $visitorScore = $homeScore - $this->getMustWinBy();
+                }
                 else {
-                    $homeScore = $minTBScore;
+                    //$homeScore = $minTBScore;
                     $visitorScore = min( $visitorScore, $homeScore - $this->getMustWinBy() );
                 }
             }
@@ -1068,14 +1085,16 @@ EOT;
                 if( $homeScore === $minTBScore - 1 ) {
                     $visitorScore = $minTBScore + ($this->getMustWinBy() - 1);
                 }
+                elseif( $visitorScore > $minTBScore ) {
+                    $homeScore = $visitorScore - $this->getMustWinBy();
+                }
                 else {
-                    $visitorScore = $minTBScore;
+                    //$visitorScore = $minTBScore;
                     $homeScore = min( $homeScore, $visitorScore - $this->getMustWinBy() );
                 }
             }
         }
     }
-    
     
     /**
      * Save the game, tie breaker and tie scores for a given set of the supplied Match.

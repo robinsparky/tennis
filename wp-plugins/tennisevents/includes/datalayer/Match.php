@@ -758,6 +758,33 @@ class Match extends AbstractData
 
     
     /**
+     * Find possible early end and comments
+     * such as player injury or walk over
+     * @return array of results 
+     */
+    public function findEarlyEnd() {
+        
+        $result=["setNumEarly"=>0, "earlyEnd"=>0,"cmts"=>''];
+
+        foreach( $this->getSets() as $set ) {
+            switch($set->earlyEnd()) {
+                case 1:
+                case 2:
+                    $result['setNumEarly'] = $set->getSetNumber();
+                    $result['earlyEnd'] = $set->earlyEnd();
+                    $result['cmts'] = $set->getComments();
+                    break;
+                default:        
+                    $result=["setNumEarly"=>0, "earlyEnd"=>0,"cmts"=>''];
+
+            }
+            if( $result['earlyEnd'] > 0 ) break;
+        }//foreach
+
+        return $result;
+    }
+    
+    /**
      * Set a score for a given Set of tennis.
      * Updates a Set if already a child of this Match
      * or creates a new Set and adds it to the Match's array of Sets
@@ -1240,6 +1267,8 @@ class Match extends AbstractData
 	 */
     private function fetchSets() {
         //var_dump(debug_backtrace());
+        $loc=__CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($loc);
         $this->sets = Set::find( $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num );
     }
 
