@@ -5,6 +5,9 @@ use commonlib\GW_Support;
  * description: Template to display Tennis Event custom post types 
  */
 $season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) ); 
+$season = isset($_GET['season']) ? $_GET['season'] : $season;
+
+
 $startFuncTime = microtime( true );
 get_header();
 ?>
@@ -31,7 +34,7 @@ get_header();
 				while( have_posts() ) { 
 					the_post();
 					$postid = get_the_ID();
-					tennis_get_template_part('draw','tenniseventcpt'); 
+					tennis_get_template_part('draw','tenniseventcpt', ['season'=>$season]); 
 					?>
 				<!--/Blog Author-->
 			<?php } 

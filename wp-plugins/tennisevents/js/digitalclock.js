@@ -22,11 +22,12 @@
       return res;
     }
 
-    function displayDigitalClock() {
+    function displayDigitalClock(title='Today') {
       let dtString = Date().toString();
-      document.getElementById("digiclock").innerHTML = formatDate(dtString);
+      document.getElementById("digiclock").innerHTML = title + ': ' + formatDate(dtString);
     }
 
-    setInterval(displayDigitalClock, 1000);
+    displayDigitalClock();
+    //setInterval(displayDigitalClock, 1000);
   });
 })(jQuery);

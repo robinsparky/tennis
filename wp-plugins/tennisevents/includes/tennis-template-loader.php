@@ -62,7 +62,7 @@ function tennis_locate_template( $template_name, $template_path = '', $default_p
  * @param string 	$string $template_path	Path to templates.
  * @param string	$default_path			Default path to template files.
  */
-function tennis_get_template( $template_name, $args = array(), $template_path = '', $default_path = '' ) {
+function tennis_get_template( $template_name, $args = null, $template_path = '', $default_path = '' ) {
 	$loc = __FUNCTION__;
 
 	if ( isset( $args ) && is_array( $args ) ) :
@@ -78,7 +78,7 @@ function tennis_get_template( $template_name, $args = array(), $template_path = 
 		return;
 	endif;
 
-	load_template( $template_file, true );
+	load_template( $template_file, true, $args );
 	//include $template_file;
 
 }
@@ -94,8 +94,9 @@ function tennis_get_template( $template_name, $args = array(), $template_path = 
  *
  * @param string 	$slug The slug name for the generic template.
  * @param string 	$name The name of the specialised template. Defaults to null
+ * @param array     $args array of additional args
  */
-function tennis_get_template_part( $slug, $name = null ) {
+function tennis_get_template_part( $slug, $name = null, $args = null ) {
 	$loc = __FUNCTION__;
 	error_log( "$loc: slug='{$slug}', name='{$name}'" );
 
@@ -105,7 +106,7 @@ function tennis_get_template_part( $slug, $name = null ) {
         $template_name = "{$slug}-{$name}.php";
 	}
  
-	tennis_get_template( $template_name );
+	tennis_get_template( $template_name, $args );
 
 }
 

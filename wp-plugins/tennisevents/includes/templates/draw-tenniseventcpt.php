@@ -6,8 +6,17 @@ use datalayer\Format;
 ?>
 <div id="post-<?php the_ID(); ?>"> <!-- post -->
 	<?php
-		$mode = isset($_GET['mode']) ? $_GET['mode'] : "";
+		$mode = isset($_GET['mode']) ? $_GET['mode'] : '';
 		$bracketName = isset($_GET['bracket']) ? $_GET['bracket'] : '';
+		//Get $args
+		$args = wp_parse_args(
+				$args,
+				array(
+					'season' => ''
+				)
+			);
+		$season = $args['season'];
+		error_log(__FILE__ . ": season={$season}");
 	?>
 		<!-- tennis event content -->
 		<div class="tennis-event-content">
@@ -21,13 +30,24 @@ use datalayer\Format;
 				 else {
 					 $event = $events;
 				 }
+
+				 $okToProceed = true;
 				 if( empty( $event ) ) {
-					 wp_die( __("Could not find associated event!", TennisEvents::TEXT_DOMAIN ) );
+					echo "<h3>Could not find the tennis event</h3>";
+					$okToProceed = false;
 				 }
+				 
 				 if( $event->isRoot() ) {
-				   wp_die( __("Root Tennis Event is not expected here!", TennisEvents::TEXT_DOMAIN ) );
+					echo "<h3>Root Tennis Event is not expected here</h3>";
+					$okToProceed = false;
 				} 
 
+				if( $event->getSeason() != $season ) {
+					echo "<h3>Invalid season</h3>";
+					$okToProceed = false;
+				}
+
+			if($okToProceed) {
 				?>
 				<!-- tennis event schedule -->
 				<div class="tennis-event-schedule">
@@ -69,4 +89,5 @@ use datalayer\Format;
 				</div> <!-- /tennis event schedule -->
 		</div> <!-- /event event content -->
 </div> <!-- /post -->
+<?php } //ok to proceed ?>
 
