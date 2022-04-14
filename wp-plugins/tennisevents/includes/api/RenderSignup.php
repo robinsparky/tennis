@@ -143,7 +143,7 @@ class RenderSignup
             }
         } 
         
-        if( !$found ) return __('No such event for this club', TennisEvents::TEXT_DOMAIN );
+        if( !$found || is_null($target) ) return __('No such event for this club', TennisEvents::TEXT_DOMAIN );
 
         //Get the bracket from attributes
         $bracketName = urldecode($my_shorts["bracketname"]);

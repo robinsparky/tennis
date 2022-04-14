@@ -85,6 +85,9 @@ use datalayer\Format;
 					}
 					echo "</div>";
 				}
+				else {
+					echo "<h1>WTF!</h1>";
+				}
 				?>
 				</div> <!-- /tennis event schedule -->
 		</div> <!-- /event event content -->

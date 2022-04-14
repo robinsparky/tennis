@@ -185,8 +185,8 @@ class ManageBrackets
             }
             $mess = "Changed bracket name from '{$oldBracketName}' to '{$newBracketName}'";
             $bracket->setName($newBracketName);
-            $data["signuplink"] = $td->getPermaLink() . "?manage=signup&bracket={$bracket->getName()}";
-            $data["drawlink"]   = $td->getPermaLink() . "?manage=draw&bracket={$bracket->getName()}";
+            $data["signuplink"] = $td->getPermaLink() . "?mode=signup&bracket={$bracket->getName()}";
+            $data["drawlink"]   = $td->getPermaLink() . "?mode=draw&bracket={$bracket->getName()}";
             $td->save();
         } 
         catch (Exception | InvalidBracketException $ex ) {
@@ -216,8 +216,8 @@ class ManageBrackets
             $data["bracketName"] = $bracket->getName();
             $data["imgsrc"] = TE()->getPluginUrl() . 'img/removeIcon.gif';
  
-            $data["signuplink"] = $td->getPermaLink() . "?manage=signup&bracket={$bracket->getName()}";
-            $data["drawlink"]   = $td->getPermaLink() . "?manage=draw&bracket={$bracket->getName()}";
+            $data["signuplink"] = $td->getPermaLink() . "?mode=signup&bracket={$bracket->getName()}";
+            $data["drawlink"]   = $td->getPermaLink() . "?mode=draw&bracket={$bracket->getName()}";
 
             $mess = "Added bracket '{$newBracketName}' (with number='{$bracket->getBracketNumber()}')";
         } 
@@ -293,12 +293,13 @@ class ManageBrackets
        }
        return $mess;
    }
-       /**
+   
+    /**
     * Make a copy of an Event and it's doppleganger custom post type identified by is ID     
     * @param array $data A reference to an array of event/match identifiers and new visitor player name
     * @return string A message describing success or failure
     */
-   private function prepareLadderNextMonth( &$data ) {
+    private function prepareLadderNextMonth( &$data ) {
        $loc = __CLASS__ . "::" . __FUNCTION__;
        $this->log->error_log($data,$loc);
 
@@ -323,7 +324,7 @@ class ManageBrackets
                    $youngestChild = $child;
                    continue;
                }
-               if( $child->getStartDate() > $youngestChild->getStartDate() ) {
+               if(!is_null($youngestChild) && ($child->getStartDate() > $youngestChild->getStartDate()) ) {
                    $youngestChild = $child;
                }
            }
