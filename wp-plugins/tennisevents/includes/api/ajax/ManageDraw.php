@@ -697,7 +697,7 @@ class ManageDraw
         $bracketNum    = $data["bracketNum"];
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
-        $task          = $reset ? "reset match" : "undo match";
+        $task          = $reset ? "Reset match" : "Undo scores";
         $mess          = __("{$task}: ", TennisEvents::TEXT_DOMAIN );
         try {               
             if( !current_user_can( TE_Install::RESET_MATCHES_CAP ) ) {
