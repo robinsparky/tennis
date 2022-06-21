@@ -49,6 +49,10 @@ class TennisEvents {
 	 */
 	public const VERSION = '1.0.0';
 	public const OPTION_NAME_SEEDED  = 'data_seeded';
+	public const OPTION_HISTORY_RETENTION_DEFAULT = 5;
+    public const OPTION_HISTORY_RETENTION = 'gw_tennis_event_history';
+	public const OPTION_TENNIS_SEASON = 'gw_tennis_event_season';
+	public const OPTION_HOME_TENNIS_CLUB = 'gw_tennis_home_club';
 	
 	/**
 	 * Unique identifier for the plugin.

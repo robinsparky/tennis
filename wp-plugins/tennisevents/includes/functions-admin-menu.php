@@ -60,16 +60,23 @@ function gw_tennis_create_page() {
 
 function gw_tennis_custom_settings() {
     register_setting( 'gw-tennis-settings-group' //Options group
-                    , 'gw_tennis_home_club' //Option name used in get_option
+                    , TennisEvents::OPTION_HOME_TENNIS_CLUB //No option stored for home club; uses tennis db
                     , ['type'=>'number'
                       ,'sanitize_callback'=>'gw_sanitize_clubId' ]
                     );
                     
     register_setting( 'gw-tennis-settings-group' //Options group
-                    , 'gw_tennis_event_season' //Option name used in get_option
+                    , TennisEvents::OPTION_TENNIS_SEASON //Option name used in get_option
                     , ['type'=>'number'
                       ,'sanitize_callback'=>'gw_sanitize_season'
-                      ,'description'=>'The relevant season for tennis events.']
+                      ,'description'=>__('The relevant season for tennis events.', TennisEvents::TEXT_DOMAIN)]
+                    );
+                                       
+    register_setting( 'gw-tennis-settings-group' //Options group
+                    , TennisEvents::OPTION_HISTORY_RETENTION //Option name used in get_option
+                    , ['type'=>'number'
+                    ,'sanitize_callback'=>'gw_sanitize_history'
+                    ,'description'=>__('The number seasons to retain.', TennisEvents::TEXT_DOMAIN)]
                     );
                     
 
@@ -77,18 +84,18 @@ function gw_tennis_custom_settings() {
                     , TournamentDirector::OPTION_MIN_PLAYERS_ELIM //Option name used in get_option
                     , ['type'=>'number'
                       ,'sanitize_callback'=>'gw_sanitize_minium_players'
-                      ,'description' => 'The minimum number of players for single elimination.']
+                      ,'description' => __('The minimum number of players needed for single elimination.', TennisEvents::TEXT_DOMAIN)]
                     );
 
 
     add_settings_section( 'gw-tennis-options' //id
-                        , 'Tennis Settings' //title
+                        , __('Tennis Settings', TennisEvents::TEXT_DOMAIN) //title
                         , 'gw_tennis_options' //callback to generate html
                         , 'gwtennissettings' //page
                     );
     
     add_settings_field( 'gw_tennis_home_club' // id
-                      , 'Home Club' // title
+                      , __('Home Club', TennisEvents::TEXT_DOMAIN) // title
                       , 'gw_tennisHomeClub' // callback
                       , 'gwtennissettings' // page
                       , 'gw-tennis-options' // section
@@ -96,15 +103,24 @@ function gw_tennis_custom_settings() {
                 );
                 
     add_settings_field( 'gw_tennis_season' // id
-                    , 'Season' // title
+                    , __('Season', TennisEvents::TEXT_DOMAIN) // title
                     , 'gw_tennisSeason' // callback
+                    , 'gwtennissettings' // page
+                    , 'gw-tennis-options' // section
+                    //,  array of args
+                );
+
+                                
+    add_settings_field( 'gw_tennis_history' // id
+                    , __('History Retention',TennisEvents::TEXT_DOMAIN) // title
+                    , 'gw_tennisHistory' // callback
                     , 'gwtennissettings' // page
                     , 'gw-tennis-options' // section
                     //,  array of args
                 );
          
     add_settings_field( 'gw_tennis_minimum_elim' // id
-                    , 'Minimum Players for Elimination' // title
+                    , __('Minimum Players for Elimination', TennisEvents::TEXT_DOMAIN) // title
                     , 'gw_tennisMinElim' // callback
                     , 'gwtennissettings' // page
                     , 'gw-tennis-options' // section
@@ -114,7 +130,7 @@ function gw_tennis_custom_settings() {
 }
 
 function gw_tennis_options() {
-    echo "Manage your Tennis Event Options";
+    echo "<h4>Manage your Tennis Event Settings</h4>";
 }
 
 function gw_tennisHomeClub() {
@@ -125,18 +141,27 @@ function gw_tennisSeason() {
     // $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
     // echo '<input type="number" placeholder="Min: 1, max: 100"
     // min="1" max="100" step="1" name="gw_tennis_home_club" value="' . $homeClubId . '" /><p>Max 100 and at least 1</p>';
+	$history_retention = esc_attr( get_option(TennisEvents::OPTION_HISTORY_RETENTION, TennisEvents::OPTION_HISTORY_RETENTION_DEFAULT));
     $currentYear = date('Y');
-    $min = $currentYear - 10;
+    $min = $currentYear - $history_retention + 1;
     $max = $currentYear;
-    $season = esc_attr( get_option('gw_tennis_event_season', $currentYear) );
-    echo "<input id='gw_tennis_event_season' name='gw_tennis_event_season' type='number' value='{$season}' min='{$min}' max='{$max}' step='1' >";
+    $season = esc_attr( get_option(TennisEvents::OPTION_TENNIS_SEASON, $currentYear) );
+    echo "<input id='gw_tennis_event_season' name='gw_tennis_event_season' type='number' value='{$season}' min='{$min}' max='{$max}' step='1' maxlength='4' size='5' >";
+}
+
+function gw_tennisHistory() {
+    $min = 1;
+    $max = 7;
+    $history = esc_attr( get_option(TennisEvents::OPTION_HISTORY_RETENTION,  TennisEvents::OPTION_HISTORY_RETENTION_DEFAULT) );
+    echo "<input id='gw_tennis_event_history' name='gw_tennis_event_history' type='number' value='{$history}' min='{$min}' max='{$max}' step='1' maxlength='4' size='4' >";
+    echo "<span>&nbsp;(seasons)</span>";
 }
 
 function gw_tennisMinElim() {
     $maxPlayers = TournamentDirector::MAXIMUM_ENTRANTS;
     $optName = TournamentDirector::OPTION_MIN_PLAYERS_ELIM;
     $minPlayers = TournamentDirector::getMinPlayersForElimination();
-    echo "<input id='{$optName}' name='{$optName}' type='number' value='{$minPlayers}' min='6' max='{$maxPlayers}' max= step='1'>";
+    echo "<input id='{$optName}' name='{$optName}' type='number' value='{$minPlayers}' min='6' max='{$maxPlayers}' max= step='1' maxlength='4' size='4'>";
 }
 
 function gw_sanitize_clubId( $input ) {
@@ -194,6 +219,32 @@ function gw_sanitize_season( $input ) {
     }
 
     add_settings_error('gw_tennisSeason', esc_attr('main_tennis_season_updated'), $message, $type);
+
+    return $output;
+}
+
+function gw_sanitize_history( $input ) {
+    $message = null;
+    $type = null;
+    $output = 5;
+
+    if( !is_null( $input ) ) {
+        if( is_numeric( $input ) ) {
+            $output = $input;
+            $type = 'success';
+            $message = __('Tennis history retention updated', TennisEvents::TEXT_DOMAIN );
+        }
+        else {
+            $type = 'error';
+            $message = __('Tennis history retention setting must be numeric', TennisEvents::TEXT_DOMAIN );
+        }
+    }
+    else {
+        $type = 'error';
+        $message = __('Tennis history retention must not be empty', TennisEvents::TEXT_DOMAIN );
+    }
+
+    add_settings_error('gw_tennisHistory', esc_attr('main_tennis_history_updated'), $message, $type);
 
     return $output;
 }
