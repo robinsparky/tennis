@@ -52,7 +52,7 @@ class ScoreType {
             self::BEST3OF5   => 'Best 3 of 5',
             self::PROSET8    => "Pro Set 8 Games",
             self::PROSET10   => "Pro Set 10 Games",
-            self::BEST2OF3TB => "Best 2 of 3 match tie breaker",
+            self::BEST2OF3TB => "Best 2 of 3 with 3rd set tie breaker",
             self::FAST4      => "Fast4",
             self::POINTS1    => "One Set One Point Per Win",
             self::POINTS2    => "One Set Two Points Per Win",    
