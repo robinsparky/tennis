@@ -5,8 +5,9 @@ namespace cpt;
 use \DateTime;
 use \DateTimeInterface;
 use \WP_Error;
-use commonlib\BaseLogger;
 use \TennisEvents;
+use \Exception;
+use commonlib\BaseLogger;
 use datalayer\Event;
 use datalayer\Club;
 use datalayer\EventType;
@@ -41,6 +42,7 @@ class TennisEventCpt {
 	const NUMBER_OF_BRACKETS_KEY   = '_tennisevent_number_brackets';
 	const AGE_MIN_META_KEY         = '_tennisevent_age_min';
 	const AGE_MAX_META_KEY         = '_tennisevent_age_max';
+	const TENNIS_SEASON            = '_tennis_season';
 
 	const TENNIS_EVENT_ERROR_TRANSIENT_KEY = 'tennis_event_settings_errors';
 
@@ -67,6 +69,9 @@ class TennisEventCpt {
 		add_filter('manage_edit-' . self::CUSTOM_POST_TYPE . '_sortable_columns', array($tennisEvt, 'sortableColumns'));
 		add_action('pre_get_posts', array($tennisEvt, 'orderby'));
 
+		//Only want events that occur in the Season setting
+		//add_action('pre_get_posts', array( $tennisEvt, 'filterSeason') );
+
 		//Emit css in the header of admin page to hide the "view post" notice from WP
 		add_action( 'admin_head-post-new.php', array($tennisEvt,'hide_view_post_css'));
 		add_action( 'admin_head-post.php', array($tennisEvt,'hide_view_post_css'));
@@ -77,6 +82,10 @@ class TennisEventCpt {
 		//Gender type filter
 		add_action('restrict_manage_posts', array($tennisEvt, 'genderTypeFilter'));
 		add_filter('parse_query', array($tennisEvt, 'genderTypeParseFilter'));
+		
+		//Tennis Season filter
+		add_action('restrict_manage_posts', array($tennisEvt, 'seasonFilter'));
+		add_filter('parse_query', array($tennisEvt, 'seasonParseFilter'));
 		
 		//Parent event filter
 		add_action('restrict_manage_posts', array($tennisEvt, 'parentEventFilter'));
@@ -227,6 +236,32 @@ class TennisEventCpt {
 			$query->set('meta_key', self::START_DATE_META_KEY);
 		}
 	}
+
+	public function filterSeason( $query ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		global $post_type;
+		if(TennisEventCpt::CUSTOM_POST_TYPE !== $post_type ) return;
+		if (!is_admin() || !$query->is_main_query() ) {
+			return;
+		}
+		$currentYear = date('Y');
+		$season = esc_attr( get_option('gw_tennis_event_season', $currentYear) );
+
+		$this->log->error_log("$loc: $season");
+		$meta_query = array(
+				'relation' => 'AND',
+				array(
+					'key' => 'tennis_season',
+					'value' => (string)$season,
+					'compare' => '='
+				)
+			);
+		$query->set('meta_query', $meta_query );
+		$query->set('meta_key', 'tennis_season');
+		$this->log->error_log( $query, "$loc: modified query" );
+	}
 	
 	public function addTaxonomyFilter( $post_type ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
@@ -237,25 +272,37 @@ class TennisEventCpt {
 		}
 
 		$taxonomies_slugs = array(self::CUSTOM_POST_TYPE_TAX);
-		// loop through the taxonomy filters array
-		foreach( $taxonomies_slugs as $slug ) {
-			$this->log->error_log("$loc: slug='{$slug}'");
-			$taxonomy = get_taxonomy( $slug );
-			$this->log->error_log($taxonomy, "$loc: taxonomy:");
+		if( count($taxonomies_slugs) > 0 ) {
+			// loop through the taxonomy filters array
+			foreach( $taxonomies_slugs as $slug ) {
+				$this->log->error_log("$loc: slug='{$slug}'");
+				$taxonomy = get_taxonomy( $slug );
+				$this->log->error_log($taxonomy, "$loc: taxonomy:");
 
-			$selected = '';
-			// if the current page is already filtered, get the selected term slug
-			$selected = isset( $_REQUEST[ $slug ] ) ? $_REQUEST[ $slug ] : '';
-			// render a dropdown for this taxonomy's terms
+				$selected = '';
+				// if the current page is already filtered, get the selected term slug
+				$selected = isset( $_REQUEST[ $slug ] ) ? $_REQUEST[ $slug ] : '';
+				// render a dropdown for this taxonomy's terms
+				wp_dropdown_categories( array(
+					'show_option_all' =>  $taxonomy->labels->all_items,
+					'taxonomy'        =>  $slug,
+					'name'            =>  $slug,
+					'orderby'         =>  'name',
+					'value_field'     =>  'slug',
+					'selected'        =>  $selected,
+					'hierarchical'    =>  true,
+				) );
+		}
+		} else {				
 			wp_dropdown_categories( array(
-				'show_option_all' =>  $taxonomy->labels->all_items,
-				'taxonomy'        =>  $slug,
-				'name'            =>  $slug,
-				'orderby'         =>  'name',
-				'value_field'     =>  'slug',
-				'selected'        =>  $selected,
-				'hierarchical'    =>  true,
-			) );
+					'show_option_all' =>  'None',
+					'taxonomy'        =>  '',
+					'name'            =>  '',
+					'orderby'         =>  'name',
+					'value_field'     =>  'slug',
+					'selected'        =>  '',
+					'hierarchical'    =>  true,
+				) );
 		}
 	}
 
@@ -310,6 +357,72 @@ class TennisEventCpt {
 		) {
 			$query->query_vars['meta_key'] = self::GENDER_TYPE_META_KEY;
 			$query->query_vars['meta_value'] = $_GET['gender_type'];
+			$query->query_vars['meta_compare'] = '=';
+		}
+	}
+		
+	/**
+	 * Add a filter dropdown in the Event admin page
+	 */
+	public function seasonFilter($post_type)	{
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log($loc);
+
+		if ($post_type === self::CUSTOM_POST_TYPE) {
+			$this->log->error_log("$loc using post_type: $post_type");
+
+			$history_retention = esc_attr( get_option( TennisEvents::OPTION_HISTORY_RETENTION,  TennisEvents::OPTION_HISTORY_RETENTION_DEFAULT ));
+			$currentYear = date('Y');
+			$max = esc_attr( get_option(TennisEvents::OPTION_TENNIS_SEASON, $currentYear) );
+			$min = $max - $history_retention + 1;
+
+			$seasons = array();
+			for($i=$min;$i<=$max;$i++) {
+				$seasons["$i"]=$i;
+			}
+
+			$selected = -1;
+			if (isset($_GET['tennis_season']) && !empty($_GET['tennis_season'])) {
+				$selected = $_GET['tennis_season'];
+			}
+
+			$options[] = sprintf('<option value="-1">%1$s</option>', __('All Seasons', TennisEvents::TEXT_DOMAIN));
+			foreach ($seasons as $key => $value) {
+				if ($key == $selected) {
+					$options[] = sprintf('<option value="%1$s" selected>%2$s</option>', esc_attr($key), $value);
+				} else {
+					$options[] = sprintf('<option value="%1$s">%2$s</option>', esc_attr($key), $value);
+				}
+			} 
+
+			/* Output the dropdown menu */
+			echo '<select class="" id="tennis_season" name="tennis_season">';
+			echo join('\n', $options);
+			echo '</select>';
+		}
+	}
+
+	/**
+	 * Modify the WP_QUERY using the value from the request query string
+	 * NOTE: Doesn't work because 'season' is not stored in post_meta
+	 */
+	public function seasonParseFilter($query) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc");
+
+		global $pagenow;
+		$current_page = isset($_GET['post_type']) ? $_GET['post_type'] : '';
+
+		if (
+			is_admin()
+			&& self::CUSTOM_POST_TYPE == $current_page
+			&& 'edit.php' == $pagenow
+			&& isset($_GET['tennis_season'])
+			&& $_GET['tennis_season'] != ''
+			&& $_GET['tennis_season'] != '-1'
+		) {
+			$query->query_vars['meta_key'] = '_tennis_season';
+			$query->query_vars['meta_value'] = $_GET['tennis_season'];
 			$query->query_vars['meta_compare'] = '=';
 		}
 	}
@@ -375,6 +488,7 @@ class TennisEventCpt {
 			$query->query_vars['meta_compare'] = '=';
 		}
 	}
+	
 
 	// Populate the Tennis Event columns with values
 	public function getColumnValues($column_name, $postID) {
@@ -1452,6 +1566,13 @@ class TennisEventCpt {
 			$event->setStartDate($startDate);
 			$event->setEndDate($endDate);
 			$event->save();
+			
+			$tennis_season = $event->getSeason();
+			if( false == update_post_meta($post_id, self::TENNIS_SEASON, $tennis_season) ) {			
+				$this->add_error(__( 'Did not update tennis season', TennisEvents::TEXT_DOMAIN ) );
+				++$errorsFound;
+				return;
+			}
 		}
 		catch(Exception $ex ) {
 			$mess = __("Could not save event because: {$ex->getMessage()}", TennisEvents::TEXT_DOMAIN);
