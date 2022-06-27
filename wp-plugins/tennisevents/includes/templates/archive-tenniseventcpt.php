@@ -114,7 +114,7 @@ if(!empty($prevSeason)) {
 					$args = array( "post_type" => TennisEventCpt::CUSTOM_POST_TYPE
 								, "meta_key" => TennisEventCpt::START_DATE_META_KEY
 								, "orderby" => "meta_value"
-								, "order"   => "DESC" 
+								, "order"   => "ASC" 
 								, "meta_query" => array( "relation" => "OR"
 										,array(
 											'key' => TennisEventCpt::PARENT_EVENT_META_KEY
