@@ -1224,31 +1224,62 @@ class TennisEventCpt {
 
 		$this->log->error_log($_POST, "$loc: _POST...");
 
-		if (!isset($_POST['tennis_end_date_nonce'])) {
-			$this->log->error_log("$loc --> no end date nonce");
-			return; //could be quick edit
-		}
-
-		if (!wp_verify_nonce($_POST['tennis_end_date_nonce'], 'endDateSave')) {
-			$this->log->error_log("$loc --> bad end date nonce");
-			return;
-		}
-
 		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
 			$this->log->error_log("$loc --> doing autosave");
 			return;
 		}
 
 		if (!current_user_can('edit_post', $post_id)) {
-			$this->log->error_log("$loc --> cannot edit post");
+			$this->log->error_log("$loc --> user cannot edit post");
 			return;
+		}
+		
+		//Check for at least these 3 nonces
+		$numNonces = 0;
+		//End date nonce
+		if (isset($_POST['tennis_end_date_nonce'])) {
+			if (!wp_verify_nonce($_POST['tennis_end_date_nonce'], 'endDateSave')) {
+				$this->log->error_log("$loc --> bad end date nonce");
+				return;
+			}
+			++$numNonces;
+			$this->log->error_log("$loc --> end date nonce found!");
+		}
+
+		//Start date nonce
+		if (isset($_POST['tennis_start_date_nonce'])) {
+			if (!wp_verify_nonce($_POST['tennis_start_date_nonce'], 'startDateSave')) {
+				$this->log->error_log("$loc --> bad start date nonce");
+				return;
+			}
+			++$numNonces;
+			$this->log->error_log("$loc --> start date nonce found!");
+		}
+
+		//Parent event nonce
+		if (isset($_POST['tennis_parent_event_nonce'])) {
+			if (!wp_verify_nonce($_POST['tennis_parent_event_nonce'], 'parentEventSave')) {
+				$this->log->error_log("$loc --> bad parent event nonce");
+				return;
+			}
+			++$numNonces;
+			$this->log->error_log("$loc --> parent event nonce found!");
+		}
+
+		if($numNonces === 0) {
+			$this->log->error_log("$loc --> none of the 3 nonces are present!");
+			return;
+		}
+		else {
+			$this->log->error_log("$loc --> $numNonces nonces found!");
 		}
 
 		$errorsFound = 0;
 		$evtName = "";
 		$post = get_post( $post_id );
 		if ($post->post_type !== self::CUSTOM_POST_TYPE) {
-			$this->log->error_log("$loc --> not tennis event custom post type!");
+			$this->log->error_log("$loc --> '$post->post_type' is not tennis event custom post type!");
+			$this->log->error_log($post, "$loc: post object...");
 			return;
 		}
 
@@ -1285,7 +1316,7 @@ class TennisEventCpt {
 			foreach( $tennisEvt->getBrackets() as $bracket ) {
 				if( count( $bracket->getMatches()) > 0 ) {				
 					$this->log->error_log("$loc - cannot edit an event that already has matches.");
-					$this->add_error(__('Cannot edit event that has matches initiated.', TennisEvents::TEXT_DOMAIN));
+					$this->add_error(__('Cannot edit an event that already has matches.', TennisEvents::TEXT_DOMAIN));
 					return;
 				}
 			}
@@ -1296,16 +1327,16 @@ class TennisEventCpt {
 			$parentPost = get_post($parentPostId);
 			if (is_null($parentPost)) {
 				delete_post_meta( $post_id, self::PARENT_EVENT_META_KEY );
+				$this->log->error_log("$loc --> No such parent custom post type event: '{$parentPostId}'");
 				$this->add_error( __('No such parent custom post type event', TennisEvents::TEXT_DOMAIN ) );
-				$this->log->error_log("No such parent custom post type event: '{$parentPostId}'");
 			}
 			$this->log->error_log($parentPostId, "$loc: Parent post id");
 
 			$parentEvent = $this->getEventByExtRef($parentPostId);
 			if (is_null($parentEvent)) {
 				delete_post_meta($post_id, self::PARENT_EVENT_META_KEY);
+				$this->log->error_log("$loc --> No such parent tennis event with external reference: '{$parentPostId}'");
 				$this->add_error( __( 'No such parent tennis event', TennisEvents::TEXT_DOMAIN ) );
-				$this->log->error_log("No such parent tennis event with external reference: '{$parentPostId}'");
 			}
 			else {
 				$parentEventType = $parentEvent->getEventType();
@@ -1568,11 +1599,7 @@ class TennisEventCpt {
 			$event->save();
 			
 			$tennis_season = $event->getSeason();
-			if( false == update_post_meta($post_id, self::TENNIS_SEASON, $tennis_season) ) {			
-				$this->add_error(__( 'Did not update tennis season', TennisEvents::TEXT_DOMAIN ) );
-				++$errorsFound;
-				return;
-			}
+			update_post_meta($post_id, self::TENNIS_SEASON, $tennis_season);
 		}
 		catch(Exception $ex ) {
 			$mess = __("Could not save event because: {$ex->getMessage()}", TennisEvents::TEXT_DOMAIN);
