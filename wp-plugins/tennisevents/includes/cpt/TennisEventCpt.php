@@ -493,7 +493,7 @@ class TennisEventCpt {
 	// Populate the Tennis Event columns with values
 	public function getColumnValues($column_name, $postID) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log("$loc --> $column_name, $postID");
+		//$this->log->error_log("$loc --> $column_name, $postID");
 
 		if ($column_name === 'event_type') {
 			$eventType = get_post_meta($postID, self::EVENT_TYPE_META_KEY, TRUE);
@@ -1625,6 +1625,55 @@ class TennisEventCpt {
 			if (!is_null($evt)) $evt->delete();
 		}
 	}
+	
+	/**
+	 * Remove old posts of event type.
+	 * These are posts which are older than the history retention setting allows.
+	 * NOT USED YET
+	 */
+	public function removeOldEvents() {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		
+		$history_retention = esc_attr( get_option( TennisEvents::OPTION_HISTORY_RETENTION,  TennisEvents::OPTION_HISTORY_RETENTION_DEFAULT ));
+		$currentYear = date('Y');
+		$cutoff = $currentYear - $history_retention + 1;
+		error_log( sprintf("%s -> cutoff year is %d ", $loc, $cutoff ) );
+		$numDeleted = 0;
+
+		$args = array( "post_type" => TennisEventCpt::CUSTOM_POST_TYPE
+					, "meta_key" => TennisEventCpt::START_DATE_META_KEY
+					, "orderby" => "meta_value"
+					, "order"   => "ASC" 
+					, "meta_query" => array( "relation" => "AND"
+							// ,array(
+							// 	'key' => TennisEventCpt::PARENT_EVENT_META_KEY
+							// 	,'compare' => 'NOT EXISTS'
+							// )
+							,array(
+								'key' => TennisEventCpt::TENNIS_SEASON
+								,'value' => $cutoff
+								,'compare' => '<='
+							)
+						),
+						'post_type'  => self::CUSTOM_POST_TYPE,
+						'suppress_filters' => true
+		);
+		$myQuery = new \WP_Query( $args );
+		//Loop
+		if( $myQuery->have_posts() ) {
+			while( $myQuery->have_posts() ) { 
+				$myQuery->the_post(); 
+				$post_id = get_the_ID();
+				$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
+				$season = get_post_meta( get_the_ID(), TennisEventCpt::TENNIS_SEASON, true );
+				$title = the_title();
+				$this->log->error_log("$loc --> deleting old post '$title'($post_id). Start date=$startDate and Season=$season");
+				wp_delete_post(get_the_ID(), true);
+				++$numDeleted;
+			}
+		}
+		$this->log->error_log( sprintf("%s -> %d old event(s) deleted", $loc, $numDeleted ) );
+	}
 
 	/**
 	 * Delete all references to the given parent post id
@@ -1660,7 +1709,7 @@ class TennisEventCpt {
 		}
 		$this->log->error_log("$loc: deleted={$numDel} references to parent '{$parent_id}'");
 	}
-
+	
 	/**
 	 * Get the event using external reference
 	 * @param $postId The id of the event custom post 

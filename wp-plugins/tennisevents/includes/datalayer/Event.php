@@ -278,6 +278,37 @@ class Event extends AbstractData
 		}
 		return $obj;
 	}
+
+	/**
+	 * Remove all events that fall outside of the history retention period.
+	 * NOT USED YET
+	 * @return int the number of events removed
+	 */
+	static public function removeOldEvents() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		
+		$history_retention = esc_attr( get_option( TennisEvents::OPTION_HISTORY_RETENTION,  TennisEvents::OPTION_HISTORY_RETENTION_DEFAULT ));
+		$currentYear = date('Y');
+		$cutoff = $currentYear - $history_retention + 1;
+		error_log( sprintf("%s -> cutoff year is %d ", $loc, $cutoff ) );
+		$numDeleted = 0;
+		$rowsDeleted = 0;
+		
+		$parentEvents = Event::getAllParentEvents();
+		error_log( sprintf("%s -> %d Parent events ", $loc, count($parentEvents) ) );
+
+		foreach( $parentEvents as $evt ) {
+			error_log( sprintf("%s -> evt->ID=%d season=%d ", $loc, $evt->getID(),  $evt->getSeason()) );
+			if( $evt->getSeason() < $cutoff ) {
+				++$numDeleted;
+				$numDeleted  += count( $evt->getChildEvents() );
+				$rowsDeleted += Event::deleteEvent( $evt->getID() );
+			}
+		}
+
+		error_log( sprintf("%s -> %d event(s) deleted; %d row(s) deleted", $loc, $numDeleted, $rowsDeleted ) );
+		return $numDeleted;
+	}
 	
 	/**
 	 * Delete an Event and all it's sub-events from the database
@@ -790,9 +821,9 @@ class Event extends AbstractData
 
 	/**
 	 * Get the season (i.e. year) in which this event was held
-	 * @return string Year of start date. Defaults to current year.
+	 * @return int Year of start date. Defaults to current year.
 	 */
-	public function getSeason() {
+	public function getSeason() : int {
 		if( !isset( $this->start_date ) ) return date( 'Y' );
 		else return $this->start_date->format( 'Y' );
 	}

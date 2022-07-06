@@ -35,7 +35,7 @@ if(!empty($prevSeason)) {
 
 <!-- Page Content ---->
 <div class="page-content">	
-<h1> Season <?php echo $season; ?> </h1>
+<h1>Season <?php echo $season; ?> </h1>
 <?php
 
 // Sidebar Alt 
@@ -74,7 +74,7 @@ if(!empty($prevSeason)) {
 						get_footer(); 	
 						wp_die( $errmess );
 					}
-					if( $season !== $event->getSeason() ) continue;
+					if( $season != $event->getSeason() ) continue;
 
 					//Have a valid parent Event
 					$allClubs = $event->getClubs();
