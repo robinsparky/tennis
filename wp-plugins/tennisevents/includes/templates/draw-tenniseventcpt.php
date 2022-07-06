@@ -59,7 +59,7 @@ use datalayer\Format;
 				$bn = urlencode( $bracketName );
 				if( $mode === "signup" ) {
 					echo do_shortcode("[manage_signup eventid={$event->getID()} bracketname={$bn}]");
-					$drawUrl = get_permalink() . "?mode=draw&bracket=" . $bn;
+					$drawUrl = get_permalink() . "?mode=draw&bracket=" . $bn . "&season={$season}";
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
 					//echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Draw</button></div>";
 					echo "<div class='tennis-link-container'><a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Draw</a>&nbsp;";
@@ -73,13 +73,13 @@ use datalayer\Format;
 							echo do_shortcode("[manage_roundrobin eventid={$event->getID()} bracketname={$bn} titleprefix={$titlePrefix}]");
 						break;
 					}
-					$drawUrl = get_permalink() . "?mode=signup&bracket=" . $bn;
+					$drawUrl = get_permalink() . "?mode=signup&bracket=" . $bn . "&season=$season";
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
 					echo "<div class='tennis-link-container'><a class='link-to-signup' href='{$drawUrl}'>{$bracketName} Signup</a>&nbsp;";
 				
 					foreach( $event->getBrackets() as $bracket) {
 						if( $bracketName !== $bracket->getName() ) {
-							$drawUrl = get_permalink() . "?mode=draw&bracket=" . urlencode($bracket->getName());
+							$drawUrl = get_permalink() . "?mode=draw&bracket=" . urlencode($bracket->getName()) . "&season=$season";
 							echo "<a class='link-to-draw' href='{$drawUrl}'>{$bracket->getName()}</a>&nbsp;";
 						}
 					}
