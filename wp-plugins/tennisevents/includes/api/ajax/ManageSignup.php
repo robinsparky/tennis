@@ -156,8 +156,8 @@ class ManageSignup
             case "add":
                 $mess = $this->addEntrant( $data );
                 break;
-            case "createPrelim":
-                $mess = $this->createPreliminary( $data );
+            case "createPrelimNoRandom":
+                $mess = $this->createPreliminary( $data, false );
                 $numPreliminary = $data["numPreliminary"];
                 break;
             case "createPrelimRandom":

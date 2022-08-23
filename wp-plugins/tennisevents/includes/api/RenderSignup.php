@@ -219,7 +219,8 @@ EOT;
         if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP )  ) {
             $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
             $out .= '<button class="button" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="createPrelim">Initialize Draw</button>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
+            $out .= '<button class="button" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
         }
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';

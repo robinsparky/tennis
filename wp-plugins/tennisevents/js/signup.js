@@ -107,7 +107,7 @@
       toggleButtons(data.numPreliminary);
       if (data.task === "reseqSignup") {
         //window.location.reload();
-      } else if (data.task === "createPrelim") {
+      } else if (data.task.startsWith("createPrelim")) {
         //toggleButtons( data.numPreliminary );
         window.location = $("a.link-to-draw").attr("href");
       }
@@ -216,14 +216,16 @@
     function toggleButtons(numPreliminary) {
       numPreliminary = numPreliminary || 0;
       if (numPreliminary < 1) {
-        $("#createPrelim").prop("disabled", false);
+        $("#createPrelimRandom").prop("disabled", false);
+        $("#createPrelimNoRandom").prop("disabled", false);
         $("#reseqSignup").prop("disabled", false);
         $("button.entrantDelete").prop("disabled", false);
         $("#addEntrant").prop("disabled", false);
         $("input.entrantName").prop("disabled", false);
         $("input.entrantSeed").prop("disabled", false);
       } else {
-        $("#createPrelim").prop("disabled", true);
+        $("#createPrelimRandom").prop("disabled", true);
+        $("#createPrelimNoRandom").prop("disabled", true);
         $("#reseqSignup").prop("disabled", true);
         $("button.entrantDelete").prop("disabled", true);
         $("#addEntrant").prop("disabled", true);
@@ -402,8 +404,8 @@
     });
 
     //Approve signup by scheduling preliminary rounds
-    $("#createPrelim").on("click", function (event) {
-      console.log("Create Preliminary Round fired!");
+    $("#createPrelimRandom").on("click", function (event) {
+      console.log("Create Preliminary Round Randomly fired!");
       let clubId = $(".signupContainer").attr("data-clubid");
       let eventId = $(".signupContainer").attr("data-eventid");
       let bracketName = tennis_signupdata_obj.bracketName;
@@ -412,7 +414,25 @@
       toggleButtons(1);
 
       ajaxFun({
-        task: "createPrelim",
+        task: "createPrelimRandom",
+        clubId: clubId,
+        eventId: eventId,
+        bracketName: bracketName,
+      });
+    });
+
+    //Approve signup by scheduling preliminary rounds without Randomizing
+    $("#createPrelimNoRandom").on("click", function (event) {
+      console.log("Create Preliminary Round No Random fired!");
+      let clubId = $(".signupContainer").attr("data-clubid");
+      let eventId = $(".signupContainer").attr("data-eventid");
+      let bracketName = tennis_signupdata_obj.bracketName;
+
+      $(this).prop("disabled", true);
+      toggleButtons(1);
+
+      ajaxFun({
+        task: "createPrelimNoRandom",
         clubId: clubId,
         eventId: eventId,
         bracketName: bracketName,
