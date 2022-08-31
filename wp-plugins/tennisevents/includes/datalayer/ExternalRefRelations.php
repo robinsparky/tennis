@@ -109,7 +109,7 @@ class ExternalRefRelations {
 				case 'event':
 					throw new InvalidEventException($mess);
 				default:
-					throw new InvalidArgumentException($mess);
+					throw new \InvalidArgumentException($mess);
 			}
 		}
 		
