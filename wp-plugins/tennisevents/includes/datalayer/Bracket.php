@@ -730,10 +730,8 @@ class Bracket extends AbstractData
         $bracketNum = $this->getBracketNumber();
 		
 		global $wpdb;
-        $fromId = "Match($eventId,$bracketNum,1,$fromMatchNum)";
-        $toId = "Match($eventId,$bracketNum,1,$toMatchNum)";
-        $tempPos = 99999;
-
+        $fromId = "M($eventId,$bracketNum,1,$fromMatchNum)";
+        $toId = "M($eventId,$bracketNum,1,$toMatchNum)";
 
         $sql = "SELECT count(*) 
                 FROM $matchTable WHERE event_ID = %d AND bracket_num=%d AND round_num=1 and match_num = %d;";
@@ -751,7 +749,7 @@ class Bracket extends AbstractData
             throw new InvalidBracketException($mess);
         }
         
-        //Drop the temp match table
+        //Drop the temporary match table
 		$sql = "DROP TEMPORARY TABLE IF EXISTS {$tempMatchTable};";
 		$affected = $wpdb->query( $sql );
 		
@@ -762,7 +760,7 @@ class Bracket extends AbstractData
                                                     ) ENGINE=MyISAM;";
 		$affected = $wpdb->query( $sql );
         
-        //Drop the temp intersection table
+        //Drop the temporary intersection table
 		$sql = "DROP TEMPORARY TABLE IF EXISTS {$tempIntersectionTable};";
 		$affected = $wpdb->query( $sql );
 		
@@ -772,7 +770,9 @@ class Bracket extends AbstractData
                                                                 ) ENGINE=MyISAM;";
 		$affected = $wpdb->query( $sql );
 
-        //Work begins here
+        /*
+        Work begins here
+        */
         $wpdb->query("start transaction;");
         $sql = "SELECT mat.match_num
                     FROM {$matchTable} as mat
@@ -838,13 +838,10 @@ class Bracket extends AbstractData
         }
 
         //Make sure that the new match numbers start with 1 and continue with increments of 1
-        //$this->log->error_log($newOrder,"raw newOrder:");
         $newOrder = $this->record_sort($newOrder,'newMatchNum');
-        //$this->log->error_log($newOrder,"sorted newOrder:");
         for($i=0;$i<count($newOrder); $i++) {
             $newOrder[$i]['newMatchNum'] = $i+1;
         }
-        //$this->log->error_log($newOrder,"temp massaged:");
         
         //Insert match rows into the temp match table
         $sql = "select event_ID, bracket_num, round_num, match_num
@@ -913,9 +910,6 @@ class Bracket extends AbstractData
         foreach($newOrder as $map) {
              $oldMatchNum = $map['oldMatchNum'];
              $foundKey = array_search($oldMatchNum,array_column($matchRows,'match_num'));
-            //  $this->log->error_log("$loc: found '$foundKey' using {$oldMatchNum}");
-            //  $trow = $matchRows[$foundKey];
-             //$this->log->error_log($trow,"$loc: about to use this temporary row:");
              if($foundKey !== false ) {
                 $newMatchNum = $map['newMatchNum'];
                 $sql = "update {$tempMatchTable}
@@ -942,9 +936,6 @@ class Bracket extends AbstractData
             }
 
             $foundKey = array_search($oldMatchNum,array_column($intersectionRows,'match_num'));
-            // $this->log->error_log("$loc: found '$foundKey' using {$oldMatchNum}");
-            // $trow = $intersectionRows[$foundKey];
-            //$this->log->error_log($trow,"$loc: about to use this temporary row:");
             if($foundKey !== false) {
                $newMatchNum = $map['newMatchNum'];
                $sql = "update {$tempIntersectionTable}
@@ -977,13 +968,25 @@ class Bracket extends AbstractData
                 from {$tempMatchTable}";
         $trows = $wpdb->get_results($sql, ARRAY_A);
         $affected = $this->insert_multiple_rows($matchTable, $trows);
+        if( $wpdb->last_error ) {
+            $mess = "{Inserting into {$matchTable} encountered error: '{$wpdb->last_error}'";
+            $this->log->error_log( "$loc: $mess" );
+            $wpdb->query("rollback;");
+            throw new InvalidBracketException( $mess );
+        }
         $this->log->error_log("$loc: $affected rows inserted into $matchTable");
 
         $sql = "select match_event_ID, match_bracket_num, match_round_num, new_match_num as match_num
                 ,entrant_position, is_visitor 
                 from {$tempIntersectionTable}";
         $trows = $wpdb->get_results($sql, ARRAY_A);
-        $affected = $this->insert_multiple_rows($intersectionTable, $trows);        
+        $affected = $this->insert_multiple_rows($intersectionTable, $trows); 
+        if( $wpdb->last_error ) {
+            $mess = "{Inserting into {$tempIntersectionTable} encountered error: '{$wpdb->last_error}'";
+            $this->log->error_log( "$loc: $mess" );
+            $wpdb->query("rollback;");
+            throw new InvalidBracketException( $mess );  
+        }     
         $this->log->error_log("$loc: $affected rows inserted into $intersectionTable");
 
         $wpdb->query("commit;");
@@ -995,7 +998,6 @@ class Bracket extends AbstractData
         }
         $this->save();
 
-        $this->log->error_log($newOrder,"$loc: map:");
         return $newOrder;
     }
 
