@@ -706,6 +706,363 @@ class Bracket extends AbstractData
         return $result;
     }
 
+    /**
+     * Insert a match after another match. Works for preliminary matches (i.e. round 1 and not approved) only
+     * @param int $fromMatchNum The entrant's current position (i.e. place in the lineup)
+     * @param int $toMatchNum The the match immediatly after which the from match will be moved.
+     * @return array a map of old and new match numbers
+     */
+	public function insertAfter( int $fromMatchNum, int $toMatchNum ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}: from '{$fromMatchNum}' to '{$toMatchNum}'");
+
+        //Check match numbers for appropriate ranges
+        if( $fromMatchNum < 1 || $toMatchNum < 1 || $fromMatchNum === $toMatchNum || ( $toMatchNum - $fromMatchNum == -1)) {
+            return [];
+        }
+
+        global $wpdb;  
+        $intersectionTable = $wpdb->prefix . EntrantMatchRelations::$tablename;
+        $matchTable = $wpdb->prefix . Match::$tablename;
+        $tempMatchTable = $wpdb->prefix . "tempMatch";
+        $tempIntersectionTable =  $wpdb->prefix . "tempIntersection";
+        $eventId = $this->getEventId();
+        $bracketNum = $this->getBracketNumber();
+		
+		global $wpdb;
+        $fromId = "Match($eventId,$bracketNum,1,$fromMatchNum)";
+        $toId = "Match($eventId,$bracketNum,1,$toMatchNum)";
+        $tempPos = 99999;
+
+
+        $sql = "SELECT count(*) 
+                FROM $matchTable WHERE event_ID = %d AND bracket_num=%d AND round_num=1 and match_num = %d;";
+                
+        $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum, $fromMatchNum ) );
+        $sourceExists = (int) $wpdb->get_var( $safe );
+        $this->log->error_log("{$loc}: $fromId to $toId: sourceExists='$sourceExists'");
+
+        $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum, $toMatchNum ) );
+        $targetExists = (int) $wpdb->get_var( $safe );
+        $this->log->error_log("{$loc}: $fromId to $toId: targetExists='$targetExists'");
+        if(!$sourceExists || !$targetExists) {
+            $mess = "Either the source or the target match number does not exist.";
+            $this->log->error_log("$loc: $mess");
+            throw new InvalidBracketException($mess);
+        }
+        
+        //Drop the temp match table
+		$sql = "DROP TEMPORARY TABLE IF EXISTS {$tempMatchTable};";
+		$affected = $wpdb->query( $sql );
+		
+        //Create temporary table for match data
+        $sql = "CREATE TEMPORARY TABLE {$tempMatchTable} ( event_ID int, bracket_num int, round_num int, match_num int
+                                                    , match_type decimal(3,1), match_date datetime, is_bye tinyint(4), next_round_num int, next_match_num int
+                                                    , comments varchar(255), new_match_num int default 0
+                                                    ) ENGINE=MyISAM;";
+		$affected = $wpdb->query( $sql );
+        
+        //Drop the temp intersection table
+		$sql = "DROP TEMPORARY TABLE IF EXISTS {$tempIntersectionTable};";
+		$affected = $wpdb->query( $sql );
+		
+        //Create temporary table for intersection data
+        $sql = "CREATE TEMPORARY TABLE {$tempIntersectionTable} ( match_event_ID int, match_bracket_num int, match_round_num int, match_num int, entrant_position int
+                                                                , is_visitor tinyint(4), new_match_num int default 0
+                                                                ) ENGINE=MyISAM;";
+		$affected = $wpdb->query( $sql );
+
+        //Work begins here
+        $wpdb->query("start transaction;");
+        $sql = "SELECT mat.match_num
+                    FROM {$matchTable} as mat
+                    WHERE mat.event_ID = %d
+                    AND mat.bracket_num = %d 
+                    AND mat.round_num = 1
+                    ORDER BY mat.match_num ASC;";
+        $safe = $wpdb->prepare( $sql, array((int)$eventId, $bracketNum) );
+        $rows = $wpdb->get_results( $safe, ARRAY_A );
+        if( $wpdb->last_error ) {
+            $mess = "{$loc}({$fromMatchNum}),{$toMatchNum}) encountered error: '$wpdb->last_error'";
+            $this->log->error_log( $mess );
+            $wpdb->query("rollback");
+            throw new InvalidBracketException( $mess ); 
+        }
+
+        $cachedMatches = [];
+        foreach($rows as $row) {
+            $cachedMatches[] = ['oldMatchNum'=>$row['match_num'],'newMatchNum'=>0];
+        }
+
+        //Calculate the new match numbers
+        reset($cachedMatches);
+        $prevMatchNum = 0;
+        $foundTarget = false;
+        $foundSource = false;
+        $newOrder = [];
+        foreach( $cachedMatches as $map) {
+            if( $map['oldMatchNum'] == $fromMatchNum) {
+                $map['newMatchNum'] = $toMatchNum + 1;
+                $prevMatchNum = max($toMatchNum + 1, $map['oldMatchNum']);
+                $foundSource = true;
+                $newOrder[] = $map;
+            }
+            elseif( $map['oldMatchNum'] == $toMatchNum ) {
+                $foundTarget = true;
+                $map['newMatchNum'] = $map['oldMatchNum'];
+                $prevMatchNum = $map['oldMatchNum'];
+                $newOrder[] = $map;
+            }
+            elseif( $map['oldMatchNum'] < $toMatchNum) {
+                $map['newMatchNum'] = $map['oldMatchNum'];
+                $prevMatchNum = $map['oldMatchNum'];
+                $newOrder[] = $map;
+            }
+            else {
+                if(($map['oldMatchNum'] - $toMatchNum) == 1) {
+                    $map['newMatchNum'] = $toMatchNum + 2;
+                    $prevMatchNum = $toMatchNum + 2;
+                    $newOrder[] = $map;
+                }
+                else{
+                    $map['newMatchNum'] = ++$prevMatchNum;
+                    $newOrder[] = $map;
+                }
+            }
+        }
+        if( !$foundSource || !$foundTarget) {
+            $mess = "{$loc}({$fromMatchNum}),{$toMatchNum}) source and/or target match number not found'";
+            $this->log->error_log( $mess );
+            $wpdb->query( "rollback;" ) ;
+            throw new InvalidBracketException( $mess );
+        }
+
+        //Make sure that the new match numbers start with 1 and continue with increments of 1
+        //$this->log->error_log($newOrder,"raw newOrder:");
+        $newOrder = $this->record_sort($newOrder,'newMatchNum');
+        //$this->log->error_log($newOrder,"sorted newOrder:");
+        for($i=0;$i<count($newOrder); $i++) {
+            $newOrder[$i]['newMatchNum'] = $i+1;
+        }
+        //$this->log->error_log($newOrder,"temp massaged:");
+        
+        //Insert match rows into the temp match table
+        $sql = "select event_ID, bracket_num, round_num, match_num
+                , match_type, match_date, is_bye, next_round_num, next_match_num, comments
+        from $matchTable       
+        where event_ID = %d
+        and bracket_num = %d
+        and round_num = 1;";
+        $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum ) );
+        $matchRows = $wpdb->get_results( $safe, ARRAY_A ); 
+        if( $wpdb->last_error ) {
+            $mess = "{Retrieving {$matchTable} records encountered error: '{$wpdb->last_error}'";
+            $this->log->error_log( "$loc: $mess" );
+            $wpdb->query("rollback;");
+            throw new InvalidBracketException( $mess ); 
+        }
+        $affected = $this->insert_multiple_rows($tempMatchTable, $matchRows);
+        
+        //Insert the intersection records into the temp intersection table
+        $sql = "select match_event_ID, match_bracket_num, match_round_num, match_num, entrant_position, is_visitor
+        from $intersectionTable       
+        where match_event_ID = %d
+        and match_bracket_num = %d
+        and match_round_num = 1;";
+        $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum ) );
+        $intersectionRows = $wpdb->get_results( $safe, ARRAY_A ); 
+        if( $wpdb->last_error ) {
+            $mess = "{Retrieving {$intersectionTable} records encountered error: '{$wpdb->last_error}'";
+            $this->log->error_log( "$loc: $mess" );
+            $wpdb->query("rollback;");
+            throw new InvalidBracketException( $mess ); 
+        }
+        $this->insert_multiple_rows($tempIntersectionTable, $intersectionRows);
+
+        //Remove records of interest from intersection table
+        $sql = "delete from {$intersectionTable}
+                where match_event_ID=%d
+                and match_bracket_num=%d
+                and match_round_num = 1;";                
+        $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum ) );
+        $affected = $wpdb->query($safe); 
+        if( $wpdb->last_error ) {
+            $mess = "{Deleting from {$intersectionTable} encountered error: '{$wpdb->last_error}'";
+            $this->log->error_log( "$loc: $mess" );
+            $wpdb->query("rollback;");
+            throw new InvalidBracketException( $mess ); 
+        }
+        $this->log->error_log("$loc: deleted {$affected} rows from {$intersectionTable}");
+
+        //Remove the records of interest from the match table
+        $sql = "delete from {$matchTable}
+                where event_ID=%d
+                and bracket_num=%d
+                and round_num = 1;";
+        $safe = $wpdb->prepare( $sql, array( $eventId, $bracketNum ) );
+        $affected = $wpdb->query($safe); 
+        if( $wpdb->last_error ) {
+            $mess = "{Deleting from {$matchTable} encountered error: '{$wpdb->last_error}'";
+            $this->log->error_log( "$loc: $mess" );
+            $wpdb->query("rollback;");
+            throw new InvalidBracketException( $mess ); 
+        }
+        $this->log->error_log("$loc: deleted {$affected} rows from {$matchTable}");
+
+        //Update the new match numbers in the temporary tables
+        foreach($newOrder as $map) {
+             $oldMatchNum = $map['oldMatchNum'];
+             $foundKey = array_search($oldMatchNum,array_column($matchRows,'match_num'));
+            //  $this->log->error_log("$loc: found '$foundKey' using {$oldMatchNum}");
+            //  $trow = $matchRows[$foundKey];
+             //$this->log->error_log($trow,"$loc: about to use this temporary row:");
+             if($foundKey !== false ) {
+                $newMatchNum = $map['newMatchNum'];
+                $sql = "update {$tempMatchTable}
+                        set new_match_num=%d
+                        where event_ID = %d
+                        and bracket_num = %d
+                        and round_num = 1
+                        and match_num = %d";
+                $safe = $wpdb->prepare($sql, array($newMatchNum,$eventId,$bracketNum, $oldMatchNum));
+                $affected = $wpdb->query($safe);
+                if( $wpdb->last_error ) {
+                    $mess = "{Updating {$tempMatchTable} encountered error: '{$wpdb->last_error}'";
+                    $this->log->error_log( "$loc: $mess" );
+                    $wpdb->query("rollback;");
+                    throw new InvalidBracketException( $mess );
+                }
+                $this->log->error_log("$loc: updated $tempMatchTable; $affected rows were affected using new={$newMatchNum} and where old={$oldMatchNum}");
+            }
+            else{
+                $mess = "Updating {$tempMatchTable}: could not find a key for old match number={$oldMatchNum}";
+                $this->log->error_log("$loc: $mess");
+                $wpdb->query("rollback;");
+                throw new InvalidBracketException($mess);
+            }
+
+            $foundKey = array_search($oldMatchNum,array_column($intersectionRows,'match_num'));
+            // $this->log->error_log("$loc: found '$foundKey' using {$oldMatchNum}");
+            // $trow = $intersectionRows[$foundKey];
+            //$this->log->error_log($trow,"$loc: about to use this temporary row:");
+            if($foundKey !== false) {
+               $newMatchNum = $map['newMatchNum'];
+               $sql = "update {$tempIntersectionTable}
+                       set new_match_num=%d
+                       where match_event_ID = %d
+                       and match_bracket_num = %d
+                       and match_round_num = 1
+                       and match_num = %d";
+               $safe = $wpdb->prepare($sql, array($newMatchNum,$eventId,$bracketNum, $map['oldMatchNum']));
+               $affected = $wpdb->query($safe);
+               if( $wpdb->last_error ) {
+                   $mess = "{Updating {$tempIntersectionTable} encountered error: '{$wpdb->last_error}'";
+                   $this->log->error_log( "$loc: $mess" );
+                   $wpdb->query("rollback;");
+                   throw new InvalidBracketException( $mess );
+               }
+               $this->log->error_log("$loc: updated $tempIntersectionTable; $affected rows were affected using new={$newMatchNum} where old={$oldMatchNum}");
+           }
+           else{
+               $mess = "Updating {$tempIntersectionTable}: could not find a key for old match number={$oldMatchNum}";
+               $this->log->error_log("$loc: $mess");
+               $wpdb->query("rollback;");
+               throw new InvalidBracketException($mess);
+           }
+        }//end newOrder
+
+        //Finally update the real tables with the new match numbers
+        $sql = "select event_ID, bracket_num, round_num, new_match_num as match_num
+                , match_type, match_date, is_bye, next_round_num, next_match_num, comments 
+                from {$tempMatchTable}";
+        $trows = $wpdb->get_results($sql, ARRAY_A);
+        $affected = $this->insert_multiple_rows($matchTable, $trows);
+        $this->log->error_log("$loc: $affected rows inserted into $matchTable");
+
+        $sql = "select match_event_ID, match_bracket_num, match_round_num, new_match_num as match_num
+                ,entrant_position, is_visitor 
+                from {$tempIntersectionTable}";
+        $trows = $wpdb->get_results($sql, ARRAY_A);
+        $affected = $this->insert_multiple_rows($intersectionTable, $trows);        
+        $this->log->error_log("$loc: $affected rows inserted into $intersectionTable");
+
+        $wpdb->query("commit;");
+
+        $rnd1Matches = $this->getMatchesByRound(1,true);
+        foreach($rnd1Matches as $match) {
+            $match->getHomeEntrant(true);
+            $match->getVisitorEntrant(true);
+        }
+        $this->save();
+
+        $this->log->error_log($newOrder,"$loc: map:");
+        return $newOrder;
+    }
+
+    /**
+     * Function to insert multiple rows into a database table
+     */
+    private function insert_multiple_rows( $table, $request ) {
+        global $wpdb;
+        $column_keys   = '';
+        $column_values = '';
+        $sql           = '';
+        $last_key      = array_key_last( $request );
+        $first_key     = array_key_first( $request );
+        foreach ( $request as $k => $value ) {
+            $keys = array_keys( $value );
+     
+            // Prepare column keys & values.
+            foreach ( $keys as $v ) {
+                $column_keys   .= sanitize_key( $v ) . ',';
+                $sanitize_value = sanitize_text_field( $value[ $v ] );
+                $column_values .= is_numeric( $sanitize_value ) ? $sanitize_value . ',' : "'$sanitize_value'" . ',';
+            }
+            // Trim trailing comma.
+            $column_keys   = rtrim( $column_keys, ',' );
+            $column_values = rtrim( $column_values, ',' );
+            if ( $first_key === $k ) {
+                $sql .= "INSERT INTO {$table} ($column_keys) VALUES ($column_values),";
+            } elseif ( $last_key == $k ) {
+                $sql .= "($column_values)";
+            } else {
+                $sql .= "($column_values),";
+            }
+     
+            // Reset keys & values to avoid duplication.
+            $column_keys   = '';
+            $column_values = '';
+        }
+        return $wpdb->query( $sql );
+    }
+
+    /**
+     * This is a function to sort an indexed 2D array by a specified sub array key, either ascending or descending.
+     * It is usefull for sorting query results from a database by a particular field after the query has been returned
+     * This function can be quite greedy. It recreates the array as a hash to use ksort() then back again
+     * By default it will sort ascending but if you specify $reverse as true it will return the records sorted descending
+     */
+    private function record_sort($records, $field, $reverse=false)
+    {
+        $hash = array();
+    
+        foreach($records as $record)
+        {
+            $hash[$record[$field]] = $record;
+        }
+    
+        ($reverse)? krsort($hash) : ksort($hash);
+    
+        $records = array();
+    
+        foreach($hash as $record)
+        {
+            $records []= $record;
+        }
+    
+        return $records;
+    }
+
     public function matchesByEntrant() {
         $loc = __CLASS__ . '::' .  __FUNCTION__;
         $this->log->error_log("{$loc}");
@@ -1107,6 +1464,7 @@ class Bracket extends AbstractData
             throw new InvalidBracketException( __("Bracket already approved. Please reset.", TennisEvents::TEXT_DOMAIN) );
         }
 
+        $this->save();
         $this->matchHierarchy = $this->loadBracketMatches();
         $this->is_approved = true;
         $this->setDirty();

@@ -143,7 +143,7 @@
           case "advance":
             advanceMatches(data);
             break;
-          case "move":
+          case "insertAfter":
             window.location.reload();
             break;
           case "undomatch":
@@ -212,9 +212,10 @@
           case "reset":
             window.location = $("a.link-to-signup").attr("href");
             break;
-          case "move":
-            //window.location.reload();
-            swapPlayers(data);
+          case "insertAfter":
+            window.location.reload();
+            //swapPlayers(data);
+            //updateMatchNumbers(data); //need to ensure that the 'drop' keeps the dropped match in place
             break;
           case "undomatch":
             undoMatch(data);
@@ -244,6 +245,14 @@
       }
     }
 
+    /**
+     * Handle the drop event by calling the insertAfter remote api.
+     * Passes back the source match number and the match number after which 
+     * the source should be inserted.
+     * @param {*} event 
+     * @param {*} ui 
+     * @returns 
+     */
     function handleDrop(event, ui) {
       console.log("handleDrop");
       console.log("Source:");
@@ -269,7 +278,7 @@
       }
 
       let taskData = {};
-      taskData.task = "move";
+      taskData.task = "insertAfter";
       taskData.sourceRn = sourceData.roundnum;
       taskData.sourceMn = sourceData.matchnum;
       taskData.targetMn = targetData.matchnum;
@@ -318,6 +327,32 @@
       $matchEl.children(".matchstart").fadeIn(500);
       $matchEl.children(".changematchstart").hide();
       updateStatus(data);
+    }
+
+    /**
+     * Update match numbers 
+     * resulting from a insertAfter operation
+     */
+    function updateMatchNumbers(data) {
+      console.log("updateMatchNumbers")
+      console.log(data)
+      let newMatchMap = data.move;
+      console.log(newMatchMap)
+
+      
+      newMatchMap.forEach((map,index) => {
+        console.log("map:",map)
+        let oldNum = map.oldMatchNum
+        let newNum = map.newMatchNum
+        console.log(`${index}. from:${oldNum} to:${newNum}`)
+        let $sourceEl = findMatch(data.eventId,data.bracketNum,1,oldNum)
+        console.log("sourceEl:")
+        console.log($sourceEl)
+        newTitle = `M(${data.eventId},${data.bracketNum},1,${newNum})`
+        $sourceEl.children(".matchtitle").text(newTitle);
+
+      })
+      
     }
 
     /**

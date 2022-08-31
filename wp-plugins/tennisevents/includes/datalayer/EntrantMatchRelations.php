@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since   0.1.0
 */
 class EntrantMatchRelations {
-	private static $tablename = 'tennis_match_entrant';
+	public static $tablename = 'tennis_match_entrant';
 	
 	/**
 	 * Create a relationship between an Entrant and a Match

@@ -180,8 +180,8 @@ class ManageDraw
                 $mess = $this->advanceMatches( $data );
                 $returnData = $data;
                 break;
-            case 'move':
-                $mess = $this->swapPlayers( $data );
+            case 'insertAfter':
+                $mess = $this->insertAfter( $data );
                 $returnData = $data;
                 break;
             case 'undomatch':
@@ -479,6 +479,58 @@ class ManageDraw
         }
         return $mess;
     }
+    
+    /**
+     * Move a match in the preliminary round from one position (i.e. match number)
+     * to just after another specified position(i.e. match number)
+     * @param array $data
+     * @return string Message about failure or success/
+     *                $data is also modified to return data to the client/browser
+     */
+    private function insertAfter( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $sourceRn = (int)$data["sourceRn"];//not used
+        $sourceMn = (int)$data["sourceMn"];
+        $targetMn = (int)$data["targetMn"];
+        $mess = __("Something went wrong. Failed to move match.", TennisEvents::TEXT_DOMAIN );
+        $returnMap = [];
+
+        try {                       
+            if( !current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }           
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) ) {
+                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+            $bracketNum = $bracket->getBracketNumber();
+            
+            //Move the match
+            $map = $bracket->insertAfter( $sourceMn, $targetMn );
+            if( !empty( $map ) ) { 
+                $mess = __("Moved Match#{$sourceMn} to Match#{$targetMn}", TennisEvents::TEXT_DOMAIN );
+                $td->save();
+                $data["bracketNum"] = $bracketNum;
+                $data["move"] = $map;
+            }
+            else {
+                throw new InvalidTennisOperationException($mess);
+            }
+        }
+        catch( Exception | InvalidBracketException | InvalidTennisOperationException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    }
+
 
     /**
      * Exchanges players between 2 matches.
