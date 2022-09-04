@@ -132,20 +132,25 @@
       }
     }
 
+    
     //Make ths list of entrants sortable
-    $("ul.eventSignup").sortable({
-      items: "> li",
-      /*handle: ".entrantPosition",*/
-      forcePlaceholderSize: true,
-      placeholder: "placeholderHighlight",
-      cursor: "move",
-      tolerance: "pointer",
-      opacity: 0.7,
-      scrollSpeed: 10,
-      stop: handleSortStop,
-    });
+    // but only if not in readonly mode
+    $el = $(".entrantSignupReadOnly")
+    if($el.length == 0) {
+      $("ul.eventSignup").sortable({
+        items: "> li",
+        /*handle: ".entrantPosition",*/
+        forcePlaceholderSize: true,
+        placeholder: "placeholderHighlight",
+        cursor: "move",
+        tolerance: "pointer",
+        opacity: 0.7,
+        scrollSpeed: 10,
+        stop: handleSortStop,
+      });
 
-    $( "ul.eventSignup" ).disableSelection();
+      $( "ul.eventSignup" ).disableSelection();
+    }
 
     $("#tennis-event-message").draggable();
 
