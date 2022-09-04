@@ -717,7 +717,7 @@ class Bracket extends AbstractData
         $this->log->error_log("{$loc}: from '{$fromMatchNum}' to '{$toMatchNum}'");
 
         //Check match numbers for appropriate ranges
-        if( $fromMatchNum < 1 || $toMatchNum < 1 || $fromMatchNum === $toMatchNum || ( $toMatchNum - $fromMatchNum == -1)) {
+        if( $fromMatchNum < 1 || $toMatchNum < 1 || $fromMatchNum === $toMatchNum) {
             return [];
         }
 

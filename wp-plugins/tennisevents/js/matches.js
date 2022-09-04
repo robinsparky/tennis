@@ -144,7 +144,8 @@
             advanceMatches(data);
             break;
           case "insertAfter":
-            window.location.reload();
+            //window.location.reload();
+            updateMatchNumbers(data);
             break;
           case "undomatch":
             undoMatch(data);
@@ -213,9 +214,9 @@
             window.location = $("a.link-to-signup").attr("href");
             break;
           case "insertAfter":
-            window.location.reload();
+            //window.location.reload();
             //swapPlayers(data);
-            //updateMatchNumbers(data); //need to ensure that the 'drop' keeps the dropped match in place
+            updateMatchNumbers(data);
             break;
           case "undomatch":
             undoMatch(data);
@@ -245,68 +246,52 @@
       }
     }
 
-    /**
-     * Handle the drop event by calling the insertAfter remote api.
-     * Passes back the source match number and the match number after which 
-     * the source should be inserted.
-     * @param {*} event 
-     * @param {*} ui 
-     * @returns 
-     */
-    function handleDrop(event, ui) {
-      console.log("handleDrop");
-      console.log("Source:");
-      console.log(ui.draggable[0]);
-      console.log("Target:");
-      console.log(event.target);
-
-      //   let sourceMatch = $(ui.draggable[0]).attr("data-matchnum");
-      //   let targetMatch = $(event.target).attr("data-matchnum");
-
-      let $sourceEl = $(ui.draggable[0]).find("div.matchtitle");
-      let sourceData = getMatchData($sourceEl.get(0));
-      let $targetEl = $(event.target).find("div.matchtitle");
-      let targetData = getMatchData($targetEl.get(0));
-
-      if (typeof sourceData === "undefined" || isNaN(sourceData.matchnum)) {
-        alert("Invalid drag");
-        return;
-      }
-      if (typeof targetData === "undefined" || isNaN(targetData.matchnum)) {
-        alert("Invalid drop");
-        return;
-      }
-
-      let taskData = {};
-      taskData.task = "insertAfter";
-      taskData.sourceRn = sourceData.roundnum;
-      taskData.sourceMn = sourceData.matchnum;
-      taskData.targetMn = targetData.matchnum;
-      taskData.clubId = tennis_draw_obj.clubId;
-      taskData.eventId = tennis_draw_obj.eventId;
-      taskData.bracketName = tennis_draw_obj.bracketName;
-      console.log(taskData);
-      ajaxFun(taskData);
-    }
-
-    $(".prelimOnly .item-player").draggable({
-      axis: "y",
-      helper: "clone",
+    var fromMatchNum = 0 //set on start of sorting
+    $(".prelimOnly").sortable({
+      items: "> tr",
+      // revert: true,
+      // containment: ".prelimOnly",
+      handle: ".item-player",
       cursor: "move",
-      opacity: 0.4,
-      revert: true,
-      revertDuration: 500,
-      scroll: true,
-      scrollSensivity: 50,
-      scrollSpeed: 200,
-    });
-
-    $(".prelimOnly td").droppable({
-      drop: handleDrop,
-      accept: ".item-player",
+      // helper: "clone",
+      //placeholder: "placeholderHighlight",
       tolerance: "pointer",
-      hoverClass: "entrantHighlight",
-    });
+      placeholder: "placeholderHighlight",
+      forcePlaceholderSize: true,
+      // helper: "original",
+      start: function(event,ui) {
+        console.log("start")
+        let rowEl  = ui.item[0]
+        let matchEl = rowEl.firstElementChild
+        fromMatchNum = matchEl.dataset.matchnum
+        console.log("From Match Number:", fromMatchNum)
+      },
+      stop: function(event,ui) {
+          console.log("stop")
+          let rowEl = ui.item[0]
+          //console.log("rowEl:",rowEl)
+          //console.log("Previous Sibling Element:", rowEl.previousElementSibling)
+          let prevMatchEl = rowEl.previousElementSibling.firstElementChild
+          //console.log("Previous Match Element:", prevMatchEl)
+          let eventId = prevMatchEl.dataset.eventId
+          let bracketNum = prevMatchEl.dataset.bracketnum
+          let roundNum = prevMatchEl.dataset.roundnum
+          let toMatchNum = prevMatchEl.dataset.matchnum
+          console.log("To Match Number:", toMatchNum)
+
+          let taskData = {};
+          taskData.task = "insertAfter";
+          taskData.sourceRn = roundNum;
+          taskData.sourceMn = fromMatchNum;
+          taskData.targetMn = toMatchNum;
+          taskData.clubId = tennis_draw_obj.clubId;
+          taskData.eventId = tennis_draw_obj.eventId;
+          taskData.bracketName = tennis_draw_obj.bracketName;
+          taskData.bracketNum = bracketNum
+          console.log("taskData:",taskData);
+          ajaxFun(taskData);
+        }
+    })
 
     /**
      * Update the match start date and time
@@ -337,21 +322,41 @@
       console.log("updateMatchNumbers")
       console.log(data)
       let newMatchMap = data.move;
-      console.log(newMatchMap)
+      console.log("newMatchMap",newMatchMap)
+      // newMatchMap.sort((a, b) => {
+      //   //Descending
+      //   if (a.oldMatchNum > b.oldMatchNum) {
+      //     return -1;
+      //   }
+      //   if (a.oldMatchNum < b.oldMatchNum) {
+      //     return 1;
+      //   }
+      //   // a must be equal to b
+      //   return 0;
+      // })
 
-      
-      newMatchMap.forEach((map,index) => {
-        console.log("map:",map)
-        let oldNum = map.oldMatchNum
-        let newNum = map.newMatchNum
-        console.log(`${index}. from:${oldNum} to:${newNum}`)
-        let $sourceEl = findMatch(data.eventId,data.bracketNum,1,oldNum)
-        console.log("sourceEl:")
-        console.log($sourceEl)
-        newTitle = `M(${data.eventId},${data.bracketNum},1,${newNum})`
-        $sourceEl.children(".matchtitle").text(newTitle);
+      //let $allMatchElems = findAllMatches(data.eventId,data.bracketNum,1)
+      let $allMatchElems = $('.item-player')
+      //console.log("All match elems:", $allMatchElems)
 
-      })
+      for(let i=0;i<$allMatchElems.length;i++){
+        match = $allMatchElems.get(i)
+        arrMap = newMatchMap.filter( map => { if(match.dataset.matchnum == map.oldMatchNum) return true 
+                                              else return false
+                                              } )
+        if(arrMap.length === 1) {
+          thisMap = arrMap[0]
+          console.log(`Mapping from: ${thisMap.oldMatchNum} to: ${thisMap.newMatchNum}`)
+          match.dataset.matchnum = thisMap.newMatchNum
+          newTitle = `M(${data.eventId},${data.bracketNum},1,${thisMap.newMatchNum})`
+          $(match).children('.matchinfo.matchtitle').text(newTitle)
+        }
+        else {
+          mess = `Error when filter looking the mapping of match number '${match.dataset(matchnum)}'`
+          console.log(mess)
+          //throw mess
+        }
+      }//end for
       
     }
 
@@ -641,8 +646,32 @@
       attFilter += '[data-bracketnum="' + bracketNum + '"]';
       attFilter += '[data-roundnum="' + roundNum + '"]';
       attFilter += '[data-matchnum="' + matchNum + '"]';
+      console.log("Attribute filter:", attFilter)
       let $matchElem = $(attFilter);
       return $matchElem;
+    }
+    
+    /**
+     * Find the match element on the page using its composite identifier.
+     * It is very important that this find method is based on match identifiers and not on css class or element id.
+     * @param int eventId
+     * @param int bracketNum
+     * @param int roundNum
+     */
+     function findAllMatches(eventId, bracketNum, roundNum) {
+      console.log(
+        "findAllMatches(%d,%d,%d,%d)",
+        eventId,
+        bracketNum,
+        roundNum,
+        matchNum
+      );
+      let attFilter = '.item-player[data-eventid="' + eventId + '"]';
+      attFilter += '[data-bracketnum="' + bracketNum + '"]';
+      attFilter += '[data-roundnum="' + roundNum + '"]';
+      console.log("Attribute filter:", attFilter)
+      let $allMatchElems = $(attFilter);
+      return $allMatchElems;
     }
 
     /**

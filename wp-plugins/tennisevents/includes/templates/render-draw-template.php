@@ -29,7 +29,7 @@
             if( $bracket->isApproved() ) { ?>
                 <tr>
             <?php } else { ?>
-                <tr data-currentpos="<?php echo $row?>" class='drawRow ui-state-default'>
+                <tr data-currentpos="<?php echo $row?>" class='drawRow'>
             <?php }
 
             $r = 1; //means preliminary round (i.e. first column)
@@ -82,9 +82,9 @@
                 // Get menu template file
                 $menupath = $this->getMenuPath( $majorStatus );
 ?>
-<td class="item-player sortable-container ui-state-default" rowspan="<?php echo $r; ?>" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>"  data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>">
+<td class="item-player" rowspan="<?php echo $r; ?>" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>"  data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>">
 <?php if(!empty($menupath)) require $menupath; ?>
-<div class="matchinfo matchtitle ui-sortable-handle"><?php echo $title; ?></div>
+<div class="matchinfo matchtitle"><?php echo $title; ?></div>
 <div class="matchinfo matchstatus"><?php echo $generalstatus; ?></div>
 <div class="matchcomments"><?php echo $cmts; ?></div>
 <div class="matchinfo matchstart"><?php echo $startDate; ?>&nbsp;<?php echo $startTime; ?></div>

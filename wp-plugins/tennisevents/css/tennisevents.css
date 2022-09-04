@@ -886,8 +886,18 @@ button.link-to-draw {
   background-color: green;
 }
 
+/* Sortable highlights */
 .entrantHighlight {
-  background-color: lightgrey;
+  background-color: yellow;
+}
+.draggableHighlight {
+  background-color: red;
+}
+.placeholderHighlight {
+  background-color: yellow;
+}
+.entrantPosition:hover {
+  background-color: yellow;
 }
 
 /*------------------------------------------------------------------------------------
