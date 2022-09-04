@@ -132,6 +132,23 @@
       }
     }
 
+    //Make ths list of entrants sortable
+    $("ul.eventSignup").sortable({
+      items: "> li",
+      /*handle: ".entrantPosition",*/
+      forcePlaceholderSize: true,
+      placeholder: "placeholderHighlight",
+      cursor: "move",
+      tolerance: "pointer",
+      opacity: 0.7,
+      scrollSpeed: 10,
+      stop: handleSortStop,
+    });
+
+    $( "ul.eventSignup" ).disableSelection();
+
+    $("#tennis-event-message").draggable();
+
     function getMaxPosition() {
       let max = 0.0;
       $(".eventSignup")
@@ -233,21 +250,6 @@
         $("input.entrantSeed").prop("disabled", true);
       }
     }
-
-    //Make ths list of entrants sortable
-    $(".eventSignup").sortable({
-      revert: true,
-      handle: ".entrantPosition",
-      cancel: "a,button,input",
-      containment: "parent",
-      cursor: "move",
-      opacity: 0.7,
-      scrollSpeed: 10,
-      helper: "original",
-      stop: handleSortStop,
-    });
-
-    $("#tennis-event-message").draggable();
 
     //Modify Seed
     $(".eventSignup").on("change", "input.entrantSeed", function (e) {

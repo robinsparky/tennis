@@ -191,7 +191,7 @@ class RenderSignup
 </li>
 EOT;
         $templw = <<<EOT
-<li id="%s" class="entrantSignup sortable-container ui-state-default" data-currentpos="%d">
+<li id="%s" class="entrantSignup" data-currentpos="%d">
 <div class="entrantPosition">%d.</div>
 <input name="entrantName" type="text" maxlength="35" size="15" class="entrantName" value="%s">
 <input name="entrantSeed" type="number" maxlength="2" size="2" class="entrantSeed" step="any" value="%d">
@@ -217,10 +217,10 @@ EOT;
         $out .= '</ul>' . PHP_EOL;
 
         if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP )  ) {
-            $out .= '<button class="button" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
-            $out .= '<button class="button" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
+            $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
+            $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
+            $out .= '<button class="button randomize" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
+            $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
         }
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';
