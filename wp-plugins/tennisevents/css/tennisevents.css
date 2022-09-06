@@ -77,7 +77,8 @@
   border-top: 1px black dashed;
 }
 .tennis-link-container a {
-  border: 2px black solid;
+  /*border: 2px black solid;*/
+  border: none;
 }
 
 a.link-to-signup:nth-of-type(odd) {
@@ -86,6 +87,22 @@ a.link-to-signup:nth-of-type(odd) {
 
 a.link-to-draw:nth-of-type(odd) {
   color: black;
+}
+
+a.bracket-signup-link::before{
+  content: '🔗';
+}
+
+a.bracket-draw-link::before{
+  content: '🔗';
+}
+
+a.link-to-draw::before {
+  content: '🔗';
+}
+
+a.link-to-signup::before {
+  content: '🔗';
 }
 
 a.link-to-draw:nth-of-type(even) {

@@ -194,8 +194,8 @@ if(!empty($prevSeason)) {
 										<span class="bracket-name">
 									<?php endif ?>
 									<?php echo $bracket->getName()?></span>&colon;
-									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?season=<?php echo urlencode($season)?>&mode=signup&bracket=<?php echo urlencode($bracket->getName()); ?>">View Signup, </a>
-									<a class="bracket-draw-link" href="<?php the_permalink() ?>?season=<?php echo urlencode($season)?>&mode=draw&bracket=<?php echo urlencode($bracket->getName()); ?>">View Draw</a>
+									<a class="bracket-signup-link" href="<?php the_permalink(); ?>?season=<?php echo urlencode($season)?>&mode=signup&bracket=<?php echo urlencode($bracket->getName()); ?>">Signup, </a>
+									<a class="bracket-draw-link" href="<?php the_permalink() ?>?season=<?php echo urlencode($season)?>&mode=draw&bracket=<?php echo urlencode($bracket->getName()); ?>">Draw</a>
 									<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) : ?>
 										<img class="remove-bracket" src="<?php echo TE()->getPluginUrl() . 'img/removeIcon.gif' ?>">
 									<?php endif ?>
