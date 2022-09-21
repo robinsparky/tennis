@@ -4,12 +4,124 @@
   --drawHeight: 300px;
   --entryHeight: 50px;
   --roundWidth: calc(100% / (var(--rounds)+1));
+  --level-1: #8dccad;
+  --level-2: #f5cc7f;
+  --level-3: #7b9fe0;
+  --level-4: #f27c8d;
+  --black: black;
+  --matchHeight: 10em;
+  --matchWidth: 15em;
+  --matchMargin: 1em;
+  --rowGap: 1em;
 }
 
 #digiclock {
   font-size: small;
   color: #0030c0;
   background-color: yellow;
+}
+
+/*-----------------------------------------------------
+ * New Grid styling for elimination draws
+ ---------------------------------------------------*/
+.drawgrid {
+  width: 1250px;
+  display: grid;
+  grid-auto-columns: minmax(var(--matchWidth), auto);
+  grid-auto-rows: minmax(var(--matchHeight), auto);
+  row-gap: var(--rowGap); 
+  align-items:stretch;
+  position: relative;
+}
+
+.drawgrid:empty::after {
+  content: '';
+  position: absolute;
+  left: calc(100%);
+  top: 50%;
+  width: 200px;
+  border-bottom: none;
+  color: red;
+}
+
+.drawgrid::after {
+  content: 'Champion: ' attr(data-champion);
+  position: absolute;
+  left: calc(100%);
+  top: 50%;
+  width: 200px;
+  border-bottom: 2px solid black;
+  color: red;
+}
+
+.drawgrid > .match {
+  border-right: 1px solid black;
+  border-top: 1px solid black;
+  border-bottom: 1px solid black;
+  position: relative;
+  /*background-color: peachpuff;*/
+  min-height: var(--matchHeight);
+  min-width: var(--matchWidth);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.match:empty {
+  border: none;
+}
+
+.match>article {
+  margin: 0 auto;
+  width: 80%;
+  text-align: center;
+}
+
+.match>article.homeentrant>ul {
+  list-style-type: none;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.match>article.visitorentrant {
+  position: absolute;
+  bottom: 0%;
+  left: 10%;
+}
+
+.match>article.visitorentrant>ul {
+  list-style-type: none;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.match>article.matchstatus {
+  position: absolute;
+  top: 45%;
+  left: calc(50% - .45 * var(--matchWidth));
+  font-style:oblique;
+  font-weight:normal;
+}
+
+div.match[data-matchtitle] {
+  /*position: relative;
+  text-decoration: underline;
+  color: #00f;*/
+  cursor: help;
+}
+
+div.match[data-matchtitle]:hover::after,
+div.match[data-matchtitle]:focus::after {
+  content: 'Round:' attr(data-roundnum) ' Match:' attr(data-matchnum) ' Score: ' attr(data-currentscore) ;
+  position: absolute;
+  left: 10%;
+  top: 30%;
+  min-width: 200px;
+  border: 1px #aaaaaa solid;
+  border-radius: 10px;
+  background-color: #ffffcc;
+  padding: 12px;
+  color: #000000;
+  font-size: 14px;
+  z-index: 1;
 }
 
 /*-------------------------------------------

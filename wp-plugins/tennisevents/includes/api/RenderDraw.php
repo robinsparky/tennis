@@ -10,7 +10,9 @@ use \TE_Install;
 use datalayer\Event;
 use datalayer\Bracket;
 use datalayer\Club;
+use datalayer\InvalidMatchException;
 use datalayer\MatchStatus;
+use InvalidArgumentException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -211,7 +213,7 @@ class RenderDraw
         $scoreType     = $td->getEvent()->getScoreType();
         $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
         $parentName    = $td->getParentEventName();
-        $now = (new \DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
+        //$now = (new \DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
 
         $jsData = $this->get_ajax_data();
         $jsData["clubId"]  = $td->getClubId();
@@ -228,8 +230,15 @@ class RenderDraw
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
 
         // Get template file
-        $path = TE()->getPluginPath() . 'includes\templates\render-draw-template.php';
+        if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
+        || current_user_can( TE_Install::RESET_MATCHES_CAP )
+        || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
+            $path = TE()->getPluginPath() . 'includes\templates\render-draw-template.php';
+        } else {
+            $path = TE()->getPluginPath() . 'includes\templates\render-draw-template-grid.php';
+        }
         $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+
 	    // Start output buffering 
         ob_start();
         require( $path );
@@ -279,6 +288,13 @@ class RenderDraw
         return $found;
     }
 
+    /**
+     * Get all matches emanating from the given match (round number, match number)
+     * @param $nr the round number
+     * @param $nm the match number
+     * @param &$matchHierarchy the total match hierarchy
+     * @return array of matches
+     */
     private function getFutureMatches( $nr, $nm, &$matchHierarchy ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( "$loc(nextRound=$nr, nextMatch=$nm)" );
@@ -489,5 +505,114 @@ class RenderDraw
         $response["exception"] = $this->errobj;
         wp_send_json_error( $response );
         wp_die($mess);
+    }
+
+    /**
+     * Returns the appropriate grid parameters for the given match
+     * @param $roundNum the round number
+     * @param $matchNum the match number
+     * @return string containing the grid style i.e. gridRow, gridColumn and line numbers
+     */
+    private function getGridStyle($roundNum, $matchNum) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}({$roundNum},{$matchNum})");
+
+        $gridRow = 1;
+        $span = 1;
+        $inc = 1;
+        $style = '';
+        $pat = "grid-column: %d; grid-row: %d/span %d;";
+        switch($roundNum) {
+            case 1:
+                return "grid-column: 1;"; //early return
+            case 2:
+                $span = 1;
+                $inc = 2 * $span;
+                $gridRow = 1 + $inc * ($matchNum - 1);
+                $pat .= " top: calc(.5 * (var(--matchHeight) + var(--rowGap)));";
+                break;
+            case 3: 
+                $span = 2;
+                $inc = 2 * $span;
+                $gridRow = 2 + $inc * ($matchNum - 1);
+                break;
+            case 4:
+                $span = 4;
+                $inc = 2 * $span;
+                $gridRow = 3 + $inc * ($matchNum - 1);
+                break;
+            case 5:
+                $span = 8;
+                $inc = 2 * $span;
+                $gridRow = 4 + $inc * ($matchNum - 1);
+                break;
+            case 6:
+                $span = 16;
+                $inc = 2 * $span;
+                $gridRow = 5 + $inc * ($matchNum - 1);
+                break;
+            case 7:
+                $span = 32;
+                $inc = 2 * $span;
+                $gridRow = 6 + $inc * ($matchNum - 1);
+                break;
+            default:
+                $mess = __("Invalid round number!", TennisEvents::TEXT_DOMAIN);
+                $this->log->error_log($mess);
+                throw new InvalidMatchException($mess);
+        }
+
+        $style = sprintf($pat, $roundNum, $gridRow, $span);
+        $this->log->error_log("$loc: returning style: '{$style}'");
+
+        return $style;
+
+        /*
+
+        $col2 = ["grid-column: 2; grid-row: 1/span 1; top: calc(.5 * (var(--matchHeight) + var(--rowGap)));"
+                ,"grid-column: 2; grid-row: 3/span 1; top: calc(.5 * (var(--matchHeight) + var(--rowGap)));"
+                ,"grid-column: 2; grid-row: 5/span 1; top: calc(.5 * (var(--matchHeight) + var(--rowGap)));"
+                ,"grid-column: 2; grid-row: 7/span 1; top: calc(.5 * (var(--matchHeight) + var(--rowGap)));"
+                ,"grid-column: 2; grid-row: 9/span 1; top: calc(.5 * (var(--matchHeight) + var(--rowGap)));"
+                ,"grid-column: 2; grid-row: 11/span 1; top: calc(.5 * (var(--matchHeight) + var(--rowGap)));"
+                ,"grid-column: 2; grid-row: 13/span 1; top: calc(.5 * (var(--matchHeight) + var(--rowGap)));"
+                ,"grid-column: 2; grid-row: 15/span 1; top: calc(.5 * (var(--matchHeight) + var(--rowGap)));"
+        ];
+
+        $col3 = ["grid-column: 3; grid-row: 2/span 2;"
+                ,"grid-column: 3; grid-row: 6/span 2;"
+                ,"grid-column: 3; grid-row: 10/span 2;"
+                ,"grid-column: 3; grid-row: 14/span 2;"
+        ];
+
+        $col4 = ["grid-column: 4; grid-row: 3/span 4;"
+                ,"grid-column: 4; grid-row: 11/span 4;"
+                ,"grid-column: 4; grid-row: 19/span 4;"
+                ,"grid-column: 4; grid-row: 27/span 4;"
+                ,"grid-column: 4; grid-row: 35/span 4;"
+                ,"grid-column: 4; grid-row: 43/span 4;"
+                ,"grid-column: 4; grid-row: 51/span 4;"
+                ,"grid-column: 4; grid-row: 59/span 4;"
+        ];
+
+        $col5 = ["grid-column: 5; grid-row: 4/span 8;"
+                ,"grid-column: 5; grid-row: 20/span 8;"
+                ,"grid-column: 5; grid-row: 36/span 8;"
+                ,"grid-column: 5; grid-row: 52/span 8;"
+        ];
+
+        $col6 = ["grid-column: 6; grid-row: 5/span 16;"
+                ,"grid-column: 6; grid-row: 37/span 16;"
+
+        ];
+
+        $col7 = ["grid-column: 7; grid-row: 6/span 32;"
+        ];
+
+        $allRowsCols = [[],$col2, $col3, $col4, $col5, $col6, $col7];
+
+        return $allRowsCols[$roundNum[$matchNum]];
+        */
+
     }
 }

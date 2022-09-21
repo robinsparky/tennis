@@ -183,7 +183,7 @@ abstract class ChairUmpire
 	public function getScores( Match &$match, bool $winnerFirst = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        $mess = sprintf( "%s(%s) starting", $loc,$match->toString() );
+        $mess = sprintf( "%s(%s)", $loc,$match->toString() );
         $this->log->error_log( $mess );
 
         $sets = $match->getSets();
@@ -518,36 +518,74 @@ abstract class ChairUmpire
      * @param object Match $match
      * @return string representation of the scores
      */
-	public function strGetScores( Match &$match ) {
+	public function strGetScores( Match &$match, bool $winnerFirst=false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        $mess = sprintf( "%s(%s) called", $loc,$match->toString() );
+        $mess = sprintf( "%s(%s)", $loc,$match->toString() );
         $this->log->error_log( $mess );
-        $strScores = '';
-        if( $match->isBye() ) return $strScores; //early return
 
-        $arrScores = $this->getScores( $match );
-        if( count( $arrScores) === 0 ) return 'vs';
-
-        $sep = ',';
-        $setNums = range( 1, $this->getMaxSets() );
-        foreach( $setNums as $setNum ) {
-            if( $setNum === $this->MaxSets ) $sep = '';
-            if( array_key_exists( $setNum, $arrScores ) ) {
-                $scores = $arrScores[ $setNum ];
-                // $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
-                //                 , $loc, $match->toString(), $setNum
-                //                 , $scores[0], $scores[1], $scores[2], $scores[3] );
-                if( ($scores[0] === $scores[1]) 
-                && (($scores[0] === $this->GamesPerSet )
-                ||  ($scores[0] === $this->getTieBreakAt()))) {
-                    $strScores .= sprintf("%d(%d)-%d(%d)%s ", $scores[0], $scores[2], $scores[1], $scores[3], $sep);
-                } 
-                else {
-                    $strScores .= sprintf("%d-%d%s ", $scores[0], $scores[1], $sep);
-                }
-            }
+        if( $match->isBye() ) {
+            $strScores=__('Bye',TennisEvents::TEXT_DOMAIN);
+            return $strScores; //early return
         }
+
+        $strScores = '';
+        $sep = ',';
+        $arrScores = $this->getScores( $match );
+        if( count( $arrScores) > 0 ) {
+            $setNums = range( 1, $this->getMaxSets() );
+            //Now put the actual scores into the table
+            foreach( $setNums as $setNum ) {
+                if( $setNum === $this->MaxSets ) $sep = '';
+
+                //If set does not exist yet then stop and ignore future sets
+                if( !array_key_exists( $setNum, $arrScores ) ) {
+                    //$arrScores[$setNum] = [0,0,0,0];
+                    rtrim($strScores,',');
+                    break;
+                }
+                $scores = $arrScores[ $setNum ];
+                $mess = sprintf("%s(%s) -> Set=%d Home=%d Visitor=%d HomeTB=%d VisitorTB=%d"
+                                , $loc, $match->toString(), $setNum
+                                , $scores[0], $scores[1], $scores[2], $scores[3] );
+                $this->log->error_log($mess);
+                
+                $scoreSum = array_reduce($scores, function($carry,$sum) { $carry += $sum; return $carry;});
+                if( $scoreSum > 0 ) {
+                    $homeTBScores = $visitorTBScores = '';
+                    if( ($scores[0] === $scores[1] || absint($scores[0] - $scores[1]) === 1) && (($scores[0] >= $this->GamesPerSet) || ($scores[0] >= $this->getTieBreakAt() ))
+                    ||  ($this->getMaxSets() === $setNum && $this->getTieBreakDecider()) 
+                    ) {
+                        if( $this->includeTieBreakerScores( $setNum ) ) {
+                            $homeTBScores = sprintf("(%d)", $scores[2]);
+                            $visitorTBScores = sprintf("(%d)", $scores[3]);
+                        }
+                        else {
+                            $homeTBScores = "";
+                            $visitorTBScores = "";
+                        }
+                    }
+
+                    if($this->winnerIsVisitor($match) && $winnerFirst) {            
+                        $strScores .= sprintf("%d%s-%d%s%s", $scores[1], $visitorTBScores, $scores[0], $homeTBScores,$sep);
+                    }
+                    else {
+                        $strScores .= sprintf("%d%s-%d%s%s", $scores[0], $homeTBScores, $scores[1], $visitorTBScores,$sep);   
+                    }
+                }
+                else {
+                    //scores are all zero for this set
+                    rtrim($strScores,',');
+                    $mess = sprintf( "%s(%s) : all scores are zero for set %d.", $loc,$match->toString(), $setNum );
+                    break;
+                }
+            }//foreach
+        }
+        else {
+            $mess = sprintf( "%s(%s) : has no scores yet.", $loc,$match->toString() );
+        }
+
+        $strScores = rtrim($strScores,',');
         return $strScores;
     }
 
@@ -979,9 +1017,10 @@ EOT;
      */
     protected function includeTieBreakerScores( $setNum ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc({$setNum})");
         
-        $trace = GW_Debug::get_debug_trace_Str();
-        $this->log->error_log("$loc: {$trace}");
+        // $trace = GW_Debug::get_debug_trace_Str();
+        // $this->log->error_log("$loc: {$trace}");
 
         $result = True;
 

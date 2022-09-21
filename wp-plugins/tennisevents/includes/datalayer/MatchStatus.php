@@ -15,13 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MatchStatus {
 
     //Major statuses
-    const NotStarted = 1;
-    const InProgress = 2;
-    const Completed  = 3;
-    const Bye        = 4;
-    const Waiting    = 5;
-    const Cancelled  = 6;
-    const Retired    = 7;
+    public const NotStarted = 1;
+    public const InProgress = 2;
+    public const Completed  = 3;
+    public const Bye        = 4;
+    public const Waiting    = 5;
+    public const Cancelled  = 6;
+    public const Retired    = 7;
 
     //Minor Statuses
     const DefaultHome = 1;
