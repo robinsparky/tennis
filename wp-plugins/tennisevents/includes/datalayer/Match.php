@@ -658,7 +658,7 @@ class Match extends AbstractData
      */
     public function getMatchTime_Str( int $formatNum = 1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log("$loc: '{$this->title()}'");
+        $this->log->error_log("$loc: {$this->title()}");
 
         $format = self::$outtimeformat1;
         switch($formatNum) {
