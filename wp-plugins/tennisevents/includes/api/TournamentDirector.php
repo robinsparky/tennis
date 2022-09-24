@@ -329,7 +329,8 @@ class TournamentDirector
     /**
      * Retrieve the Champion for this bracket
      * @param String $bracketName
-     * @return Entrant who won the bracket or null if not completed
+     * @return array Entrant and final score of player who won the championship for this bracket
+     *               with ['ChampionName'=>null, 'ChampionScore'=>''] if draw not completed
      * @see class ChairUmpire
      */
     public function getChampion( $bracketName = Bracket::WINNERS ) {

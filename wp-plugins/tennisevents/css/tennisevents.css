@@ -9,8 +9,10 @@
   --level-3: #7b9fe0;
   --level-4: #f27c8d;
   --black: black;
-  --matchHeight: 10em;
-  --matchWidth: 15em;
+  --gridWidth: auto;
+  --gridAfter: 250px;
+  --matchHeight: 100px;
+  --matchWidth: 150px;
   --matchMargin: 1em;
   --rowGap: 1em;
 }
@@ -25,15 +27,19 @@
  * New Grid styling for elimination draws
  ---------------------------------------------------*/
 .drawgrid {
-  width: 1250px;
+  width: var(--gridWidth);
   display: grid;
   grid-auto-columns: minmax(var(--matchWidth), auto);
   grid-auto-rows: minmax(var(--matchHeight), auto);
   row-gap: var(--rowGap); 
-  align-items:stretch;
+  align-items: stretch; /*Must be this value*/
   position: relative;
+  overflow-x: visible;
+  margin: auto auto;
+  width: 100%;
+  height: auto;
 }
-
+/*
 .drawgrid:empty::after {
   content: '';
   position: absolute;
@@ -43,15 +49,17 @@
   border-bottom: none;
   color: red;
 }
+*/
 
 .drawgrid::after {
-  content: 'Champion: ' attr(data-champion);
+  content: attr(data-champion) ' ' attr(data-championscore);
   position: absolute;
   left: calc(100%);
   top: 50%;
-  width: 200px;
+  width: var(--gridAfter);
   border-bottom: 2px solid black;
   color: red;
+  font-size: larger;
 }
 
 .drawgrid > .match {
@@ -65,15 +73,13 @@
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
-.match:empty {
-  border: none;
-}
 
 .match>article {
   margin: 0 auto;
   width: 80%;
   text-align: center;
 }
+
 
 .match>article.homeentrant>ul {
   list-style-type: none;
@@ -94,23 +100,24 @@
 }
 
 .match>article.matchstatus {
-  position: absolute;
-  top: 45%;
-  left: calc(50% - .45 * var(--matchWidth));
+  display:inline;
   font-style:oblique;
   font-weight:normal;
+  margin: 0 auto;
+  vertical-align:middle;
+  padding-top: 50%;
 }
 
-div.match[data-matchtitle] {
+div.match[data-matchtitle]:not(.byematch) {
   /*position: relative;
   text-decoration: underline;
   color: #00f;*/
   cursor: help;
 }
 
-div.match[data-matchtitle]:hover::after,
-div.match[data-matchtitle]:focus::after {
-  content: 'Round:' attr(data-roundnum) ' Match:' attr(data-matchnum) ' Score: ' attr(data-currentscore) ;
+div.match[data-matchtitle]:not(.byematch):hover::after,
+div.match[data-matchtitle]:not(.byematch):focus::after {
+  content: attr(data-status) '; Score: ' attr(data-currentscore) ;
   position: absolute;
   left: 10%;
   top: 30%;

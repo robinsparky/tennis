@@ -9,7 +9,7 @@
 <thead>
 <tr>
 <?php
-    for( $i=1; $i <= $numRounds; $i++ ) {
+    for( $i=1; $i <= $totalRounds; $i++ ) {
         $rOf = $bracket->roundOf( $i );
 ?>
 <th>Round Of <?php echo $rOf ?></th>

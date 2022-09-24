@@ -278,7 +278,8 @@ class MatchTieBreakerUmpire extends ChairUmpire
     /**
      * Retrieve the Champion for this bracket if exists 'tba' otherwise
      * @param Bracket $bracket
-     * @return Entrant who won the bracket or null if not completed
+     * @return array Entrant and final score of player who won the championship for this bracket
+     *               with ['ChampionName'=>null, 'ChampionScore'=>''] if draw not completed
      * @throws InvalidBracketException
      */
     public function getChampion( &$bracket ) {
@@ -291,6 +292,7 @@ class MatchTieBreakerUmpire extends ChairUmpire
         //print_r(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2));
         
         $champion = null;
+        $champScore =  '';
 
         if( $bracket->isApproved() ) {
             $lastRound = $bracket->getNumberOfRounds();
@@ -309,10 +311,11 @@ class MatchTieBreakerUmpire extends ChairUmpire
                 $finalMatch = array_pop($finalMatches);
                 $this->isLocked( $finalMatch, $champion );
                 $this->log->error_log($champion, "$loc: champion: ");
+                $champScore = $this->strGetScores($finalMatch,true);
             }
         }
         
-        return $champion;
+        return [self::CHAMPIONNAME=>$champion, self::CHAMPSCORE=>$champScore];
     }
 
     /**

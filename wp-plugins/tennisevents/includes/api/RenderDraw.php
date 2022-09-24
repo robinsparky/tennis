@@ -197,18 +197,19 @@ class RenderDraw
         $eventId = $td->getEvent()->getID(); //$this->eventId;
         $tournamentName = str_replace("\'","'",$td->getName());
         $bracketName    = $bracket->getName();
-        $champion = $td->getChampion( $bracketName );
+        $champion = $td->getChampion( $bracketName )[ChairUmpire::CHAMPIONNAME];
+        $championScore = $td->getChampion( $bracketName )[ChairUmpire::CHAMPSCORE];
         $championName = empty( $champion ) ? 'tba' : $champion->getName();
         $umpire = $td->getChairUmpire();
 
         $loadedMatches = $bracket->getMatchHierarchy( );
         $preliminaryRound = count( $loadedMatches ) > 0 ? $loadedMatches[1] : array();                
         $numPreliminaryMatches = count( $preliminaryRound );
-        $numRounds = $td->totalRounds( $bracketName );
+        $totalRounds = $td->totalRounds( $bracketName );
         $numMatches = $bracket->getNumberOfMatches();
 
         $signupSize = $bracket->signupSize();
-        $this->log->error_log("$loc: num matches:$numMatches; number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
+        $this->log->error_log("$loc: num matches:$numMatches; number prelims=$numPreliminaryMatches; number rounds=$totalRounds; signup size=$signupSize");
 
         $scoreType     = $td->getEvent()->getScoreType();
         $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
@@ -355,51 +356,6 @@ class RenderDraw
             }
         }
         return $menupath;
-    }
-
-    /** TODO: Remove this and associated code
-     * Renders draw showing entrants for the given bracket
-     * @param $td The tournament director for this bracket
-     * @param $bracket The bracket
-     * @return string Table-based HTML showing the draw without ability to modify
-     */
-    private function renderBracketByEntrant( TournamentDirector $td, Bracket $bracket ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
-
-        $tournamentName = $td->getName();
-        $bracketName    = $bracket->getName();
-        $eventId = $td->getEvent()->getID();
-
-        $loadedMatches = $bracket->getMatches();
-        $preliminaryRound = $bracket->getMatchesByRound( 1 );                
-        $numPreliminaryMatches = count( $preliminaryRound );
-        $numRounds = $td->totalRounds( $bracketName );
-
-        $signupSize = $bracket->signupSize();
-        $this->log->error_log("$loc: number prelims=$numPreliminaryMatches; number rounds=$numRounds; signup size=$signupSize");
-
-        if( count( $loadedMatches ) === 0 ) {
-            $out = '<h3>' . "{$tournamentName}&#58;&nbsp;{$bracketName} Bracket" . '</h3>';
-            $out .= "<div>". __("No matches scheduled yet", TennisEvents::TEXT_DOMAIN ) . "</div>";
-            return $out;
-        }
-
-        $jsData = $this->get_ajax_data();
-        $arrData = $this->getMatchesAsArray( $td, $bracket );
-        $jsData["matches"] = $arrData;
-
-        wp_enqueue_script( 'manage_draw' );         
-        wp_localize_script( 'manage_draw', 'tennis_draw_obj', $jsData );      
-
-        $umpire = $td->getChairUmpire();
-        $gen = new DrawTemplateGenerator("{$tournamentName}&#58;&nbsp;{$bracketName} Bracket", $signupSize, $eventId, $bracketName  );
-        
-        $template = $gen->generateTable();
-        
-        $template .= PHP_EOL . '<div id="tennis-event-message"></div>' . PHP_EOL;
-
-        return $template;
     }
 
     /**

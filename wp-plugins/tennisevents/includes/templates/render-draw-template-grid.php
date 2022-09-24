@@ -7,13 +7,40 @@ use datalayer\MatchStatus;
 use datalayer\InvalidMatchException;
 
 $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
+$cols = "grid-template-columns: repeat({$totalRounds}, 1fr)";
+switch($totalRounds) {
+    case 1:
+        $gridWidth="200px";
+        break;
+    case 2:
+        $gridWidth="400px";
+        break;
+    case 3:
+        $gridWidth="700px";
+        break;
+    case 4:
+        $gridWidth="1050px";
+        break;       
+    case 5:
+        $gridWidth="1250px";
+        break;      
+    case 6:
+        $gridWidth="1350px";
+        break;      
+    case 7:
+        $gridWidth="1450px";
+        break;
+    default: 
+        $gridwith="1250px";
+}
+//
 ?>
 <h2 id="parent-event-name"><?php echo $parentName; ?></h2>
 <h3 class='tennis-draw-caption'><?php echo $tournamentName ?>&#58;&nbsp;<?php echo $bracketName ?>&nbsp;(<?php echo $scoreRuleDesc ?>)</h3>
 <h4><?php echo $now;?></h4>
 <!--Start of Grid-->
-<div id="<?php echo $bracketName;?>" class="drawgrid" data-eventid="<?php echo $eventId;?>" 
-data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $championName;?>" data-tournament="<?php echo $tournamentName; ?>">
+<div id="<?php echo $bracketName;?>" class="drawgrid" style="<?php echo $cols;?>;" data-eventid="<?php echo $eventId;?>" 
+data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $championName;?>" data-championscore="<?php echo $championScore;?>" data-tournament="<?php echo $tournamentName; ?>">
 <?php
     $menupath = '';
     $numRounds = 0;
@@ -97,23 +124,27 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
                     if( is_null($home)) $firstMatchScores = '';
                     if( is_null($visitor)) $secondMatchScores = '';
                 }
-                
-                // Get menu template file
-                $menupath = $this->getMenuPath( $majorStatus );
+       
                 // Get the grid style attributes
                 $style = $this->getGridStyle($match->getRoundNumber(), $match->getMatchNumber());
 ?>
-<div class="match item-player" style="<?php echo $style?>" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
+ <?php if($match->isBye()) { ?>
+    <div class="match item-player byematch" style="<?php echo $style?>; border: none;box-shadow: none;" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
         data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
-    <?php if(!empty($menupath)) require $menupath; ?>
+ </div>
+<?php } 
+else {
+?>
+<div class="match item-player" style="<?php echo $style?>;" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
+        data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-status="<?php echo $generalstatus?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
     <article class="homeentrant">
         <ul>
             <li><?php echo $hname;?></li>
             <li><?php echo $firstMatchScores;?>
         </ul>
     </article>
-    <article class="matchinfo matchstatus"><?php echo $generalstatus; ?></article>
     <div style="display:none;">
+    <article class="matchinfo matchstatus"><?php echo $generalstatus; ?></article>
         <article class="matchinfo matchtitle"><?php echo $title; ?></article>
         <article class="matchcomments"><?php echo $cmts; ?></article>
         <article class="matchinfo matchstart"  style="display: none;"><?php echo $startDate; ?>&nbsp;<?php echo $startTime; ?></article>
@@ -138,6 +169,7 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
     </article>
 </div>
 <?php
+}
     } catch( RuntimeException $ex ) {
         $this->log->error_log("$loc: encountered RuntimeException {$ex->getMessage()}");
         throw $ex;

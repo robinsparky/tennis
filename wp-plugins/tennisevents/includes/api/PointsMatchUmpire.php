@@ -263,15 +263,17 @@ class PointsMatchUmpire extends ChairUmpire
     /**
      * Retrieve the Champion for this bracket
      * @param Bracket $bracket
-     * @return Entrant who won the bracket or null if not completed
+     * @return array Entrant and final score of player who won the championship for this bracket
+     *               with ['ChampionName'=>null, 'ChampionScore'=>''] if draw not completed
      */
     public function getChampion( &$bracket ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $bracketName = $bracket->getName();
         $this->log->error_log("$loc($bracketName)");        
-        $this->log->error_log(debug_backtrace()[1]['function'],"Called By");
+        //$this->log->error_log(debug_backtrace()[1]['function'],"Called By");
 
         $champion = null;
+        $champScore = '';
 
         if( $bracket->isApproved() ) {
             $lastRound = $bracket->getNumberOfRounds();
@@ -285,10 +287,11 @@ class PointsMatchUmpire extends ChairUmpire
             } else {
                 $finalMatch = array_pop($finalMatches);
                 $this->isLocked( $finalMatch, $champion );
+                $champScore = $this->strGetScores($finalMatch, true);
             }
         }
         
-        return $champion;
+        return [self::CHAMPIONNAME=>$champion, self::CHAMPSCORE=>$champScore];
     }
 
 } //end of class

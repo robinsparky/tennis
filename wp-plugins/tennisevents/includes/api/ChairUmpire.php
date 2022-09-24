@@ -44,6 +44,9 @@ abstract class ChairUmpire
 	public const BYE        = "Bye";
 	public const WAITING    = "Waiting";
     public const CANCELLED  = "Cancelled";
+    
+    public const CHAMPIONNAME = "championname";
+    public const CHAMPSCORE = "championscore";
 	
     //General Tennis Scoring parameters
     protected $Scoring_Rules = '';
