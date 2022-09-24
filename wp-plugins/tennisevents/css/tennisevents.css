@@ -10,7 +10,7 @@
   --level-4: #f27c8d;
   --black: black;
   --gridWidth: auto;
-  --gridAfter: 250px;
+  --gridAfter: 150px;
   --matchHeight: 100px;
   --matchWidth: 150px;
   --matchMargin: 1em;
@@ -55,11 +55,12 @@
   content: attr(data-champion) ' ' attr(data-championscore);
   position: absolute;
   left: calc(100%);
-  top: 50%;
+  top: 45%;
   width: var(--gridAfter);
   border-bottom: 2px solid black;
   color: red;
   font-size: larger;
+  text-align:center;
 }
 
 .drawgrid > .match {
