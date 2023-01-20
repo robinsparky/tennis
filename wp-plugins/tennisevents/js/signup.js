@@ -341,7 +341,7 @@
 
     function findEntrant(name) {
       console.log("findEntrant(%s)", name);
-      test = name.trim().replace(/ /g, "_").replace(/'/g, "").replace(/&/g, "");
+      test = name.trim().replace(/ /g, "_").replace(/'/g, "").replace(/&/g, "").replace(/\//,"");
       console.log("test=#li%s", test);
       $found = $("li#" + test);
       return $found;
