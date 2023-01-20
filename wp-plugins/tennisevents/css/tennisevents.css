@@ -479,6 +479,9 @@ table.tennis-score-summary > caption {
   background-color: inherit;
   vertical-align: middle;
 }
+.item-player:not(.match) {
+  min-width: 150px;
+}
 
 hr.entrant-divider {
   border-top: 1px solid black;

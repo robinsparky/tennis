@@ -428,7 +428,17 @@
         data.roundNum,
         data.matchNum
       );
+
       $matchEl.children(".homeentrant").text(data.homeplayer);
+
+      //Now change the match the changed home came from
+      let $switchEl = findMatch(
+        data.eventId,
+        data.bracketNum,
+        data.roundNum,
+        data.switchMatchNum
+      );
+      $switchEl.children(".homeentrant").text(data.switchHomePlayer);
     }
 
     /**
@@ -444,6 +454,15 @@
         data.matchNum
       );
       $matchEl.children(".visitorentrant").text(data.visitorplayer);
+
+      //Now change the match the changed visitor came from
+      let $switchEl = findMatch(
+        data.eventId,
+        data.bracketNum,
+        data.roundNum,
+        data.switchMatchNum
+      );
+      $switchEl.children(".visitorentrant").text(data.switchVisitorPlayer);
     }
 
     /**

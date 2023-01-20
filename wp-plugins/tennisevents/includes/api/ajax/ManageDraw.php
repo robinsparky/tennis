@@ -15,6 +15,7 @@ use datalayer\InvalidMatchException;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidTennisOperationException;
 use datalayer\InvalidEntrantException;
+use datalayer\Match;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -225,34 +226,56 @@ class ManageDraw
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
         $player        = strip_tags( htmlspecialchars( $data["player"] ) );
-        $mess          = __("Modified home entrant.", TennisEvents::TEXT_DOMAIN );
+        $mess          = __("Changed home entrant.", TennisEvents::TEXT_DOMAIN );
         try {                      
             if( !current_user_can(TE_Install::MANAGE_EVENTS_CAP) ) {
                 throw new Exception("Insufficient privileges");
             }            
             $event = Event::get( $this->eventId );
-            $newHome = $event->getNamedEntrant( $player );
-            if( is_null( $newHome ) ) {
+
+            $switchHome = $event->getNamedEntrant( $player );
+            if( is_null( $switchHome ) ) {
                 throw new InvalidEntrantException(__("No such player", TennisEvents::TEXT_DOMAIN) );
             }
+
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketName );
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            if( is_null( $bracket ) || $bracket->isApproved() ) {
+                throw new InvalidBracketException(__("Invalid bracket", TennisEvents::TEXT_DOMAIN) );
             }
+
             $match = $bracket->getMatch( $roundNum, $matchNum );
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
-            $match->setHomeEntrant( $newHome );
+
+            $matchesByEntrant = $bracket->matchesByEntrant();
+            $currentHome = $match->getHomeEntrant();
+            $switchHomeName = $switchHome->getName();
+            $matchInfo = $matchesByEntrant[$switchHomeName];
+
+            $matchToSwitch = $matchInfo[1][0];
+            $matchToSwitchNum = $matchToSwitch->getMatchNumber();
+            $this->log->error_log("$loc: matchToSwitch Number: $matchToSwitchNum");
+
+            if(is_null($matchToSwitch) || ! ($matchToSwitch instanceof Match) ) {
+                throw new InvalidMatchException(__("No match to switch", TennisEvents::TEXT_DOMAIN) );
+            }
+            $matchToSwitch->setHomeEntrant($currentHome);
+            $matchToSwitch->save();
+            $match->setHomeEntrant( $switchHome );
             $match->save();
-            $returnName = $newHome->getSeededName();
-            $data['player'] = $returnName;
+
+            $data['homeplayer'] = $switchHome->getSeededName();
+            $data['switchMatchNum'] = $matchToSwitch->getMatchNumber();
+            $data['switchHomePlayer'] = $currentHome->getSeededName();
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
             $data['homeplayer'] = '';
+            $data['switchMatchNum'] = '';
+            $data['switchHomePlayer'] = '';
         }
         return $mess;
     }
@@ -272,34 +295,52 @@ class ManageDraw
         $roundNum      = $data["roundNum"];
         $matchNum      = $data["matchNum"];
         $player        = strip_tags( htmlspecialchars( $data["player"] ) );
-        $mess          = __("Modified visitor entrant.", TennisEvents::TEXT_DOMAIN );
+        $mess          = __("Changed visitor entrant.", TennisEvents::TEXT_DOMAIN );
         try {                       
             if( !current_user_can(TE_Install::MANAGE_EVENTS_CAP) ) {
                 throw new Exception("Insufficient privileges");
             }           
             $event = Event::get( $this->eventId );
-            $newVisitor = $event->getNamedEntrant( $player );
-            if( is_null( $newVisitor ) ) {
+            $switchVisitor = $event->getNamedEntrant( $player );
+            if( is_null( $switchVisitor ) ) {
                 throw new InvalidEntrantException(__("No such player", TennisEvents::TEXT_DOMAIN) );
             }
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketName );
-            if( is_null( $bracket ) ) {
-                throw new InvalidBracketException(__("No such bracket", TennisEvents::TEXT_DOMAIN) );
+            if( is_null( $bracket ) || $bracket->isApproved() ) {
+                throw new InvalidBracketException(__("Invalid bracket", TennisEvents::TEXT_DOMAIN) );
             }
             $match = $bracket->getMatch( $roundNum, $matchNum );
             if( is_null( $match ) ) {
                 throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
             }
-            $match->setVisitorEntrant( $newVisitor );
+            $matchesByEntrant = $bracket->matchesByEntrant();
+            $currentVisitor = $match->getVisitorEntrant();
+            $switchVisitorName = $switchVisitor->getName();
+            $matchInfo = $matchesByEntrant[$switchVisitorName];
+
+            $matchToSwitch = $matchInfo[1][0];
+            $matchToSwitchNum = $matchToSwitch->getMatchNumber();
+            $this->log->error_log("$loc: matchToSwitch Number: $matchToSwitchNum");
+
+            if(is_null($matchToSwitch) || ! ($matchToSwitch instanceof Match) ) {
+                throw new InvalidMatchException(__("No match to switch", TennisEvents::TEXT_DOMAIN) );
+            }
+            $matchToSwitch->setVisitorEntrant($currentVisitor);
+            $matchToSwitch->save();
+            $match->setVisitorEntrant( $switchVisitor );
             $match->save();
-            $returnName = $newVisitor->getSeededName();
-            $data['visitorplayer'] = $returnName;
+
+            $data['visitorplayer'] = $switchVisitor->getSeededName();
+            $data['switchMatchNum'] = $matchToSwitch->getMatchNumber();
+            $data['switchVisitorPlayer'] = $currentVisitor->getSeededName();
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
-            $data['player'] = '';
+            $data['visitorplayer'] = '';
+            $data['switchMatchNum'] = '';
+            $data['switchVisitorPlayer'] = '';
         }
         return $mess;
     }
