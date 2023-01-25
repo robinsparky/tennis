@@ -1075,10 +1075,10 @@ class Bracket extends AbstractData
             $matches = array();
             $playerName = $player->getName();
             foreach( $this->getMatches() as $match ) {
-                if(!is_null($match->getHomeEntrant()) && $playerName === $match->getHomeEntrant()->getName()) {
+                if(!is_null($match->getHomeEntrant(true)) && $playerName === $match->getHomeEntrant()->getName()) {
                     $matches[] = $match;
                 }
-                elseif(!is_null($match->getVisitorEntrant()) && $playerName === $match->getVisitorEntrant()->getName() ) {
+                elseif(!is_null($match->getVisitorEntrant(true)) && $playerName === $match->getVisitorEntrant()->getName() ) {
                     $matches[] = $match;
                 }
             }

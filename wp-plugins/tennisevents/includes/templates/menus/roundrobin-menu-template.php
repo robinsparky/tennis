@@ -12,8 +12,9 @@
  <li><a class="undomatch">Undo Scores</a></li>
 </ul>
 <ul class="matchaction unapproved">
- <li><a class="changehome">Replace Home</a></li>
- <li><a class="changevisitor">Replace Visitor</a><li>
+ <li class="switchplayers">Switch Players</li>
+ <!--<li><a class="changehome">Replace Home</a></li>
+ <li><a class="changevisitor">Replace Visitor</a><li> -->
  <li><a class="setmatchstart">Start Date &amp; Time</a></li>
  <li><a class="setcomments">Comment Match</a></li>
 </ul>

@@ -16,6 +16,7 @@ use datalayer\InvalidBracketException;
 use datalayer\InvalidTennisOperationException;
 use datalayer\InvalidEntrantException;
 use datalayer\Match;
+use datalayer\Entrant;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -153,6 +154,10 @@ class ManageDraw
             case "approve":
                 $mess = $this->approvePreliminary( $data );
                 break;
+            case "switchplayers":
+                $mess = $this->switchPlayers( $data );
+                $returnData = $data;
+                break;
             case 'changehome':
                 $mess = $this->changeHomeEntrant( $data );
                 $returnData = $data;
@@ -210,6 +215,158 @@ class ManageDraw
         wp_send_json_success( $response );
     
         wp_die(); // All ajax handlers die when finished
+    }
+
+    /**
+     * Switch one Entrant in a match with another Entrant in another match
+     * @param array $data array of event/match identifiers and 2 player names
+     */
+    private function switchPlayers( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $data, "$loc" );
+
+        $homeClass    = 'homeentrant';
+        $visitorClass = 'visitorentrant';
+
+        $this->eventId = $data["eventId"];
+        $bracketName   = $data["bracketName"];
+        $bracketNum    = $data["bracketNum"];
+        $roundNum      = $data["roundNum"];
+        $matchNum      = $data["matchNum"];
+        $sourceplayer  = strip_tags( htmlspecialchars( $data["sourceplayer"] ) );
+        $targetplayer  = strip_tags( htmlspecialchars( $data["targetplayer"] ) );
+        $mess          = __("Switched players.", TennisEvents::TEXT_DOMAIN );
+
+        try {                      
+            if( !current_user_can(TE_Install::MANAGE_EVENTS_CAP) ) {
+                throw new Exception("Insufficient privileges");
+            }            
+            $event = Event::get( $this->eventId );
+
+            $td = new TournamentDirector( $event );
+            $bracket = $td->getBracket( $bracketName );
+            if( is_null( $bracket ) || $bracket->isApproved() ) {
+                throw new InvalidBracketException(__("Invalid bracket", TennisEvents::TEXT_DOMAIN) );
+            }
+
+            //Get source entrant and match
+            $sourceMatch = $bracket->getMatch( $roundNum, $matchNum );
+            if( is_null( $sourceMatch ) ) {
+                throw new InvalidMatchException(__("No source match", TennisEvents::TEXT_DOMAIN) );
+            }
+
+            $trans = [" "=>"","'"=>"","\\"=>"","/"=>"","&"=>"","!"=>""];
+            $test = strtolower(strtr($sourceplayer,$trans));
+            $testEntrant = $sourceMatch->getHomeEntrant();
+            $transName = strtolower(strtr($testEntrant->getName(),$trans));
+            if(is_null($testEntrant) || ($transName !==  $test)) {
+                $testEntrant = $sourceMatch->getVisitorEntrant();
+                $transName = strtolower(strtr($testEntrant->getName(),$trans));
+            }
+            else {
+                $switchSource = $testEntrant;
+            }
+            if(is_null($testEntrant) || ($transName !== $test)) {
+                throw new InvalidEntrantException(__("No such source entrant", TennisEvents::TEXT_DOMAIN) );
+            }
+            else {
+                $switchSource = $testEntrant;
+            }
+            
+            $sourceMatchStr = $sourceMatch->title();
+            $this->log->error_log("$loc: source Match: $sourceMatchStr");
+
+            //get target entrant and match
+            $test = strtolower(strtr($targetplayer,$trans));
+            $targetMatch = new Match($this->eventId,$bracketNum,0);
+            $switchTarget = new Entrant($this->eventId,$bracketNum,$targetplayer);
+            $success = false;
+            foreach($bracket->getMatchesByRound(1) as $prelimMatch ) {
+                $this->log->error_log("$loc: {$prelimMatch->title()}");
+                $testEntrant = $prelimMatch->getHomeEntrant();    
+                if(is_null($testEntrant)) {
+                    $transName = '';
+                }
+                else {                       
+                    $transName = strtolower(strtr($testEntrant->getName(),$trans));
+                }
+                if(is_null($testEntrant) || ($transName !== $test)) {
+                    $testEntrant = $prelimMatch->getVisitorEntrant();  
+                    if(is_null($testEntrant)) {
+                        $transName = '';
+                    }
+                    else {              
+                        $transName = strtolower(strtr($testEntrant->getName(),$trans));
+                    }
+                }                
+                else {
+                    $switchTarget = $testEntrant;
+                    $targetMatch = $prelimMatch;
+                    $success = true;
+                    break;
+                }
+                if(is_null($testEntrant) || ($transName !== $test)) {
+                    continue;
+                }
+                else {
+                    $switchTarget = $testEntrant;
+                    $targetMatch = $prelimMatch;
+                    $success = true;
+                    break;
+                }
+            }
+            if(!$success) {
+                throw new InvalidEntrantException(__("No such target entrant/match", TennisEvents::TEXT_DOMAIN) );
+            }
+
+            $targetMatchStr = $targetMatch->title();
+            $this->log->error_log("$loc: target Match: $targetMatchStr");
+
+            $sourceIsVisitor = $switchSource->isVisitor() ? "yes" : "no";
+            $targetIsVisitor = $switchTarget->isVisitor() ? "yes" : "no";
+            $this->log->error_log("$loc: switching {$switchSource->getName()} is_visitor={$sourceIsVisitor} with {$switchTarget->getName()} is_visitor={$targetIsVisitor}");
+
+            //Move target to the source
+            $sourceType = $homeClass;
+            if( $switchSource->isVisitor() ) {
+                $sourceMatch->setVisitorEntrant($switchTarget);
+                $sourceType = $visitorClass;
+            }
+            else {
+                $sourceMatch->setHomeEntrant($switchTarget);
+            }
+
+            //Move the source to the target
+            $targetType = $homeClass;
+            if( $switchTarget->isVisitor() ) {
+                $targetMatch->setVisitorEntrant($switchSource);
+                $targetType = $visitorClass;
+            }
+            else {
+                $targetMatch->setHomeEntrant($switchSource);
+            }
+
+            //Save to db
+            $sourceMatch->save();
+            $targetMatch->save();
+
+            //Set return data
+            $data['sourcePlayer']   = $switchTarget->getSeededName();
+            $data['sourceType']     = $sourceType;
+            $data['targetMatchNum'] = $targetMatch->getMatchNumber();
+            $data['targetPlayer']   = $switchSource->getSeededName();
+            $data['targetType']     = $targetType;
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $data['sourcePlayer']   = '';
+            $data['sourceType']     = '';
+            $data['targetMatchNum'] = '';
+            $data['targetPlayer']   = '';
+            $data['targetType']     = '';
+        }
+        return $mess;
     }
 
     /**

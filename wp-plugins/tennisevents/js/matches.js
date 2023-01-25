@@ -127,6 +127,9 @@
         console.log("Data is an array");
         let task = data["task"];
         switch (task) {
+          case 'switchplayers':
+            switchEntrants(data);
+            break;
           case "changehome":
             updateHome(data);
             break;
@@ -187,6 +190,9 @@
         console.log("Data is an object");
         let task = data.task;
         switch (task) {
+          case 'switchplayers':
+            switchEntrants(data);
+            break;
           case "changehome":
             updateHome(data);
             break;
@@ -415,6 +421,30 @@
         $targetEl.removeClass("emphasize-swap");
       }, 3000);
     }
+
+    /**
+     * Switch players (entrants)
+     * @param {*} data
+     */
+        function switchEntrants(data) {
+          console.log("switchEntrants");
+          let $sourceEl = findMatch(
+            data.eventId,
+            data.bracketNum,
+            data.roundNum,
+            data.matchNum
+          );    
+          $sourceEl.children(`.${data.sourceType}`).text(data.sourcePlayer);
+    
+          let $targetEl = findMatch(
+            data.eventId,
+            data.bracketNum,
+            data.roundNum,
+            data.targetMatchNum
+          );
+          $targetEl.children(`.${data.targetType}`).text(data.targetPlayer);
+        }
+    
 
     /**
      * Update the home entrant name
@@ -868,6 +898,48 @@
     });
 
     /* ------------------------------Menu Actions ---------------------------------*/
+
+    
+    /**
+     * Switch player from source match with player from any other match
+     *  Can only be done if bracket is not yet approved
+     */
+    $(".switchplayers").on("click", function (event) {
+      console.log("switch players");
+      console.log(this);
+      hideMenu(event);
+      let sourcematch = getMatchData(this);
+      let source = prompt("Please enter name of name entrant in this match", sourcematch.home + ' or ' + sourcematch.visitor );
+      if (null == source) {
+        console.log('source is null')
+        return;
+      }
+      let target = prompt("Please enter name of name entrant to switch with", '' );
+      if (null == target  ) {
+        console.log('target is null')
+        return;
+      }
+      if( source === target || target === sourcematch.home || target === sourcematch.visitor ) {
+        console.log(`source: ${source} target: ${target}`)
+        return;
+      }
+
+      let eventId = tennis_draw_obj.eventId;
+      let bracketName = tennis_draw_obj.bracketName;
+
+      console.log('calling ajax function....')
+      ajaxFun({
+        task: "switchplayers",
+        eventId: eventId,
+        bracketNum: sourcematch.bracketnum,
+        roundNum: sourcematch.roundnum,
+        matchNum: sourcematch.matchnum,
+        bracketName: bracketName,
+        sourceplayer: source,
+        targetplayer: target,
+      });
+      console.log("called ajax function ...")
+    });
 
     /**
      * Change the home player/entrant

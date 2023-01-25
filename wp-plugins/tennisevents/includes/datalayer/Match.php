@@ -246,7 +246,7 @@ class Match extends AbstractData
         ++$numMatches;
         // $this->log->error_log("{$loc} ... {$numMatches}");
 
-        unset( $this->event );
+        unset( $this->event_ID );
 
         if(isset( $this->sets ) ) {
             foreach($this->sets as &$set) {
@@ -926,7 +926,7 @@ class Match extends AbstractData
 
     /**
      * Set the Home opponent for this match
-     * @param $h The home entrant
+     * @param Entrant $h The home entrant
      */
     public function setHomeEntrant( Entrant $h = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -939,10 +939,10 @@ class Match extends AbstractData
             if( isset( $existing ) && ($existing->getName() === $h->getName()) ) {
                 return $result;
             }
-            elseif( isset( $existing ) ) {
-                $mess = "$loc:{$this->toString()} Changing existing home entrant from '{$existing->getName()}' to '{$h->getName()}' should not happen?";
+            elseif( isset( $existing ) && $this->getBracket()->isApproved() ) {
+                $mess = "$loc:{$this->toString()} Changing existing home entrant from '{$existing->getName()}' to '{$h->getName()}' cannot be done for approved bracket.";
                 $this->log->error_log( $mess );
-                //throw new InvalidOperationException($mess);
+                throw new InvalidTennisOperationException($mess);
             }
             $this->home = $h;
             $this->home_ID = $h->getPosition();
@@ -988,10 +988,10 @@ class Match extends AbstractData
             if( isset( $existing ) && ($existing->getName() === $v->getName()) ) {
                 return $result;
             }
-            elseif( isset( $existing ) ) {
-                $mess = "$loc:{$this->toString()} Changing existing home entrant from '{$existing->getName()}' to '{$v->getName()}' should not happen?";
+            elseif( isset( $existing )  && $this->getBracket()->isApproved() ) {
+                $mess = "$loc:{$this->toString()} Changing existing visitor entrant from '{$existing->getName()}' to '{$v->getName()}' cannot be done for approved bracket.";
                 $this->log->error_log( $mess );
-                //throw new InvalidOperationException($mess);
+                throw new InvalidTennisOperationException($mess);
             }
             $this->visitor = $v;
             $this->visitor_ID = $v->getPosition();
@@ -1111,7 +1111,7 @@ class Match extends AbstractData
         $result = 0;
         $result = self::deleteMatch( $this->event_ID
                                     , $this->bracket_num
-                                    , $this->round
+                                    , $this->round_num
                                     , $this->match_num );
         $this->log->error_log( sprintf( "%s(%s) -> deleted %d row(s)", $loc, $this->toString(), $result ) );
 
@@ -1379,9 +1379,9 @@ class Match extends AbstractData
      */
     protected static function mapData( $obj, $row ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
-        $mess = print_r($row, true);
-        error_log("$loc: row ...");
-        error_log($mess);
+        // $mess = print_r($row, true);
+        // error_log("$loc: row ...");
+        // error_log($mess);
 
         parent::mapData( $obj, $row );
         $obj->event_ID     = (int) $row["event_ID"];
