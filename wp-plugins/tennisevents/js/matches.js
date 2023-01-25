@@ -130,12 +130,6 @@
           case 'switchplayers':
             switchEntrants(data);
             break;
-          case "changehome":
-            updateHome(data);
-            break;
-          case "changevisitor":
-            updateVisitor(data);
-            break;
           case "recordscore":
             updateMatchdate(data);
             updateScore(data);
@@ -192,12 +186,6 @@
         switch (task) {
           case 'switchplayers':
             switchEntrants(data);
-            break;
-          case "changehome":
-            updateHome(data);
-            break;
-          case "changevisitor":
-            updateVisitor(data);
             break;
           case "savescore":
             updateScore(data);
@@ -942,32 +930,6 @@
     });
 
     /**
-     * Change the home player/entrant
-     *  Can only be done if bracket is not yet approved
-     */
-    $(".changehome").on("click", function (event) {
-      console.log("change home");
-      console.log(this);
-      hideMenu(event);
-      let matchdata = getMatchData(this);
-      let home = prompt("Please enter name of home entrant", matchdata.home);
-      if (null == home) {
-        return;
-      }
-      let eventId = tennis_draw_obj.eventId;
-      let bracketName = tennis_draw_obj.bracketName;
-      ajaxFun({
-        task: "changehome",
-        eventId: eventId,
-        bracketNum: matchdata.bracketnum,
-        roundNum: matchdata.roundnum,
-        matchNum: matchdata.matchnum,
-        bracketName: bracketName,
-        player: home,
-      });
-    });
-
-    /**
      * Default the home entrant/player
      */
     $(".defaulthome").on("click", function (event) {
@@ -998,36 +960,6 @@
         bracketName: bracketName,
         player: "home",
         comments: comments,
-      });
-    });
-
-    /**
-     * Change the visitor player/entrant
-     * Can only be done if bracket is not yet approved
-     */
-    $(".changevisitor").on("click", function (event) {
-      console.log("change visitor");
-      console.log(this);
-      hideMenu(event);
-      let matchdata = getMatchData(this);
-      let visitor = prompt(
-        "Please enter name visitor entrant",
-        matchdata.visitor
-      );
-      if (null == visitor) {
-        return;
-      }
-
-      let eventId = tennis_draw_obj.eventId;
-      let bracketName = tennis_draw_obj.bracketName;
-      ajaxFun({
-        task: "changevisitor",
-        eventId: eventId,
-        bracketNum: matchdata.bracketnum,
-        roundNum: matchdata.roundnum,
-        matchNum: matchdata.matchnum,
-        bracketName: bracketName,
-        player: visitor,
       });
     });
 
