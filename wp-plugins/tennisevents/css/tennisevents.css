@@ -118,7 +118,7 @@ div.match[data-matchtitle]:not(.byematch) {
 
 div.match[data-matchtitle]:not(.byematch):hover::after,
 div.match[data-matchtitle]:not(.byematch):focus::after {
-  content: attr(data-status) '; Score: ' attr(data-currentscore) ;
+  content: attr(data-status) attr(data-currentscore) ;
   position: absolute;
   left: 10%;
   top: 30%;
