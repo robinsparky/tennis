@@ -39,18 +39,17 @@
   width: 100%;
   height: auto;
 }
-/*
-.drawgrid:empty::after {
-  content: '';
-  position: absolute;
-  left: calc(100%);
-  top: 50%;
-  width: 200px;
-  border-bottom: none;
-  color: red;
-}
-*/
 
+.finalroundhdr {
+  height:15%;
+  width: 100%;
+  padding-top: 5%;
+  background-color: lightgray;
+  color: red;
+  font-size: larger;
+}
+
+/*
 .drawgrid::after {
   content: attr(data-champion) ' ' attr(data-championscore);
   position: absolute;
@@ -62,6 +61,7 @@
   font-size: larger;
   text-align:center;
 }
+*/
 
 .drawgrid > .match {
   border-right: 1px solid black;

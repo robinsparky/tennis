@@ -131,17 +131,20 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
  <?php if($match->isBye()) { ?>
     <div class="match item-player byematch" style="<?php echo $style?>; border: none;box-shadow: none;" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
         data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
- </div>
+    </div>
 <?php } 
 else {
 ?>
 <div class="match item-player" style="<?php echo $style?>;" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
         data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-status="<?php echo $generalstatus?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
+<?php if($totalRounds === $roundNum ) { ?>
+    <header class="finalroundhdr"><p>Championship</p></header>
+<?php } ?>
     <article class="homeentrant">
-        <ul>
-            <li><?php echo $hname;?></li>
-            <li><?php echo $firstMatchScores;?>
-        </ul>
+    <ul>
+        <li><?php echo $hname;?></li>
+        <li><?php echo $firstMatchScores;?>
+    </ul>
     </article>
     <div style="display:none;">
     <article class="matchinfo matchstatus"><?php echo $generalstatus; ?></article>
