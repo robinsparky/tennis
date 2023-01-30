@@ -146,7 +146,7 @@ class RenderDraw
         $evts = Event::find( array( "club" => $club->getID() ) );
         //$this->log->error_log( $evts, "$loc: All events for {$club->getName()}");
         $found = false;
-        $target = null;
+        $target = new Event();
         if( count( $evts ) > 0 ) {
             foreach( $evts as $evt ) {
                 $target = Event::getEventRecursively( $evt, $eventId );
