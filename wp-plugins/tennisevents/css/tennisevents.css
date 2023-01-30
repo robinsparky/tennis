@@ -41,9 +41,9 @@
 }
 
 .finalroundhdr {
-  height:15%;
   width: 100%;
-  padding-top: 5%;
+  display:inline-block;
+  vertical-align:bottom;
   background-color: lightgray;
   color: red;
   font-size: larger;
@@ -118,7 +118,7 @@ div.match[data-matchtitle]:not(.byematch) {
 
 div.match[data-matchtitle]:not(.byematch):hover::after,
 div.match[data-matchtitle]:not(.byematch):focus::after {
-  content: attr(data-status) attr(data-currentscore) ;
+  content: attr(data-status) ' ' attr(data-currentscore) ;
   position: absolute;
   left: 10%;
   top: 30%;

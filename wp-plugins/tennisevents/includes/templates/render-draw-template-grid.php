@@ -138,7 +138,7 @@ else {
 <div class="match item-player" style="<?php echo $style?>;" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
         data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-status="<?php echo $generalstatus?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
 <?php if($totalRounds === $roundNum ) { ?>
-    <header class="finalroundhdr"><p>Championship</p></header>
+    <header class="finalroundhdr">Championship</header>
 <?php } ?>
     <article class="homeentrant">
     <ul>
