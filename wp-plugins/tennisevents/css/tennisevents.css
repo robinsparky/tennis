@@ -74,7 +74,6 @@
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
-
 .match>article {
   margin: 0 auto;
   width: 80%;
@@ -109,6 +108,21 @@
   padding-top: 50%;
 }
 
+.match>article.readonly_matchcomments {
+  margin: 0 auto 0 auto;
+  min-height: 10%;
+  font-size:smaller;
+  color:brown;
+}
+
+.match>article.championship_results {
+  border: solid red 2px;
+  margin: 0px auto 0px auto;
+  font-size:medium;
+  color: red;  
+  min-height: 15%;
+}
+
 div.match[data-matchtitle]:not(.byematch) {
   /*position: relative;
   text-decoration: underline;
@@ -116,9 +130,10 @@ div.match[data-matchtitle]:not(.byematch) {
   cursor: help;
 }
 
+
 div.match[data-matchtitle]:not(.byematch):hover::after,
 div.match[data-matchtitle]:not(.byematch):focus::after {
-  content: attr(data-status) ' ' attr(data-currentscore) ;
+  content: attr(data-matchtitle) ': ' attr(data-status);
   position: absolute;
   left: 10%;
   top: 30%;

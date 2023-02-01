@@ -146,24 +146,12 @@ else {
         <li><?php echo $firstMatchScores;?>
     </ul>
     </article>
-    <div style="display:none;">
-    <article class="matchinfo matchstatus"><?php echo $generalstatus; ?></article>
-        <article class="matchinfo matchtitle"><?php echo $title; ?></article>
-        <article class="matchcomments"><?php echo $cmts; ?></article>
-        <article class="matchinfo matchstart"  style="display: none;"><?php echo $startDate; ?>&nbsp;<?php echo $startTime; ?></article>
-        <div class="changematchstart">
-            <input type='date' class='changematchstart' name='matchStartDate' value='<?php echo $startDate; ?>'>
-            <input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTimeVal; ?>'>
-            <button class='button savematchstart'>Save</button>&nbsp;<button class='button cancelmatchstart'>Cancel</button>
-            <article class="homeentrant <?php echo $homeWinner; ?>"><?php echo $hname;?></article>
-        </div>
-        <div class="displaymatchscores"><!-- Display Scores Container -->
-            <?php echo $displayscores; ?>
-        </div>
-        <div class="modifymatchscores tennis-modify-scores"><!-- Modify Scores Container -->
-            <?php echo $modifyscores; ?>
-        </div>
-    </div>
+    <article class="readonly_matchcomments"><?php echo $cmts; ?></article>
+<?php if($totalRounds === $roundNum ) { ?>
+    <article class="championship_results">
+        <?php echo "{$championName}<br>{$championScore}"; ?>        
+    </article>
+<?php } ?>
     <article class="visitorentrant"> 
         <ul>
             <li><?php echo $vname;?></li>
