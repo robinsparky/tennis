@@ -1,5 +1,5 @@
 <?php
-namespace api;
+namespace api\view;
 use commonlib\BaseLogger;
 use datalayer\Event;
 use \WP_Error;

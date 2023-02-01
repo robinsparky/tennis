@@ -1,7 +1,8 @@
 <?php
-namespace api;
+namespace api\view;
 use api\TournamentDirector;
-use templates\DrawTemplateGenerator;
+use api\ChairUmpire;
+//use templates\DrawTemplateGenerator;
 use commonlib\BaseLogger;
 use commonlib\GW_Debug;
 use \WP_Error;
