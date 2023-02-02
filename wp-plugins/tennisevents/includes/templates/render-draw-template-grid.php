@@ -147,7 +147,7 @@ else {
     </ul>
     </article>
     <article class="readonly_matchcomments"><?php echo $cmts; ?></article>
-<?php if($totalRounds === $roundNum ) { ?>
+<?php if( $totalRounds === $roundNum && !empty($champion) ) { ?>
     <article class="championship_results">
         <?php echo "{$championName}<br>{$championScore}"; ?>        
     </article>
