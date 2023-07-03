@@ -53,6 +53,12 @@ if(!empty($prevSeason)) {
 				wp_enqueue_script( 'manage_brackets' ); 
 				global $jsDataForTennisBrackets;        
 				wp_localize_script( 'manage_brackets', 'tennis_bracket_obj', $jsDataForTennisBrackets );
+				$args = array( "post_type" => TennisEventCpt::CUSTOM_POST_TYPE
+								, "meta_key" => TennisEventCpt::START_DATE_META_KEY
+								, "orderby" => "meta_value"
+								, "order"   => "ASC" 
+							);
+				query_posts($args);
 				while ( have_posts() ) : 
 					the_post();
 					global $more;
