@@ -331,14 +331,19 @@ class TennisEvents {
 		$loc = __FILE__ . '::' . __FUNCTION__;
 		
 		$post_type = $query->get( 'post_type' );
-		$this->log->error_log("$loc: post_type='{$post_type}'");
+		//$this->log->error_log("$loc: post_type='{$post_type}'");
 
 		if( $query->is_main_query() && !$query->is_feed() && !is_admin() 
 		&& $query->is_post_type_archive( TennisEventCpt::CUSTOM_POST_TYPE ) ) {
 			$this->log->error_log("$loc: post_type='{$post_type}' is post type archive!");
 			//$this->log->error_log($query, "Query Object Before");
-			$meta_query = array( 
-								array(
+			$query->set('meta_key',TennisEventCpt::START_DATE_META_KEY);
+			$query->set('orderby',"meta_value");
+			$query->set('type','DATE');
+			$query->set('order',"ASC");
+
+			$meta_query = array(
+								array(								
 									'key' => TennisEventCpt::PARENT_EVENT_META_KEY
 									,'compare' => 'NOT EXISTS'
 								)
