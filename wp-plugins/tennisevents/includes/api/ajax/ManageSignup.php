@@ -279,6 +279,7 @@ class ManageSignup
             $this->log->error_log("$loc: $mess");
             $bracket = $event->getBracket( $this->bracketName );
             $entrant = $bracket->getNamedEntrant( $oldName );
+            $oldSeed = empty($entrant->getSeed()) ? 0 : $entrant->getSeed();
             if( is_null( $entrant ) ) {
                 $mess = "No such entrant: '$oldName'";
                 $this->log->error_log($mess);
@@ -289,6 +290,8 @@ class ManageSignup
             }
             if( $seed > -1 ) {
                 $entrant->setSeed( $seed );
+                $newName = empty($newName) ? $oldName : $newName;
+                $mess    =  __("Update Entrant from '{$oldName}({$oldSeed})' to '{$newName}({$seed})'  succeeded.", TennisEvents::TEXT_DOMAIN );
             }
             $entrant->save();
             $this->signup = [];
