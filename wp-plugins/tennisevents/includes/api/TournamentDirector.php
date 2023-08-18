@@ -41,12 +41,12 @@ require_once( 'api-exceptions.php' );
 class TournamentDirector
 { 
 
-    public const MINIMUM_ENTRANTS = 7; //minimum for an elimination tournament
+    public const MINIMUM_ENTRANTS = 6; //minimum for an elimination tournament
     public const MAXIMUM_ENTRANTS = 128; //maximum for an elimination tournament 2**7
-    
-    public const MINIMUM_RR_ENTRANTS = 3; //minimum for a round robin tournament
+    public const MINIMUM_RR_ENTRANTS = 2; //minimum for a round robin tournament
 
     public const OPTION_MIN_PLAYERS_ELIM = 'gw_tennis_minimum_for_elimination';
+    public const OPTION_MIN_PLAYERS_RR   = 'gw_tennis_minimum_for_round_robin';
 
     private $numToEliminate = 0; //The number of players to eliminate to result in a power of 2
     private $numRounds = 0; //Total number of rounds for this tournament; calculated based on signup
@@ -82,6 +82,14 @@ class TournamentDirector
      */
     public static function getMinPlayersForElimination() : int {
         return (int)(get_option(TournamentDirector::OPTION_MIN_PLAYERS_ELIM, self::MINIMUM_ENTRANTS) ?? self::MINIMUM_ENTRANTS);
+    }
+
+    /**
+     * Get the minimum players required for a tournament using round robin format
+     * @return int minimum number required for a round robin tournament
+     */
+    public static function getMinPlayersForRoundRobin() : int {
+        return (int)(get_option(TournamentDirector::OPTION_MIN_PLAYERS_RR, self::MINIMUM_RR_ENTRANTS) ?? self::MINIMUM_RR_ENTRANTS);
     }
 
     public function __construct( Event $evt ) {
@@ -1160,7 +1168,7 @@ class TournamentDirector
         $bracketSignupSize = count( $entrants );
         //Check minimum entrants constraint
         if( $bracketSignupSize < $minplayers ) {
-            $mess = __( "Bracket must have at least $minplayers entrants for an elimination event. $bracketSignupSize entrants found.", TennisEvents::TEXT_DOMAIN );
+            $mess = __( "Bracket must have at least $minplayers entrants for an round robin event. $bracketSignupSize entrants found.", TennisEvents::TEXT_DOMAIN );
             throw new InvalidBracketException( $mess );
         }
         $this->log->error_log( "$loc: signup size=$bracketSignupSize" );
@@ -1187,12 +1195,12 @@ class TournamentDirector
         $matches = $this->getCombinations( $contestants );
         $matchesCreated = count( $matches );
 
-        shuffle( $matches ); //randomize again to prevent unfair assignment to rounds
-
         if( $matchesCreated !== $numMatches ) {
-            $this->log->error_log($matches, "$loc: Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.");
-            throw new InvalidTournamentException(__("Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.",TennisEvents::TEXT_DOMAIN ));
+            $this->log->error_log($matches, "$loc: Calculated number of matches={$numMatches} differs from matches created={$matchesCreated}.");
+            throw new InvalidTournamentException(__("Calculated number of matches={$numMatches} differs from matches created={$matchesCreated}.",TennisEvents::TEXT_DOMAIN ));
         }
+
+        shuffle( $matches ); //randomize again to prevent unfair assignment to rounds
 
         //$this->log->error_log( $matches, "$loc: Combinatorics Matches");
 
@@ -1471,12 +1479,14 @@ class TournamentDirector
      * @return array array of all arrays
      */
     private function getCombinations( $set, int $num=2 ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $combinatorics = new Math_Combinatorics;
         if( is_null( $set ) ) return array();
-        if( count($set) <= $num ) return array();
+        if( count($set) < $num ) return array();
 
         $combs = $combinatorics->combinations($set, $num);
+        $this->log->error_log($combs, "$loc: combinations:");
         return $combs;
     }
 

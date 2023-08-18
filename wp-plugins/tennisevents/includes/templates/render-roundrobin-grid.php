@@ -122,7 +122,7 @@ use datalayer\MatchStatus;
 
 <div class='bracketDrawButtons'>
 <?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
-    if( count( $loadedMatches ) > 1 ) {
+    if( count( $loadedMatches ) >= 1 ) {
     if( !$bracket->isApproved() ) { ?>
         <button class="button" type="button" id="approveDraw">Approve</button>
     <?php } ?>

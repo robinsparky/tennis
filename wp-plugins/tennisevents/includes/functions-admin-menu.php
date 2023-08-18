@@ -87,6 +87,13 @@ function gw_tennis_custom_settings() {
                       ,'description' => __('The minimum number of players needed for single elimination.', TennisEvents::TEXT_DOMAIN)]
                     );
 
+    register_setting( 'gw-tennis-settings-group' //Options group
+                    , TournamentDirector::OPTION_MIN_PLAYERS_RR //Option name used in get_option
+                    , ['type'=>'number'
+                    ,'sanitize_callback'=>'gw_sanitize_minium_players_rr'
+                    ,'description' => __('The minimum number of players needed for round robin.', TennisEvents::TEXT_DOMAIN)]
+                );
+
 
     add_settings_section( 'gw-tennis-options' //id
                         , __('Tennis Settings', TennisEvents::TEXT_DOMAIN) //title
@@ -120,8 +127,16 @@ function gw_tennis_custom_settings() {
                 );
          
     add_settings_field( 'gw_tennis_minimum_elim' // id
-                    , __('Minimum Players for Elimination', TennisEvents::TEXT_DOMAIN) // title
+                    , __('Min Players for Elimination', TennisEvents::TEXT_DOMAIN) // title
                     , 'gw_tennisMinElim' // callback
+                    , 'gwtennissettings' // page
+                    , 'gw-tennis-options' // section
+                    //,  array of args
+                ); 
+
+    add_settings_field( 'gw_tennis_minimum_rr' // id
+                    , __('Min Players for Round Robin', TennisEvents::TEXT_DOMAIN) // title
+                    , 'gw_tennisMinRR' // callback
                     , 'gwtennissettings' // page
                     , 'gw-tennis-options' // section
                     //,  array of args
@@ -159,9 +174,18 @@ function gw_tennisHistory() {
 
 function gw_tennisMinElim() {
     $maxPlayers = TournamentDirector::MAXIMUM_ENTRANTS;
+    $defaultMin = TournamentDirector::MINIMUM_ENTRANTS;
     $optName = TournamentDirector::OPTION_MIN_PLAYERS_ELIM;
     $minPlayers = TournamentDirector::getMinPlayersForElimination();
-    echo "<input id='{$optName}' name='{$optName}' type='number' value='{$minPlayers}' min='6' max='{$maxPlayers}' max= step='1' maxlength='4' size='4'>";
+    echo "<input id='{$optName}' name='{$optName}' type='number' value='{$minPlayers}' min='{$defaultMin}' max='{$maxPlayers}' max= step='1' maxlength='4' size='4'>";
+}
+
+function gw_tennisMinRR() {
+    $maxPlayers = TournamentDirector::MAXIMUM_ENTRANTS;
+    $defaultMin = TournamentDirector::MINIMUM_RR_ENTRANTS;
+    $optName = TournamentDirector::OPTION_MIN_PLAYERS_RR;
+    $minPlayers = TournamentDirector::getMinPlayersForRoundRobin();
+    echo "<input id='{$optName}' name='{$optName}' type='number' value='{$minPlayers}' min='{$defaultMin}' max='{$maxPlayers}' max= step='1' maxlength='4' size='4'>";
 }
 
 function gw_sanitize_clubId( $input ) {
@@ -258,19 +282,45 @@ function gw_sanitize_minium_players( $input ) {
         if( is_numeric( $input ) ) {
             $output = $input;
             $type = 'success';
-            $message = __('Tennis minimum players setting updated', TennisEvents::TEXT_DOMAIN );
+            $message = __('Tennis minimum elimination players setting updated', TennisEvents::TEXT_DOMAIN );
         }
         else {
             $type = 'error';
-            $message = __('Tennis minimum players setting must be numeric', TennisEvents::TEXT_DOMAIN );
+            $message = __('Tennis minimum elimination players setting must be numeric', TennisEvents::TEXT_DOMAIN );
         }
     }
     else {
         $type = 'error';
-        $message = __('Tennis minimum players must not be empty', TennisEvents::TEXT_DOMAIN );
+        $message = __('Tennis minimum elimination players must not be empty', TennisEvents::TEXT_DOMAIN );
     }
 
     add_settings_error('gw_tennisMinElim', esc_attr('main_tennis_min_players_updated'), $message, $type);
+
+    return $output;
+}
+
+function gw_sanitize_minium_players_rr( $input ) {
+    $message = null;
+    $type = null;
+    $output = TournamentDirector::MINIMUM_RR_ENTRANTS;
+
+    if( !is_null( $input ) ) {
+        if( is_numeric( $input ) ) {
+            $output = $input;
+            $type = 'success';
+            $message = __('Tennis minimum round robin players setting updated', TennisEvents::TEXT_DOMAIN );
+        }
+        else {
+            $type = 'error';
+            $message = __('Tennis minimum round robin players setting must be numeric', TennisEvents::TEXT_DOMAIN );
+        }
+    }
+    else {
+        $type = 'error';
+        $message = __('Tennis minimum round robin players must not be empty', TennisEvents::TEXT_DOMAIN );
+    }
+
+    add_settings_error('gw_tennisMinRR', esc_attr('main_tennis_min_rr_players_updated'), $message, $type);
 
     return $output;
 }
