@@ -128,13 +128,6 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
                 // Get the grid style attributes
                 $style = $this->getGridStyle($match->getRoundNumber(), $match->getMatchNumber());
 ?>
- <?php if($match->isBye()) { ?>
-    <div class="match item-player byematch" style="<?php echo $style?>; border: none;box-shadow: none;" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
-        data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
-    </div>
-<?php } 
-else {
-?>
 <div class="match item-player" style="<?php echo $style?>;" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
         data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-status="<?php echo $generalstatus?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
 <?php if($totalRounds === $roundNum ) { ?>
@@ -160,7 +153,6 @@ else {
     </article>
 </div>
 <?php
-}
     } catch( RuntimeException $ex ) {
         $this->log->error_log("$loc: encountered RuntimeException {$ex->getMessage()}");
         throw $ex;

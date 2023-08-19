@@ -41,7 +41,7 @@ require_once( 'api-exceptions.php' );
 class TournamentDirector
 { 
 
-    public const MINIMUM_ENTRANTS = 6; //minimum for an elimination tournament
+    public const MINIMUM_ENTRANTS = 5; //minimum for an elimination tournament
     public const MAXIMUM_ENTRANTS = 128; //maximum for an elimination tournament 2**7
     public const MINIMUM_RR_ENTRANTS = 2; //minimum for a round robin tournament
 
@@ -931,7 +931,7 @@ class TournamentDirector
         $bracketSignupSize = count( $entrants );
         //Check minimum entrants constraint
         if( $bracketSignupSize < $minPlayers ) {
-            $mess = __( "Bracket must have at least {$minplayers} entrants for an elimination event. {$bracketSignupSize} entrants found.", TennisEvents::TEXT_DOMAIN );
+            $mess = __( "Bracket must have at least {$minPlayers} entrants for an elimination event. {$bracketSignupSize} entrants found.", TennisEvents::TEXT_DOMAIN );
             throw new InvalidBracketException( $mess );
         }
         $this->log->error_log( "$loc: signup size={$bracketSignupSize}" );
