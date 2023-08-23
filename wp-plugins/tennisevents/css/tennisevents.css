@@ -763,18 +763,41 @@ div.modifymatchscores.save-cancel-buttons {
   background-color: blue;
   border: 1px solid white;
   list-style-type: none;
-  width: 60%;
+  min-width: 70%;
   position: absolute;
   top: 100%;
   left: 20%;
-  font-size: 1rem !important;
-  padding-left: 2px;
+  /*font-size: 1rem !important;*/
+  font-size:.700em !important;
+  padding-left: 1px;
+  padding-right: 1px;
   /*opacity: 0.7;*/
 }
 
 .matchaction > li {
   color: white;
+  display:inline-block;
+  position:relative;
 }
+
+.matchaction > li::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  transform: scaleX(0);
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: #0087ca;
+  transform-origin: bottom right;
+  transition: transform 0.25s ease-out;
+}
+
+.matchaction > li:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
 
 .matchaction > li > a {
   color: white !important;
