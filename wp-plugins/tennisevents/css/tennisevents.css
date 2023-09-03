@@ -763,11 +763,10 @@ div.modifymatchscores.save-cancel-buttons {
   background-color: blue;
   border: 1px solid white;
   list-style-type: none;
-  min-width: 70%;
+  max-width: 70%;
   position: absolute;
   top: 100%;
   left: 20%;
-  /*font-size: 1rem !important;*/
   font-size:.700em !important;
   padding-left: 1px;
   padding-right: 1px;
@@ -784,11 +783,11 @@ div.modifymatchscores.save-cancel-buttons {
   content: '';
   position: absolute;
   width: 100%;
-  transform: scaleX(0);
   height: 2px;
+  transform: scaleX(0);
   bottom: 0;
   left: 0;
-  background-color: #0087ca;
+  background-color: white;
   transform-origin: bottom right;
   transition: transform 0.25s ease-out;
 }
