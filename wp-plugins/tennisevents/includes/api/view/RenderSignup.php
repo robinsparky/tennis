@@ -181,7 +181,7 @@ class RenderSignup
         $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
         $out .= 'data-clubid="' . $this->clubId . '" data-bracketname="' . $bracketName . '">' . PHP_EOL;
         $out .= "<h2 class='tennis-signup-title'>${parentName}</h2>" . PHP_EOL;
-        $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;{$bracketName}</h3>" . PHP_EOL;
+        $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;&lsquo;{$bracketName} Bracket&rsquo;&nbsp;Sign Up Sheet</h3>" . PHP_EOL;
         $out .= '<ul class="eventSignup tennis-event-signup">' . PHP_EOL;
         
         $templr = <<<EOT
