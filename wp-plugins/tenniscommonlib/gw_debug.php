@@ -157,6 +157,7 @@ class GW_Debug {
     public static function get_debug_trace_Str( $frames = 2 ) {
         $trace = self::get_debug_trace( $frames + 1 );
         array_shift($trace); //remove the frame re this function call
+        array_shift($trace); //and one more time to remove the function just called
         $res = '***Debug Trace***' . PHP_EOL;
         $ctr = 0;
         foreach( $trace as $frame) {
@@ -175,6 +176,7 @@ class GW_Debug {
     public static function get_debug_trace_Htm( $frames = 2 ) {
         $trace = self::get_debug_trace( $frames + 1 );
         array_shift($trace); //remove the frame re this function call
+        array_shift($trace); //and one more time to remove the function just called
         $res = '<h2>***Debug Trace***</h2>' . PHP_EOL;
         $ctr = 0;
         foreach( $trace as $frame) {
