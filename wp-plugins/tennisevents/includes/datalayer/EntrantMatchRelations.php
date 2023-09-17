@@ -29,6 +29,7 @@ class EntrantMatchRelations {
 	 */
 	static function add( int $eventId, int $bracket, int $roundNum, int $matchNum, int $pos, $visitor = 0 ):int {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
+		error_log("$loc({$eventId},{$bracket},{$roundNum},{$matchNum},{$pos},{$visitor})");
 		
 		$result = 0;
 		global $wpdb;

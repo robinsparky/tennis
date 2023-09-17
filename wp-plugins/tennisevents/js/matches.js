@@ -234,8 +234,8 @@
       console.log(data);
       $("#advanceMatches").prop("disabled", false);
       let advanced = data.advanced || data;
-      if (typeof advanced === "number" && advanced >= 1) {
-        console.log(`${advanced} matches will be advanced.`);
+      if (typeof advanced === "number" && advanced > 0) {
+        console.log(`${advanced} players will be advanced.`);
         window.location.reload();
       }
     }
@@ -828,12 +828,12 @@
       // console.log(event.target);
       // console.log(event);
       let $parent = $(this).parents(".item-player");
-      //console.log($parent);
-      let majorStatus = $parent.attr("data-majorstatus");
-      let minorStatus = $parent.attr("data-minorstatus");
+      console.log($parent);
+      let majorStatus = parseInt($parent.attr("data-majorstatus"));
+      let minorStatus = parseInt($parent.attr("data-minorstatus"));
       console.log("major=%d, minor=%d", majorStatus, minorStatus);
 
-      if (tennis_draw_obj.isBracketApproved + 0 > 0) {
+      if (parseInt(tennis_draw_obj.isBracketApproved) > 0) {
         if (
           $(event.target).hasClass("menu-icon") ||
           $(event.target).hasClass("dots") ||
@@ -844,8 +844,7 @@
           $(event.target).hasClass("bar5")
         ) {
           if (
-            majorStatus == MajorStatus.Completed ||
-            majorStatus == MajorStatus.Retired
+            majorStatus == MajorStatus.Completed || majorStatus == MajorStatus.Retired
           ) {
             $(this).children(".matchaction.completed").show();
           } else {

@@ -371,6 +371,8 @@ class TournamentDirector
             throw new InvalidTournamentException( __( "Bracket has not been approved.", TennisEvents::TEXT_DOMAIN) );        
         }
 
+        //Get all matches for this bracket
+        // and don't fetch any more matches from this bracket until all saves are completed
         $matches = $bracket->getMatches();
         $umpire = $this->getChairUmpire();
         $lastRound = $this->getLastRoundNumber( $bracketName );
@@ -386,7 +388,8 @@ class TournamentDirector
             //     break;
             // }
 
-            $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextMatchNumber() );
+            //Get next match from the array of matches already fetched from the bracket
+            $nextMatch = $this->getMatch( $matches, $match->getNextRoundNumber(), $match->getNextMatchNumber() );
             if( is_null( $nextMatch ) && !$isLastRound ) {
                 //When the bracket is approved all matches from preliminary to the end of the 
                 // tournament are generated. So we should not have the case where a next match
@@ -399,7 +402,7 @@ class TournamentDirector
             $winner = null;
             if( $umpire->isLocked( $match, $winner ) ) {
 
-                if( is_null( $winner ) ) {
+                if( !($winner instanceof Entrant) ) {
                     $mess = "Match $title is locked but cannot determine winner.";
                     $this->log->error_log( $mess );
                     throw new InvalidTournamentException( $mess );
@@ -419,28 +422,52 @@ class TournamentDirector
                 
                 if( $nextMatch->isWaiting() ) {
                     if( $match->getMatchNumber() & 1 ) {
-                        $nextMatch->setHomeEntrant( $winner );
+                        $nextMatch->setHomeEntrant( $winner );               
+                        $this->log->error_log( sprintf( "%s --> Home entrant '%s' set in NEXT match %s"
+                                                      , $loc, $winner->getName(), $nextMatch->toString() ) );
                     }
                     else {
-                        $nextMatch->setVisitorEntrant( $winner );
+                        $nextMatch->setVisitorEntrant( $winner );        
+                        $this->log->error_log( sprintf( "%s --> Visitor entrant '%s' set in NEXT match %s"
+                                                      , $loc, $winner->getName(), $nextMatch->toString() ) );
                     }
-                    $nextMatch->save();
+                    $nextMatch->save(); //Save next match data
                     $bracket->setDirty();
                     $nextMatch->setIsBye( false );
-                    $numAdvanced += 0.5;                    
-                    $this->log->error_log( sprintf( "%s --> %d. Advanced winner %s of match %s to next match %s"
+                    $numAdvanced += 1;                    
+                    $this->log->error_log( sprintf( "%s --> %d advanced. Advanced winner '%s' of match %s to NEXT match %s"
                                                   , $loc, $numAdvanced, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
                 }
                 else {
-                    $this->log->error_log( sprintf( "%s. Did NOT advance winner %s of match %s to next match %s because it is NOT waiting."
-                                                  , $loc, $winner->getName(), $match->toString(), $nextMatch->toString() ) );
+                    $this->log->error_log( sprintf( "%s. Did NOT advance any players from match %s to NEXT match %s because next match is NOT waiting."
+                                                  , $loc, $match->toString(), $nextMatch->toString() ) );
                 }                
             }
         } //foreach
 
-        $this->save();
         return $numAdvanced;
     }
+
+    
+    /**
+     * Get a specific match from the given array of matches
+     * @param array $matches An array of matches
+	 * @param int $rndnum The round number
+	 * @param int $matchnum The match number
+	 * @return Match if successful, null otherwise
+     */
+	private function getMatch( array $matches, int $rndnum, int $matchnum ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+
+		$result = null;
+		foreach( $matches as $match ) {
+			if( $match->getRoundNumber() === $rndnum  && $match->getMatchNumber() === $matchnum ) {
+				$result = $match;
+                break;
+			}
+		}
+		return $result;
+	}
 
     /**
      * Get the name of the underlying Event

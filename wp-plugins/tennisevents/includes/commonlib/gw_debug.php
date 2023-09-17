@@ -12,7 +12,7 @@ class GW_Debug {
         global $wp;
         global $_REQUEST, $_SERVER, $_GET, $_POST;
         self::display_my_datetime('GW Debug Info');
-        $func = \get_query_var('gw_vars');
+        $func = get_query_var('gw_vars');
         //echo '<p>WP Version=' . $wp_version . '</p>';
         //echo '<p>DB Version=' . $wp_db_version . '</p>';
         //echo '<p>func=' . $func . '</p>';
@@ -125,7 +125,7 @@ class GW_Debug {
 			elseif(is_string($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $type_color\"$avar\"</span><br>";
 			elseif(is_float($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $type_color$avar</span><br>";
 			elseif(is_bool($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $type_color".($avar == 1 ? "TRUE":"FALSE")."</span><br>";
-			elseif(is_null($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>$type(0)</span> {$type_color}NULL</span><br>";
+			elseif(is_null($avar)) echo "$indent$var_name = <span style='color:#a2a2a2'>0</span> {$type_color}NULL</span><br>";
 			else echo "$indent$var_name = <span style='color:#a2a2a2'>$type(".strlen($avar).")</span> $avar<br>";
 
 			$var = $var[$keyvar];
@@ -157,6 +157,7 @@ class GW_Debug {
     public static function get_debug_trace_Str( $frames = 2 ) {
         $trace = self::get_debug_trace( $frames + 1 );
         array_shift($trace); //remove the frame re this function call
+        array_shift($trace); //and one more time to remove the function just called
         $res = '***Debug Trace***' . PHP_EOL;
         $ctr = 0;
         foreach( $trace as $frame) {
@@ -175,6 +176,7 @@ class GW_Debug {
     public static function get_debug_trace_Htm( $frames = 2 ) {
         $trace = self::get_debug_trace( $frames + 1 );
         array_shift($trace); //remove the frame re this function call
+        array_shift($trace); //and one more time to remove the function just called
         $res = '<h2>***Debug Trace***</h2>' . PHP_EOL;
         $ctr = 0;
         foreach( $trace as $frame) {

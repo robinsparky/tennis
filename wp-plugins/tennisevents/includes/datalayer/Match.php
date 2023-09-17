@@ -658,7 +658,7 @@ class Match extends AbstractData
      */
     public function getMatchTime_Str( int $formatNum = 1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log("$loc: {$this->title()}");
+        $this->log->error_log("$loc: {$this->toString()}");
 
         $format = self::$outtimeformat1;
         switch($formatNum) {
@@ -927,6 +927,7 @@ class Match extends AbstractData
     /**
      * Set the Home opponent for this match
      * @param Entrant $h The home entrant
+     * @return True if home entrant is set, False otherwise
      */
     public function setHomeEntrant( Entrant $h = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -947,6 +948,8 @@ class Match extends AbstractData
             $this->home = $h;
             $this->home_ID = $h->getPosition();
             $result = $this->setDirty();
+            $mess = "$loc:{$this->toString()} Set home entrant to '{$h->getName()}'.";
+            $this->log->error_log( $mess );
         }
         else {
             if( isset($existing) ) {
@@ -959,6 +962,8 @@ class Match extends AbstractData
                 $this->home = null;
                 $this->home_ID = 0;
                 $result = $this->setDirty();
+                $mess = "$loc:{$this->toString()} Removed visitor entrant.";
+                $this->log->error_log( $mess );
             }
         }
         return $result;
@@ -976,6 +981,7 @@ class Match extends AbstractData
     /**
      * Set the Visitor opponent for this match
      * @param $v The visitor entrant
+     * @return True if visitor is set, False otherwise
      */
     public function setVisitorEntrant( Entrant $v = null ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -996,6 +1002,8 @@ class Match extends AbstractData
             $this->visitor = $v;
             $this->visitor_ID = $v->getPosition();
             $result = $this->setDirty();
+            $mess = "$loc:{$this->toString()} Set visitor entrant to '{$v->getName()}'.";
+            $this->log->error_log( $mess );
         }
         else {
             if( isset($existing) ) {
@@ -1008,6 +1016,8 @@ class Match extends AbstractData
                 $this->visitor = null;
                 $this->visitor_ID = 0;
                 $result = $this->setDirty();
+                $mess = "$loc:{$this->toString()} Removed visitor entrant.";
+                $this->log->error_log( $mess );
             }
         }
         return $result;
@@ -1038,63 +1048,52 @@ class Match extends AbstractData
     public function isValid() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $mess = '';
+        /* Be careful that no db access is invoked during this function
+           For example, do not fetch entrants!
+         */
 
         $evtId = isset( $this->event_ID ) ? $this->event_ID : '???';
         $mn = $this->match_num;
         $rn = $this->round_num;
-        $home = $this->getHomeEntrant();
-        $hname = isset($home) ? $home->getName() : 'unknown';
-        $visitor = $this->getVisitorEntrant();
-        $vname = isset($visitor) ? $visitor->getName() : 'unknown';
-        $id = $this->title();
+        $id = $this->toString();
         $code = 0;
 
         if( !isset( $this->event_ID ) ) {
             $mess = __( "$id must have an event id." );
             $code = 500;
-            $this->log->error_log( $mess );
+            $this->log->error_log( "$loc: $mess" );
         } 
         elseif ( !$this->isNew() &&  (!isset( $this->bracket_num ) || $this->bracket_num === 0 ) ) {
             $mess = __( "$id must have a bracket number." );
             $code = 510;
-            $this->log->error_log( $mess );
+            $this->log->error_log( "$loc: $mess" );
         }
         elseif( !isset( $this->round_num ) ) {
             $mess = __( "$id must have a round number." );
             $code = 515;
-            $this->log->error_log( $mess );
+            $this->log->error_log( "$loc: $mess" );
         }
         elseif( !$this->isNew() && ( !isset( $this->match_num )  || $this->match_num === 0 ) ) {
              $mess = __( "Existing match $id must have a match number." );
              $code = 520;
-             $this->log->error_log( $mess );
+             $this->log->error_log( "$loc: $mess" );
         }
         elseif( !isset( $this->match_type ) ) {
             $mess = __( "$id must have a match type." );
             $code = 525;
-            $this->log->error_log( $mess );
+            $this->log->error_log( "$loc: $mess" );
         }
-        elseif( $this->round_num < 0 || $this->round_num > self::MAX_ROUNDS ) {
+        elseif( $this->round_num < 1 || $this->round_num > self::MAX_ROUNDS ) {
             $max = self::MAX_ROUNDS;
             $mess = __( "$id round number not between 1 and $max (inclusive)." );
             $code = 530;
-            $this->log->error_log( $mess );
-        }
-        elseif( $this->round_num === 0 && ( !isset( $this->home ) || !isset( $this->visitor ) ) ) {
-            $mess = __( "$id is a round 0 match and must have both home and visitor entrants." );
-            $code = 535;
-            $this->log->error_log( $mess );
-        }
-        elseif( $this->round_num === 1 && !isset( $this->home ) ) {
-            $mess = __( "$id is a round 1 match and must have at least a home entrant." );
-            $code = 540;
-            $this->log->error_log( $mess );
+            $this->log->error_log( "$loc: $mess" );
         }
 
         if( false === MatchType::isValid( $this->match_type ) ) {
             $mess = __( "{$id} - Match Type is invalid: {$this->match_type}", TennisEvents::TEXT_DOMAIN );
             $code = 560;
-            $this->log->error_log( $mess );
+            $this->log->error_log( "$loc: $mess" );
         }
 
         if( strlen( $mess ) > 0 ) throw new InvalidMatchException( $mess, $code );
@@ -1226,6 +1225,9 @@ class Match extends AbstractData
      */
     private function fetchEntrants() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        // $this->log->error_log("$loc({$this->toString()})");
+        $tr = GW_Debug::get_debug_trace_Str();$this->toString();
+        $this->log->error_log("$loc({$this->toString()}) trace: $tr" );
 
         $contestants = Entrant::find( $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num );
         switch( count( $contestants ) ) {
@@ -1236,10 +1238,14 @@ class Match extends AbstractData
                 $this->visitor_ID = null;
                 break;
             case 1:
-                $this->home = $contestants[0];
-                $this->home_ID = $this->home->getPosition();
-                $this->visitor = NULL;
-                $this->visitor_ID = NULL;
+                if( $contestants[0]->isVisitor() ) {
+                    $this->visitor = $contestants[0];
+                    $this->visitor_ID = $this->visitor->getPosition();
+                }
+                else {
+                    $this->home = $contestants[0];
+                    $this->home_ID = $this->home->getPosition();
+                }
                 break;
             case 2:
                 if( $contestants[0]->isVisitor() ) {
@@ -1339,6 +1345,7 @@ class Match extends AbstractData
 
 	protected function update() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc({$this->toString()})");
         
 		global $wpdb;
         parent::update();
