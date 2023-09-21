@@ -48,6 +48,9 @@ use datalayer\Format;
 				}
 
 			if($okToProceed) {
+				// Get template file
+				$path = TE()->getPluginPath() . 'includes\templates\controls\searchDialog.php';
+				$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
 				?>
 				<!-- tennis event schedule -->
 				<div class="tennis-event-schedule">
@@ -58,6 +61,9 @@ use datalayer\Format;
 				}
 				$bn = urlencode( $bracketName );
 				if( $mode === "signup" ) {
+					//Include the search button to find entrants
+					$buttonTitle="Search for Entrants"; $container="ul.eventSignup";$target=".entrantName";require( $path );
+
 					echo do_shortcode("[manage_signup eventid={$event->getID()} bracketname={$bn}]");
 					$drawUrl = get_permalink() . "?mode=draw&bracket=" . $bn . "&season={$season}";
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
@@ -65,6 +71,8 @@ use datalayer\Format;
 					echo "<div class='tennis-link-container'><a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Draw</a>&nbsp;";
 				}
 				elseif( $mode === "draw" ) {
+					//Include the search button to find players
+					$buttonTitle="Highlight Specific Players"; $container="#{$bn}";$target="td div";require( $path );
 					switch( $event->getFormat() ) {
 						case Format::ELIMINATION:
 							echo do_shortcode("[manage_draw by=match eventid={$event->getID()} bracketname={$bn}]");
@@ -86,7 +94,7 @@ use datalayer\Format;
 					echo "</div>";
 				}
 				else {
-					echo "<h1>WTF!</h1>";
+					echo "<h1>Whoops!</h1>";
 				}
 				?>
 				</div> <!-- /tennis event schedule -->
