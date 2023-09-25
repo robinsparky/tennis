@@ -385,6 +385,7 @@ class TennisEventCpt {
 			if (isset($_GET['tennis_season']) && !empty($_GET['tennis_season'])) {
 				$selected = $_GET['tennis_season'];
 			}
+			if(-1 === $selected) $selected = $currentYear;
 
 			$options[] = sprintf('<option value="-1">%1$s</option>', __('All Seasons', TennisEvents::TEXT_DOMAIN));
 			foreach ($seasons as $key => $value) {
@@ -421,8 +422,10 @@ class TennisEventCpt {
 			&& $_GET['tennis_season'] != ''
 			&& $_GET['tennis_season'] != '-1'
 		) {
+			$val = $_GET['tennis_season'];
+			if(empty($val)) $val = date('Y');
 			$query->query_vars['meta_key'] = '_tennis_season';
-			$query->query_vars['meta_value'] = $_GET['tennis_season'];
+			$query->query_vars['meta_value'] = $val;
 			$query->query_vars['meta_compare'] = '=';
 		}
 	}

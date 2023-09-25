@@ -72,7 +72,7 @@ use datalayer\Format;
 				}
 				elseif( $mode === "draw" ) {
 					//Include the search button to find players
-					$buttonTitle="Highlight Specific Players"; $container="#{$bn}";$target="td div";require( $path );
+					$buttonTitle="Find a Player"; $container="#{$bn}";$target=".homeentrant,.visitorentrant";require( $path );
 					switch( $event->getFormat() ) {
 						case Format::ELIMINATION:
 							echo do_shortcode("[manage_draw by=match eventid={$event->getID()} bracketname={$bn}]");

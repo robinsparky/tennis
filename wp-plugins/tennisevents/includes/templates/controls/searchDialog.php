@@ -1,21 +1,21 @@
 <?php
     //Button title
-    if(empty($buttonTitle)) $buttonTitle = "Find an Entrant";
+    if(empty($buttonTitle)) $buttonTitle = "Find Text";
 
     //Container in which to search
-    if(empty($container)) $container = "ul.eventSignup";
+    if(empty($container)) $container = "body";
    
     // Target class name containing the text to search
-    if(empty($target)) $target = ".entrantName";
+    if(empty($target)) $target = "*";
 ?>
 <style>
-/* The Search Dialog  */
+/* The Find/Search Dialog  */
 .searchDialog {
   display: none; /* Hidden by default */
-  position: absolute;
+  position: sticky;
   z-index: 999;
-  left: 0px;
-  top: 0px;
+  left: 0;
+  top: 0;
   width:400px;
   height:100px;
   overflow: auto; /* Enable scroll if needed */
@@ -24,7 +24,7 @@
   cursor: move;
 }
 
-/* The search text */
+/* The Find/Search text */
 .search-content {
     background-color: #fefefe;
     margin: 10% 5% 10% 5%;
@@ -35,7 +35,7 @@
     float: left;
 }
 
-/* The Close Button */
+/* The Search/Find Close Button */
 .searchDialogClose {
     color: white;
     margin-top: 2px;
@@ -56,93 +56,103 @@
 <script>
     var srchContainerSelector="<?php echo $container;?>"
     var srchTargetSelector="<?php echo $target;?>"
-    var buttonTitle = "<?php echo $buttonTitle;?>"
-    console.log(`Container:${srchContainerSelector} Target:${srchTargetSelector} title:${buttonTitle}`);
+    var srchButtonTitle = "<?php echo $buttonTitle;?>"
+    console.log(`Container:${srchContainerSelector} Target:${srchTargetSelector} title:${srchButtonTitle}`);
     var srchContainer
-    var searchDialogEl
+    var srchDialog
     var srchCandidates
+    //Open the search/find dialog
     function searchButtonClick(searchButton) {
         console.log("Search Dialog button fired!");
-        console.log(searchDialogEl)
-        //let searchDialogEl = document.querySelector(".searchDialog")
-        searchDialogEl.style.display="block"
+        srchDialog.style.display="block";
+        document.getElementById("search-text").focus({focusVisible: true, preventScroll: false })
 
-        let top = parseInt(searchButton.offsetTop) //- parseInt(searchButton.offsetHeight) * 4
-        let left = parseInt(searchButton.offsetLeft) + parseInt(searchButton.offsetWidth) * 2
-        let pos = { top: top, left: left };
-        console.log(pos);
-        searchDialogEl.style.top = `${top}px`
-        searchDialogEl.style.left = `${left}px`
+        let top = parseInt(searchButton.offsetTop) //- parseInt(searchButton.offsetHeight) * 1
+        let left = parseInt(searchButton.offsetLeft) //+ parseInt(searchButton.offsetWidth) * 1
+
+        srchDialog.style.top = `${top}px`
+        srchDialog.style.left = `${left}px`
     }
 
+    //Close the search/find dialog and remove highligts
     function searchClose() {
-        searchDialogEl.querySelector(".search-content").innerText="";
-        searchDialogEl.style.display = 'none';
+        srchDialog.querySelector(".search-content").innerText="";
+        srchDialog.style.display = 'none';
             srchCandidates.forEach(function(element,index,array) {
                 element.style.backgroundColor = '';
         })
     }
-  
-    function searchText(name) {
-        console.log("searchText(%s)", name);
-        //let $list = $(container).children(".entrantName")
 
-    }
-
+    //Action taken for mousemove event
     function onMouseDrag({ movementX, movementY }) {
-        //let searchDialogEl = document.querySelector(".searchDialog")
-        let getContainerStyle = window.getComputedStyle(searchDialogEl);
+        let getContainerStyle = window.getComputedStyle(srchDialog);
         let leftValue = parseInt(getContainerStyle.left);
         let topValue = parseInt(getContainerStyle.top);
-        searchDialogEl.style.left = `${leftValue + movementX}px`;
-        searchDialogEl.style.top = `${topValue + movementY}px`;
+        srchDialog.style.left = `${leftValue + movementX}px`;
+        srchDialog.style.top = `${topValue + movementY}px`;
     }
 
+    //Action taken on mousedown event
     document.addEventListener("mousedown", () => {
-        //let searchDialogEl = document.querySelector(".searchDialog")
-        searchDialogEl.addEventListener("mousemove", onMouseDrag);
+        srchDialog.addEventListener("mousemove", onMouseDrag);
     });
+    //Action taken on mouseup event
     document.addEventListener("mouseup", () => {
-        //let searchDialogEl = document.querySelector(".searchDialog")
-        searchDialogEl.removeEventListener("mousemove", onMouseDrag);
+        srchDialog.removeEventListener("mousemove", onMouseDrag);
     });
 
     /*
      * On Document Ready
     */
     document.addEventListener("DOMContentLoaded", function() {
-        searchDialogEl = document.querySelector(".searchDialog")
-        srchContainer = document.querySelector(srchContainerSelector)
+        srchDialog = document.querySelector(".searchDialog")
+        if(srchContainerSelector === "body") {
+            srchContainer = document;
+        }
+        else {
+            srchContainer = document.querySelector(srchContainerSelector)
+        }
         srchCandidates = srchContainer.querySelectorAll(srchTargetSelector)
-        console.log("Search Candidates:")
-        console.log(srchCandidates);
 
+        //Listen for search text input
         document.querySelector('.search-content').addEventListener('input', function(event){
             let srchText = event.target.innerText.replaceAll(/[\n\f\r\t]/g,'');
             if(srchText.length > 1 ) {
                 const regex = `.*${srchText}.*`;
-                console.log(`Input Event: search text=${srchText} regex=${regex}`)
-                let reobj = new RegExp(regex,"ig");
+                let reobj = new RegExp(regex,"i");
                 let textVal = "";
                 srchCandidates.forEach(function(element,index,array) {
                     if(element.tagName === 'INPUT') {textVal = element.value;}
                     else {textVal = element.innerText}
-                    //console.log(`textVal=${textVal}`)
 
-                    if(reobj.test(textVal)) {
-                        console.log(`Found ${srchText} in ${textVal}`)
+                    if(reobj.test(textVal)) {                        
+                        if(element.style.backgroundColor === undefined ) {
+                            element.setAttribute('tempColor', "")
+                        }
+                        else {
+                            element.setAttribute('tempColor', element.style.backgroundColor);
+                        }
                         element.style.backgroundColor='red'
+                        element.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
                     }
                     else {
-                        element.style.backgroundColor=''
+                        element.style.backgroundColor='';
+                        if(element.hasAttribute('tempColor')) {
+                            element.style.backgroundColor=element.getAttribute('tempColor');
+                            element.removeAttribute('tempColor')
+                        }
                     }
                 });
                 
             }
             else {
             srchCandidates.forEach(function(element,index,array) {
-                element.style.backgroundColor = '';
-        })
+                                    element.style.backgroundColor = '';
+                                    if(element.hasAttribute('tempColor')) {
+                                        element.style.backgroundColor=element.getAttribute('tempColor');
+                                        element.removeAttribute('tempColor')
+                                    }
+                                })
             }
         });
     }); 
