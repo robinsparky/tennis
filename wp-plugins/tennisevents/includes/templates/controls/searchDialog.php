@@ -9,6 +9,9 @@
     if(empty($target)) $target = "*";
 ?>
 <style>
+#searchDialogButton {
+    border-radius: 8px;
+}
 /* The Find/Search Dialog  */
 .searchDialog {
   display: none; /* Hidden by default */
@@ -57,13 +60,11 @@
     var srchContainerSelector="<?php echo $container;?>"
     var srchTargetSelector="<?php echo $target;?>"
     var srchButtonTitle = "<?php echo $buttonTitle;?>"
-    console.log(`Container:${srchContainerSelector} Target:${srchTargetSelector} title:${srchButtonTitle}`);
     var srchContainer
     var srchDialog
     var srchCandidates
     //Open the search/find dialog
     function searchButtonClick(searchButton) {
-        console.log("Search Dialog button fired!");
         srchDialog.style.display="block";
         document.getElementById("search-text").focus({focusVisible: true, preventScroll: false })
 
