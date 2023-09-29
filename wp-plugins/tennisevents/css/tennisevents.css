@@ -1077,6 +1077,22 @@ button.link-to-draw {
   background-color: yellow;
 }
 
+/*---------------------------------------------------------------------------------------------------------
+                      MEDIA QUERIES
+-------------------------------------------------------------------------------------------------------------*/
+/* Small screen response */
+@media screen and (width <= 534px) {
+  .drawgrid .match.item-player .homeentrant
+  , .drawgrid .match.item-player .visitorentrant
+  , .drawgrid .match.item-player .finalroundhdr
+  , .drawgrid .match.item-player .readonly_matchcomments  { 
+    font-size:x-small;
+  }
+  .tennis-event-signup>li>div.entrantName {
+    font-size: small;
+  }
+}
+
 /*------------------------------------------------------------------------------------
                           iPhone 2 3 4 4s
 -------------------------------------------------------------------------------------------------------------*/
