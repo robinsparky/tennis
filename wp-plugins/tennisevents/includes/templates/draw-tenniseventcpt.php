@@ -1,4 +1,5 @@
 <?php 
+use cpt\TennisEventCpt;
 use datalayer\Event;
 use datalayer\EventType;
 use datalayer\Bracket;
@@ -51,6 +52,7 @@ use datalayer\Format;
 				// Get template file
 				$path = TE()->getPluginPath() . 'includes\templates\controls\searchDialog.php';
 				$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+				$eventsUrl = get_post_type_archive_link( TennisEventCpt::CUSTOM_POST_TYPE ) . "?season={$season}";
 				?>
 				<!-- tennis event schedule -->
 				<div class="tennis-event-schedule">
@@ -69,6 +71,7 @@ use datalayer\Format;
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
 					//echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Draw</button></div>";
 					echo "<div class='tennis-link-container'><a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Draw</a>&nbsp;";
+					echo "<div><a class='link-to-events' href='{$eventsUrl}'>Event Descriptions</a>&nbsp;";
 				}
 				elseif( $mode === "draw" ) {
 					//Include the search button to find players
@@ -91,6 +94,7 @@ use datalayer\Format;
 							echo "<a class='link-to-draw' href='{$drawUrl}'>{$bracket->getName()}</a>&nbsp;";
 						}
 					}
+					echo "<div><a class='link-to-events' href='{$eventsUrl}'>Event Descriptions</a>&nbsp;";
 					echo "</div>";
 				}
 				else {

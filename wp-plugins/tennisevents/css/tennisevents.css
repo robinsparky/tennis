@@ -244,6 +244,14 @@ a.link-to-draw:nth-of-type(even) {
   color: black;
 }
 
+a.link-to-events {
+  color:black;
+  border: none;
+}
+
+a.link-to-events::before {
+  content: '🔗';
+}
 /*
 .tennis-leaf-event {
   border: 1px solid black;
