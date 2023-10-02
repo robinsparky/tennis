@@ -35,7 +35,7 @@ if(!empty($prevSeason)) {
 
 <!-- Page Content ---->
 <div class="page-content">	
-<h1>Season <?php echo $season; ?> </h1>
+<h1>Tennis Events for Season <?php echo $season; ?> </h1>
 <?php
 
 // Sidebar Alt 
