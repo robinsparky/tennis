@@ -11,6 +11,8 @@
 <style>
 #searchDialogButton {
     border-radius: 8px;
+    background-color: red;
+    color: white;
 }
 /* The Find/Search Dialog  */
 .searchDialog {
