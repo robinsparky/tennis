@@ -64,7 +64,7 @@ use datalayer\Format;
 				$bn = urlencode( $bracketName );
 				if( $mode === "signup" ) {
 					//Include the search button to find entrants
-					$buttonTitle="Search for Entrants"; $container="ul.eventSignup";$target=".entrantName";require( $path );
+					$buttonTitle="Find an Entrant"; $container="ul.eventSignup";$target=".entrantName";require( $path );
 
 					echo do_shortcode("[manage_signup eventid={$event->getID()} bracketname={$bn}]");
 					$drawUrl = get_permalink() . "?mode=draw&bracket=" . $bn . "&season={$season}";
