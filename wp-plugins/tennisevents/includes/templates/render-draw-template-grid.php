@@ -92,11 +92,24 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
                 $statusObj = $umpire->matchStatusEx( $match );
                 $majorStatus = $statusObj->getMajorStatus();
                 $minorStatus = $statusObj->getMinorStatus();
-                $generalstatus = $statusObj->toString();
+                $generalstatus = "";
                 
                 $startDate = $match->getMatchDate_Str();
                 $startTime = $match->getMatchTime_Str(2);
                 $startTimeVal = $match->getMatchTime_Str();
+                $startLabel = "Started:";
+                if($match->getMatchDateTime() > date_create()) {
+                    $startLabel = "Starts:";
+                }
+                $startDisplay="";
+                if(!empty($startDate)) {
+                    $startDisplay = "{$startLabel} {$startDate} {$startTime}";
+                }
+                else {
+                    $generalstatus = $statusObj->toString();
+                }
+
+
                 $matchScore = $umpire->strGetScores($match);
 
                 //Get the previous 2 matches that this one is based on
@@ -129,7 +142,7 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
                 $style = $this->getGridStyle($match->getRoundNumber(), $match->getMatchNumber());
 ?>
 <div class="match item-player" style="<?php echo $style?>;" data-eventid="<?php echo $eventId; ?>" data-bracketnum="<?php echo $bracketNum; ?>" data-roundnum="<?php echo $roundNum; ?>" data-matchnum="<?php echo $matchNum; ?>" 
-        data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-status="<?php echo $generalstatus?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
+        data-majorstatus="<?php echo $majorStatus; ?>"  data-minorstatus="<?php echo $minorStatus; ?>" data-startDate="<?php echo $startDisplay;?>" data-status="<?php echo $generalstatus?>" data-matchtitle="<?php echo $title?>" data-currentscore="<?php echo $matchScore;?>">
 <?php if($totalRounds === $roundNum ) { ?>
     <header class="finalroundhdr">Championship</header>
 <?php } ?>
@@ -139,7 +152,9 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
         <li><?php echo $firstMatchScores;?>
     </ul>
     </article>
+    <?php if(!empty($cmts)) { ?>
     <article class="readonly_matchcomments"><?php echo $cmts; ?></article>
+    <?php } ?>
 <?php if( $totalRounds === $roundNum && !empty($champion) ) { ?>
     <article class="championship_results">
         <?php echo "{$championName}<br>{$championScore}"; ?>        

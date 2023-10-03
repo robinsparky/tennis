@@ -115,6 +115,13 @@
   color:brown;
 }
 
+.match>article.readonly_matchstart {
+  margin: 0 auto 5px auto;
+  min-height: 10%;
+  font-size:smaller;
+  color:brown;
+}
+
 .match>article.championship_results {
   border: solid red 2px;
   margin: 0px auto 0px auto;
@@ -133,7 +140,7 @@ div.match[data-matchtitle]:not(.byematch) {
 
 div.match[data-matchtitle]:not(.byematch):hover::after,
 div.match[data-matchtitle]:not(.byematch):focus::after {
-  content: attr(data-matchtitle) ': ' attr(data-status);
+  content: attr(data-startDate)  attr(data-status);
   position: absolute;
   left: 10%;
   top: 30%;
