@@ -32,8 +32,8 @@ class ManageEvents
 { 
     public const HOME_CLUBID_OPTION_NAME = 'gw_tennis_home_club';
 
-    const ACTION    = 'manageTennisBrackets';
-    const NONCE     = 'manageTennisBrackets';
+    const ACTION    = 'manageTennisEvents';
+    const NONCE     = 'manageTennisEvents';
 
     private $eventId = 0;
     private $errobj = null;
