@@ -17,7 +17,7 @@ use api\view\RenderRoundRobin;
 use api\ajax\ManageSignup;
 use api\ajax\ManageDraw;
 use api\ajax\ManageRoundRobin;
-use api\ajax\ManageBrackets;
+use api\ajax\ManageEvents;
 use api\rest\TennisControllerManager;
 use special\PickleballSurvey;
 
@@ -270,7 +270,7 @@ class TennisEvents {
 		ManageRoundRobin::register();
 
 		//Bracket maintenance
-		ManageBrackets::register();
+		ManageEvents::register();
 
 		//NOTE: Should call addCaps to cover case where admin is added after activation
 

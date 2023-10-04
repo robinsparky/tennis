@@ -23,12 +23,12 @@ global $jsDataForTennisBrackets;
 /** 
  * Manage brackets by responding to ajax requests from template
  * with actions to manage the Events brackets such as add new bracket
- * @class  ManageBrackets
+ * @class  ManageEvents
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
 */
-class ManageBrackets
+class ManageEvents
 { 
     public const HOME_CLUBID_OPTION_NAME = 'gw_tennis_home_club';
 
