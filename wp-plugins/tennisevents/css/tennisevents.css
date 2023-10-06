@@ -385,6 +385,16 @@ hr.leaf-event-divider {
 .tennis-event-spacer {
   height: 10px;
 }
+.scoreruleslist {
+  display:block;
+  text-align: left;
+  background-color: beige;
+}
+.scorerulename {
+  display:none;
+  list-style-type: none;
+
+}
 /*------------------------------------------------------------------------------------
  * Elimination Draw Styling
  *-----------------------------------------------------------------------------------*/

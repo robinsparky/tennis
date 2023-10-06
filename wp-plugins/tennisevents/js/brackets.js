@@ -75,31 +75,6 @@
             
             return false;
         }
-        
-        function storageAvailable(type) {
-            var storage;
-            try {
-                storage = window[type];
-                var x = '__storage_test__';
-                storage.setItem(x, x);
-                storage.removeItem(x);
-                return true;
-            }
-            catch(e) {
-                return e instanceof DOMException && (
-                    // everything except Firefox
-                    e.code === 22 ||
-                    // Firefox
-                    e.code === 1014 ||
-                    // test name field too, because code might not be present
-                    // everything except Firefox
-                    e.name === 'QuotaExceededError' ||
-                    // Firefox
-                    e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
-                    // acknowledge QuotaExceededError only if there's something already stored
-                    (storage && storage.length !== 0);
-            }
-        }
 
         /**
          * Apply the response from an ajax call to the elements of the page
@@ -108,49 +83,63 @@
          */
         function applyResults( data ) {
             data = data || [];
+            let task = "";
             console.log("Apply results:");
             console.log( data );
             if( $.isArray(data) ) {
                 console.log("Data is an array");
-                let task = data['task'];
-                switch(task) {
-                    case 'editname':
-                        updateBracketName( data );
-                        break;
-                    case 'addbracket':
-                        addBracket( data );
-                        break;
-                    case 'preparenextmonth':
-                        reloadWindow( data );
-                        break;
-                    default:
-                        console.log("Unknown task from server: '%s'", task);
-                        break;
-                }
+                task = data['task'];
+                console.log(`---------Task is ${task}----------`)
             }
             else if( isString( data )) {
                 console.log("Data is a string ... so doing nothing!");
+                return;
             }
             else {
                 console.log("Data is an object");
-                let task = data.task;
-                switch(task) {
-                    case 'editname':
-                        updateBracketName( data );
-                        break;
-                    case 'addbracket':
-                        addBracket( data );
-                        break;
-                    case 'removebracket':
-                        hideBracket( data );
-                        break;
-                    case 'preparenextmonth':
-                        reloadWindow( data ); 
-                        break;
-                    default:
-                        console.log("Unknown task from server: '%s'", task);
-                        break;
-                }
+                task = data.task;
+                console.log(`---------Task is ${task}----------`)
+            }
+            switch(task) {
+                case 'editname':
+                    updateBracketName( data );
+                    break;
+                case 'addbracket':
+                    addBracket( data );
+                    break;
+                case 'preparenextmonth':
+                    reloadWindow( data );
+                    break;
+                case 'modifygender':
+                    updateGenderType( data )
+                    break;
+                case 'modifyminage':
+                    updateMinAge( data )
+                    break;
+                case 'modifymaxage':
+                    updateMaxAge( data )
+                    break;
+                case 'modifymatchtype':
+                    updateMatchType( data )
+                    break;
+                case 'modifyformat':
+                    updateEventFormat( data )
+                    break;
+                case 'modifyscorerule':
+                    updateScoreType( data )
+                    break;
+                case 'modifysignupby':
+                    updateSignupBy( data )
+                    break;
+                case 'modifystartdate':
+                    updateStartDate( data )
+                    break;
+                case 'modifyenddate':
+                    updateEndDate( data )
+                    break;
+                default:
+                    console.log("Unknown task from server: '%s'", task);
+                    break;
             }
         }
 
@@ -275,6 +264,103 @@
             return newName;
         }
 
+        /**
+         * Get all of the attributes of a leaf event. i.e. An event to which brackets are attached.
+         * @param {*} el 
+         * @returns Object with properties of a leaf event
+         */
+        function getLeafEventData( el ) {
+            let $parent = $(el).closest('.tennis-event-meta');
+            if( $parent.length == 0) return {};
+            
+            let evtId = $parent.attr('id')
+            let postId = $parent.attr('data-postid');
+            let gender = $parent.find('.gender_selector option:selected').val();
+            let minAge = $parent.find('.min_age_input').val();
+            let maxAge = $parent.find('.max_age_input').val();
+            let signupBy = $parent.find('.signup_by_input').val();
+            let startDate = $parent.find('.start_date_input').val();
+            let endDate = $parent.find('.end_date_input').val();
+            let format = $parent.find('.format_selector option:selected').val();
+            let scoreRule = $parent.find('.score_rules_selector option:selected').val();
+            let matchType = $parent.find('.match_type_selector option:selected').val();
+            let data = {"eventId":evtId
+                        ,"postId": postId
+                        ,"gender": gender
+                        ,"minAge": minAge
+                        ,"maxAge": maxAge
+                        ,"signupBy": signupBy
+                        ,"startDate": startDate
+                        ,"endDate": endDate
+                        ,"format": format
+                        ,"matchType": matchType
+                        ,"scoreRule": scoreRule
+                        }
+            console.log(data)
+            return data;
+        }
+
+        //Update the min age
+        function updateMinAge( data ) {
+            console.log('updateMinAge')
+            console.log(data)
+
+        }
+
+        //Update the max age
+        function updateMaxAge( data ) {
+            console.log('updateMaxAge')
+            console.log(data)
+            $parent = $(`table#${data.eventId}`)
+            $el = $parent.find('.max_age_input')
+            origVal = $el.attr('data-origval')
+            console.log(`updateMaxAge orig val=${origVal}`)
+        }
+
+        //Update the Gender Type
+        function updateGenderType( data ) {
+            console.log('updateGenderType')
+            console.log(data)
+
+        }
+
+        //Update the Event Format
+        function updateEventFormat( data ) {
+            console.log('updateEventFormat')
+            console.log(data)
+
+        }
+
+        //Update the match type
+        function updateMatchType( data ) {
+            console.log('updateMatchType')
+            console.log(data)
+
+        }
+
+        //Update the date fields depending on the value of signBy
+        function updateSignupBy( data ) {
+            console.log('updateSignupBy')
+            console.log(data)
+        }
+
+        //Update the date fields depending on the value of startDate
+        function updateStartDate( data ) {
+            console.log('updateStartDate')
+            console.log(data) 
+        }
+
+        //Update the date fields depending on the value of endDate
+        function updateEndDate( data ) {
+            console.log('updateEndDate')
+            console.log(data)            
+        }
+
+        function updateScoreType( data ) {
+            console.log('updateScoreType')
+            console.log(data)
+        }
+
         function enableDeleteButton(){
             $('.remove-bracket').hover( function(event) {
                 $(this).css('cursor','pointer');
@@ -322,16 +408,198 @@
                 $(event.target).trigger('change');
             }
         }
-        
-        /* ------------------------------User Actions ---------------------------------*/
 
+        //Change Score Rule
+        const onChangeScoreRule = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`score rules change detected: ${newVal} with postIt=${postIt}`)
+            const cssrule1 = "div.scoreruleslist";
+            const $siblingList = $(event.target).siblings(cssrule1)
+            $siblingList.children().css("display","none")
+            const cssrule2 = `ul.${newVal}`;
+            const $childRule = $siblingList.children(cssrule2)
+            $childRule.css('display','block')
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifyscorerule"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "scoreType": newVal } );
+            }
+        }
+        
+        //Change Gender
+        const onChangeGender = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`gender change detected: ${newVal} with post=${postIt}`)
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifygender"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "gender": newVal } );
+            }
+        }
+        
+        //Change Gender
+        const onChangeMatchType = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`Match type change detected: ${newVal} with post=${postIt}`)
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifymatchtype"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "matchType": newVal } );
+            }
+        }
+
+        //Change Format
+        const onChangeFormat = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`Format change detected: ${newVal} with post=${postIt}`)
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifyformat"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "eventFormat": newVal } );
+            }
+        }
+
+        //Change Min Age
+        const onChangeMinAge = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`Min Age change detected: ${newVal} with post=${postIt}`)
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifyminage"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "minAge": newVal } );
+            }
+        }
+
+        //Change Max Age
+        const onChangeMaxAge = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`Max Age change detected: ${newVal} with post=${postIt}`)
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifymaxage"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "maxAge": newVal } );
+            }
+        }
+
+        //Change Signup By date
+        const onChangeSignupBy = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`Signup By change detected: ${newVal} with post=${postIt}`)
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifysignupby"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "startDate": data.startDate
+                        , "endDate": data.endDate
+                        , "signupBy": newVal } );
+            }
+        }
+        
+        //Change Start Date
+        const onChangeStartDate = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`Start Date change detected: ${newVal} with post=${postIt}`)
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifystartdate"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "signupBy": data.signupBy
+                        , "endDate": data.endDate
+                        , "startDate": newVal } );
+            }
+        }
+
+        //Change End Date
+        const onChangeEndDate = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`End Date change detected: ${newVal} with post=${postIt}`)
+            let data = getLeafEventData(event.target)
+            if(postIt === true) {
+                console.log("Posting change!")
+                ajaxFun( {"task": "modifyenddate"
+                        , "eventId": data.eventId
+                        , "postId": data.postId
+                        , "signupBy": data.signupBy
+                        , "startDate": data.startDate
+                        , "endDate": newVal } );
+            }
+        }
+
+        /**
+        * ----------------------------------User Actions ------------------------------------------------------
+        */
          $('span.bracket-name').on('change', onChange);
          $('span.bracket-name').on('focus', onFocus);
          $('span.bracket-name').on('blur', onBlur);
+        
+         //OnChange the Gender
+        $(".gender_selector").on("change", function(event) {
+            onChangeGender(event);
+        });
 
-        /**
-         * Add a new bracket
-         */
+        //On Change the Match Type     
+        $(".match_type_selector").on("change", function(event) {
+            onChangeMatchType(event);
+        });
+
+        //On Change the Format      
+        $(".format_selector").on("change", function(event) {
+            onChangeFormat(event);
+        });
+
+        //On Change the Min Age      
+        $(".min_age_input").on("change", function(event) {
+            onChangeMinAge(event);
+        });
+
+        //On Change the Max Age     
+        $(".max_age_input").on("change", function(event) {
+            onChangeMaxAge(event);
+        });
+        
+        //On Change the Sign Up By date      
+        $(".signup_by_input").on("change", function(event) {
+            onChangeSignupBy(event);
+        });
+
+        //On Change the Start Date      
+        $(".start_date_input").on("change", function(event) {
+             onChangeStartDate(event);
+        });
+ 
+        //On Change the End Date    
+        $(".end_date_input").on("change", function(event) {
+              onChangeEndDate(event);
+        });
+        
+        //On Change the score type 
+        $(".score_rules_selector").on("change", function(event) {
+            onChangeScoreRule(event);
+        });
+
+        //On Add a new bracket
         $('.tennis-add-bracket').on('click', function (event) {
             console.log("add bracket");
             console.log(event.target);
@@ -348,11 +616,7 @@
                     , "bracketName": newName } );
         });
 
-        enableDeleteButton();
-
-        /**
-         * Remove a bracket
-         */
+        //On Remove a bracket
         $('.tennis-event-brackets').on('click', '.remove-bracket', function (event) {
             console.log("remove bracket");
             console.log(this);
@@ -369,9 +633,7 @@
             }
         });
         
-        /**
-         * Remove a bracket
-         */
+        //On click to Copy an event
          $('.tennis-parent-event').on('click', '.tennis-ladder-next-month', function (event) {
             console.log("copy event");
             console.log(this);
@@ -385,7 +647,33 @@
         });
 
         /**
-         * The following creates JQuery tabs based on parent events
+         * ------------------------------One time set up actions----------------------------------------------------
+         */
+
+        //Enable the delete button
+        enableDeleteButton();
+
+        //Show the details of the current Score Type
+        const $fixedScoreRules =  $('.score_rules_text');
+        $.each($fixedScoreRules, function(index, obj) {
+            let evt = new Object;
+            evt.target=obj;
+            evt.target.value = obj.dataset.scoretype;
+            onChangeScoreRule(evt, false)
+        })
+        
+        //Show the details of the currently selected Score Type
+        const $selectedScoreRules = $('.score_rules_selector option:selected')
+        $.each($selectedScoreRules, function(index, obj) {
+            let evt = new Object;
+            evt.target=obj.parentElement;
+            evt.target.value = obj.value;
+            onChangeScoreRule(evt, false)
+        })
+        
+
+        /**
+         * -----------------------The following creates JQuery tabs based on parent events------------------------------
          */
         let $parentEvents = $('.tennis-parent-event');
         $("#tabs").prepend(`<ul class="tennis-event-tabs"></ul>`);

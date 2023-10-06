@@ -14,6 +14,8 @@ use datalayer\Club;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidEventException;
 use cpt\TennisEventCpt;
+use InvalidArgumentException;
+use RuntimeException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -146,8 +148,23 @@ class ManageEvents
                 $mess = $this->prepareLadderNextMonth( $data );
                 $returnData = $data;
                 break;
+            case 'modifyminage':
+            case 'modifymaxage':
+            case 'modifysignupby':
+            case 'modifystartdate':
+            case 'modifyenddate':
+                $mess = $this->updateSimpleAttribute( $data );
+                $returnData = $data;
+                break;
+            case 'modifygender':
+            case 'modifymatchtype':
+            case 'modifyformat':
+            case 'modifyscorerule':
+                $mess = $this->updateDrawAttributes( $data );
+                $returnData = $data;
+                break;
             default:
-                $mess =  __( 'Illegal Bracket task.', TennisEvents::TEXT_DOMAIN );
+                $mess =  __( 'Illegal Event task.', TennisEvents::TEXT_DOMAIN );
                 $this->errobj->add( $this->errcode++, $mess );
         }
 
@@ -160,10 +177,142 @@ class ManageEvents
 
         //Send the response
         wp_send_json_success( $response );
-    
-        wp_die(); // All ajax handlers die when finished
+
+        // All ajax handlers die when finished
+        wp_die(); 
+    }
+
+    /**
+     * Update simple attributes which do not affect the draw   
+     * @param array $data A reference to a dictionary containing data for update
+     * @return string A message describing success or failure
+     */
+    private function updateSimpleAttribute( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+
+        $postId =  $data['postId'];
+        $eventId = $data['eventId'];
+        $task = $data['task'];
+        $mess = "";
+        try {
+            $event = Event::get($eventId);
+            switch($task) {
+                case 'modifyminage':
+                    $minAge = $data['minAge'];
+                    if(!$event->setMinAge((int)$minAge)) throw new InvalidArgumentException(__("Illegal min age '{$minAge}'", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta( $postId, TennisEventCpt::AGE_MIN_META_KEY, $minAge );
+                    $mess = __("Successfully updated the min age",TennisEvents::TEXT_DOMAIN);
+                    break;
+                case 'modifymaxage':
+                    $maxAge = $data['maxAge'];
+                    if(!$event->setMaxAge((int)$maxAge)) throw new InvalidArgumentException(__("Illegal max age '{$maxAge}'", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta( $postId, TennisEventCpt::AGE_MAX_META_KEY, $maxAge );
+                    $mess = __("Successfully updated the max age", TennisEvents::TEXT_DOMAIN);
+                    break;
+                case 'modifysignupby':
+                    $signupBy = $data['signupBy'];
+                    if(!$event->setSignupBy($signupBy)) throw new InvalidArgumentException(__("Illegal signup by '{$signupBy}'", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta( $postId, TennisEventCpt::SIGNUP_BY_DATE_META_KEY, $signupBy );
+                    $mess = __("Successfully updated signup by", TennisEvents::TEXT_DOMAIN);
+                    break;
+                case 'modifystartdate':
+                    $startDate = $data['startDate'];
+                    if(!$event->setStartDate($startDate)) throw new InvalidArgumentException(__("Illegal start date '{$startDate}'", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta( $postId, TennisEventCpt::START_DATE_META_KEY, $startDate );
+                    $mess = __("Successfully updated the start date", TennisEvents::TEXT_DOMAIN);
+                    break;
+                case 'modifyenddate':
+                    $endDate = $data['endDate'];
+                    if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}' for {$loc}", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta($postId, TennisEventCpt::END_DATE_META_KEY, $endDate);
+                    $mess = __("Successfully updated the end date", TennisEvents::TEXT_DOMAIN);
+                    break;
+                default:
+                throw new InvalidArgumentException(__("Illegal task '{$task}' for {$loc}", TennisEvents::TEXT_DOMAIN));
+            }
+            $event->save();
+        } 
+        catch (Exception | InvalidArgumentException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
     }
     
+    /**
+     * Update the the charactistics of the event that affect the draw     
+     * @param array $data A reference to a dictionary containing data for update
+     * @return string A message describing success or failure
+     */
+    private function updateDrawAttributes( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+
+        $postId = $data['postId'];
+        $eventId = $data['eventId'];
+        $task = $data['task'];
+        $mess = "";
+        try {
+            if( !current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+                throw new RuntimeException(__("Unauthorized for this operation.", TennisEvents::TEXT_DOMAIN ) );
+            }
+
+            //TODO: nonces??
+            $event = Event::get($eventId);
+            $td = new TournamentDirector( $event );
+            $brackets = $td->getBrackets();
+
+            //All Brackets must not be approved and must not have started
+            foreach( $brackets as $bracket ) {
+                if( $bracket->isApproved() ) {
+                    throw new InvalidEventException( __("Cannot modify event because at least one bracket is approved.", TennisEvents::TEXT_DOMAIN ) );
+                }
+        
+                //Cannot schedule preliminary rounds if matches have already started
+                if( 0 < $td->hasStarted( $bracket->getName() ) ) {
+                    throw new InvalidEventException( __('Cannot modify event because play as already started in at least one bracket.') );
+                }
+            }
+
+            //Now update the field
+            switch($task) {
+                case 'modifygender':
+                    $gender = $data['gender'];
+                    if( !$event->setGenderType($gender)) throw new InvalidArgumentException(__("Illegal gender '{$gender}'", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta( $postId, TennisEventCpt::GENDER_TYPE_META_KEY, $gender );
+                    $mess = __("Successfully updated gender",TennisEvents::TEXT_DOMAIN);
+                    break;
+                case 'modifymatchtype':
+                    $matchType = $data['matchType'];
+                    if(!$event->setMatchType($matchType)) throw new InvalidArgumentException(__("Illegal match type '{$matchType}'", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta( $postId, TennisEventCpt::MATCH_TYPE_META_KEY, $matchType );
+                    $mess = __("Successfully updated match type",TennisEvents::TEXT_DOMAIN);
+                    break;
+                case 'modifyformat':
+                    $eventFormat = $data['eventFormat'];
+                    if(!$event->setFormat($eventFormat)) throw new InvalidArgumentException(__("Illegal format '{$eventFormat}'", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta($postId, TennisEventCpt::EVENT_FORMAT_META_KEY, $eventFormat);
+                    $mess = __("Successfully updated the format",TennisEvents::TEXT_DOMAIN);
+                    break;
+                case 'modifyscorerule':
+                    $scoreType = $data['scoreType'];
+                    if(!$event->setScoreType($scoreType)) throw new InvalidArgumentException(__("Illegal score rule '{$scoreType}'", TennisEvents::TEXT_DOMAIN));
+                    update_post_meta( $postId, TennisEventCpt::SCORE_TYPE_META_KEY, $scoreType );
+                    $mess = __("Successfully updated the score type",TennisEvents::TEXT_DOMAIN);
+                    break;
+                default:
+                throw new InvalidArgumentException(__("Illegal task '{$task}' for {$loc}", TennisEvents::TEXT_DOMAIN));
+            }
+            $event->save();
+        } 
+        catch (Exception | InvalidEventException | InvalidArgumentException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    }
+
     /**
      * Change and existing bracket's name
      */
