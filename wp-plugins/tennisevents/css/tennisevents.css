@@ -192,6 +192,32 @@ div.match[data-matchtitle]:not(.byematch):focus::after {
   color: white;
 }
 
+button.tennis-add-event {
+  max-width: 175px;
+  max-height: 50px;
+  background-color: gray;
+  color: white;
+  margin-left: 10px;
+  margin-top: 2px;
+  padding: 10px 16px 10px 16px;
+  border-left-color: black;
+  border-left-style: solid;
+  border-left-width: 1px;
+  border-right-color: black;
+  border-right-style: solid;
+  border-right-width: 1px;
+  border-top-color: black;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  border-bottom-color: black;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+}
+
 .tennis-parent-event-title {
   display: none;
 }
@@ -269,6 +295,14 @@ h3.tennis-leaf-event-title {
   margin: 0 0 0 0;
 }
 
+h3.tennis-leaf-event-title[contenteditable] {
+  font-weight: normal;
+  border: 1px solid grey;
+  border-radius: 5px;
+  font-style: italic;
+  /*box-shadow: 8px 8px grey;*/
+}
+
 .tennis-event-meta {
   text-decoration: none;
   list-style: none;
@@ -326,28 +360,20 @@ h3.tennis-leaf-event-title {
   color: red;
 }
 
-button.tennis-add-bracket {
-  max-width: 175px;
-  max-height: 50px;
-  color: white;
-  background-color: black;
-  border-left-color: black;
-  border-left-style: solid;
-  border-left-width: 1px;
-  border-right-color: black;
-  border-right-style: solid;
-  border-right-width: 1px;
-  border-top-color: black;
-  border-top-style: solid;
-  border-top-width: 1px;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-  border-bottom-left-radius: 5px;
-  border-bottom-right-radius: 5px;
-  border-bottom-color: black;
-  border-bottom-style: solid;
-  border-bottom-width: 1px;
+.tennis-add-bracket {
+  margin: 0 0 0 0;
+  color: black;
+  text-decoration: underline;
+  margin-left: 30% !important;
 }
+
+.tennis-add-bracket:hover {
+  cursor:pointer;
+  color: red;
+  font-style: italic;
+  text-decoration: underline;
+}
+
 
 button.tennis-ladder-next-month {
   max-width: 280px;

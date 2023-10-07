@@ -148,6 +148,10 @@ class ManageEvents
                 $mess = $this->prepareLadderNextMonth( $data );
                 $returnData = $data;
                 break;
+            case 'modifyeventtitle':
+                $mess = $this->updateEventName( $data );
+                $returnData = $data;
+                break;
             case 'modifyminage':
             case 'modifymaxage':
             case 'modifysignupby':
@@ -180,6 +184,45 @@ class ManageEvents
 
         // All ajax handlers die when finished
         wp_die(); 
+    }
+    
+    /**
+     * Update the Event name and the associated custom post's title
+     * NOTE: Not modifying the post's slug at this time 
+     * @param array $data A reference to a dictionary containing data for update
+     * @return string A message describing success or failure
+     */
+    private function updateEventName( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+
+        $postId =  $data['postId'];
+        $eventId = $data['eventId'];
+        $task = $data['task'];
+        $mess = "";
+        try {
+            $event = Event::get($eventId);
+            $data['newTitle'] = htmlspecialchars(strip_tags($data['newTitle']));
+            $newTitle = $data['newTitle'];
+            $oldTitle = strip_tags($data['oldTitle']);
+            if(!$event->setName($newTitle)) throw new InvalidArgumentException(__("Could not change event name from '{$oldTitle}' to '{$newTitle}'", TennisEvents::TEXT_DOMAIN));
+            $postData = array('ID'=>$postId, 'post_title'=>$newTitle);
+            wp_update_post($postData);
+            if (is_wp_error($postId)) {
+                $errors = $postId->get_error_messages();
+                foreach ($errors as $error) {
+                    $this->log->error_log($error, $loc);
+                    throw new InvalidArgumentException($error->getMessage());
+                }
+            }
+            $event->save();
+            $mess = __("Successfully modified '{$oldTitle}' to '{$newTitle}'",TennisEvents::TEXT_DOMAIN);
+        } 
+        catch (Exception | InvalidArgumentException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
     }
 
     /**
@@ -265,13 +308,8 @@ class ManageEvents
 
             //All Brackets must not be approved and must not have started
             foreach( $brackets as $bracket ) {
-                if( $bracket->isApproved() ) {
-                    throw new InvalidEventException( __("Cannot modify event because at least one bracket is approved.", TennisEvents::TEXT_DOMAIN ) );
-                }
-        
-                //Cannot schedule preliminary rounds if matches have already started
-                if( 0 < $td->hasStarted( $bracket->getName() ) ) {
-                    throw new InvalidEventException( __('Cannot modify event because play as already started in at least one bracket.') );
+                if($bracket->isApproved() || (0 < $td->hasStarted( $bracket->getName()) ) ) {
+                    throw new InvalidEventException( __('Cannot modify the event because at least one draw is published.') );
                 }
             }
 
@@ -321,9 +359,9 @@ class ManageEvents
         $this->log->error_log($data,"$loc: data...");
 
         $eventId = $data["eventId"];
-        $newBracketName   = strip_tags( htmlspecialchars( $data["bracketName"] ));
-        $oldBracketName   = strip_tags( htmlspecialchars( $data['oldBracketName'] ));
-        $bracketNum    = $data["bracketNum"];
+        $newBracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
+        $oldBracketName = strip_tags( htmlspecialchars( $data['oldBracketName'] ));
+        $bracketNum = $data["bracketNum"];
         $mess = "";
         try {
             $event = Event::get( $eventId );
@@ -368,7 +406,7 @@ class ManageEvents
             $data["signuplink"] = $td->getPermaLink() . "?mode=signup&bracket={$bracket->getName()}";
             $data["drawlink"]   = $td->getPermaLink() . "?mode=draw&bracket={$bracket->getName()}";
 
-            $mess = "Added bracket '{$newBracketName}' (with number='{$bracket->getBracketNumber()}')";
+            $mess = "Successfully Added bracket '{$newBracketName}' (bracket number '{$bracket->getBracketNumber()}')";
         } 
         catch (Exception | InvalidBracketException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -389,6 +427,13 @@ class ManageEvents
         $bracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
         $event = Event::get( $eventId );
         try {
+            $event = Event::get( $eventId );
+            $td = new TournamentDirector( $event );
+            $bracket = $td->getBracket( $bracketNum );
+            //Cannot schedule preliminary rounds if matches have already started
+            if($bracket->isApproved() || (0 < $td->hasStarted( $bracket->getName()) ) ) {
+                throw new InvalidEventException( __('Cannot remove the bracket because the draw is published.') );
+            }
             $event = Event::get( $eventId );
             $td = new TournamentDirector( $event );
             $td->removeBracket( $bracketName );

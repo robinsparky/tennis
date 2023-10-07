@@ -18,6 +18,8 @@ use datalayer\GenderType;
 	<li><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
 	<?php if( $eventTypeRaw === EventType::LADDER && $support->userIsTournamentDirector()) : ?>
 		<li><button type="button" class="button tennis-ladder-next-month">Prepare Next Month</button> </li>
+	<?php else: ?>
+		<button class="tennis-add-event leaf"><?php echo __("New Tournament",TennisEvents::TEXT_DOMAIN);?></button>
 	<?php endif; ?>
 </ul>
 <!-- leaf event container -->
@@ -42,7 +44,9 @@ use datalayer\GenderType;
 	if( $myQuery->have_posts() ) {
 		while( $myQuery->have_posts() ) { 
 			$myQuery->the_post(); 
-			$leafEvent = Event::getEventByExtRef( get_the_ID() );					
+			$leafEvent = Event::getEventByExtRef( get_the_ID() );
+			$leafEventId = $leafEvent->getID();
+			$postId = get_the_ID();			
 			$genderType = get_post_meta( get_the_ID(), TennisEventCpt::GENDER_TYPE_META_KEY, true);
 			$genderType = GenderType::AllTypes()[$genderType];
 			$matchType = get_post_meta( get_the_ID(), TennisEventCpt::MATCH_TYPE_META_KEY, true );
@@ -62,7 +66,10 @@ use datalayer\GenderType;
 		?>
 		<!-- Leaf Event -->
 		<section class="tennis-leaf-event"> 
-			<?php echo the_title("<h3 class='tennis-leaf-event-title'>","</h3>") ?>
+			<?php $title = get_the_title();
+				$evtHeading = "<h3 class='tennis-leaf-event-title' contenteditable='true' data-eventid='{$leafEventId 	}' data-postid={$postId}>{$title}</h3>";
+				echo $evtHeading;
+			?>
 			<?php the_content();
 				$postId = get_the_ID();
 				$evtId = $leafEvent->getID();
@@ -95,7 +102,7 @@ use datalayer\GenderType;
 					$genderTypes = GenderType::AllTypes();
 					$genderTypeDropDown = "<select name='GenderTypes' class='gender_selector' data-origval='{$genderType}'>";
 					foreach( $genderTypes as $key=>$value ) {
-						$selected = ($value === $genderType) ? "selected" : "";
+						$selected = ($value === $genderType) ? "selected='true'" : "";
 						$genderTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
 					}
 					$genderTypeDropDown .= "</select>";
@@ -108,9 +115,9 @@ use datalayer\GenderType;
 				else {
 					//Match Type Drop Down
 					$matchTypes = MatchType::AllTypes();
-					$matchTypeDropDown = "<select name='MatchTypes' class='match_type_selector' data-origval='{$matchType}>";
+					$matchTypeDropDown = "<select name='MatchTypes' class='match_type_selector' data-origval='{$matchType}'>";
 					foreach( $matchTypes as $key=>$value ) {
-						$selected = ($value === $matchType) ? "selected" : "";
+						$selected = ($value === $matchType) ? "selected='true'" : "";
 						$matchTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
 					}
 					$matchTypeDropDown .= "</select>";
@@ -123,9 +130,9 @@ use datalayer\GenderType;
 				else {
 					//Format Drop Down
 					$allFormats = Format::AllFormats();
-					$formatDropDown = "<select name='AllFormats' class='format_selector' data-origval='{$eventFormat}>";
+					$formatDropDown = "<select name='AllFormats' class='format_selector' data-origval='{$eventFormat}'>";
 					foreach( $allFormats as $key=>$value ) {
-						$selected = ($value === $eventFormat) ? "selected" : "";
+						$selected = ($value === $eventFormat) ? "selected='true'" : "";
 						$formatDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
 					}
 					$formatDropDown .= "</select>";
@@ -188,11 +195,12 @@ use datalayer\GenderType;
 			?>
 			<!-- Brackets for a leaf event -->
 			<ul id="tennis-event-brackets" class="tennis-event-brackets" data-eventid="<?php echo $leafEvent->getID();?>">
+				<li><a class="tennis-add-bracket" data-eventid="<?php echo $leafEvent->getID();?>" ><?php echo __("Add Bracket",TennisEvents::TEXT_DOMAIN);?></a></li>
 			<?php 	
 				$td = new TournamentDirector( $leafEvent );
 				$brackets = $td->getBrackets( );
 				foreach( $brackets as $bracket ) {
-			?>
+			?>				
 				<li class="item-bracket" data-eventid="<?php echo $leafEvent->getID();?>" data-bracketnum="<?php echo $bracket->getBracketNumber(); ?>">
 					<span class="bracket-name" contenteditable>
 					<?php echo $bracket->getName()?></span>&colon;
@@ -202,9 +210,8 @@ use datalayer\GenderType;
 					<?php } ?>	
 				</li>
 			</ul>
-			<button type="button" class="button tennis-add-bracket" data-eventid="<?php echo $leafEvent->getID();?>" >Add Bracket</button>
 			<!-- /Brackets -->
-			<?php } ?>	
+			<?php } ?>
 		</section> <!-- /leaf events -->	
 		<?php } ?>
 	</section> <!-- /leaf event container-->

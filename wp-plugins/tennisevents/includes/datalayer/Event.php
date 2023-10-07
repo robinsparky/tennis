@@ -520,7 +520,7 @@ class Event extends AbstractData
      */
 	public function setName( string $name ) {
 		$this->name = $name;
-		$this->setDirty();
+		return $this->setDirty();
     }
     
     /**

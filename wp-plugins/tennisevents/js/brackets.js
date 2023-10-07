@@ -102,13 +102,16 @@
             }
             switch(task) {
                 case 'editname':
-                    updateBracketName( data );
+                    updateBracketName( data )
                     break;
                 case 'addbracket':
-                    addBracket( data );
+                    addBracket( data )
                     break;
                 case 'preparenextmonth':
-                    reloadWindow( data );
+                    reloadWindow( data )
+                    break;
+                case 'modifyeventtitle':
+                    updateEventTitle( data )
                     break;
                 case 'modifygender':
                     updateGenderType( data )
@@ -142,6 +145,24 @@
                     break;
             }
         }
+
+        /**
+         * Remove html/xml tags from string
+         * @param {string} str 
+         * @returns 
+         */
+        function removeTags(str) { 
+            if ((str===null) || (str==='')) 
+                return false; 
+            else
+                str = str.toString(); 
+                
+            // Regular expression to identify HTML tags in 
+            // the input string. Replacing the identified 
+            // HTML tag with a null string. 
+            return str.replace( /(<([^>]+)>)/ig, ''); 
+        } 
+        
 
         /**
          * Reload this window
@@ -317,6 +338,15 @@
             console.log(`updateMaxAge orig val=${origVal}`)
         }
 
+        function updateEventTitle( data ) {
+            console.log('updateEventTitle')
+            console.log(data)
+            $titleEl = $(`.tennis-leaf-event-title[data-eventid='${data['eventId']}'`)
+            console.log($titleEl)
+            $titleEl.text(data['newTitle'])
+            $titleEl.removeData('oldTitle')
+        }
+
         //Update the Gender Type
         function updateGenderType( data ) {
             console.log('updateGenderType')
@@ -372,7 +402,7 @@
         /**
          * Change the name of the bracket
          */
-        const onChange = function( event ) {
+        const onChangeBracketName = function( event ) {
             let bracketdata = getBracketData(event.target);
             let bracketName = event.target.innerText || '';
             if( bracketName === '') return;
@@ -388,6 +418,29 @@
             console.log(config)
             ajaxFun( config );
         }
+        
+        /**
+         * Change the title of the tournament
+         */
+        const onChangeTitle = function( event ) {
+            console.log("onChangeTitle fired!")
+            console.log(event.target)
+
+            const eventId = $(this).attr("data-eventid");
+            const postId = $(this).attr("data-postid");
+            let eventTitle = (event.target.innerText || '').trim();
+            if( eventTitle === '') return;
+
+            let oldTitle = $(event.target).data('beforeContentEdit').trim();
+            $(event.target).removeData('beforeContentEdit')
+            let config =  {"task": "modifyeventtitle"
+                            , "eventId": eventId
+                            , "postId": postId
+                            , "newTitle": eventTitle
+                            , "oldTitle": oldTitle }
+            console.log(config)
+            ajaxFun( config );
+        }
 
         /**
          * Callback for focus event on the name of the bracket
@@ -396,7 +449,7 @@
         const onFocus = function( event ) {
             console.log(event.target.innerText);
             $(event.target).data('beforeContentEdit', event.target.innerText);
-            //$(this).attr('data-beforeContentEdit',this.innerText);
+            $(this).attr('data-beforeContentEdit',this.innerText);
         }
 
         /**
@@ -550,9 +603,15 @@
         /**
         * ----------------------------------User Actions ------------------------------------------------------
         */
-         $('span.bracket-name').on('change', onChange);
+         //Bracket name
+         $('span.bracket-name').on('change', onChangeBracketName);
          $('span.bracket-name').on('focus', onFocus);
          $('span.bracket-name').on('blur', onBlur);
+
+         //Event title
+         $('.tennis-leaf-event-title[contenteditable]').on('change', onChangeTitle);
+         $('.tennis-leaf-event-title[contenteditable]').on('focus', onFocus);
+         $('.tennis-leaf-event-title[contenteditable]').on('blur', onBlur);
         
          //OnChange the Gender
         $(".gender_selector").on("change", function(event) {
@@ -629,6 +688,7 @@
                             , "bracketNum": bracketdata.bracketnum
                             , "bracketName": bracketdata.bracketName }
                 console.log(config)
+                $(this).parent().hide()
                 ajaxFun( config );
             }
         });

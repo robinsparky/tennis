@@ -162,7 +162,19 @@ class TennisEventCpt {
 		$this->log->error_log($loc);
 
 		$labels = array(
-			'name' => 'Tennis Events', 'singular_name' => 'Tennis Event', 'add_new' => 'Add Tennis Event', 'add_new_item' => 'New Tennis Event', 'new_item' => 'New Tennis Event', 'edit_item' => 'Edit Tennis Event', 'view_item' => 'View Tennis Event', 'all_items' => 'All Tennis Events', 'menu_name' => 'Tennis Events', 'search_items' => 'Search Events', 'not_found' => 'No Tennis Events found', 'not_found_in_trash' => 'No Tennis Events found in Trash', 'parent_item_colon' => 'Parent Event'
+			'name' => 'Tennis Events'
+			, 'singular_name' => 'Tennis Event'
+			, 'add_new' => 'Add Tennis Event'
+			, 'add_new_item' => 'New Tennis Event'
+			, 'new_item' => 'New Tennis Event'
+			, 'edit_item' => 'Edit Tennis Event'
+			, 'view_item' => 'View Tennis Event'
+			, 'all_items' => 'All Tennis Events'
+			, 'menu_name' => 'Tennis Events'
+			, 'search_items' => 'Search Events'
+			, 'not_found' => 'No Tennis Events found'
+			, 'not_found_in_trash' => 'No Tennis Events found in Trash'
+			, 'parent_item_colon' => 'Parent Event'
 		);
 		$args = array(
 			'labels' => $labels

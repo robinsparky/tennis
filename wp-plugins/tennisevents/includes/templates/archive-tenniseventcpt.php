@@ -27,6 +27,9 @@ if(!empty($prevSeason)) {
 <div class="page-content">	
 <h1>Tennis Events for Season <?php echo $season; ?> </h1>
 <?php
+	if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+		echo "<button class='tennis-add-event tournament'>" . __("New Event",TennisEvents::TEXT_DOMAIN) . "</button>";
+	}
 
 // Sidebar Alt 
 //get_template_part( 'templates/sidebars/sidebar', 'alt' ); 
