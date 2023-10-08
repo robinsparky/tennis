@@ -62,7 +62,7 @@ class ManageEvents
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
         
-        $jsurl =  TE()->getPluginUrl() . 'js/brackets.js';
+        $jsurl =  TE()->getPluginUrl() . 'js/events.js';
         wp_register_script( 'manage_brackets', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable', 'jquery-ui-tabs'), TennisEvents::VERSION, true );
         
         // $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
