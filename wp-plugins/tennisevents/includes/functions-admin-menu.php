@@ -94,6 +94,13 @@ function gw_tennis_custom_settings() {
                     ,'description' => __('The minimum number of players needed for round robin.', TennisEvents::TEXT_DOMAIN)]
                 );
 
+    register_setting( 'gw-tennis-settings-group' //Options group
+                    , TennisEvents::OPTION_MINIMUM_LEADTIME //Option name used in get_option
+                    , ['type'=>'number'
+                    ,'sanitize_callback'=>'gw_sanitize_minium_leadtime'
+                    ,'description' => __('The minimum lead time after signup ends.', TennisEvents::TEXT_DOMAIN)]
+                );
+
 
     add_settings_section( 'gw-tennis-options' //id
                         , __('Tennis Settings', TennisEvents::TEXT_DOMAIN) //title
@@ -141,7 +148,14 @@ function gw_tennis_custom_settings() {
                     , 'gw-tennis-options' // section
                     //,  array of args
                 );
-
+                
+    add_settings_field( 'gw_tennis_minimum_lead' // id
+                    , __('Draw will be available', TennisEvents::TEXT_DOMAIN) // title
+                    , 'gw_tennisMinLeadTime' // callback
+                    , 'gwtennissettings' // page
+                    , 'gw-tennis-options' // section
+                    //,  array of args
+                );
 }
 
 function gw_tennis_options() {
@@ -169,7 +183,7 @@ function gw_tennisHistory() {
     $max = 7;
     $history = esc_attr( get_option(TennisEvents::OPTION_HISTORY_RETENTION,  TennisEvents::OPTION_HISTORY_RETENTION_DEFAULT) );
     echo "<input id='gw_tennis_event_history' name='gw_tennis_event_history' type='number' value='{$history}' min='{$min}' max='{$max}' step='1' maxlength='4' size='4' >";
-    echo "<span>&nbsp;(seasons)</span>";
+    echo "<span>&nbsp;seasons</span>";
 }
 
 function gw_tennisMinElim() {
@@ -186,6 +200,14 @@ function gw_tennisMinRR() {
     $optName = TournamentDirector::OPTION_MIN_PLAYERS_RR;
     $minPlayers = TournamentDirector::getMinPlayersForRoundRobin();
     echo "<input id='{$optName}' name='{$optName}' type='number' value='{$minPlayers}' min='{$defaultMin}' max='{$maxPlayers}' max= step='1' maxlength='4' size='4'>";
+}
+
+function gw_tennisMinLeadTime() {
+    $leadTime = esc_attr( get_option(TennisEvents::OPTION_MINIMUM_LEADTIME, 3) );
+    $optName = TennisEvents::OPTION_MINIMUM_LEADTIME;
+    echo "<input id='{$optName}' name='{$optName}' type='number' value='{$leadTime}' min='1' max='7' max= step='1' maxlength='4' size='4'>";
+    $txt = __("days after signup ends",TennisEvents::TEXT_DOMAIN);
+    echo "<span>&nbsp;{$txt}</span>";
 }
 
 function gw_sanitize_clubId( $input ) {
@@ -321,6 +343,32 @@ function gw_sanitize_minium_players_rr( $input ) {
     }
 
     add_settings_error('gw_tennisMinRR', esc_attr('main_tennis_min_rr_players_updated'), $message, $type);
+    
+    return $output;
+}
+  
+function gw_sanitize_minium_leadtime( $input ) {
+    $message = null;
+    $type = null;
+    $output = 3;
+
+    if( !is_null( $input ) ) {
+        if( is_numeric( $input ) ) {
+            $output = $input;
+            $type = 'success';
+            $message = __('Tennis minimum lead time updated', TennisEvents::TEXT_DOMAIN );
+        }
+        else {
+            $type = 'error';
+            $message = __('Tennis minimum lead time setting must be numeric', TennisEvents::TEXT_DOMAIN );
+        }
+    }
+    else {
+        $type = 'error';
+        $message = __('Tennis minimum lead time must not be empty', TennisEvents::TEXT_DOMAIN );
+    }
+
+    add_settings_error('gw_tennisMinLeadTime', esc_attr('main_tennis_min_leadtime_updated'), $message, $type);
 
     return $output;
 }
