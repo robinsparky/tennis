@@ -535,6 +535,8 @@ class ManageEvents
                 throw new InvalidEventException(__( 'Parent post id is missing.', TennisEvents::TEXT_DOMAIN ));
             }
 
+            //TODO Ensure that start and end dates conform to parent event's
+            //TODO Evnts cannot be created for the next season ... i.e. calendar year
             $data['signupBy'] = strip_tags($data['signupBy']);
             $signupBy = $data['signupBy'];
             if(!$event->setSignupBy($signupBy)) throw new InvalidArgumentException(__("Illegal signup by date '{$signupBy}'", TennisEvents::TEXT_DOMAIN));
@@ -571,6 +573,8 @@ class ManageEvents
                 $genderDisp = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
                 $data['title'] = $genderDisp;
             }
+            $event->setName($data['title']);
+
             $current_user = wp_get_current_user();
             if ( $current_user->exists() ) {
                 $author = $current_user->ID;
@@ -628,7 +632,7 @@ class ManageEvents
     }
 
     /**
-     * Update the Event name and the associated custom post's title
+     * Update the Event name and the associated custom post's title of a leaf event
      * NOTE: Not modifying the post's slug at this time 
      * @param array $data A reference to a dictionary containing data for update
      * @return string A message describing success or failure
@@ -691,7 +695,7 @@ class ManageEvents
     }
 
     /**
-     * Update simple attributes which do not affect the draw   
+     * Update simple attributes of a leaf event which do not affect the draw   
      * @param array $data A reference to a dictionary containing data for update
      * @return string A message describing success or failure
      */
@@ -704,6 +708,8 @@ class ManageEvents
         $task = $data['task'];
         $mess = "";
         try {
+            //TODO Ensure that start and end dates conform to parent event's
+            //TODO Evnts cannot be created for the next season ... i.e. calendar year
             $event = Event::get($eventId);
             switch($task) {
                 case 'modifyminage':
