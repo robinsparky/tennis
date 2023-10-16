@@ -781,8 +781,10 @@
         //On edit a root event dialog
         $('a.tennis-edit-event.root').on('click', (event) => {
             console.log("Edit root event");
-            const selector = `dialog.tennis-edit-event-dialog.root`
+            let eventId = $(event.target).attr('data-eventid')
+            const selector = `dialog.tennis-edit-event-dialog.root[data-eventid='${eventId}']`
             console.log(selector)
+            let $dialog = $(selector)
             $dialog = $(selector)
             console.log($dialog)
             $dialog.get(0).showModal()
