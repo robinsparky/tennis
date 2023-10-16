@@ -208,7 +208,10 @@ a.tennis-delete-event:hover
   text-decoration: underline;
 }
 
-button.tennis-add-event, button.tennis-delete-event, button.tennis-add-event-close {
+button.tennis-add-event
+,button.tennis-delete-event
+,button.tennis-add-event-close
+,button.tennis-edit-event-close {
   max-width: 175px;
   color: white;
   background-color: gray;
