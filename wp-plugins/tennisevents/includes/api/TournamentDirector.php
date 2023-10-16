@@ -598,12 +598,25 @@ class TournamentDirector
     }
     
     /**
-     * Return the size of the signup for the tennis event
+     * Return the size of the signup for given bracket in the tennis event
      * @param string $bracketName
      * @return int Size of the signup for the bracket
      */
     public function signupSize( $bracketName = Bracket::WINNERS ) {
         return count($this->getSignup( $bracketName ) );
+    }
+
+    /**
+     * Return the size of all signups for the tennis event
+     * @param string $bracketName
+     * @return int Size of the signup for the bracket
+     */
+    public function eventSignupSize() {
+        $total = 0;
+        foreach( $this->getBrackets() as $bracket) {
+            $total += count($bracket->getSignup());
+        }
+        return $total;
     }
 
     /**

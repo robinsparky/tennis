@@ -19,8 +19,7 @@ $prevSeason = isset($_GET['season']) ? $_GET['season'] : '';
 if(!empty($prevSeason)) {
 	$season = $prevSeason;
 	$logger->error_log("****Previous season='{$prevSeason}'");
-}
-
+} 
 ?>
 
 <!-- Page Content ---->
@@ -28,7 +27,8 @@ if(!empty($prevSeason)) {
 <h1>Tennis Events for Season <?php echo $season; ?> </h1>
 <?php
 	if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
-		echo "<button class='tennis-add-event tournament'>" . __("New Event",TennisEvents::TEXT_DOMAIN) . "</button>";
+		echo "<button class='tennis-add-event root'>" . __("Create New Event",TennisEvents::TEXT_DOMAIN) . "</button>";
+		include(TE()->getPluginPath() . 'includes\templates\controls\newRootEventDialog.php');
 	}
 
 // Sidebar Alt 
@@ -85,16 +85,20 @@ if(!empty($prevSeason)) {
 					$eventType = EventType::AllTypes()[$eventTypeRaw];
 					$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
 					$endDate   = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
-					if(empty($startDate)) $startDate = 'tba';
-					if(empty($endDate)) $endDate = 'tba';
+					$eventTitle = $event->getName();
+					$eventId = $event->getID();
+					$postId = get_the_ID();
+					$editTitle = __("Edit Event '{$event->getName()}'",TennisEvents::TEXT_DOMAIN);
+					if(empty($startDate)) $startDate = '';
+					if(empty($endDate)) $endDate = '';
 
 					//The content is produced here
-					$mypath = TE()->getPluginPath() . 'includes\templates\controls\readonly-tenniseventcpt.php';
 					if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
-						$mypath = TE()->getPluginPath() . 'includes\templates\controls\editor-tenniseventcpt.php';
+						require(TE()->getPluginPath() . 'includes\templates\controls\editor-tenniseventcpt.php');
 					}
-					$mypath = str_replace( '\\', DIRECTORY_SEPARATOR, $mypath );
-					require( $mypath );
+					else {
+						require( TE()->getPluginPath() . 'includes\templates\controls\readonly-tenniseventcpt.php');
+					}
 				?>	
 
 				<?php endwhile;

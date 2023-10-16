@@ -53,6 +53,7 @@ class TennisEvents {
     public const OPTION_HISTORY_RETENTION = 'gw_tennis_event_history';
 	public const OPTION_TENNIS_SEASON = 'gw_tennis_event_season';
 	public const OPTION_HOME_TENNIS_CLUB = 'gw_tennis_home_club';
+	public const OPTION_MINIMUM_LEADTIME = 'gw_tennis_event_min_leadtime';
 	
 	/**
 	 * Unique identifier for the plugin.
@@ -104,6 +105,13 @@ class TennisEvents {
 	static public function getTimeZone() {
 		$tz = wp_timezone();
 		return $tz;
+	}
+
+	/**
+	 * Get the end of signup lead time before draw can be made
+	 */
+	static public function getLeadTime() {
+		return esc_attr( get_option(TennisEvents::OPTION_MINIMUM_LEADTIME, 3) );
 	}
 	
 	/**

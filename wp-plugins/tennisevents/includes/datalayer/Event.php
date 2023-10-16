@@ -764,6 +764,10 @@ class Event extends AbstractData
 		else return $this->signup_by->format( \DateTime::ISO8601 );
 	}
 
+	/**
+	 * Get the signup by date of this event as a DateTime object
+	 * @return DateTime
+	 */
 	public function getSignupBy() {
 		return $this->signup_by;
 	}
@@ -806,6 +810,7 @@ class Event extends AbstractData
 	/**
 	 * Get the start date of this event
 	 * as a DateTime object
+	 * @return DateTime
 	 */
 	public function getStartDate() {
 		return $this->start_date;
@@ -953,6 +958,7 @@ class Event extends AbstractData
 
 	/**
 	 * Get the end date for this event as a DateTime object
+	 * @return DateTime 
 	 */
 	public function getEndDate() {
 		return $this->end_date;
@@ -1510,6 +1516,32 @@ class Event extends AbstractData
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->external_refs = ExternalRefRelations::fetchExternalRefs('event', $this->getID() );
 	}
+	
+    /**
+     * Make sure the dates have the correct order and spacing
+	 * NOT USED yet
+     */
+    private function validateEventDates() {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log("$loc");
+		if(!isset($this->start_date)) return;
+		if(!($this->start_date instanceof \DateTime)) return;
+
+        if($this->signup_by instanceof \DateTime ) {
+			if( $this->signup_by >= $this->start_date ) {
+				$this->signup_by = new \DateTime($this->start_date->format("Y-m-d"));
+				$leadTime = TennisEvents::getLeadTime();
+				$this->signup_by->modify("-{$leadTime} days");
+			}
+		}
+
+		if($this->end_date instanceof \DateTime) {
+			if( $this->start_date >= $this->end_date ) {
+				$this->end_date  = new \DateTime($this->start_date->format("Y-m-d"));
+				$this->end_date ->modify("+2 days");
+			}
+		}
+    }
 
 	/*
     private function sortBySeedDesc( $a, $b ) {

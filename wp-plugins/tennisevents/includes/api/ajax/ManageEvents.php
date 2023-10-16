@@ -9,6 +9,8 @@ use \DateTime;
 use api\TournamentDirector;
 use datalayer\Event;
 use datalayer\EventType;
+use datalayer\GenderType;
+use datalayer\MatchType;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\InvalidBracketException;
@@ -148,6 +150,26 @@ class ManageEvents
                 $mess = $this->prepareLadderNextMonth( $data );
                 $returnData = $data;
                 break;
+            case 'addrootevent':
+                $mess = $this->addRootEvent( $data );
+                $returnData = $data;
+                break;
+            case 'editrootevent':
+                $mess = $this->editRootEvent( $data );
+                $returnData = $data;
+                break;
+            case 'deleterootevent':
+                $mess = $this->deleteRootEvent( $data );
+                $returnData = $data;
+                break;
+            case 'addleafevent':
+                $mess = $this->addLeafEvent( $data );
+                $returnData = $data;
+                break;
+            case 'deleteleafevent':
+                $mess = $this->deleteLeafEvent( $data );
+                $returnData = $data;
+                break;
             case 'modifyeventtitle':
                 $mess = $this->updateEventName( $data );
                 $returnData = $data;
@@ -175,7 +197,7 @@ class ManageEvents
         if(count($this->errobj->errors) > 0) {
             $this->handleErrors( $mess );
         }
-
+        
         $response["message"] = $mess;
         $response["returnData"] = $returnData;
 
@@ -185,7 +207,426 @@ class ManageEvents
         // All ajax handlers die when finished
         wp_die(); 
     }
+
+    /**
+     * Add a new root event
+     * @param array $data A reference to a dictionary containing event data
+     * @return string A message describing success or failure
+     */
+    private function addRootEvent( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+        
+        $task = $data["task"];
+        $mess = "";
+        try {
+            $data["title"] =  htmlspecialchars(strip_tags($data["title"]));
+
+            $homeClubId = esc_attr(get_option('gw_tennis_home_club', 0));
+            $this->log->error_log("$loc: home Club Id={$homeClubId}");
+            if (0 === $homeClubId) {
+                $this->log->error_log("$loc - Home club id is not set."); 
+                throw new InvalidEventException(__("Home club id is not set.",TennisEvents::TEXT_DOMAIN));
+            }
+            $homeClub = Club::get($homeClubId);
+            if( !isset($homeClub) ) {				
+                throw new InvalidEventException(__( 'Home club is not set.', TennisEvents::TEXT_DOMAIN ));
+            }
+
+            $event = new Event($data["title"]);
+			//Set the parent event of the Event before setting other props
+            $event->addClub($homeClub);
+
+            $data['startDate'] = strip_tags($data['startDate']);
+            $startDate = $data['startDate'];
+            if(!$event->setStartDate($startDate)) throw new InvalidArgumentException(__("Illegal start date '{$startDate}'", TennisEvents::TEXT_DOMAIN));
+            $dateStartDate = $event->getStartDate();
+
+            $data['endDate'] = strip_tags($data['endDate']);
+            $endDate = $data['endDate'];
+            if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}'", TennisEvents::TEXT_DOMAIN));
+            $dateEndDate = $event->getEndDate();
+
+            if($dateStartDate >= $dateEndDate) {
+                $dateEndDate = new \DateTime($dateStartDate->format("Y-m-d"));
+                $dateEndDate->modify("+2 days");
+            }
+            $startDate = $dateStartDate->format("Y-m-d");
+            $endDate = $dateEndDate->format("Y-m-d");
+            $event->setEndDate($endDate);
+
+            $current_user = wp_get_current_user();
+            if ( $current_user->exists() ) {
+                $author = $current_user->ID;
+            }
+            else {
+                throw new InvalidArgumentException(__("User does not exist",Tennisevents::TEXT_DOMAIN));
+            }
+
+            //Setup the corresponding custom post type
+            $currentTime = new DateTime('NOW');
+            $postData = array(
+                        'post_title' => $data['title'],
+                        'post_status' => 'publish',
+                        'post_date_gmt' => $currentTime->format('Y-m-d G:i:s'),
+                        'post_content' => '',
+                        'post_type' => TennisEventCpt::CUSTOM_POST_TYPE,
+                        'post_author' => $author,
+                        'post_date'   => $currentTime->format('Y-m-d G:i:s'),
+                        'post_modified' => $currentTime->format('Y-m-d G:i:s')
+                        );
     
+            $newPostId = wp_insert_post($postData);//NOTE: This triggers updateDB in TennisEventCpt
+            if($newPostId instanceof WP_Error) {
+                $mess = $newPostId->get_error_message();
+                throw new InvalidEventException(__("{$mess}",TennisEvents::TEXT_DOMAIN));
+            }
+            update_post_meta( $newPostId, TennisEventCpt::EVENT_TYPE_META_KEY, $event->getEventType());
+            update_post_meta( $newPostId, TennisEventCpt::START_DATE_META_KEY, $startDate );
+            update_post_meta( $newPostId, TennisEventCpt::END_DATE_META_KEY, $endDate );
+            
+			$tennis_season = $event->getSeason();			
+            update_post_meta($newPostId, TennisEventCpt::TENNIS_SEASON, $tennis_season);
+
+            $event->addExternalRef((string)$newPostId);
+            $event->save();
+            $newEventId = $event->getID();
+            $mess = __("Created new root event with {$event->toString()}.",TennisEvents::TEXT_DOMAIN);
+        }
+        catch (Exception | InvalidEventException | InvalidArgumentException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    }
+        
+    /**
+     * Add a new root event
+     * @param array $data A reference to a dictionary containing event data
+     * @return string A message describing success or failure
+     */
+    private function editRootEvent( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+        
+        $eventId = $data['eventId'];
+        $postId  = $data['postId'];
+        $task = $data["task"];
+        $mess = "";
+        try {
+
+            $homeClubId = esc_attr(get_option('gw_tennis_home_club', 0));
+            $this->log->error_log("$loc: home Club Id={$homeClubId}");
+            if (0 === $homeClubId) {
+                $this->log->error_log("$loc - Home club id is not set."); 
+                throw new InvalidEventException(__("Home club id is not set.",TennisEvents::TEXT_DOMAIN));
+            }
+            $homeClub = Club::get($homeClubId);
+            if( !isset($homeClub) ) {				
+                throw new InvalidEventException(__( 'Home club is not set.', TennisEvents::TEXT_DOMAIN ));
+            }
+
+            $event = Event::get($eventId);
+            if(!isset($event)) {
+                throw new InvalidEventException(__( 'Invalid event id.', TennisEvents::TEXT_DOMAIN ));
+            }
+
+            //TODO Must consider the event type. Do we allow modification if leaf events present?
+            $data["title"] =  htmlspecialchars(strip_tags($data["title"]));
+            if(empty($data['title'])) {
+               throw new InvalidEventException(__( 'Event title must given.', TennisEvents::TEXT_DOMAIN ));
+            }
+            $event->setName($data['title']);  
+            
+            $refs = $event->getExternalRefs();
+            $postId2 = 0;
+            if( count($refs) > 0 ) {
+                $postId2 = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }     
+
+            if($postId !== $postId2) {
+                $this->log->error_log("{$loc}: Different postIds: given '{$postId}' vs database '{$postId2}'");
+                throw new InvalidEventException(__( "Different postIds: given '{$postId}' vs database '{$postId2}'", TennisEvents::TEXT_DOMAIN ));
+            }
+            
+            $postData = array('ID'=>$postId, 'post_title'=>$data['title']);
+            wp_update_post($postData);
+            if (is_wp_error($postId)) {
+                $errors = $postId->get_error_messages();
+                foreach ($errors as $error) {
+                    $this->log->error_log($error, $loc);
+                    throw new InvalidArgumentException($error->getMessage());
+                }
+            }
+
+            $data['startDate'] = strip_tags($data['startDate']);
+            $startDate = $data['startDate'];
+            if(!$event->setStartDate($startDate)) throw new InvalidArgumentException(__("Illegal start date '{$startDate}'", TennisEvents::TEXT_DOMAIN));
+            $dateStartDate = $event->getStartDate();
+
+            $data['endDate'] = strip_tags($data['endDate']);
+            $endDate = $data['endDate'];
+            if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}'", TennisEvents::TEXT_DOMAIN));
+            $dateEndDate = $event->getEndDate();
+
+            if($dateStartDate >= $dateEndDate) {
+                $dateEndDate = new \DateTime($dateStartDate->format("Y-m-d"));
+                $dateEndDate->modify("+2 days");
+            }
+            $startDate = $dateStartDate->format("Y-m-d");
+            $endDate = $dateEndDate->format("Y-m-d");
+            $event->setEndDate($endDate);
+            $data["endDate"] = $endDate;
+
+           // update_post_meta( $postId, TennisEventCpt::EVENT_TYPE_META_KEY, $event->getEventType());
+            update_post_meta( $postId, TennisEventCpt::START_DATE_META_KEY, $startDate );
+            update_post_meta( $postId, TennisEventCpt::END_DATE_META_KEY, $endDate );
+    
+            $event->save();
+            $mess = __("Modified root event {$event->toString()}.",TennisEvents::TEXT_DOMAIN);
+        }
+        catch (Exception | InvalidEventException | InvalidArgumentException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    }
+
+    /**
+     * Delete a root event. Must not have any child events.
+     * @param array $data A reference to a dictionary containing data for update
+     * @return string A message describing success or failure
+     */
+    private function deleteRootEvent( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+        
+        $eventId = $data["eventId"];
+        $task = $data["task"];
+        $mess = "";
+        try {
+            $event = Event::get($eventId);
+            if(!isset($event)) {
+                throw new InvalidArgumentException(__("Invalid event id.",TennisEvents::TEXT_DOMAIN));
+            }
+            if(!$event->isRoot()) {
+                throw new InvalidArgumentException(__("Not a root event.",TennisEvents::TEXT_DOMAIN));
+            }
+            if(count($event->getChildEvents()) > 0 ) {
+                throw new InvalidArgumentException(__("Cannot have child events.",TennisEvents::TEXT_DOMAIN));
+            }
+
+            $refs = $event->getExternalRefs();
+            $postId = 0;
+            if( count($refs) > 0 ) {
+                $postId = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }
+
+            wp_delete_post($postId, true);
+            $event->delete();
+            $mess = __("Successfully deleted root event {$event->toString()}", TennisEvents::TEXT_DOMAIN );
+        }
+        catch(Exception | InvalidEventException | InvalidArgumentException $ex) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    }
+
+    /**
+     * Delete a  leaf event. Must not have any Brackets that have started matches.
+     * @param array $data A reference to a dictionary containing data for update
+     * @return string A message describing success or failure
+     */
+    private function deleteLeafEvent( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+        
+        $eventId = $data["eventId"];
+        $task = $data["task"];
+        $mess = "";
+        try {
+            $event = Event::get($eventId);
+            if(!isset($event)) {
+                throw new InvalidArgumentException(__("Invalid event id.",TennisEvents::TEXT_DOMAIN));
+            }
+            if($event->isRoot()) {
+                throw new InvalidArgumentException(__("Not a leaf event.",TennisEvents::TEXT_DOMAIN));
+            }
+
+            $td = new TournamentDirector($event);
+            $brackets = $td->getBrackets();
+            //All Brackets must not be approved and must not have started
+            foreach( $brackets as $bracket ) {
+                if($bracket->isApproved() || (0 < $td->hasStarted( $bracket->getName()) ) ) {
+                    throw new InvalidEventException( __("Please reset the draw for '{$bracket->getName()}' first.",TennisEvents::TEXT_DOMAIN) );
+                }
+            }
+            $refs = $event->getExternalRefs();
+            $postId = 0;
+            if( count($refs) > 0 ) {
+                $postId = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }
+
+            wp_delete_post($postId, true);
+            $event->delete();
+            $mess = __("Successfully deleted leaf event {$event->toString()}", TennisEvents::TEXT_DOMAIN );
+        }
+        catch(Exception | InvalidEventException | InvalidArgumentException $ex) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+
+        return $mess;
+    }
+
+    /**
+     * Add a new leaf event (usually a tournament)
+     * @param array $data A reference to a dictionary containing data for update
+     * @return string A message describing success or failure
+     */
+    private function addLeafEvent( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+        
+        $parentId = $data["parentId"];
+        $task = $data["task"];
+        $mess = "";
+        try {
+            $parentEvent = Event::get($parentId);
+            if( !$parentEvent->isRoot() ) {
+                throw new InvalidEventException(__("Event id given must be for a root event .",TennisEvents::TEXT_DOMAIN));
+            }
+ 
+            if( $parentEvent->getEventType() === EventType::LADDER) {
+                throw new InvalidEventException(__("Event type must not be '{EventType::LADDER}'.",TennisEvents::TEXT_DOMAIN));
+            }
+
+            $homeClubId = esc_attr(get_option('gw_tennis_home_club', 0));
+            $this->log->error_log("$loc: home Club Id={$homeClubId}");
+            if (0 === $homeClubId) {
+                $this->log->error_log("$loc - Home club id is not set."); 
+                throw new InvalidEventException(__("Home club id is not set.",TennisEvents::TEXT_DOMAIN));
+            }
+            $homeClub = Club::get($homeClubId);
+            if( !isset($homeClub) ) {				
+                throw new InvalidEventException(__( 'Home club is not set.', TennisEvents::TEXT_DOMAIN ));
+            }
+
+            $event = new Event($data["title"]);
+			//Set the parent event of the Event before setting other props
+			$event->setParent($parentEvent);
+            $event->addClub($homeClub);
+            $refs = $parentEvent->getExternalRefs();
+            $parentPostId = 0;
+            if( count($refs) > 0 ) {
+                $parentPostId = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Parent post id is missing.', TennisEvents::TEXT_DOMAIN ));
+            }
+
+            $data['signupBy'] = strip_tags($data['signupBy']);
+            $signupBy = $data['signupBy'];
+            if(!$event->setSignupBy($signupBy)) throw new InvalidArgumentException(__("Illegal signup by date '{$signupBy}'", TennisEvents::TEXT_DOMAIN));
+            $dateSignupBy = $event->getSignupBy();
+
+            $data['startDate'] = strip_tags($data['startDate']);
+            $startDate = $data['startDate'];
+            if(!$event->setStartDate($startDate)) throw new InvalidArgumentException(__("Illegal start date '{$startDate}'", TennisEvents::TEXT_DOMAIN));
+            $dateStartDate = $event->getStartDate();
+
+            $data['endDate'] = strip_tags($data['endDate']);
+            $endDate = $data['endDate'];
+            if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}'", TennisEvents::TEXT_DOMAIN));
+            $dateEndDate = $event->getEndDate();
+
+            $this->validateEventDates($dateSignupBy, $dateStartDate, $dateEndDate);
+            $signupBy = $dateSignupBy->format("Y-m-d");
+            $event->setSignupBy($signupBy);
+            $startDate = $dateStartDate->format("Y-m-d");
+            $endDate = $dateEndDate->format("Y-m-d");
+            $event->setEndDate($endDate);
+
+            $gender = $data['gender'];
+            if( !$event->setGenderType($data['gender'])) throw new InvalidArgumentException(__("Illegal gender '{$gender}'", TennisEvents::TEXT_DOMAIN));
+            $matchType = $data['matchType'];
+            if(!$event->setMatchType($matchType)) throw new InvalidArgumentException(__("Illegal match type '{$matchType}'", TennisEvents::TEXT_DOMAIN));
+            $eventFormat = $data['format'];
+            if(!$event->setFormat($eventFormat)) throw new InvalidArgumentException(__("Illegal format '{$eventFormat}'", TennisEvents::TEXT_DOMAIN));
+            $scoreType = $data['scoreType'];
+            if(!$event->setScoreType($scoreType)) throw new InvalidArgumentException(__("Illegal score rule '{$scoreType}'", TennisEvents::TEXT_DOMAIN));
+
+            $data["title"] =  htmlspecialchars(strip_tags($data["title"]));
+            if(empty($data['title'])) {
+                $genderDisp = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
+                $data['title'] = $genderDisp;
+            }
+            $current_user = wp_get_current_user();
+            if ( $current_user->exists() ) {
+                $author = $current_user->ID;
+            }
+            else {
+                throw new InvalidArgumentException(__("User does not exist",Tennisevents::TEXT_DOMAIN));
+            }
+
+            //Setup the corresponding custom post type
+            $currentTime = new DateTime('NOW');
+            $postData = array(
+                        'post_title' => $data['title'],
+                        'post_status' => 'publish',
+                        'post_date_gmt' => $currentTime->format('Y-m-d G:i:s'),
+                        'post_content' => '',
+                        'post_type' => TennisEventCpt::CUSTOM_POST_TYPE,
+                        'post_author' => $author,
+                        'post_date'   => $currentTime->format('Y-m-d G:i:s'),
+                        'post_modified' => $currentTime->format('Y-m-d G:i:s')
+                        );
+    
+            $newPostId = wp_insert_post($postData);//NOTE: This triggers updateDB in TennisEventCpt
+            if($newPostId instanceof WP_Error) {
+                $mess = $newPostId->get_error_message();
+                throw new InvalidEventException(__("{$mess}",TennisEvents::TEXT_DOMAIN));
+            }
+            update_post_meta( $newPostId, TennisEventCpt::PARENT_EVENT_META_KEY, $parentPostId );
+            update_post_meta( $newPostId, TennisEventCpt::SIGNUP_BY_DATE_META_KEY, $signupBy );
+            update_post_meta( $newPostId, TennisEventCpt::START_DATE_META_KEY, $startDate );
+            update_post_meta( $newPostId, TennisEventCpt::END_DATE_META_KEY, $endDate );
+            update_post_meta( $newPostId, TennisEventCpt::GENDER_TYPE_META_KEY, $gender );
+            update_post_meta( $newPostId, TennisEventCpt::EVENT_FORMAT_META_KEY, $eventFormat );
+            update_post_meta( $newPostId, TennisEventCpt::MATCH_TYPE_META_KEY, $matchType );
+            update_post_meta( $newPostId, TennisEventCpt::SCORE_TYPE_META_KEY, $scoreType );
+            
+			$tennis_season = $event->getSeason();			
+            update_post_meta($newPostId, TennisEventCpt::TENNIS_SEASON, $tennis_season);
+
+            //Default values
+            $event->setMaxAge(99);
+            $event->setMinAge(5);
+            update_post_meta($newPostId, TennisEventCpt::AGE_MAX_META_KEY, 99);
+            update_post_meta($newPostId, TennisEventCpt::AGE_MIN_META_KEY, 5);
+
+            $event->addExternalRef((string)$newPostId);
+            $event->save();
+            $newEventId = $event->getID();
+            $mess = __("Created new leaf event with id={$newEventId}.",TennisEvents::TEXT_DOMAIN);
+        }
+        catch (Exception | InvalidEventException | InvalidArgumentException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    }
+
     /**
      * Update the Event name and the associated custom post's title
      * NOTE: Not modifying the post's slug at this time 
@@ -202,10 +643,34 @@ class ManageEvents
         $mess = "";
         try {
             $event = Event::get($eventId);
+            if(!isset($event)) {
+                throw new InvalidArgumentException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+            }
+            
+            $refs = $event->getExternalRefs();
+            $postId2 = 0;
+            if( count($refs) > 0 ) {
+                $postId2 = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }     
+
+            if($postId !== $postId2) {
+                $this->log->error_log("{$loc}: Different postIds: given '{$postId}' vs database '{$postId2}'");
+                throw new InvalidEventException(__( "Different postIds: given '{$postId}' vs database '{$postId2}'", TennisEvents::TEXT_DOMAIN ));
+            }
+
+            $gender = $event->getGenderType();
+            $matchType = $event->getMatchType();
             $data['newTitle'] = htmlspecialchars(strip_tags($data['newTitle']));
+            if(empty($data['newTitle'])) {
+                $data['newTitle'] = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
+            }
             $newTitle = $data['newTitle'];
             $oldTitle = strip_tags($data['oldTitle']);
             if(!$event->setName($newTitle)) throw new InvalidArgumentException(__("Could not change event name from '{$oldTitle}' to '{$newTitle}'", TennisEvents::TEXT_DOMAIN));
+
             $postData = array('ID'=>$postId, 'post_title'=>$newTitle);
             wp_update_post($postData);
             if (is_wp_error($postId)) {
@@ -267,7 +732,7 @@ class ManageEvents
                     break;
                 case 'modifyenddate':
                     $endDate = $data['endDate'];
-                    if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}' for {$loc}", TennisEvents::TEXT_DOMAIN));
+                    if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}'", TennisEvents::TEXT_DOMAIN));
                     update_post_meta($postId, TennisEventCpt::END_DATE_META_KEY, $endDate);
                     $mess = __("Successfully updated the end date", TennisEvents::TEXT_DOMAIN);
                     break;
@@ -309,7 +774,7 @@ class ManageEvents
             //All Brackets must not be approved and must not have started
             foreach( $brackets as $bracket ) {
                 if($bracket->isApproved() || (0 < $td->hasStarted( $bracket->getName()) ) ) {
-                    throw new InvalidEventException( __('Cannot modify the event because at least one draw is published.') );
+                    throw new InvalidEventException( __('Cannot modify the event because at least one draw is published.',TennisEvents::TEXT_DOMAIN) );
                 }
             }
 
@@ -629,6 +1094,27 @@ class ManageEvents
    }
 
     /**
+     * Make sure the dates have the correct order and spacing
+     * @param \DateTime $signupBy
+     * @param \DateTime $startDate
+     * @param \DateTime $endDate
+     */
+    private function validateEventDates(\DateTime &$signupBy,\DateTime &$startDate,\DateTime &$endDate ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log("$loc");
+        
+        if(isset($endDate) && $startDate >= $endDate) {
+            $endDate = new \DateTime($startDate->format("Y-m-d"));
+            $endDate->modify("+2 days");
+        }
+        if(isset($signupBy) && $signupBy >= $startDate) {    
+            $signupBy = new \DateTime($startDate->format("Y-m-d"));
+            $leadTime = TennisEvents::getLeadTime();
+            $signupBy->modify("-{$leadTime} days");
+        }
+    }
+    
+    /**
         * Determines the interval in days to the end of the month in the given date
         * @param DateTime $initDate
         * @return DateInterval
@@ -717,10 +1203,10 @@ class ManageEvents
 
     private function handleErrors( string $mess ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc");
         $response = array();
         $response["message"] = $mess;
         $response["exception"] = $this->errobj;
+        $this->log->error_log($response, "$loc: error response...");
         wp_send_json_error( $response );
         wp_die($mess);
     }

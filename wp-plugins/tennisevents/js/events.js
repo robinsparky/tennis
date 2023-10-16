@@ -2,7 +2,7 @@
  
     $(document).ready(function() {       
         let sig = '#tennis-event-message';
-        console.log("Manage Brackets");
+        console.log("Manage Events");
         console.log(tennis_bracket_obj);
 
         var longtimeout = 60000;
@@ -16,11 +16,11 @@
          * Needs the "action" and "security" nonce from the local object emitted from the server
          * @param {} matchData 
          */
-        let ajaxFun = function( bracketData ) {
-            console.log('Bracket Management: ajaxFun');
+        let ajaxFun = function( eventData ) {
+            console.log('Event Management: ajaxFun');
             let reqData =  { 'action': tennis_bracket_obj.action      
                            , 'security': tennis_bracket_obj.security 
-                           , 'data': bracketData };    
+                           , 'data': eventData };    
             console.log("Parameters:");
             console.log( reqData );
 
@@ -35,7 +35,7 @@
                             $(sig).html('Working...');
                         }})
                     .done( function( res, jqxhr ) {
-                        console.log("done.res:");
+                        console.log("Done (res)");
                         console.log(res);
                         if( res.success ) {
                             console.log('Success (res.data):');
@@ -47,6 +47,7 @@
                         else {
                             console.log('Done but failed (res.data):');
                             console.log(res.data);
+                            console.log(jqxhr)
                             var entiremess = res.data.message + " ...<br/>";
                             for(var i=0; i < res.data.exception.errors.length; i++) {
                                 entiremess += res.data.exception.errors[i][0] + '<br/>';
@@ -56,9 +57,9 @@
                         }
                     })
                     .fail( function( jqXHR, textStatus, errorThrown ) {
-                        console.log("Fail: %s -->%s", textStatus, errorThrown );
-                        var errmess = "Fail: status='" + textStatus + "--->" + errorThrown;
-                        errmess += jqXHR.responseText;
+                        console.log("Failed: %s-->%s", textStatus, errorThrown );
+                        var errmess = "Failed: status='" + textStatus + "--->" + errorThrown;
+                        console.log("response text:%s",jqXHR.responseText)
                         console.log('jqXHR:');
                         console.log(jqXHR);
                         $(sig).addClass('tennis-error');
@@ -86,7 +87,7 @@
             let task = "";
             console.log("Apply results:");
             console.log( data );
-            if( $.isArray(data) ) {
+            if( Array.isArray(data) ) {
                 console.log("Data is an array");
                 task = data['task'];
                 console.log(`---------Task is ${task}----------`)
@@ -101,11 +102,30 @@
                 console.log(`---------Task is ${task}----------`)
             }
             switch(task) {
+                case 'addleafevent':
+                    reloadWindow( data )
+                    break;
+                case 'deleteleafevent':
+                    break;
+                case 'addrootevent':
+                    reloadWindow( data )
+                    break;
+                case 'editrootevent':
+                    //reloadWindow( data )
+                    updateRootEventTitle( data )
+                    updateRootStartDate( data )
+                    updateRootEndDate( data )
+                    break;
+                case 'deleterootevent':
+                    reloadWindow( data )
+                    break;
                 case 'editname':
                     updateBracketName( data )
                     break;
                 case 'addbracket':
                     addBracket( data )
+                    break;
+                case 'removebracket':
                     break;
                 case 'preparenextmonth':
                     reloadWindow( data )
@@ -204,21 +224,20 @@
 
             $parent.append(templ)
             $el = findBracket(data.eventId, data.bracketNum)
-            $el.children('span.bracket-name').on('change', onChange)
-                .on('focus', onFocus)
-                .on('blur', onBlur);
+            $el.children('span.bracket-name').on('change', onChangeBracketName).on('focus', onFocus).on('blur', onBlur);
             $('.tennis-add-bracket').prop('disabled', false );
-            enableDeleteButton();
+            enableDeleteBracketButton();
         }
 
         /**
          * Hide a removed bracket
-         * @param {*} data 
+         * @param  eventId
+         * @param bracketNum
          */
-        function hideBracket( data ) {
-            let eventId = data['eventId']
-            let bracketNum = data['bracketNum']
+        function hideBracket( eventId, bracketNum ) {            
+            console.log("hideBracket(%d,%d)", eventId, bracketNum );
             let $el = findBracket(eventId, bracketNum)
+            console.log($el)
             $el.hide();
         }
 
@@ -230,18 +249,18 @@
          * @return jquery object
          */
         function findBracket( eventId, bracketNum ) {
-            console.log("findMatch(%d,%d)", eventId, bracketNum );
-            let attFilter = '.item-bracket[data-eventid="' + eventId + '"]';
-            attFilter += '[data-bracketnum="' + bracketNum + '"]';
-            let $bracketElem = $(attFilter);
+            console.log("findBracket(%d,%d)", eventId, bracketNum );
+            let sel = `.item-bracket[data-eventid="${eventId}"][data-bracketnum="${bracketNum}"]`
+            let $bracketElem = $(sel);
             return $bracketElem;
         }
         
         /**
          * Get all bracket data from the element/obj
-         * @param element el Assumes that el is descendant of .item-bracket
+         * @param element el Assumes that el is a child of .item-bracket
          */
         function getBracketData( el ) {
+            console.log('getBracketData')
             let parent = $(el).parents('.item-bracket');
             if( parent.length == 0) return {};
 
@@ -251,9 +270,7 @@
             let $bracketName = parent.find('span.bracket-name');
             let bracketName  = myTrim($bracketName.text());
 
-            let data = {"eventid": eventId, "bracketnum": bracketNum
-                        , "bracketName": bracketName };
-            console.log("getBracketData....");
+            let data = {"eventid": eventId, "bracketnum": bracketNum, "bracketName": bracketName };
             console.log(data);
             return data;
         }
@@ -269,7 +286,7 @@
             return data;
         }
 
-        function uniqueName( eventId ) {
+        function uniqueBracketName( eventId ) {
             let sel = `.tennis-event-brackets[data-eventid="${eventId}"]`;
             let $parent = $(sel);
             let existingNames = [];
@@ -341,10 +358,41 @@
         function updateEventTitle( data ) {
             console.log('updateEventTitle')
             console.log(data)
-            $titleEl = $(`.tennis-leaf-event-title[data-eventid='${data['eventId']}'`)
+            let $titleEl = $(`.tennis-leaf-event-title[data-eventid='${data['eventId']}'`)
             console.log($titleEl)
             $titleEl.text(data['newTitle'])
             $titleEl.removeData('oldTitle')
+        }
+
+        function updateRootEventTitle( data ) {
+            console.log('updateRootEventTitle')
+            console.log(data)
+            const sel = `li > a[href='#${data.postId}']`
+            console.log(sel)
+            let $titleEl =$(sel)
+            //let $titleEl = $(`.tennis-parent-event[data-eventid='${data['eventId']}'`)
+            console.log($titleEl)
+            $titleEl.text(data.title)
+        }
+
+        function updateRootStartDate( data ) {
+            console.log('updateRootStartDate')
+            console.log(data)
+            const sel = `.tennis-parent-event[data-event-id='${data.eventId}'] li.tennis-root-event-start > span`
+            console.log(sel)
+            let $startEl = $(sel)
+            console.log($startEl)
+            $startEl.text(data.startDate)
+        }
+
+        function updateRootEndDate( data ) {
+            console.log('updateRootEndDate')
+            console.log(data)
+            const sel = `.tennis-parent-event[data-event-id='${data.eventId}'] li.tennis-root-event-end > span`
+            console.log(sel)
+            let $endEl = $(sel)
+            console.log($endEl)
+            $endEl.text(data.endDate)
         }
 
         //Update the Gender Type
@@ -391,10 +439,10 @@
             console.log(data)
         }
 
-        function enableDeleteButton(){
-            $('.remove-bracket').hover( function(event) {
+        function enableDeleteBracketButton(){
+            $('.remove-bracket').on("mouseenter", function(event) {
                 $(this).css('cursor','pointer');
-            }, function(event) {
+            }).on("mouseleave", function(event) {
                 $(this).css('cursor','default');
             });
         }
@@ -429,7 +477,7 @@
             const eventId = $(this).attr("data-eventid");
             const postId = $(this).attr("data-postid");
             let eventTitle = (event.target.innerText || '').trim();
-            if( eventTitle === '') return;
+            //if( eventTitle === '') return;
 
             let oldTitle = $(event.target).data('beforeContentEdit').trim();
             $(event.target).removeData('beforeContentEdit')
@@ -474,7 +522,6 @@
             $childRule.css('display','block')
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifyscorerule"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -488,7 +535,6 @@
             console.log(`gender change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifygender"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -502,7 +548,6 @@
             console.log(`Match type change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifymatchtype"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -516,7 +561,6 @@
             console.log(`Format change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifyformat"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -530,7 +574,6 @@
             console.log(`Min Age change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifyminage"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -544,7 +587,6 @@
             console.log(`Max Age change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifymaxage"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -558,7 +600,6 @@
             console.log(`Signup By change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifysignupby"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -574,7 +615,6 @@
             console.log(`Start Date change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifystartdate"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -590,7 +630,6 @@
             console.log(`End Date change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
-                console.log("Posting change!")
                 ajaxFun( {"task": "modifyenddate"
                         , "eventId": data.eventId
                         , "postId": data.postId
@@ -598,6 +637,28 @@
                         , "startDate": data.startDate
                         , "endDate": newVal } );
             }
+        }
+        
+        //Extract the data from the new event form
+        function getDataFromForm($form) {
+            const title = $form.find("input[name='title']").val()
+            const parentId = $form.find("input[name='parentEventId']").val()
+            const signupBy = $form.find("input[name='signupby']").val()
+            const startDate = $form.find("input[name='startdate']").val()
+            const endDate = $form.find("input[name='enddate']").val()
+            const gender= $form.find("select[name='GenderTypesNew']").val()
+            const matchType= $form.find("select[name='MatchTypesNew']").val()
+            const format= $form.find("select[name='AllFormatsNew']").val()
+            const scoreType= $form.find("select[name='ScoreRulesNew']").val()
+            return {"parentId": parentId,"title": title
+                    ,"signupBy": signupBy
+                    ,"startDate": startDate
+                    ,"endDate": endDate
+                    ,"gender": gender
+                    ,"matchType": matchType
+                    ,"format": format
+                    ,"scoreType": scoreType
+                }
         }
 
         /**
@@ -658,23 +719,191 @@
             onChangeScoreRule(event);
         });
 
+        /**
+         * ----------------------Add Leaf Event aka Tournament-------------------------------------
+         */
+        //On add a new leaf event dialog
+        $('a.tennis-add-event.leaf').on('click', (event) => {
+            console.log("Add leaf event");
+            const parentId = event.target.dataset.parentid
+            const selector = `dialog.tennis-add-event-dialog.leaf[data-parentId='${parentId}']`
+            console.log(selector)
+            $dialog = $(selector)
+            console.log($dialog)
+            $dialog.get(0).showModal()
+        });
+
+        //Submit or cancel the leaf event dialog
+        $('button.tennis-add-event-close.leaf').on('click', (event) => {
+            console.log("Submit or cancel add leaf event dialog");
+            console.log(event.target)
+            $dialog = $(event.target).closest('dialog')
+            $dialog.attr('eventadd', $(event.target).val())
+            console.log($dialog)
+            $dialog.get(0).close()
+        });
+
+        //Take action when leaf dialog is closed
+        $('dialog.tennis-add-event-dialog.leaf').on('close', (event) => {
+            console.log("Add leaf event dialog closed");
+            console.log(event.target);
+            if($(event.target).attr('eventadd') === 'submitted') {
+                console.log('Dialog submitted')
+                $form = $(event.target).children('.tennis-add-event-form.leaf')
+                console.log($form)
+                let allData = getDataFromForm($form)
+                allData.task = "addleafevent"
+                console.log(allData)
+                ajaxFun( allData );
+            }
+            else {
+                console.log("Dialog cancelled")
+            }
+        });
+
+        /**
+         * ----------------------Delete a Leaf Event aka Tournament-------------------------------------
+         */
+        //On delete leaf event
+        $('a.tennis-delete-event.leaf').on('click', (event) => {
+            console.log("Delete leaf event");
+            const eventId = event.target.dataset.eventid
+            console.log("EventId=%d",eventId)
+            if(confirm("Are you sure you want to delete this tournament?")) {
+                $(event.target).closest('section.tennis-leaf-event').hide();
+                ajaxFun(  {"task": 'deleteleafevent', "eventId": eventId } );
+            }
+        });
+        
+        /**
+         * ----------------------Edit Root Event-------------------------------------
+         */
+        //On edit a root event dialog
+        $('a.tennis-edit-event.root').on('click', (event) => {
+            console.log("Edit root event");
+            const selector = `dialog.tennis-edit-event-dialog.root`
+            console.log(selector)
+            $dialog = $(selector)
+            console.log($dialog)
+            $dialog.get(0).showModal()
+        });
+
+        //Submit or cancel edit root event dialog
+        $('button.tennis-edit-event-close.root').on('click', (event) => {
+            console.log("Submit or cancel edit root event dialog");
+            console.log(event.target)
+            $dialog = $(event.target).closest('dialog')
+            $dialog.attr('eventedit', $(event.target).val())
+            console.log($dialog)
+            $dialog.get(0).close()
+        });
+        
+        //Take action when edit root dialog is closed
+        $('dialog.tennis-edit-event-dialog.root').on('close', (event) => {
+            console.log("Edit root event dialog closed");
+            console.log(event.target);
+            if($(event.target).attr('eventedit') === 'submitted') {
+                console.log('Edit Dialog submitted')
+                $form = $(event.target).children('.tennis-edit-event-form.root')
+                console.log($form)            
+                const eventId = $form.find("input[name='eventId']").val()
+                const postId = $form.find("input[name='postId']").val()
+                const title = $form.find("input[name='title']").val()
+                const startDate = $form.find("input[name='startdate']").val()
+                const endDate = $form.find("input[name='enddate']").val()
+                let data = {"eventId": eventId
+                            ,"postId": postId
+                            ,"title": title
+                            ,"startDate": startDate
+                            ,"endDate": endDate
+                        }
+                data.task = "editrootevent"
+                console.log(data)
+                ajaxFun( data );
+            }
+            else {
+                console.log("Dialog cancelled")
+            }
+        });
+
+        /**
+         * ----------------------Add Root Event------------------------------------
+         */
+        //On add a new root event dialog
+        $('button.tennis-add-event.root').on('click', (event) => {
+            console.log("Add root event");
+            const selector = `dialog.tennis-add-event-dialog.root`
+            console.log(selector)
+            $dialog = $(selector)
+            console.log($dialog)
+            $dialog.get(0).showModal()
+        });
+
+        //Submit or cancel the add a root event dialog
+        $('button.tennis-add-event-close.root').on('click', (event) => {
+            console.log("Submit or cancel add root event dialog");
+            console.log(event.target)
+            $dialog = $(event.target).closest('dialog')
+            $dialog.attr('eventadd', $(event.target).val())
+            console.log($dialog)
+            $dialog.get(0).close()
+        });
+
+        //Take action when root dialog is closed
+        $('dialog.tennis-add-event-dialog.root').on('close', (event) => {
+            console.log("Add root event dialog closed");
+            console.log(event.target);
+            if($(event.target).attr('eventadd') === 'submitted') {
+                console.log('Dialog submitted')
+                $form = $(event.target).children('.tennis-add-event-form.root')
+                console.log($form)
+                const title = $form.find("input[name='title']").val()
+                const startDate = $form.find("input[name='startdate']").val()
+                const endDate = $form.find("input[name='enddate']").val()
+                let data = {"title": title
+                            ,"startDate": startDate
+                            ,"endDate": endDate
+                        }
+                data.task = "addrootevent"
+                console.log(data)
+                ajaxFun( data );
+            }
+            else {
+                console.log("Dialog cancelled")
+            }
+        });
+
+        /**
+         * ----------------------Delete a Root Event------------------------------------
+         */
+        //On delete root event
+        $('a.tennis-delete-event.root').on('click', (event) => {
+            console.log("Delete root event");
+            const eventId = event.target.dataset.eventid
+            console.log("EventId=%d",eventId)
+            if(confirm("Are you sure you want to delete this event?")) {
+                ajaxFun(  {"task": 'deleterootevent', "eventId": eventId } );
+            }
+        });
+
+        /**
+         * ---------------------Add a Bracket------------------------------------
+         */
         //On Add a new bracket
-        $('.tennis-add-bracket').on('click', function (event) {
+        $('.tennis-add-bracket').on('click', (event) => {
             console.log("add bracket");
             console.log(event.target);
             $(this).prop('disabled', true );
             let eventId = event.target.getAttribute("data-eventid");
-            // let bracketName = prompt("Please enter name of bracket.",eventId);
-            // if( null == bracketName ) {
-            //     return;
-            // }
-            let newName = uniqueName(eventId);
-
+            let newName = uniqueBracketName(eventId);
             ajaxFun( {"task": "addbracket"
                     , "eventId": eventId
                     , "bracketName": newName } );
         });
 
+        /**
+         * ---------------------Remove a Bracket------------------------------------
+         */
         //On Remove a bracket
         $('.tennis-event-brackets').on('click', '.remove-bracket', function (event) {
             console.log("remove bracket");
@@ -683,17 +912,21 @@
             $(this).removeData('beforeContentEdit')
             //let eventId = tennis_bracket_obj.eventId; 
             if(confirm("Are you sure you want to delete this bracket?")) {
+                //$(this).parent().hide()
+                hideBracket(  bracketdata.eventid, bracketdata.bracketnum )
                 let config =  {"task": "removebracket"
                             , "eventId": bracketdata.eventid
                             , "bracketNum": bracketdata.bracketnum
                             , "bracketName": bracketdata.bracketName }
                 console.log(config)
-                $(this).parent().hide()
                 ajaxFun( config );
             }
         });
         
-        //On click to Copy an event
+        /**
+         * ---------------------Copy Ladder Events------------------------------------
+         */
+        //On click to Copy an event for next month's ladder
          $('.tennis-parent-event').on('click', '.tennis-ladder-next-month', function (event) {
             console.log("copy event");
             console.log(this);
@@ -710,8 +943,8 @@
          * ------------------------------One time set up actions----------------------------------------------------
          */
 
-        //Enable the delete button
-        enableDeleteButton();
+        //Enable the bracket delete x
+        enableDeleteBracketButton();
 
         //Show the details of the current Score Type
         const $fixedScoreRules =  $('.score_rules_text');
@@ -730,10 +963,9 @@
             evt.target.value = obj.value;
             onChangeScoreRule(evt, false)
         })
-        
 
         /**
-         * -----------------------The following creates JQuery tabs based on parent events------------------------------
+         * ------------------------The following creates JQuery tabs based on parent events------------------------------
          */
         let $parentEvents = $('.tennis-parent-event');
         $("#tabs").prepend(`<ul class="tennis-event-tabs"></ul>`);
@@ -749,17 +981,20 @@
             ui.oldTab.css({'border-bottom-width':'1px', 'background-color':'gray', 'color': 'white'});
             ui.oldTab.children('a').css({'color': 'white'})
         }})
-        
+
         // Setter
+        //$( ".tennis-event-tabs-container" ).tabs( "option", "disabled", true );
         $( ".tennis-event-tabs-container" ).tabs( "option", "collapsible", true );
         $( ".tennis-event-tabs-container" ).tabs( "option", "active", false );
         $( ".tennis-event-tabs-container" ).tabs( "option", "event", "click" );
-        $( ".tennis-event-tabs-container" ).tabs( "option", "hide", { effect: "fold", duration: 1000 } );
-        $( ".tennis-event-tabs-container" ).tabs( "option", "show", { effect: "blind", duration: 1000 } );
+        $( ".tennis-event-tabs-container" ).tabs( "option", "hide", { effect: "fold", duration: 2000 } );
+        $( ".tennis-event-tabs-container" ).tabs( "option", "show", { effect: "blind", duration: 2000 } );
 
         //Classes
         $('.tennis-event-tabs-container').tabs({"ui-tabs-nav": "tennis-event-tabs", "ui-tabs-tab": "tennis-tab-name ui-corner-all"
                                                 });
-        
+        // console.log($( "#tabs > ul > li.tennis-tab-name:first-child" ))
+        // $( "#tabs > ul > li.tennis-tab-name:first-child" ).trigger('click');
+                                                
     });
 })(jQuery);

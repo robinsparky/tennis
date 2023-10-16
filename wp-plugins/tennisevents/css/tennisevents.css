@@ -192,11 +192,26 @@ div.match[data-matchtitle]:not(.byematch):focus::after {
   color: white;
 }
 
-button.tennis-add-event {
+a.tennis-delete-event
+,a.tennis-add-event
+,a.tennis-edit-event {
+  color: black;
+  font-weight: bold;
+}
+
+a.tennis-delete-event:hover
+,a.tennis-add-event:hover
+,a.tennis-edit-event:hover {
+  cursor:pointer;
+  color: red;
+  font-style: italic;
+  text-decoration: underline;
+}
+
+button.tennis-add-event, button.tennis-delete-event, button.tennis-add-event-close {
   max-width: 175px;
-  max-height: 50px;
-  background-color: gray;
   color: white;
+  background-color: gray;
   margin-left: 10px;
   margin-top: 2px;
   padding: 10px 16px 10px 16px;
@@ -218,6 +233,39 @@ button.tennis-add-event {
   border-bottom-width: 1px;
 }
 
+input.tennis-add-event {
+  background: gray;
+  box-sizing: border-box;
+  color: white;
+  padding: 1px 0 0 1px;
+  width: 8em;
+}
+
+input[type="text"].tennis-add-event {
+  width: 30em;
+}
+
+input[type="date"].tennis-add-event {
+  width: 10em;
+}
+
+select.tennis-add-event.score_rules_selector_new {
+  width: 17em;
+}
+
+select.tennis-add-event {
+  background: gray;
+  box-sizing: border-box;
+  width: 100%;
+  color: white;
+  padding: 1px 0 0 1px;
+  width: 10em;
+}
+
+.tennis-add-event-dialog{
+  background: lightgray;
+}
+
 .tennis-parent-event-title {
   display: none;
 }
@@ -226,6 +274,20 @@ button.tennis-add-event {
   clear: both;
   display: none;
 }
+
+/**
+  This is the background behind a dialog when it opens
+*/
+  ::backdrop {
+    background-image: linear-gradient(
+      45deg,
+      magenta,
+      rebeccapurple,
+      dodgerblue,
+      green
+    );
+    opacity: 0.75;
+  }
 
 .tennis-leaf-event-container {
   margin: 0 0 0 0;
@@ -285,11 +347,19 @@ a.link-to-events {
 a.link-to-events::before {
   content: '🔗';
 }
-/*
-.tennis-leaf-event {
-  border: 1px solid black;
+
+ul.tennis-event-linkbased-menu.root {
+  border-top: 1px dotted black;
+  max-width: 25%;
+  list-style-type:"\2192";
 }
-*/
+
+ul.tennis-event-linkbased-menu.leaf {
+  border-top: 1px dotted black;
+  max-width: 50%;
+  /*list-style-type: "\1F44D";*/
+  list-style-type:"\2192";
+}
 
 h3.tennis-leaf-event-title {
   margin: 0 0 0 0;
@@ -335,8 +405,6 @@ h3.tennis-leaf-event-title[contenteditable] {
 }
 
 .tennis-event-brackets li span.bracket-name[contenteditable] {
-  /*text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;*/
-
   font-weight: normal;
   border: 1px solid grey;
   border-radius: 5px;

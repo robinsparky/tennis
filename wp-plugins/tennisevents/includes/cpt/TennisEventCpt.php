@@ -1236,6 +1236,14 @@ class TennisEventCpt {
 		$this->log->error_log("{$loc}($post_id)");
 
 		if (empty($_POST)) return;
+		
+		//This post is not meant for this action
+		if(isset($_POST['data'])) {
+			$data = $_POST['data'];
+			$task = $data["task"];
+			$this->log->error_log("$loc: not meant for this function {$task}!");
+			return;
+		}
 
 		$this->log->error_log($_POST, "$loc: _POST...");
 

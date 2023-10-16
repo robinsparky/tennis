@@ -13,13 +13,19 @@ use datalayer\GenderType;
 <h3 class="tennis-parent-event-title"><?php the_title(); ?></h3>					
 <ul class='tennis-event-meta tennis-event-meta-detail'>		
 	<li><?php the_content(); ?></li>					
-	<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
-	<li><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
-	<li><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
+	<li class='tennis-root-event-type'><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN);?><span><?php echo $eventType;?></span></li>
+	<li class='tennis-root-event-start'><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN);?><span><?php echo $startDate;?></span></li>
+	<li class='tennis-root-event-end'><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN);?><span><?php echo $endDate;?></span></li>
+	<?php include(TE()->getPluginPath() . 'includes\templates\controls\newLeafEventDialog.php');
+		  include(TE()->getPluginPath() . 'includes\templates\controls\editRootEventDialog.php');
+	?>
 	<?php if( $eventTypeRaw === EventType::LADDER && $support->userIsTournamentDirector()) : ?>
 		<li><button type="button" class="button tennis-ladder-next-month">Prepare Next Month</button> </li>
-	<?php else: ?>
-		<button class="tennis-add-event leaf"><?php echo __("New Tournament",TennisEvents::TEXT_DOMAIN);?></button>
+	<?php else:	?>
+	<ul class = 'tennis-event-linkbased-menu root'>
+		<li><a class='tennis-edit-event root' data-eventid='<?php echo $eventId;?>'><?php echo __("Edit This Event",TennisEvents::TEXT_DOMAIN);?></a></li>
+		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
+	</ul>
 	<?php endif; ?>
 </ul>
 <!-- leaf event container -->
@@ -67,7 +73,7 @@ use datalayer\GenderType;
 		<!-- Leaf Event -->
 		<section class="tennis-leaf-event"> 
 			<?php $title = get_the_title();
-				$evtHeading = "<h3 class='tennis-leaf-event-title' contenteditable='true' data-eventid='{$leafEventId 	}' data-postid={$postId}>{$title}</h3>";
+				$evtHeading = "<h3 class='tennis-leaf-event-title' contenteditable='true' data-eventid='{$leafEventId}' data-postid={$postId}>{$title}</h3>";
 				echo $evtHeading;
 			?>
 			<?php the_content();
@@ -92,72 +98,78 @@ use datalayer\GenderType;
 						break;
 					}
 				}
+	
+				//Gender Type Drop Down
+				$genderTypes = GenderType::AllTypes();
+				$genderTypeDropDown = "<select name='GenderTypes' class='gender_selector' data-origval='{$genderType}'>";
+				foreach( $genderTypes as $key=>$value ) {
+					$selected = ($value === $genderType) ? "selected='true'" : "";
+					$genderTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
+				}
+				$genderTypeDropDown .= "</select>";
 
 				if($restrictChanges) {
 					//No drop down
-					$genderTypeDropDown = $genderType;
+					$genderTypeDisplay = $genderType;
 				}
 				else  {
-					//Gender Type Drop Down
-					$genderTypes = GenderType::AllTypes();
-					$genderTypeDropDown = "<select name='GenderTypes' class='gender_selector' data-origval='{$genderType}'>";
-					foreach( $genderTypes as $key=>$value ) {
-						$selected = ($value === $genderType) ? "selected='true'" : "";
-						$genderTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
-					}
-					$genderTypeDropDown .= "</select>";
+					$genderTypeDisplay = $genderTypeDropDown;
 				}
+
+				//Match Type Drop Down
+				$matchTypes = MatchType::AllTypes();
+				$matchTypeDropDown = "<select name='MatchTypes' class='match_type_selector' data-origval='{$matchType}'>";
+				foreach( $matchTypes as $key=>$value ) {
+					$selected = ($value === $matchType) ? "selected='true'" : "";
+					$matchTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
+				}
+				$matchTypeDropDown .= "</select>";
 
 				if($restrictChanges) {
 					//No drop down
-					$matchTypeDropDown = $matchType;
+					$matchTypeDisplay = $matchType;
 				}
 				else {
-					//Match Type Drop Down
-					$matchTypes = MatchType::AllTypes();
-					$matchTypeDropDown = "<select name='MatchTypes' class='match_type_selector' data-origval='{$matchType}'>";
-					foreach( $matchTypes as $key=>$value ) {
-						$selected = ($value === $matchType) ? "selected='true'" : "";
-						$matchTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
-					}
-					$matchTypeDropDown .= "</select>";
+					$matchTypeDisplay = $matchTypeDropDown;
 				}
 
+				//Format Drop Down
+				$allFormats = Format::AllFormats();
+				$formatDropDown = "<select name='AllFormats' class='format_selector' data-origval='{$eventFormat}'>";
+				foreach( $allFormats as $key=>$value ) {
+					$selected = ($value === $eventFormat) ? "selected='true'" : "";
+					$formatDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
+				}
+				$formatDropDown .= "</select>";
 				if($restrictChanges) {
 					//No drop down
-					$formatDropDown = $eventFormat;
+					$formatDisplay = $eventFormat;
 				}
 				else {
-					//Format Drop Down
-					$allFormats = Format::AllFormats();
-					$formatDropDown = "<select name='AllFormats' class='format_selector' data-origval='{$eventFormat}'>";
-					foreach( $allFormats as $key=>$value ) {
-						$selected = ($value === $eventFormat) ? "selected='true'" : "";
-						$formatDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
-					}
-					$formatDropDown .= "</select>";
+					$formatDisplay = $formatDropDown;
 				}
 
+				//Score Rules Drop Down
+				$scoreRulesDescriptions =  ScoreType::get_instance()->getRuleDescriptions();
+				$scoreRulesDropDown = "<select name='ScoreRules' class='score_rules_selector'>";
+				foreach( $scoreRulesDescriptions as $key=>$value ) {
+					$selected = ($key === $scoreType) ? "selected='true'" : "";
+					$scoreRulesDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
+				}
+				$scoreRulesDropDown .= "</select>";
 				if($restrictChanges) {
-					$scoreRulesDropDown = "<span class='score_rules_text' data-scoretype='{$scoreType}'>{$scoreRuleDesc}</span>";
+					$scoreRulesDisplay = "<span class='score_rules_text' data-scoretype='{$scoreType}'>{$scoreRuleDesc}</span>";
 				}
 				else {
-					//Score Rules Drop Down
-					$scoreRulesDescriptions =  ScoreType::get_instance()->getRuleDescriptions();
-					$scoreRulesDropDown = "<select name='ScoreRules' class='score_rules_selector'>";
-					foreach( $scoreRulesDescriptions as $key=>$value ) {
-						$selected = ($key === $scoreType) ? "selected='true'" : "";
-						$scoreRulesDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
-					}
-					$scoreRulesDropDown .= "</select>";
+					$scoreRulesDisplay = $scoreRulesDropDown;
 				}
 			?>
 			<table id='<?php echo $evtId ?>' class='tennis-event-meta' data-eventid='<?php echo $evtId; ?>' data-postid='<?php echo $postId; ?>'>
 			<tbody>				
 				<tr class="event-meta-detail"><td><strong><?php echo __("Gender", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><?php echo $genderTypeDropDown; ?></td></tr>
+					<td><?php echo $genderTypeDisplay; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><?php echo $matchTypeDropDown; ?></td></tr>
+					<td><?php echo $matchTypeDisplay; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Categories", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><?php echo $terms; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Min Age", TennisEvents::TEXT_DOMAIN);?></strong></td>
@@ -171,9 +183,9 @@ use datalayer\GenderType;
 				<tr class="event-meta-detail"><td><strong><?php echo __("Ends", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><input class='end_date_input' type="date" min='<?php echo $startDate;?>' value="<?php echo $endDate; ?>" data-origval="<?php echo $endDate;?>"></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><?php echo $formatDropDown; ?></td></tr>
+					<td><?php echo $formatDisplay; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Scoring", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><?php echo $scoreRulesDropDown; ?>
+					<td><?php echo $scoreRulesDisplay; ?>
 					<div class="scoreruleslist">
 					<?php 
 						foreach(ScoreType::get_instance()->ScoreRules as $ruleId=>$values) { 
@@ -212,13 +224,19 @@ use datalayer\GenderType;
 			</ul>
 			<!-- /Brackets -->
 			<?php } ?>
+			<?php if(!$restrictChanges) { ?>
+			<ul class="tennis-event-linkbased-menu leaf" >
+				<li><a id="deleteLeafEvent" class="tennis-delete-event leaf" data-eventid="<?php echo $leafEvent->getID();?>">Delete Tournament</a></li>
+			</ul>
+			<?php } ?>
 		</section> <!-- /leaf events -->	
 		<?php } ?>
 	</section> <!-- /leaf event container-->
 	<?php }
 	else {
-		echo "<div class='eventmessage'>NO LEAF EVENTS FOUND!</div>";
-	}
+		echo "<ul class='tennis-event-linkbased-menu root'><li><a class='tennis-delete-event root' data-eventid='{$event->getID()}'>" . __("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN) . "</a></li></ul>";
+	}	
+
 		/* Restore original Post Data */
 		wp_reset_postdata();
 	?>
