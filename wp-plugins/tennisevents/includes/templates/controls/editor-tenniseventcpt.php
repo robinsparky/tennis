@@ -7,15 +7,24 @@ use datalayer\Format;
 use datalayer\MatchType;
 use datalayer\ScoreType;
 use datalayer\GenderType;
+
+//Match type drop down
+$eventTypeDropDown = "<select name='EventTypes' class='tennis-edit-event event_type_selector'>";
+foreach( EventType::AllTypes() as $key=>$value ) {
+	$selected = ($value === $eventType) ? "selected='true'" : "";
+	$eventTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
+}
+$eventTypeDropDown .= "</select>";
+
 ?>
 <!-- Root event -->
 <div id="<?php echo get_the_ID()?>" class="tennis-parent-event" data-event-id="<?php echo $event->getID();?>">
-<h3 class="tennis-parent-event-title"><?php the_title(); ?></h3>					
-<ul class='tennis-event-meta tennis-event-meta-detail'>		
-	<li><?php the_content(); ?></li>					
-	<li class='tennis-root-event-type'><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN);?><span><?php echo $eventType;?></span></li>
-	<li class='tennis-root-event-start'><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN);?><span><?php echo $startDate;?></span></li>
-	<li class='tennis-root-event-end'><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN);?><span><?php echo $endDate;?></span></li>
+<ul class='tennis-event-meta tennis-event-meta-detail'>	
+	<li class="tennis-parent-event-title"><?php echo __("Title: ", TennisEvents::TEXT_DOMAIN);?><span class="tennis-parent-event-title" contenteditable="true"><?php the_title();?></span></li>					
+	<li class='tennis-root-event-type'><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN);?><?php echo $eventTypeDropDown;?></li>
+	<li class='tennis-root-event-date start'><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN);?><input type="date" value="<?php echo $startDate;?>"></li>
+	<li class='tennis-root-event-date end'><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN);?><input type="date" value="<?php echo $endDate;?>"></li>	
+	<li class='tennis-root-event-description'><?php echo __("Description: ", TennisEvents::TEXT_DOMAIN);?><p><?php the_content();?></p></li>					
 	<?php include(TE()->getPluginPath() . 'includes\templates\controls\newLeafEventDialog.php');
 		  include(TE()->getPluginPath() . 'includes\templates\controls\editRootEventDialog.php');
 	?>

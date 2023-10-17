@@ -236,6 +236,18 @@ button.tennis-add-event
   border-bottom-width: 1px;
 }
 
+.gender_selector
+,.match_type_selector
+,.format_selector
+,.score_rules_selector {
+  height: 2em;
+  width: 10em;
+  background-color: white;
+  border: dotted 1px black;
+  padding: 0 0;
+}
+
+
 input.tennis-add-event {
   background: gray;
   box-sizing: border-box;
@@ -269,13 +281,38 @@ select.tennis-add-event {
   background: lightgray;
 }
 
-.tennis-parent-event-title {
-  display: none;
-}
-
 .tennis-parent-event {
   clear: both;
   display: none;
+}
+
+/**
+* Root event properties
+*/
+.tennis-parent-event-title {
+  padding-left: 3px;
+  padding-right: 5px;
+  font-weight: normal;
+}
+
+select.tennis-edit-event {
+  height: 2em;
+  width: 8em;
+  background-color: white;
+  border: dotted 1px black;
+  padding: 0 0;
+}
+
+.tennis-parent-event-title[contenteditable="true"] {
+  border: dotted 1px black;
+  background-color: white;
+}
+
+li.tennis-root-event-date > input[type="date"] {
+  height: 2em;
+  width: 8em;
+  border: dotted 1px black;
+  padding: 0 0;
 }
 
 /**
@@ -380,7 +417,8 @@ h3.tennis-leaf-event-title[contenteditable] {
   text-decoration: none;
   list-style: none;
   /*flex: 1 1 auto;*/
-  width: auto;
+  width: 100%;
+  min-width: 320px;
   height: auto;
   margin: 0 0 1rem 0;
 }

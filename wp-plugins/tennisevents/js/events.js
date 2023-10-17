@@ -967,35 +967,52 @@
 
         /**
          * ------------------------The following creates JQuery tabs based on parent events------------------------------
+         * Necessary because the number of tabs and panels is dynamic becaused it is based on the root events rendered
          */
+        $("#tabs").prepend(`<ul class="tennis-event-tabs"></ul>`);//Creates ui-tabs-nav
         let $parentEvents = $('.tennis-parent-event');
-        $("#tabs").prepend(`<ul class="tennis-event-tabs"></ul>`);
+        let numTabs = 0
         $parentEvents.each( function(idx, el ) {
-            let title = $(this).children('h3').text();
+            ++numTabs
+            let title = $(this).find('ul.tennis-event-meta > li:first-child > span').text();
             let id = $(this).attr("id");
+            //Create ui-tabs-tab and ui-tabs-anchor
             $( "#tabs > ul" ).append( `<li class="tennis-tab-name"><a href="#${id}">${title}</a></li>` );
-        } )
+        } );
 
+        //Set tab options for ui-tab at create time
+        $( ".tennis-event-tabs-container" ).tabs( {create: function( event, ui ) {
+            console.log("create:")
+            console.log(ui.tab)
+            ui.tab.css({'border-bottom-width':'0', 'background-color':'white', 'color': 'black'})
+            ui.tab.children('a').css({'color': 'black'})
+            console.log(ui.panel)
+            ui.panel.css({'background-color': 'beige'})
+        }})
+
+        //Set tab options for ui-tab at activate time
         $( ".tennis-event-tabs-container" ).tabs( {active: false, activate: function( event, ui ) {
             ui.newTab.css({'border-bottom-width':'0', 'background-color':'white', 'color': 'black'});
             ui.newTab.children('a').css({'color': 'black'})
             ui.oldTab.css({'border-bottom-width':'1px', 'background-color':'gray', 'color': 'white'});
             ui.oldTab.children('a').css({'color': 'white'})
+            ui.oldPanel.css({'background-color': 'white'})
+            ui.newPanel.css({'background-color': 'beige'})
         }})
 
-        // Setter
-        //$( ".tennis-event-tabs-container" ).tabs( "option", "disabled", true );
-        $( ".tennis-event-tabs-container" ).tabs( "option", "collapsible", true );
-        $( ".tennis-event-tabs-container" ).tabs( "option", "active", false );
+        // Setters
+        //$(".tennis-event-tabs-container" ).tabs( "option", "disabled", true );
+        $( ".tennis-event-tabs-container" ).tabs( "option", "collapsible", false );
+        $( ".tennis-event-tabs-container" ).tabs( "option", "active", 0 );
         $( ".tennis-event-tabs-container" ).tabs( "option", "event", "click" );
         $( ".tennis-event-tabs-container" ).tabs( "option", "hide", { effect: "fold", duration: 2000 } );
         $( ".tennis-event-tabs-container" ).tabs( "option", "show", { effect: "blind", duration: 2000 } );
 
+        const active = $( ".tennis-event-tabs-container" ).tabs("option","active")
+        console.log(`Number of tabs is ${numTabs}. The active tab index is ${active}:`)
+        console.log($( ".tennis-event-tabs-container > ul" ).children().get(active))
+
         //Classes
-        $('.tennis-event-tabs-container').tabs({"ui-tabs-nav": "tennis-event-tabs", "ui-tabs-tab": "tennis-tab-name ui-corner-all"
-                                                });
-        // console.log($( "#tabs > ul > li.tennis-tab-name:first-child" ))
-        // $( "#tabs > ul > li.tennis-tab-name:first-child" ).trigger('click');
-                                                
+        $('.tennis-event-tabs-container').tabs({"ui-tabs-nav": "tennis-event-tabs", "ui-tabs-tab": "tennis-tab-name ui-corner-all"});                                                 
     });
 })(jQuery);

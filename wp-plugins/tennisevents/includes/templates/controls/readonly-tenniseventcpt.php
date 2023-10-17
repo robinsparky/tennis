@@ -11,12 +11,12 @@ use datalayer\GenderType;
 
 <!-- Root event -->
 <div id="<?php echo get_the_ID()?>" class="tennis-parent-event" data-event-id="<?php echo $event->getID();?>">
-<h3 class="tennis-parent-event-title"><?php the_title(); ?></h3>					
 <ul class='tennis-event-meta tennis-event-meta-detail'>		
-	<li><?php the_content(); ?></li>					
-	<li><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
-	<li><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
-	<li><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
+	<li class="tennis-parent-event-title"><?php echo __("Title: ", TennisEvents::TEXT_DOMAIN);?><span><?php the_title();?></span></li>		
+	<li class='tennis-root-event-type'><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN); echo $eventType; ?></li>
+	<li class='tennis-root-event-start'><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN); echo $startDate; ?></li>
+	<li class='tennis-root-event-end'><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN); echo $endDate; ?></li>
+	<li class='tennis-root-event-description'><?php echo __("Description: ", TennisEvents::TEXT_DOMAIN);?><p><?php the_content();?></p></li>
 	<?php if( $eventTypeRaw === EventType::LADDER && $support->userIsTournamentDirector()) : ?>
 		<li><button type="button" class="button tennis-ladder-next-month">Prepare Next Month</button> </li>
 	<?php endif; ?>
