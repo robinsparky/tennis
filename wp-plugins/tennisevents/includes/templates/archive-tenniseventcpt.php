@@ -14,7 +14,7 @@ $support = GW_Support::getInstance();
 $homeClubId = esc_attr( get_option('gw_tennis_home_club', 0) );
 $club = Club::get( $homeClubId ); 
 $homeClubName = is_null( $club ) ? __( "Unknown Club", TennisEvents::TEXT_DOMAIN) : $club->getName();
-$season = esc_attr( get_option('gw_tennis_event_season', date('Y') ) ); 
+$season = esc_attr( get_option(TennisEvents::OPTION_TENNIS_SEASON, date('Y') ) ); 
 $prevSeason = isset($_GET['season']) ? $_GET['season'] : '';
 if(!empty($prevSeason)) {
 	$season = $prevSeason;

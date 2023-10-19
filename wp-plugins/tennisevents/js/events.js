@@ -110,12 +110,6 @@
                 case 'addrootevent':
                     reloadWindow( data )
                     break;
-                case 'editrootevent':
-                    //reloadWindow( data )
-                    updateRootEventTitle( data )
-                    updateRootStartDate( data )
-                    updateRootEndDate( data )
-                    break;
                 case 'deleterootevent':
                     reloadWindow( data )
                     break;
@@ -131,7 +125,17 @@
                     reloadWindow( data )
                     break;
                 case 'modifyeventtitle':
-                    updateEventTitle( data )
+                    updateLeafEventTitle( data )
+                    break;
+                case 'modifyrooteventtitle':
+                    updateRootEventTitle( data )
+                    break;
+                case 'modifyrootstartdate':
+                    updateRootStartDate( data )
+                    updateRootEndDate( data )
+                    break;
+                case 'modifyrootendate':
+                    updateRootEndDate( data )
                     break;
                 case 'modifygender':
                     updateGenderType( data )
@@ -153,11 +157,17 @@
                     break;
                 case 'modifysignupby':
                     updateSignupBy( data )
+                    updateStartDate( data )
+                    updateEndDate( data )
                     break;
                 case 'modifystartdate':
                     updateStartDate( data )
+                    updateSignupBy( data )
+                    updateEndDate( data )
                     break;
                 case 'modifyenddate':
+                    updateSignupBy( data )
+                    updateStartDate( data )
                     updateEndDate( data )
                     break;
                 default:
@@ -337,7 +347,57 @@
             console.log(data)
             return data;
         }
+        /**
+         * -------------------------Root Events----------------------------------------------------------
+         */
+        function updateRootEventTitle( data ) {
+            console.log('updateRootEventTitle')
+            console.log(data)
 
+            //Handle the tab first
+            const selTab = `li > a[href='#${data.postId}']`
+            console.log(selTab)
+            let $tabEl =$(selTab)
+            console.log($tabEl)
+            $tabEl.text(data.newTitle)
+
+            //Now handle the event title
+            const selParent = `div.tennis-parent-event[data-event-id='${data.eventId}']`;
+            console.log(selParent)
+            const $parentEl=$(selParent)
+            console.log($parentEl)
+            $titleEl = $parentEl.find('span.tennis-parent-event-title')
+            console.log($titleEl)
+            $titleEl.text(data.newTitle)
+            $titleEl.removeData('oldTitle')
+        }
+
+        function updateRootStartDate( data ) {
+            console.log('updateRootStartDate')
+            console.log(data)
+            const selParent = `div.tennis-parent-event[data-event-id='${data.eventId}']`
+            console.log(selParent)
+            const $parentEl = $(selParent)
+            console.log($parentEl)
+            let $startEl = $parentEl.find('li.tennis-root-event-date.start input[type="date"]')
+            console.log($startEl)
+            $startEl.val(data.startDate)
+        }
+
+        function updateRootEndDate( data ) {
+            console.log('updateRootEndDate')
+            console.log(data)
+            const selParent = `div.tennis-parent-event[data-event-id='${data.eventId}']`
+            console.log(selParent)
+            const $parentEl = $(selParent)
+            console.log($parentEl)
+            let $endEl = $parentEl.find('li.tennis-root-event-date.end input[type="date"]')
+            console.log($endEl)
+            $endEl.val(data.endDate)
+        }
+
+        /**--------------------------------Leaf Events aka Tournaments----------------------------------- */
+        
         //Update the min age
         function updateMinAge( data ) {
             console.log('updateMinAge')
@@ -355,44 +415,13 @@
             console.log(`updateMaxAge orig val=${origVal}`)
         }
 
-        function updateEventTitle( data ) {
-            console.log('updateEventTitle')
+        function updateLeafEventTitle( data ) {
+            console.log('updateLeafEventTitle')
             console.log(data)
             let $titleEl = $(`.tennis-leaf-event-title[data-eventid='${data['eventId']}'`)
             console.log($titleEl)
             $titleEl.text(data['newTitle'])
             $titleEl.removeData('oldTitle')
-        }
-
-        function updateRootEventTitle( data ) {
-            console.log('updateRootEventTitle')
-            console.log(data)
-            const sel = `li > a[href='#${data.postId}']`
-            console.log(sel)
-            let $titleEl =$(sel)
-            //let $titleEl = $(`.tennis-parent-event[data-eventid='${data['eventId']}'`)
-            console.log($titleEl)
-            $titleEl.text(data.title)
-        }
-
-        function updateRootStartDate( data ) {
-            console.log('updateRootStartDate')
-            console.log(data)
-            const sel = `.tennis-parent-event[data-event-id='${data.eventId}'] li.tennis-root-event-start > span`
-            console.log(sel)
-            let $startEl = $(sel)
-            console.log($startEl)
-            $startEl.text(data.startDate)
-        }
-
-        function updateRootEndDate( data ) {
-            console.log('updateRootEndDate')
-            console.log(data)
-            const sel = `.tennis-parent-event[data-event-id='${data.eventId}'] li.tennis-root-event-end > span`
-            console.log(sel)
-            let $endEl = $(sel)
-            console.log($endEl)
-            $endEl.text(data.endDate)
         }
 
         //Update the Gender Type
@@ -416,22 +445,43 @@
 
         }
 
-        //Update the date fields depending on the value of signBy
+        //Update the signup by date 
         function updateSignupBy( data ) {
             console.log('updateSignupBy')
             console.log(data)
+            const selParent = `table.tennis-event-meta[data-eventid='${data.eventId}']`
+            console.log(selParent)
+            const $parentEl = $(selParent)
+            console.log($parentEl)
+            let $signupEl = $parentEl.find('input.signup_by_input[type="date"]')
+            console.log($signupEl)
+            $signupEl.val(data.signupBy)
         }
 
-        //Update the date fields depending on the value of startDate
+        //Update the start date
         function updateStartDate( data ) {
             console.log('updateStartDate')
             console.log(data) 
+            const selParent = `table.tennis-event-meta[data-eventid='${data.eventId}']`
+            console.log(selParent)
+            const $parentEl = $(selParent)
+            console.log($parentEl)
+            let $startEl = $parentEl.find('input.start_date_input[type="date"]')
+            console.log($startEl)
+            $startEl.val(data.startDate)
         }
 
-        //Update the date fields depending on the value of endDate
+        //Update the end date
         function updateEndDate( data ) {
             console.log('updateEndDate')
-            console.log(data)            
+            console.log(data)
+            const selParent = `table.tennis-event-meta[data-eventid='${data.eventId}']`
+            console.log(selParent)
+            const $parentEl = $(selParent)
+            console.log($parentEl)
+            let $endEl = $parentEl.find('input.end_date_input[type="date"]')
+            console.log($endEl)
+            $endEl.val(data.endDate)         
         }
 
         function updateScoreType( data ) {
@@ -439,6 +489,7 @@
             console.log(data)
         }
 
+        /*---------------------------------Brackets-----------------------------------------------*/
         function enableDeleteBracketButton(){
             $('.remove-bracket').on("mouseenter", function(event) {
                 $(this).css('cursor','pointer');
@@ -466,11 +517,38 @@
             console.log(config)
             ajaxFun( config );
         }
+    
+        /**------------------------------------Functions supporting DOM Events--------------------------------------------- */
+        /**
+         * Change the title of the root event
+         */
+        const onChangeRootTitle = function( event ) {
+            console.log("onChangeRootTitle fired!")
+            console.log("Target:")
+            console.log(event.target)
+            console.log("this:")
+            console.log(this)
+
+            const eventId = $(this).closest(".tennis-parent-event").attr("data-event-id");
+            const postId = $(this).closest(".tennis-parent-event").attr("id");
+            let eventTitle = (event.target.innerText || '').trim();
+            //if( eventTitle === '') return;
+
+            let oldTitle = $(event.target).data('beforeContentEdit').trim();
+            $(event.target).removeData('beforeContentEdit')
+            let config =  {"task": "modifyrooteventtitle"
+                            , "eventId": eventId
+                            , "postId": postId
+                            , "newTitle": eventTitle
+                            , "oldTitle": oldTitle }
+            console.log(config)
+            ajaxFun( config );
+        }
         
         /**
-         * Change the title of the tournament
+         * Change the title of the tournament (i.e. leaf event)
          */
-        const onChangeTitle = function( event ) {
+        const onChangeTournamentTitle = function( event ) {
             console.log("onChangeTitle fired!")
             console.log(event.target)
 
@@ -488,6 +566,35 @@
                             , "oldTitle": oldTitle }
             console.log(config)
             ajaxFun( config );
+        }
+
+        //Change Root Start Date
+        const onChangeRootStartDate = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`Root Start Date change detected: ${newVal} with post=${postIt}`)
+            console.log("Target:")
+            console.log(event.target)
+            const eventId = $(event.target).closest(".tennis-parent-event").attr("data-event-id");
+            const postId = $(event.target).closest(".tennis-parent-event").attr("id");
+            const args = {"task": "modifyrootstartdate", "eventId": eventId, "postId": postId, "startDate": newVal }
+            console.log(args)
+            if(postIt === true) {
+                ajaxFun( args );
+            }
+        }
+        //Change Root End Date
+        const onChangeRootEndDate = function( event, postIt = true ) {
+            const newVal = event.target.value;
+            console.log(`Root End Date change detected: ${newVal} with post=${postIt}`)
+            console.log("Target:")
+            console.log(event.target)
+            const eventId = $(event.target).closest(".tennis-parent-event").attr("data-event-id");
+            const postId = $(event.target).closest(".tennis-parent-event").attr("id");
+            const args = {"task": "modifyrootenddate", "eventId": eventId, "postId": postId, "endDate": newVal }
+            console.log(args)
+            if(postIt === true) {
+                ajaxFun( args );
+            }
         }
 
         /**
@@ -662,174 +769,27 @@
         }
 
         /**
-        * ----------------------------------User Actions ------------------------------------------------------
+        * ----------------------------------User Actions Invoking DOM Events ------------------------------------------------------
         */
-         //Bracket name
-         $('span.bracket-name').on('change', onChangeBracketName);
-         $('span.bracket-name').on('focus', onFocus);
-         $('span.bracket-name').on('blur', onBlur);
-
-         //Event title
-         $('.tennis-leaf-event-title[contenteditable]').on('change', onChangeTitle);
-         $('.tennis-leaf-event-title[contenteditable]').on('focus', onFocus);
-         $('.tennis-leaf-event-title[contenteditable]').on('blur', onBlur);
-        
-         //OnChange the Gender
-        $(".gender_selector").on("change", function(event) {
-            onChangeGender(event);
-        });
-
-        //On Change the Match Type     
-        $(".match_type_selector").on("change", function(event) {
-            onChangeMatchType(event);
-        });
-
-        //On Change the Format      
-        $(".format_selector").on("change", function(event) {
-            onChangeFormat(event);
-        });
-
-        //On Change the Min Age      
-        $(".min_age_input").on("change", function(event) {
-            onChangeMinAge(event);
-        });
-
-        //On Change the Max Age     
-        $(".max_age_input").on("change", function(event) {
-            onChangeMaxAge(event);
-        });
-        
-        //On Change the Sign Up By date      
-        $(".signup_by_input").on("change", function(event) {
-            onChangeSignupBy(event);
-        });
-
-        //On Change the Start Date      
-        $(".start_date_input").on("change", function(event) {
-             onChangeStartDate(event);
-        });
- 
-        //On Change the End Date    
-        $(".end_date_input").on("change", function(event) {
-              onChangeEndDate(event);
-        });
-        
-        //On Change the score type 
-        $(".score_rules_selector").on("change", function(event) {
-            onChangeScoreRule(event);
-        });
 
         /**
-         * ----------------------Add Leaf Event aka Tournament-------------------------------------
+         * ----------------------Root Events-------------------------------------
          */
-        //On add a new leaf event dialog
-        $('a.tennis-add-event.leaf').on('click', (event) => {
-            console.log("Add leaf event");
-            const parentId = event.target.dataset.parentid
-            const selector = `dialog.tennis-add-event-dialog.leaf[data-parentId='${parentId}']`
-            console.log(selector)
-            $dialog = $(selector)
-            console.log($dialog)
-            $dialog.get(0).showModal()
+         //Root Event title change
+         $('.tennis-root-event-title > span[contenteditable]').on('change', onChangeRootTitle);
+         $('.tennis-root-event-title > span[contenteditable]').on('focus', onFocus);
+         $('.tennis-root-event-title > span[contenteditable]').on('blur', onBlur);
+         
+        //Root Start date
+        $(".tennis-root-event-date.start > input[type='date']").on("change", function(event) {
+            onChangeRootStartDate(event);
         });
 
-        //Submit or cancel the leaf event dialog
-        $('button.tennis-add-event-close.leaf').on('click', (event) => {
-            console.log("Submit or cancel add leaf event dialog");
-            console.log(event.target)
-            $dialog = $(event.target).closest('dialog')
-            $dialog.attr('eventadd', $(event.target).val())
-            console.log($dialog)
-            $dialog.get(0).close()
+        //Root End date
+        $(".tennis-root-event-date.end > input[type='date']").on("change", function(event) {
+             onChangeRootEndDate(event);
         });
 
-        //Take action when leaf dialog is closed
-        $('dialog.tennis-add-event-dialog.leaf').on('close', (event) => {
-            console.log("Add leaf event dialog closed");
-            console.log(event.target);
-            if($(event.target).attr('eventadd') === 'submitted') {
-                console.log('Dialog submitted')
-                $form = $(event.target).children('.tennis-add-event-form.leaf')
-                console.log($form)
-                let allData = getDataFromForm($form)
-                allData.task = "addleafevent"
-                console.log(allData)
-                ajaxFun( allData );
-            }
-            else {
-                console.log("Dialog cancelled")
-            }
-        });
-
-        /**
-         * ----------------------Delete a Leaf Event aka Tournament-------------------------------------
-         */
-        //On delete leaf event
-        $('a.tennis-delete-event.leaf').on('click', (event) => {
-            console.log("Delete leaf event");
-            const eventId = event.target.dataset.eventid
-            console.log("EventId=%d",eventId)
-            if(confirm("Are you sure you want to delete this tournament?")) {
-                $(event.target).closest('section.tennis-leaf-event').hide();
-                ajaxFun(  {"task": 'deleteleafevent', "eventId": eventId } );
-            }
-        });
-        
-        /**
-         * ----------------------Edit Root Event-------------------------------------
-         */
-        //On edit a root event dialog
-        $('a.tennis-edit-event.root').on('click', (event) => {
-            console.log("Edit root event");
-            let eventId = $(event.target).attr('data-eventid')
-            console.log("EventId=%d",eventId)
-            const selector = `dialog.tennis-edit-event-dialog.root[data-eventid='${eventId}']`
-            let $dialog = $(selector)
-            $dialog = $(selector)
-            $dialog.get(0).showModal()
-        });
-
-        //Submit or cancel edit root event dialog
-        $('button.tennis-edit-event-close.root').on('click', (event) => {
-            console.log("Submit or cancel edit root event dialog");
-            console.log(event.target)
-            $dialog = $(event.target).closest('dialog')
-            $dialog.attr('eventedit', $(event.target).val())
-            console.log($dialog)
-            $dialog.get(0).close()
-        });
-        
-        //Take action when edit root dialog is closed
-        $('dialog.tennis-edit-event-dialog.root').on('close', (event) => {
-            console.log("Edit root event dialog closed");
-            console.log(event.target);
-            if($(event.target).attr('eventedit') === 'submitted') {
-                console.log('Edit Dialog submitted')
-                $form = $(event.target).children('.tennis-edit-event-form.root')
-                console.log($form)            
-                const eventId = $form.find("input[name='eventId']").val()
-                const postId = $form.find("input[name='postId']").val()
-                const title = $form.find("input[name='title']").val()
-                const startDate = $form.find("input[name='startdate']").val()
-                const endDate = $form.find("input[name='enddate']").val()
-                let data = {"eventId": eventId
-                            ,"postId": postId
-                            ,"title": title
-                            ,"startDate": startDate
-                            ,"endDate": endDate
-                        }
-                data.task = "editrootevent"
-                console.log(data)
-                ajaxFun( data );
-            }
-            else {
-                console.log("Dialog cancelled")
-            }
-        });
-
-        /**
-         * ----------------------Add Root Event------------------------------------
-         */
         //On add a new root event dialog
         $('button.tennis-add-event.root').on('click', (event) => {
             console.log("Add root event");
@@ -874,9 +834,6 @@
             }
         });
 
-        /**
-         * ----------------------Delete a Root Event------------------------------------
-         */
         //On delete root event
         $('a.tennis-delete-event.root').on('click', (event) => {
             console.log("Delete root event");
@@ -887,9 +844,121 @@
             }
         });
 
+
+
         /**
-         * ---------------------Add a Bracket------------------------------------
+         * ----------------------Leaf Events aka Tournaments-------------------------------------
          */
+         //Leaf Event title change
+         $('.tennis-leaf-event-title[contenteditable]').on('change', onChangeTournamentTitle);
+         $('.tennis-leaf-event-title[contenteditable]').on('focus', onFocus);
+         $('.tennis-leaf-event-title[contenteditable]').on('blur', onBlur);
+
+         //OnChange the Gender
+        $(".gender_selector").on("change", function(event) {
+            onChangeGender(event);
+        });
+
+        //On Change the Match Type     
+        $(".match_type_selector").on("change", function(event) {
+            onChangeMatchType(event);
+        });
+
+        //On Change the Format      
+        $(".format_selector").on("change", function(event) {
+            onChangeFormat(event);
+        });
+
+        //On Change the Min Age      
+        $(".min_age_input").on("change", function(event) {
+            onChangeMinAge(event);
+        });
+
+        //On Change the Max Age     
+        $(".max_age_input").on("change", function(event) {
+            onChangeMaxAge(event);
+        });
+        
+        //On Change the Sign Up By date      
+        $(".signup_by_input").on("change", function(event) {
+            onChangeSignupBy(event);
+        });
+
+        //On Change the Start Date
+        //Leaf
+        $(".start_date_input").on("change", function(event) {
+             onChangeStartDate(event);
+        });
+ 
+        //On Change the End Date    
+        //Leaf
+        $(".end_date_input").on("change", function(event) {
+              onChangeEndDate(event);
+        });
+        
+        //On Change the score type 
+        $(".score_rules_selector").on("change", function(event) {
+            onChangeScoreRule(event);
+        });
+
+        //On add a new leaf event dialog
+        $('a.tennis-add-event.leaf').on('click', (event) => {
+            console.log("Add leaf event");
+            const parentId = event.target.dataset.parentid
+            const selector = `dialog.tennis-add-event-dialog.leaf[data-parentId='${parentId}']`
+            console.log(selector)
+            $dialog = $(selector)
+            console.log($dialog)
+            $dialog.get(0).showModal()
+        });
+
+        //Submit or cancel the leaf event dialog
+        $('button.tennis-add-event-close.leaf').on('click', (event) => {
+            console.log("Submit or cancel add leaf event dialog");
+            console.log(event.target)
+            $dialog = $(event.target).closest('dialog')
+            $dialog.attr('eventadd', $(event.target).val())
+            console.log($dialog)
+            $dialog.get(0).close()
+        });
+
+        //Take action when leaf dialog is closed
+        $('dialog.tennis-add-event-dialog.leaf').on('close', (event) => {
+            console.log("Add leaf event dialog closed");
+            console.log(event.target);
+            if($(event.target).attr('eventadd') === 'submitted') {
+                console.log('Dialog submitted')
+                $form = $(event.target).children('.tennis-add-event-form.leaf')
+                console.log($form)
+                let allData = getDataFromForm($form)
+                allData.task = "addleafevent"
+                console.log(allData)
+                ajaxFun( allData );
+            }
+            else {
+                console.log("Dialog cancelled")
+            }
+        });
+
+        //On delete leaf event
+        $('a.tennis-delete-event.leaf').on('click', (event) => {
+            console.log("Delete leaf event");
+            const eventId = event.target.dataset.eventid
+            console.log("EventId=%d",eventId)
+            if(confirm("Are you sure you want to delete this tournament?")) {
+                $(event.target).closest('section.tennis-leaf-event').hide();
+                ajaxFun(  {"task": 'deleteleafevent', "eventId": eventId } );
+            }
+        });
+
+        /**
+         * ----------------------Brackets-------------------------------------
+         */
+         //On Bracket name change
+         $('span.bracket-name').on('change', onChangeBracketName);
+         $('span.bracket-name').on('focus', onFocus);
+         $('span.bracket-name').on('blur', onBlur);
+
         //On Add a new bracket
         $('.tennis-add-bracket').on('click', (event) => {
             console.log("add bracket");
@@ -902,9 +971,6 @@
                     , "bracketName": newName } );
         });
 
-        /**
-         * ---------------------Remove a Bracket------------------------------------
-         */
         //On Remove a bracket
         $('.tennis-event-brackets').on('click', '.remove-bracket', function (event) {
             console.log("remove bracket");
@@ -981,13 +1047,14 @@
         } );
 
         //Set tab options for ui-tab at create time
+        const tabColor = "LightYellow"
         $( ".tennis-event-tabs-container" ).tabs( {create: function( event, ui ) {
             console.log("create:")
             console.log(ui.tab)
             ui.tab.css({'border-bottom-width':'0', 'background-color':'white', 'color': 'black'})
             ui.tab.children('a').css({'color': 'black'})
             console.log(ui.panel)
-            ui.panel.css({'background-color': 'beige'})
+            ui.panel.css({'background-color': tabColor})
         }})
 
         //Set tab options for ui-tab at activate time
@@ -997,7 +1064,7 @@
             ui.oldTab.css({'border-bottom-width':'1px', 'background-color':'gray', 'color': 'white'});
             ui.oldTab.children('a').css({'color': 'white'})
             ui.oldPanel.css({'background-color': 'white'})
-            ui.newPanel.css({'background-color': 'beige'})
+            ui.newPanel.css({'background-color': tabColor})
         }})
 
         // Setters

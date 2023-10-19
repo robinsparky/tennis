@@ -292,6 +292,12 @@ select.tennis-add-event {
 .tennis-parent-event-title {
   padding-left: 3px;
   padding-right: 5px;
+  font-weight: bold;
+}
+.tennis-parent-event-title > span
+,.tennis-root-event-date > span
+,.tennis-root-event-type > span
+ {
   font-weight: normal;
 }
 
@@ -306,6 +312,7 @@ select.tennis-edit-event {
 .tennis-parent-event-title[contenteditable="true"] {
   border: dotted 1px black;
   background-color: white;
+  font-weight: normal;
 }
 
 li.tennis-root-event-date > input[type="date"] {

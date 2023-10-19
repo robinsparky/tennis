@@ -20,7 +20,7 @@ $eventTypeDropDown .= "</select>";
 <!-- Root event -->
 <div id="<?php echo get_the_ID()?>" class="tennis-parent-event" data-event-id="<?php echo $event->getID();?>">
 <ul class='tennis-event-meta tennis-event-meta-detail'>	
-	<li class="tennis-parent-event-title"><?php echo __("Title: ", TennisEvents::TEXT_DOMAIN);?><span class="tennis-parent-event-title" contenteditable="true"><?php the_title();?></span></li>					
+	<li class="tennis-root-event-title"><?php echo __("Title: ", TennisEvents::TEXT_DOMAIN);?><span class="tennis-parent-event-title" contenteditable="true"><?php the_title();?></span></li>					
 	<li class='tennis-root-event-type'><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN);?><?php echo $eventTypeDropDown;?></li>
 	<li class='tennis-root-event-date start'><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN);?><input type="date" value="<?php echo $startDate;?>"></li>
 	<li class='tennis-root-event-date end'><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN);?><input type="date" value="<?php echo $endDate;?>"></li>	
@@ -32,7 +32,6 @@ $eventTypeDropDown .= "</select>";
 		<li><button type="button" class="button tennis-ladder-next-month">Prepare Next Month</button> </li>
 	<?php else:	?>
 	<ul class = 'tennis-event-linkbased-menu root'>
-		<li><a class='tennis-edit-event root' data-eventid='<?php echo $eventId;?>'><?php echo __("Edit This Event",TennisEvents::TEXT_DOMAIN);?></a></li>
 		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
 	</ul>
 	<?php endif; ?>
