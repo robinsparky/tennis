@@ -1,10 +1,13 @@
 <?php
-use datalayer\Event;
 use datalayer\EventType;
-use datalayer\Format;
-use datalayer\MatchType;
-use datalayer\ScoreType;
-use datalayer\GenderType;
+
+$eventTypeDropDown = "<select class='tennis-add-event event-type' name='eventtype'>";
+foreach(EventType::AllTypes() as $key=>$value) {
+    $selected = ($key === EventType::TOURNAMENT) ? "selected='true'" : "";
+    $eventTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
+}
+$eventTypeDropDown .= "</select>";
+
 ?>
 <dialog class="tennis-add-event-dialog root">
 <form method="dialog" class="tennis-add-event-form root">
@@ -12,6 +15,8 @@ use datalayer\GenderType;
     <input type="text" class="tennis-add-event" name="title" required/>
     </label>
     <fieldset>
+        <label><b>Event Type:</b><?php echo $eventTypeDropDown;?>
+        </label>        
         <label for="startdate"><b>Start:</b></label>
         <input type="date" class="tennis-add-event" name="startdate" required/>
         <label for="enddate"><b>End:</b></label>
@@ -19,7 +24,7 @@ use datalayer\GenderType;
     </fieldset>
 <hr/>
 <div>
-    <button class="tennis-add-event-close root" formmethod="dialog" value="submitted">Submit</button> 
+    <button class="tennis-add-event-close root" formmethod="dialog" value="submitted">save</button> 
     <button class="tennis-add-event-close root" formmethod="dialog" value="cancelled">Cancel</button>
 </div>
 </form>

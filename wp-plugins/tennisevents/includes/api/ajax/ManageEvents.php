@@ -155,6 +155,10 @@ class ManageEvents
                 $mess = $this->addRootEvent( $data );
                 $returnData = $data;
                 break;
+            case 'modifyrooteventtype':
+                $mess = $this->updateRootEventType( $data );
+                $returnData = $data;
+                break;
             case 'modifyrooteventtitle':
                 $mess = $this->updateRootEventName( $data );
                 $returnData = $data;
@@ -246,21 +250,30 @@ class ManageEvents
 			//Set the parent event of the Event before setting other props
             $event->addClub($homeClub);
 
+            $data['eventType'] = strip_tags($data['eventType']);
+            $eventType = $data['eventType'];
+            if(!$event->setEventType($eventType)) throw new InvalidArgumentException(__("Illegal event type '{$eventType}'", TennisEvents::TEXT_DOMAIN));
+            
             $data['startDate'] = strip_tags($data['startDate']);
             $startDate = $data['startDate'];
             if(!$event->setStartDate($startDate)) throw new InvalidArgumentException(__("Illegal start date '{$startDate}'", TennisEvents::TEXT_DOMAIN));
             $dateStartDate = $event->getStartDate();
+
+            //Event's dates must be within the given season
+            $season = $this->getSeason();
+            if($season !== $dateStartDate->format('Y')) {
+                $this->log->error_log("$loc: '{$startDate}' is in the wrong season '{$season}'");
+                throw new InvalidArgumentException(__("'{$dateStartDate->format('Y-m-d')}' is in the wrong season '{$season}'",TennisEvents::TEXT_DOMAIN));
+            }
 
             $data['endDate'] = strip_tags($data['endDate']);
             $endDate = $data['endDate'];
             if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}'", TennisEvents::TEXT_DOMAIN));
             $dateEndDate = $event->getEndDate();
 
-            if($dateStartDate >= $dateEndDate) {
-                $dateEndDate = new \DateTime($dateStartDate->format("Y-m-d"));
-                $dateEndDate->modify("+2 days");
-            }
-            $startDate = $dateStartDate->format("Y-m-d");
+            $dummy = null;
+            $this->validateEventDates($dummy, $dateStartDate, $dateEndDate);
+ 
             $endDate = $dateEndDate->format("Y-m-d");
             $event->setEndDate($endDate);
 
@@ -299,10 +312,9 @@ class ManageEvents
 
             $event->addExternalRef((string)$newPostId);
             $event->save();
-            $newEventId = $event->getID();
             $mess = __("Created new root event with {$event->toString()}.",TennisEvents::TEXT_DOMAIN);
         }
-        catch (Exception | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
+        catch (RuntimeException | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -364,7 +376,65 @@ class ManageEvents
             $event->save();
             $mess = __("Successfully modified event title from '{$oldTitle}' to '{$newTitle}'",TennisEvents::TEXT_DOMAIN);
         } 
-        catch (Exception | InvalidArgumentException $ex ) {
+        catch (RuntimeException | InvalidEventException | InvalidArgumentException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    }
+
+    /**
+     * Update the Event's EventType
+     * NOTE: Not modifying the post's slug at this time 
+     * @param array $data A reference to a dictionary containing data for update
+     * @return string A message describing success or failure
+     */
+    private function updateRootEventType( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+
+        $postId =  $data['postId'];
+        $eventId = $data['eventId'];
+        $task = $data['task'];
+        $mess = "";
+        try {
+            $event = Event::get($eventId);
+            if(!isset($event)) {
+                throw new InvalidEventException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+            }
+
+            if(!$event->isRoot()) {
+                throw new InvalidEventException(__("Not a root event.", TennisEvents::TEXT_DOMAIN));
+            }
+
+            if(count($event->getChildEvents()) > 0) {
+                throw new InvalidEventException(__("Cannot change event type when event already has tournaments.", TennisEvents::TEXT_DOMAIN));
+            }
+            
+            $refs = $event->getExternalRefs();
+            $postId2 = 0;
+            if( count($refs) > 0 ) {
+                $postId2 = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }     
+
+            if($postId !== $postId2) {
+                $this->log->error_log("{$loc}: Different postIds: given '{$postId}' vs database '{$postId2}'");
+                throw new InvalidEventException(__( "Different postIds: given '{$postId}' vs database '{$postId2}'", TennisEvents::TEXT_DOMAIN ));
+            }
+
+            $data['eventType'] = htmlspecialchars(strip_tags($data['eventType']));
+            $eventType = $data['eventType'];
+            $oldEventType = $event->getEventType();
+            if(!$event->setEventType($eventType)) throw new InvalidArgumentException(__("Could not change event name from '{$oldEventType}' to '{$eventType}'", TennisEvents::TEXT_DOMAIN));
+            update_post_meta($postId, TennisEventCpt::EVENT_TYPE_META_KEY, $eventType);
+
+            $event->save();
+            $mess = __("Successfully modified event type from '{$oldEventType}' to '{$eventType}'",TennisEvents::TEXT_DOMAIN);
+        } 
+        catch (RuntimeException | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -392,6 +462,20 @@ class ManageEvents
             if(!$event->isRoot()) {
                 throw new InvalidArgumentException(__("Not a root event.",TennisEvents::TEXT_DOMAIN));
             }
+            
+            $refs = $event->getExternalRefs();
+            $postId2 = 0;
+            if( count($refs) > 0 ) {
+                $postId2 = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }     
+
+            if($postId !== $postId2) {
+                $this->log->error_log("{$loc}: Different postIds: given '{$postId}' vs database '{$postId2}'");
+                throw new InvalidEventException(__( "Different postIds: given '{$postId}' vs database '{$postId2}'", TennisEvents::TEXT_DOMAIN ));
+            }
 
             $strStartDate = $data['startDate'];
             $dateStartDate = new \DateTime($strStartDate);//Throws exception if mal formed string. php 8.3+ DateMalformedStringException
@@ -403,16 +487,7 @@ class ManageEvents
             $strEndDate = $dateEndDate->format('Y-m-d');
 
             //Event's dates must be within the given season
-            $seasonDefault = esc_attr( get_option(TennisEvents::OPTION_TENNIS_SEASON, date('Y') ) ); 
-            $season = isset($_GET['season']) ? $_GET['season'] : '';
-            if(empty($season)) {
-                $season = $seasonDefault;
-                $this->log->error_log("$loc: Using default season='{$seasonDefault}'");
-            }
-            else {
-                $this->log->error_log("$loc: Using given season='{$season}'");
-            }
-
+            $season = $this->getSeason();
             if($season !== $dateStartDate->format('Y')) {
                 $this->log->error_log("$loc: '{$strStartDate}' is in the wrong season '{$season}'");
                 throw new InvalidArgumentException(__("'{$strStartDate}' is in the wrong season '{$season}'",TennisEvents::TEXT_DOMAIN));
@@ -442,7 +517,7 @@ class ManageEvents
             $mess = __("Successfully updated the start date", TennisEvents::TEXT_DOMAIN);
             $event->save();
         } 
-        catch (Exception | TypeError | InvalidArgumentException $ex ) {
+        catch (RuntimeException | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -465,10 +540,24 @@ class ManageEvents
         try {
             $event = Event::get($eventId);
             if(!isset($event)) {
-                throw new InvalidArgumentException(__("Invalid event id.",TennisEvents::TEXT_DOMAIN));
+                throw new InvalidEventException(__("Invalid event id.",TennisEvents::TEXT_DOMAIN));
             }
             if(!$event->isRoot()) {
-                throw new InvalidArgumentException(__("Not a root event.",TennisEvents::TEXT_DOMAIN));
+                throw new InvalidEventException(__("Not a root event.",TennisEvents::TEXT_DOMAIN));
+            }
+            
+            $refs = $event->getExternalRefs();
+            $postId2 = 0;
+            if( count($refs) > 0 ) {
+                $postId2 = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }     
+
+            if($postId !== $postId2) {
+                $this->log->error_log("{$loc}: Different postIds: given '{$postId}' vs database '{$postId2}'");
+                throw new InvalidEventException(__( "Different postIds: given '{$postId}' vs database '{$postId2}'", TennisEvents::TEXT_DOMAIN ));
             }
 
             $strEndDate = $data['endDate'];
@@ -479,17 +568,8 @@ class ManageEvents
             }
             $strStartDate = $dateStartDate->format('Y-m-d');
 
-            //Event's dates must be within the given season
-            $seasonDefault = esc_attr( get_option(TennisEvents::OPTION_TENNIS_SEASON, date('Y') ) ); 
-            $season = isset($_GET['season']) ? $_GET['season'] : '';
-            if(empty($season)) {
-                $season = $seasonDefault;
-                $this->log->error_log("$loc: Using default season='{$seasonDefault}'");
-            }
-            else {
-                $this->log->error_log("$loc: Using given season='{$season}'");    
-            }
-
+            //Event's start date must be within the given season
+            $season = $this->getSeason();
             if($season !== $dateStartDate->format('Y')) {
                 throw new InvalidArgumentException(__("Season '{$season}' does not match year in '{$strStartDate}'.",TennisEvents::TEXT_DOMAIN));
             }
@@ -499,9 +579,8 @@ class ManageEvents
                 update_post_meta($postId, TennisEventCpt::TENNIS_SEASON, $season);
             }
 
-            if($dateStartDate > $dateEndDate) {
-                throw new InvalidArgumentException(__("Start date '{$strStartDate}' is older that end date '{$strEndDate}'.",TennisEvents::TEXT_DOMAIN));
-            }
+            $this->validateEventDates(null, $dateStartDate, $dateEndDate);
+            $strEndDate = $dateEndDate->format('Y-m-d');
 
             if(!$event->setEndDate($strEndDate)) throw new InvalidArgumentException(__("Illegal end date '{$strEndDate}'", TennisEvents::TEXT_DOMAIN));
             update_post_meta( $postId, TennisEventCpt::END_DATE_META_KEY, $strEndDate );    
@@ -509,7 +588,7 @@ class ManageEvents
             $mess = __("Successfully updated the end date", TennisEvents::TEXT_DOMAIN);
             $event->save();
         } 
-        catch (Exception | TypeError | InvalidArgumentException $ex ) {
+        catch (RuntimeException | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -531,13 +610,13 @@ class ManageEvents
         try {
             $event = Event::get($eventId);
             if(!isset($event)) {
-                throw new InvalidArgumentException(__("Invalid event id.",TennisEvents::TEXT_DOMAIN));
+                throw new InvalidEventException(__("Invalid event id.",TennisEvents::TEXT_DOMAIN));
             }
             if(!$event->isRoot()) {
-                throw new InvalidArgumentException(__("Not a root event.",TennisEvents::TEXT_DOMAIN));
+                throw new InvalidEventException(__("Not a root event.",TennisEvents::TEXT_DOMAIN));
             }
             if(count($event->getChildEvents()) > 0 ) {
-                throw new InvalidArgumentException(__("Cannot have child events.",TennisEvents::TEXT_DOMAIN));
+                throw new InvalidEventException(__("Cannot have child events.",TennisEvents::TEXT_DOMAIN));
             }
 
             $refs = $event->getExternalRefs();
@@ -553,7 +632,7 @@ class ManageEvents
             $event->delete();
             $mess = __("Successfully deleted root event {$event->toString()}", TennisEvents::TEXT_DOMAIN );
         }
-        catch(Exception | InvalidEventException | InvalidArgumentException $ex) {
+        catch(RuntimeException | InvalidEventException | InvalidArgumentException $ex) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -575,10 +654,10 @@ class ManageEvents
         try {
             $event = Event::get($eventId);
             if(!isset($event)) {
-                throw new InvalidArgumentException(__("Invalid event id.",TennisEvents::TEXT_DOMAIN));
+                throw new InvalidEventException(__("Invalid event id.",TennisEvents::TEXT_DOMAIN));
             }
             if($event->isRoot()) {
-                throw new InvalidArgumentException(__("Not a leaf event.",TennisEvents::TEXT_DOMAIN));
+                throw new InvalidEventException(__("Not a leaf event.",TennisEvents::TEXT_DOMAIN));
             }
 
             $td = new TournamentDirector($event);
@@ -602,7 +681,7 @@ class ManageEvents
             $event->delete();
             $mess = __("Successfully deleted leaf event {$event->toString()}", TennisEvents::TEXT_DOMAIN );
         }
-        catch(Exception | InvalidEventException | InvalidArgumentException $ex) {
+        catch(RuntimeException | InvalidEventException | InvalidArgumentException $ex) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -628,8 +707,9 @@ class ManageEvents
                 throw new InvalidEventException(__("Event id given must be for a root event .",TennisEvents::TEXT_DOMAIN));
             }
  
-            if( $parentEvent->getEventType() === EventType::LADDER) {
-                throw new InvalidEventException(__("Event type must not be '{EventType::LADDER}'.",TennisEvents::TEXT_DOMAIN));
+            if( $parentEvent->getEventType() === EventType::LADDER && count($parentEvent->getChildEvents()) > 0) {
+
+                throw new InvalidEventException(__("Cannot add more than one event for type '{EventType::LADDER}'.",TennisEvents::TEXT_DOMAIN));
             }
 
             $homeClubId = esc_attr(get_option('gw_tennis_home_club', 0));
@@ -642,7 +722,7 @@ class ManageEvents
             if( !isset($homeClub) ) {				
                 throw new InvalidEventException(__( 'Home club is not set.', TennisEvents::TEXT_DOMAIN ));
             }
-
+            $data['title'] = htmlspecialchars_decode(strip_tags($data['title']));
             $event = new Event($data["title"]);
 			//Set the parent event of the Event before setting other props
 			$event->setParent($parentEvent);
@@ -657,12 +737,11 @@ class ManageEvents
             }
 
             //TODO Ensure that start and end dates conform to parent event's
-            //TODO Evnts cannot be created for the next season ... i.e. calendar year
             $data['startDate'] = strip_tags($data['startDate']);
             $startDate = $data['startDate'];
             if(!$event->setStartDate($startDate)) throw new InvalidArgumentException(__("Illegal start date '{$startDate}'", TennisEvents::TEXT_DOMAIN));
             $dateStartDate = $event->getStartDate();
-
+            
             $data['signupBy'] = strip_tags($data['signupBy']);
             $signupBy = $data['signupBy'];
             if(!$event->setSignupBy($signupBy)) throw new InvalidArgumentException(__("Illegal signup by date '{$signupBy}'", TennisEvents::TEXT_DOMAIN));
@@ -682,6 +761,12 @@ class ManageEvents
             $endDate = $dateEndDate->format("Y-m-d");
             $data['endDate'] = $endDate;
             $event->setEndDate($endDate);
+            
+            //Event's start date must be within the given season
+            $season = $this->getSeason();
+            if($season !== $dateStartDate->format('Y')) {
+                throw new InvalidArgumentException(__("Season '{$season}' does not match year in '{$dateStartDate->format("Y-m-d")}'.",TennisEvents::TEXT_DOMAIN));
+            }
 
             $gender = $data['gender'];
             if( !$event->setGenderType($data['gender'])) throw new InvalidArgumentException(__("Illegal gender '{$gender}'", TennisEvents::TEXT_DOMAIN));
@@ -693,7 +778,13 @@ class ManageEvents
             if(!$event->setScoreType($scoreType)) throw new InvalidArgumentException(__("Illegal score rule '{$scoreType}'", TennisEvents::TEXT_DOMAIN));
 
             $data["title"] =  htmlspecialchars(strip_tags($data["title"]));
-            if(empty($data['title'])) {
+ 
+            
+            //Ladder events must have the month as the name
+            if($parentEvent->getEventType() === EventType::LADDER ) {
+                $data['title']=$dateStartDate->format('F');
+            }
+            elseif(empty($data['title'])) {
                 $genderDisp = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
                 $data['title'] = $genderDisp;
             }
@@ -748,7 +839,7 @@ class ManageEvents
             $newEventId = $event->getID();
             $mess = __("Created new leaf event with id={$newEventId}.",TennisEvents::TEXT_DOMAIN);
         }
-        catch (Exception | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
+        catch (RuntimeException | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -772,7 +863,7 @@ class ManageEvents
         try {
             $event = Event::get($eventId);
             if(!isset($event)) {
-                throw new InvalidArgumentException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+                throw new InvalidEventException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
             }
             
             $refs = $event->getExternalRefs();
@@ -795,6 +886,10 @@ class ManageEvents
             if(empty($data['newTitle'])) {
                 $data['newTitle'] = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
             }
+            $eventType = $event->getParent()->getEventType();
+            if($eventType === EventType::LADDER) {
+                $data['newTitle'] = $event->getStartDate()->format('F');
+            }
             $newTitle = $data['newTitle'];
             $oldTitle = strip_tags($data['oldTitle']);
             if(!$event->setName($newTitle)) throw new InvalidArgumentException(__("Could not change event name from '{$oldTitle}' to '{$newTitle}'", TennisEvents::TEXT_DOMAIN));
@@ -811,7 +906,7 @@ class ManageEvents
             $event->save();
             $mess = __("Successfully modified '{$oldTitle}' to '{$newTitle}'",TennisEvents::TEXT_DOMAIN);
         } 
-        catch (Exception | InvalidArgumentException $ex ) {
+        catch (RuntimeException | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -835,6 +930,24 @@ class ManageEvents
             //TODO Ensure that start and end dates conform to parent event's
             //TODO Evnts cannot be created for the next season ... i.e. calendar year
             $event = Event::get($eventId);
+            if(!isset($event)) {
+                throw new InvalidEventException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+            }
+            
+            $refs = $event->getExternalRefs();
+            $postId2 = 0;
+            if( count($refs) > 0 ) {
+                $postId2 = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }     
+
+            if($postId !== $postId2) {
+                $this->log->error_log("{$loc}: Different postIds: given '{$postId}' vs database '{$postId2}'");
+                throw new InvalidEventException(__( "Different postIds: given '{$postId}' vs database '{$postId2}'", TennisEvents::TEXT_DOMAIN ));
+            }
+
             switch($task) {
                 case 'modifyminage':
                     $minAge = $data['minAge'];
@@ -854,6 +967,17 @@ class ManageEvents
                     $dateStartDate = $event->getStartDate();
                     $dateEndDate = $event->getEndDate();
                     $this->validateEventDates( $dateSignupBy, $dateStartDate, $dateEndDate );
+                    
+                    //Event's start date must be within the given season
+                    $season = $this->getSeason();
+                    if($season !== $dateStartDate->format('Y')) {
+                        throw new InvalidArgumentException(__("Season '{$season}' does not match year in '{$dateStartDate->format('Y-m-d')}'.",TennisEvents::TEXT_DOMAIN));
+                    }
+                    $postSeason = get_post_meta($postId, TennisEventCpt::TENNIS_SEASON, true);
+                    if($postSeason !== $season) {                
+                        $this->log->error_log("$loc: Season mismatch between post and event. Was '{$postSeason}' Using '{$season}'");
+                        update_post_meta($postId, TennisEventCpt::TENNIS_SEASON, $season);
+                    }
                     $event->setSignupBy($dateSignupBy->format('Y-m-d'));
                     $event->setStartDate($dateStartDate->format('Y-m-d'));
                     $event->setEndDate($dateEndDate->format('Y-m-d'));
@@ -871,6 +995,16 @@ class ManageEvents
                     $dateSignupBy = $event->getSignupBy();
                     $dateEndDate = $event->getEndDate();
                     $this->validateEventDates( $dateSignupBy, $dateStartDate, $dateEndDate );
+                    //Event's start date must be within the given season
+                    $season = $this->getSeason();
+                    if($season !== $dateStartDate->format('Y')) {
+                        throw new InvalidArgumentException(__("Season '{$season}' does not match year in '{$dateStartDate->format('Y-m-d')}'.",TennisEvents::TEXT_DOMAIN));
+                    }
+                    $postSeason = get_post_meta($postId, TennisEventCpt::TENNIS_SEASON, true);
+                    if($postSeason !== $season) {                
+                        $this->log->error_log("$loc: Season mismatch between post and event. Was '{$postSeason}' Using '{$season}'");
+                        update_post_meta($postId, TennisEventCpt::TENNIS_SEASON, $season);
+                    }
                     $event->setStartDate($dateStartDate->format('Y-m-d'));
                     $event->setSignupBy($dateSignupBy->format('Y-m-d'));
                     $event->setEndDate($dateEndDate->format('Y-m-d'));
@@ -888,6 +1022,15 @@ class ManageEvents
                     $dateSignupBy = $event->getSignupBy();
                     $dateStartDate = $event->getStartDate();
                     $this->validateEventDates( $dateSignupBy, $dateStartDate, $dateEndDate );
+                    $season = $this->getSeason();
+                    if($season !== $dateStartDate->format('Y')) {
+                        throw new InvalidArgumentException(__("Season '{$season}' does not match year in '{$dateStartDate->format('Y-m-d')}'.",TennisEvents::TEXT_DOMAIN));
+                    }
+                    $postSeason = get_post_meta($postId, TennisEventCpt::TENNIS_SEASON, true);
+                    if($postSeason !== $season) {                
+                        $this->log->error_log("$loc: Season mismatch between post and event. Was '{$postSeason}' Using '{$season}'");
+                        update_post_meta($postId, TennisEventCpt::TENNIS_SEASON, $season);
+                    }
                     $event->setStartDate($dateStartDate->format('Y-m-d'));
                     $event->setSignupBy($dateSignupBy->format('Y-m-d'));
                     $event->setEndDate($dateEndDate->format('Y-m-d'));
@@ -904,7 +1047,7 @@ class ManageEvents
             }
             $event->save();
         } 
-        catch (Exception | TypeError | InvalidArgumentException $ex ) {
+        catch (RuntimeException | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -931,6 +1074,24 @@ class ManageEvents
 
             //TODO: nonces??
             $event = Event::get($eventId);
+            if(!isset($event)) {
+                throw new InvalidEventException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+            }
+            
+            $refs = $event->getExternalRefs();
+            $postId2 = 0;
+            if( count($refs) > 0 ) {
+                $postId2 = $refs[0];
+            }
+            else {	
+                throw new InvalidEventException(__( 'Corresponding post is missing.', TennisEvents::TEXT_DOMAIN ));
+            }     
+
+            if($postId !== $postId2) {
+                $this->log->error_log("{$loc}: Different postIds: given '{$postId}' vs database '{$postId2}'");
+                throw new InvalidEventException(__( "Different postIds: given '{$postId}' vs database '{$postId2}'", TennisEvents::TEXT_DOMAIN ));
+            }
+
             $td = new TournamentDirector( $event );
             $brackets = $td->getBrackets();
 
@@ -972,7 +1133,7 @@ class ManageEvents
             }
             $event->save();
         } 
-        catch (Exception | InvalidEventException | InvalidArgumentException $ex ) {
+        catch (RuntimeException | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -993,6 +1154,10 @@ class ManageEvents
         $mess = "";
         try {
             $event = Event::get( $eventId );
+            if(!isset($event)) {
+                throw new InvalidEventException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+            }
+            
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketNum );
             if( is_null( $bracket ) ) {
@@ -1004,7 +1169,7 @@ class ManageEvents
             $data["drawlink"]   = $td->getPermaLink() . "?mode=draw&bracket={$bracket->getName()}";
             $td->save();
         } 
-        catch (Exception | InvalidBracketException $ex ) {
+        catch (RuntimeException | InvalidEventException | InvalidBracketException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -1022,6 +1187,10 @@ class ManageEvents
         $newBracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
         try {
             $event = Event::get( $eventId );
+            if(!isset($event)) {
+                throw new InvalidEventException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+            }
+
             $td = new TournamentDirector( $event );
             $bracket = $td->addBracket( $newBracketName ); //automatically saves
             if( is_null( $bracket ) ) {
@@ -1036,7 +1205,7 @@ class ManageEvents
 
             $mess = "Successfully Added bracket '{$newBracketName}' (bracket number '{$bracket->getBracketNumber()}')";
         } 
-        catch (Exception | InvalidBracketException $ex ) {
+        catch (RuntimeException | InvalidEventException | InvalidBracketException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -1056,6 +1225,10 @@ class ManageEvents
         $event = Event::get( $eventId );
         try {
             $event = Event::get( $eventId );
+            if(!isset($event)) {
+                throw new InvalidEventException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+            }
+
             $td = new TournamentDirector( $event );
             $bracket = $td->getBracket( $bracketNum );
             //Cannot schedule preliminary rounds if matches have already started
@@ -1068,7 +1241,7 @@ class ManageEvents
             $td->save();
             $mess = "Removed bracket '{$bracketName}'";
         } 
-        catch (Exception | InvalidEventException $ex ) {
+        catch (RuntimeException | InvalidEventException | InvalidEventException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -1087,6 +1260,9 @@ class ManageEvents
         $mess          = __("Copy succeeded for post id='{$postId}' and event id='{$this->eventId}'.", TennisEvents::TEXT_DOMAIN );
         try {
            $event = Event::get($this->eventId);
+           if(!isset($event)) {
+               throw new InvalidEventException(__("Invalid event id.", TennisEvents::TEXT_DOMAIN));
+           }
            $copy = new Event('','',$event);//copy constructor
    
            //Custom post type
@@ -1109,7 +1285,7 @@ class ManageEvents
            $copy->addExternalRef((string)$copyCptId);
            $copy->save();
        }
-       catch( Exception | InvalidEventException $ex ) {
+       catch( RuntimeException | InvalidEventException $ex ) {
            $this->errobj->add( $this->errcode++, $ex->getMessage() );
            $mess = $ex->getMessage();
        }
@@ -1192,7 +1368,7 @@ class ManageEvents
            $nextEvent->addExternalRef((string)$nextCptId);
            $nextEvent->save();
        }
-       catch( Exception $ex ) {
+       catch( RuntimeException | InvalidEventException $ex ) {
            $this->errobj->add( $this->errcode++, $ex->getMessage() );
            $mess = $ex->getMessage();
            $this->log->error_log("$loc: caught this exception $mess");
@@ -1256,24 +1432,50 @@ class ManageEvents
        return $new_post_id;
    }
 
-    /**
-     * Make sure the dates have the correct order and spacing
-     * @param \DateTime $signupBy
-     * @param \DateTime $startDate
-     * @param \DateTime $endDate
-     */
-    private function validateEventDates(\DateTime &$signupBy,\DateTime &$startDate,\DateTime &$endDate ) {
+   /**
+    * Retrieve the season
+    * If not in the URL then retrieved from options
+    * @return season
+    */
+    private function getSeason() {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log("$loc");
         
-        if(isset($endDate) && $startDate >= $endDate) {
-            $endDate = new \DateTime($startDate->format("Y-m-d"));
-            $endDate->modify("+2 days");
+        $seasonDefault = esc_attr( get_option(TennisEvents::OPTION_TENNIS_SEASON, date('Y') ) ); 
+        $season = isset($_GET['season']) ? $_GET['season'] : '';
+        if(empty($season)) {
+            $season = $seasonDefault;
+            $this->log->error_log("$loc: Using default season='{$seasonDefault}'");
         }
-        if(isset($signupBy) && $signupBy >= $startDate) {    
-            $signupBy = new \DateTime($startDate->format("Y-m-d"));
-            $leadTime = TennisEvents::getLeadTime();
-            $signupBy->modify("-{$leadTime} days");
+        else {
+            $this->log->error_log("$loc: Using given season='{$season}'");    
+        }
+        return $season;
+    }
+
+    /**
+     * Make sure the dates have the correct order and spacing
+     * @param $signupBy
+     * @param $startDate
+     * @param $endDate
+     */
+    private function validateEventDates(&$signupBy, &$startDate, &$endDate ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log("$loc");
+
+        if($startDate instanceof \DateTime && $endDate instanceof \DateTime) {
+            if($startDate >= $endDate) {
+                $endDate = new \DateTime($startDate->format("Y-m-d"));
+                $endDate->modify("+2 days");
+            }
+        }
+        
+        if($startDate instanceof \DateTime && $signupBy instanceof \DateTime) {
+            if($signupBy >= $startDate) {    
+                $signupBy = new \DateTime($startDate->format("Y-m-d"));
+                $leadTime = TennisEvents::getLeadTime();
+                $signupBy->modify("-{$leadTime} days");
+            }
         }
     }
     

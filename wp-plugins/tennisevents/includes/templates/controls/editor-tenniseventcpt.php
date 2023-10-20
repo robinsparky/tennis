@@ -9,13 +9,16 @@ use datalayer\ScoreType;
 use datalayer\GenderType;
 
 //Match type drop down
-$eventTypeDropDown = "<select name='EventTypes' class='tennis-edit-event event_type_selector'>";
-foreach( EventType::AllTypes() as $key=>$value ) {
-	$selected = ($value === $eventType) ? "selected='true'" : "";
-	$eventTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
+$eventTypeDropDown = $eventType;
+if(count($event->getChildEvents()) === 0) {
+	$eventTypeDropDown = "<select name='EventTypes' class='tennis-root-event-type event-type-selector'>";
+	foreach( EventType::AllTypes() as $key=>$value ) {
+		$selected = ($value === $eventType) ? "selected='true'" : "";
+		$eventTypeDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
+	}
+	$eventTypeDropDown .= "</select>";
 }
-$eventTypeDropDown .= "</select>";
-
+$numChildren = count($event->getChildEvents());
 ?>
 <!-- Root event -->
 <div id="<?php echo get_the_ID()?>" class="tennis-parent-event" data-event-id="<?php echo $event->getID();?>">
@@ -26,15 +29,20 @@ $eventTypeDropDown .= "</select>";
 	<li class='tennis-root-event-date end'><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN);?><input type="date" value="<?php echo $endDate;?>"></li>	
 	<li class='tennis-root-event-description'><?php echo __("Description: ", TennisEvents::TEXT_DOMAIN);?><p><?php the_content();?></p></li>					
 	<?php include(TE()->getPluginPath() . 'includes\templates\controls\newLeafEventDialog.php');
-		  include(TE()->getPluginPath() . 'includes\templates\controls\editRootEventDialog.php');
 	?>
-	<?php if( $eventTypeRaw === EventType::LADDER && $support->userIsTournamentDirector()) : ?>
-		<li><button type="button" class="button tennis-ladder-next-month">Prepare Next Month</button> </li>
-	<?php else:	?>
 	<ul class = 'tennis-event-linkbased-menu root'>
+	<?php if( $eventTypeRaw === EventType::LADDER && $numChildren > 0) { ?>
+		<li class="tennis-ladder-next-month">Prepare Next Month</li>
+	<?php } elseif($eventTypeRaw === EventType::LADDER && $numChildren === 0) { ?>
+		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo _("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
 		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
+	<?php } elseif($numChildren === 0) { ?>
+		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo _("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
+		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
+		<?php } else {?>
+		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
+	<?php } ?>
 	</ul>
-	<?php endif; ?>
 </ul>
 <!-- leaf event container -->
 <section class="tennis-leaf-event-container">
@@ -171,6 +179,9 @@ $eventTypeDropDown .= "</select>";
 				else {
 					$scoreRulesDisplay = $scoreRulesDropDown;
 				}
+
+                $leadTime = TennisEvents::getLeadTime();
+				$maxSignupBy = (new \DateTime($startDate))->modify("-{$leadTime} days")->format('Y-m-d');
 			?>
 			<table id='<?php echo $evtId ?>' class='tennis-event-meta' data-eventid='<?php echo $evtId; ?>' data-postid='<?php echo $postId; ?>'>
 			<tbody>				
@@ -185,9 +196,9 @@ $eventTypeDropDown .= "</select>";
 				<tr class="event-meta-detail"><td><strong><?php echo __("Max Age", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><input class='max_age_input' min="1" max="100" type="number" size="5" value="<?php echo $maxAge; ?>" data-origval="<?php echo $maxAge;?>"></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Signup By", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><input class='signup_by_input' type="date" max='<?php echo $startDate;?>' value="<?php echo $signupBy; ?>" data-origval="<?php echo $signupBy;?>"></td></tr>
+					<td><input class='signup_by_input' type="date" max='<?php echo $maxSignupBy;?>' value="<?php echo $signupBy; ?>" data-origval="<?php echo $signupBy;?>"></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Starts", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><input class='start_date_input' type="date" min='<?php echo $signupBy;?>' max='<?php echo $endDate;?>' value="<?php echo $startDate; ?>" data-origval="<?php echo $startDate;?>"></td></tr>
+					<td><input class='start_date_input' type="date" value="<?php echo $startDate; ?>" data-origval="<?php echo $startDate;?>"></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Ends", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><input class='end_date_input' type="date" min='<?php echo $startDate;?>' value="<?php echo $endDate; ?>" data-origval="<?php echo $endDate;?>"></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></strong></td>
@@ -241,11 +252,7 @@ $eventTypeDropDown .= "</select>";
 		<?php } ?>
 	</section> <!-- /leaf event container-->
 	<?php }
-	else {
-		echo "<ul class='tennis-event-linkbased-menu root'><li><a class='tennis-delete-event root' data-eventid='{$event->getID()}'>" . __("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN) . "</a></li></ul>";
-	}	
-
-		/* Restore original Post Data */
-		wp_reset_postdata();
+	/* Restore original Post Data */
+	wp_reset_postdata();
 	?>
 </div>

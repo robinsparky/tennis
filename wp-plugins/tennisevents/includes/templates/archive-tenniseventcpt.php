@@ -88,7 +88,7 @@ if(!empty($prevSeason)) {
 					$eventTitle = $event->getName();
 					$eventId = $event->getID();
 					$postId = get_the_ID();
-					$editTitle = __("Edit Event '{$event->getName()}'",TennisEvents::TEXT_DOMAIN);
+					//$editTitle = __("Edit Event '{$event->getName()}'",TennisEvents::TEXT_DOMAIN);
 					if(empty($startDate)) $startDate = '';
 					if(empty($endDate)) $endDate = '';
 
@@ -103,10 +103,10 @@ if(!empty($prevSeason)) {
 
 				<?php endwhile;
 				// Previous/next page navigation.
-				the_posts_pagination( array(
-					'prev_text'          => '<i class="fa fa-angle-double-left"></i>',
-					'next_text'          => '<i class="fa fa-angle-double-right"></i>',
-				) );
+				// the_posts_pagination( array(
+				// 	'prev_text'          => '<i class="fa fa-angle-double-left"></i>',
+				// 	'next_text'          => '<i class="fa fa-angle-double-right"></i>',
+				// ) );
 				?>
 				<div id="tennis-event-message"></div>
 			<?php

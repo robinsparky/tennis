@@ -130,6 +130,8 @@
                 case 'modifyrooteventtitle':
                     updateRootEventTitle( data )
                     break;
+                case 'modifyrooteventtype':
+                    break;
                 case 'modifyrootstartdate':
                     updateRootStartDate( data )
                     updateRootEndDate( data )
@@ -568,6 +570,21 @@
             ajaxFun( config );
         }
 
+        //Change Root Event Type
+        const onChangeEventType = function(event, postIt = true) {
+            console.log("onChangeEventType")
+            console.log(event.target)
+            const newVal = event.target.value;
+            console.log(`Event type change detected: ${newVal} with post=${postIt}`)
+            const eventId = $(event.target).closest(".tennis-parent-event").attr("data-event-id");
+            const postId = $(event.target).closest(".tennis-parent-event").attr("id");
+            const args = {"task": "modifyrooteventtype", "eventId": eventId, "postId": postId, "eventType": newVal }
+            if(postIt === true) {
+                ajaxFun( args );
+            }
+
+        }
+
         //Change Root Start Date
         const onChangeRootStartDate = function( event, postIt = true ) {
             const newVal = event.target.value;
@@ -768,27 +785,24 @@
                 }
         }
 
-        /**
-        * ----------------------------------User Actions Invoking DOM Events ------------------------------------------------------
-        */
+        /*---------------------------------- DOM Event Listeners -------------------------------------*/
 
         /**
-         * ----------------------Root Events-------------------------------------
+         * ----------------------Root Events listeners-------------------------------------
          */
          //Root Event title change
          $('.tennis-root-event-title > span[contenteditable]').on('change', onChangeRootTitle);
          $('.tennis-root-event-title > span[contenteditable]').on('focus', onFocus);
          $('.tennis-root-event-title > span[contenteditable]').on('blur', onBlur);
          
+        //Root event tyoe
+        $(".tennis-root-event-type.event-type-selector").on('change',onChangeEventType);
+
         //Root Start date
-        $(".tennis-root-event-date.start > input[type='date']").on("change", function(event) {
-            onChangeRootStartDate(event);
-        });
+        $(".tennis-root-event-date.start > input[type='date']").on("change", onChangeRootStartDate);
 
         //Root End date
-        $(".tennis-root-event-date.end > input[type='date']").on("change", function(event) {
-             onChangeRootEndDate(event);
-        });
+        $(".tennis-root-event-date.end > input[type='date']").on("change",onChangeRootEndDate);
 
         //On add a new root event dialog
         $('button.tennis-add-event.root').on('click', (event) => {
@@ -819,9 +833,11 @@
                 $form = $(event.target).children('.tennis-add-event-form.root')
                 console.log($form)
                 const title = $form.find("input[name='title']").val()
+                const eventType = $form.find("select[name='eventtype'").val()
                 const startDate = $form.find("input[name='startdate']").val()
                 const endDate = $form.find("input[name='enddate']").val()
                 let data = {"title": title
+                            ,"eventType": eventType
                             ,"startDate": startDate
                             ,"endDate": endDate
                         }
@@ -844,10 +860,8 @@
             }
         });
 
-
-
         /**
-         * ----------------------Leaf Events aka Tournaments-------------------------------------
+         * ----------------------Leaf Events aka Tournaments Listeners-------------------------------------
          */
          //Leaf Event title change
          $('.tennis-leaf-event-title[contenteditable]').on('change', onChangeTournamentTitle);
@@ -952,7 +966,7 @@
         });
 
         /**
-         * ----------------------Brackets-------------------------------------
+         * ----------------------Brackets Listeners-------------------------------------
          */
          //On Bracket name change
          $('span.bracket-name').on('change', onChangeBracketName);
@@ -991,7 +1005,7 @@
         });
         
         /**
-         * ---------------------Copy Ladder Events------------------------------------
+         * ---------------------Copy Ladder Events Listeners------------------------------------
          */
         //On click to Copy an event for next month's ladder
          $('.tennis-parent-event').on('click', '.tennis-ladder-next-month', function (event) {
