@@ -11,6 +11,7 @@ use datalayer\Event;
 use datalayer\EventType;
 use datalayer\GenderType;
 use datalayer\MatchType;
+use datalayer\Format;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\InvalidBracketException;
@@ -722,7 +723,7 @@ class ManageEvents
             if( !isset($homeClub) ) {				
                 throw new InvalidEventException(__( 'Home club is not set.', TennisEvents::TEXT_DOMAIN ));
             }
-            $data['title'] = htmlspecialchars_decode(strip_tags($data['title']));
+            $data['title'] = htmlspecialchars(strip_tags($data['title']));
             $event = new Event($data["title"]);
 			//Set the parent event of the Event before setting other props
 			$event->setParent($parentEvent);
@@ -783,8 +784,10 @@ class ManageEvents
             //Ladder events must have the month as the name
             if($parentEvent->getEventType() === EventType::LADDER ) {
                 $data['title']=$dateStartDate->format('F');
+                $data['eventFormat'] = Format::ROUNDROBIN;
+                $event->setFormat(Format::ROUNDROBIN);
             }
-            elseif(empty($data['title'])) {
+            if(empty($data['title'])) {
                 $genderDisp = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
                 $data['title'] = $genderDisp;
             }
@@ -1118,6 +1121,10 @@ class ManageEvents
                     break;
                 case 'modifyformat':
                     $eventFormat = $data['eventFormat'];
+                    if($event->getParent()->getEventType() === EventType::LADDER) { 
+                        $eventFormat = Format::ROUNDROBIN;
+                        $data['eventFormat']=Format::ROUNDROBIN;
+                    }
                     if(!$event->setFormat($eventFormat)) throw new InvalidArgumentException(__("Illegal format '{$eventFormat}'", TennisEvents::TEXT_DOMAIN));
                     update_post_meta($postId, TennisEventCpt::EVENT_FORMAT_META_KEY, $eventFormat);
                     $mess = __("Successfully updated the format",TennisEvents::TEXT_DOMAIN);
@@ -1459,18 +1466,18 @@ class ManageEvents
      * @param $startDate
      * @param $endDate
      */
-    private function validateEventDates(&$signupBy, &$startDate, &$endDate ) {
+    private function validateEventDates(&$signupBy, \DateTime &$startDate, &$endDate = '') {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log("$loc");
 
-        if($startDate instanceof \DateTime && $endDate instanceof \DateTime) {
+        if($endDate instanceof \DateTime) {
             if($startDate >= $endDate) {
                 $endDate = new \DateTime($startDate->format("Y-m-d"));
                 $endDate->modify("+2 days");
             }
         }
         
-        if($startDate instanceof \DateTime && $signupBy instanceof \DateTime) {
+        if($signupBy instanceof \DateTime) {
             if($signupBy >= $startDate) {    
                 $signupBy = new \DateTime($startDate->format("Y-m-d"));
                 $leadTime = TennisEvents::getLeadTime();
@@ -1480,10 +1487,10 @@ class ManageEvents
     }
     
     /**
-        * Determines the interval in days to the end of the month in the given date
-        * @param DateTime $initDate
-        * @return DateInterval
-        */
+    * Determines the interval in days to the end of the month in the given date
+    * @param DateTime $initDate
+    * @return DateInterval
+    */
     private function getInterval( DateTime $initDate ) : \DateInterval {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         

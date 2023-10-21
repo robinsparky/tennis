@@ -287,17 +287,6 @@
             return data;
         }
 
-        function getOwningEvent( el ) {
-            console.log("getOwningEvent....");
-            let parent = $(el).parents('.tennis-parent-event');
-            if( parent.length == 0) return {};
-            let eventId = parent.attr("data-event-id");
-            let postId = parent.attr("id");
-            let data = {"eventId": eventId, "postId": postId }
-            console.log(data);
-            return data;
-        }
-
         function uniqueBracketName( eventId ) {
             let sel = `.tennis-event-brackets[data-eventid="${eventId}"]`;
             let $parent = $(sel);
@@ -325,15 +314,38 @@
             
             let evtId = $parent.attr('id')
             let postId = $parent.attr('data-postid');
-            let gender = $parent.find('.gender_selector option:selected').val();
+            let $genderEl = $parent.find('.gender_selector option:selected')
+            let gender = ''
+            if($genderEl.length === 0) {
+                $genderEl = $parent.find('tbody tr td[data-gender]')
+                gender = $genderEl.attr('data-gender');
+            }
+            else {
+                gender = $genderEl.val();
+            }
             let minAge = $parent.find('.min_age_input').val();
             let maxAge = $parent.find('.max_age_input').val();
             let signupBy = $parent.find('.signup_by_input').val();
             let startDate = $parent.find('.start_date_input').val();
             let endDate = $parent.find('.end_date_input').val();
-            let format = $parent.find('.format_selector option:selected').val();
+            //let format = $parent.find('.format_selector option:selected').val();
+            let $formatEl = $parent.find('.format_selector option:selected');
+            let format = ''
+            if($formatEl.length === 0) {
+                format = $parent.find('tbody tr td[data-format]').attr('data-format')
+            }
+            else {
+                format = $formatEl.val();
+            }
             let scoreRule = $parent.find('.score_rules_selector option:selected').val();
-            let matchType = $parent.find('.match_type_selector option:selected').val();
+            let $matchTypeEl = $parent.find('.match_type_selector option:selected');
+            let matchType = ''
+            if($matchTypeEl.length === 0) {
+                matchType = $parent.find('tbody tr td[data-matchtype]').attr('data-matchtype')
+            }
+            else {
+                matchType = $matchTypeEl.val();
+            }
             let data = {"eventId":evtId
                         ,"postId": postId
                         ,"gender": gender
@@ -358,18 +370,13 @@
 
             //Handle the tab first
             const selTab = `li > a[href='#${data.postId}']`
-            console.log(selTab)
             let $tabEl =$(selTab)
-            console.log($tabEl)
             $tabEl.text(data.newTitle)
 
             //Now handle the event title
             const selParent = `div.tennis-parent-event[data-event-id='${data.eventId}']`;
-            console.log(selParent)
             const $parentEl=$(selParent)
-            console.log($parentEl)
             $titleEl = $parentEl.find('span.tennis-parent-event-title')
-            console.log($titleEl)
             $titleEl.text(data.newTitle)
             $titleEl.removeData('oldTitle')
         }
@@ -378,11 +385,8 @@
             console.log('updateRootStartDate')
             console.log(data)
             const selParent = `div.tennis-parent-event[data-event-id='${data.eventId}']`
-            console.log(selParent)
             const $parentEl = $(selParent)
-            console.log($parentEl)
             let $startEl = $parentEl.find('li.tennis-root-event-date.start input[type="date"]')
-            console.log($startEl)
             $startEl.val(data.startDate)
         }
 
@@ -390,11 +394,8 @@
             console.log('updateRootEndDate')
             console.log(data)
             const selParent = `div.tennis-parent-event[data-event-id='${data.eventId}']`
-            console.log(selParent)
             const $parentEl = $(selParent)
-            console.log($parentEl)
             let $endEl = $parentEl.find('li.tennis-root-event-date.end input[type="date"]')
-            console.log($endEl)
             $endEl.val(data.endDate)
         }
 
@@ -421,7 +422,6 @@
             console.log('updateLeafEventTitle')
             console.log(data)
             let $titleEl = $(`.tennis-leaf-event-title[data-eventid='${data['eventId']}'`)
-            console.log($titleEl)
             $titleEl.text(data['newTitle'])
             $titleEl.removeData('oldTitle')
         }
@@ -437,13 +437,19 @@
         function updateEventFormat( data ) {
             console.log('updateEventFormat')
             console.log(data)
-
+            const selParent = `table.tennis-event-meta[data-eventid='${data.eventId}']`
+            const $parentEl = $(selParent)
+            let $formatEl = $parentEl.find('select.format_selector')
+            $formatEl.val(data.eventFormat)
         }
 
         //Update the match type
         function updateMatchType( data ) {
             console.log('updateMatchType')
-            console.log(data)
+            console.log(data)            
+            const selParent = `table.tennis-event-meta[data-eventid='${data.eventId}']`
+            const $parentEl = $(selParent)
+            console.log($parentEl)
 
         }
 
@@ -452,11 +458,8 @@
             console.log('updateSignupBy')
             console.log(data)
             const selParent = `table.tennis-event-meta[data-eventid='${data.eventId}']`
-            console.log(selParent)
             const $parentEl = $(selParent)
-            console.log($parentEl)
             let $signupEl = $parentEl.find('input.signup_by_input[type="date"]')
-            console.log($signupEl)
             $signupEl.val(data.signupBy)
         }
 
@@ -465,11 +468,8 @@
             console.log('updateStartDate')
             console.log(data) 
             const selParent = `table.tennis-event-meta[data-eventid='${data.eventId}']`
-            console.log(selParent)
             const $parentEl = $(selParent)
-            console.log($parentEl)
             let $startEl = $parentEl.find('input.start_date_input[type="date"]')
-            console.log($startEl)
             $startEl.val(data.startDate)
         }
 
@@ -478,11 +478,8 @@
             console.log('updateEndDate')
             console.log(data)
             const selParent = `table.tennis-event-meta[data-eventid='${data.eventId}']`
-            console.log(selParent)
             const $parentEl = $(selParent)
-            console.log($parentEl)
             let $endEl = $parentEl.find('input.end_date_input[type="date"]')
-            console.log($endEl)
             $endEl.val(data.endDate)         
         }
 
@@ -795,13 +792,13 @@
          $('.tennis-root-event-title > span[contenteditable]').on('focus', onFocus);
          $('.tennis-root-event-title > span[contenteditable]').on('blur', onBlur);
          
-        //Root event tyoe
+        //Root Event event tyoe
         $(".tennis-root-event-type.event-type-selector").on('change',onChangeEventType);
 
-        //Root Start date
+        //Root Event Start date
         $(".tennis-root-event-date.start > input[type='date']").on("change", onChangeRootStartDate);
 
-        //Root End date
+        //Root Event End date
         $(".tennis-root-event-date.end > input[type='date']").on("change",onChangeRootEndDate);
 
         //On add a new root event dialog
@@ -1007,16 +1004,18 @@
         /**
          * ---------------------Copy Ladder Events Listeners------------------------------------
          */
-        //On click to Copy an event for next month's ladder
+        //On click to prepare next month's ladder
          $('.tennis-parent-event').on('click', '.tennis-ladder-next-month', function (event) {
-            console.log("copy event");
-            console.log(this);
-            let eventdata = getOwningEvent(this);
-            if(confirm("Are you sure you want to copy this event?")) {
-                let config =  {"task": "preparenextmonth"
-                            , "eventId": eventdata.eventId }
-                console.log(config)
-                ajaxFun( config );
+            console.log("Prepare next month");
+            console.log(event.target);
+            const $parentEl = $(event.target).closest('.tennis-parent-event')
+            let eventId = $parentEl.attr("data-event-id");
+            let postId = $parentEl.attr("id");
+            let data = {"eventId": eventId, "postId": postId }
+            data.task = "preparenextmonth"
+            if(confirm("Are you sure you want to prepare next month?")) {
+                console.log(data)
+                ajaxFun( data );
             }
         });
 

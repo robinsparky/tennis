@@ -33,6 +33,7 @@ foreach(ScoreType::get_instance()->getRuleDescriptions() as $key=>$value ) {
     $scoreRulesDropDownNew .= "<option value='{$key}'>{$value}</option>";
 }
 $scoreRulesDropDownNew .= "</select>";
+$today = (new \DateTime('now'))->format('Y-m-d');
 ?>
 <dialog class="tennis-add-event-dialog leaf" data-parentid="<?php echo $eventId;?>">
 <form method="dialog" class="tennis-add-event-form leaf">
@@ -43,11 +44,11 @@ $scoreRulesDropDownNew .= "</select>";
     <fieldset>
         <legend><b>Important Dates</b></legend>
         <label for="signupby">Signup Deadline:</label>
-        <input type="date" class="tennis-add-event" name="signupby" required/>
+        <input type="date" class="tennis-add-event" value="<?php echo $today?>" name="signupby" required/>
         <label for="startdate">Start:</label>
-        <input type="date" class="tennis-add-event" name="startdate" required/>
+        <input type="date" class="tennis-add-event" value="<?php echo $today?>" name="startdate" required/>
         <label for="enddate">End:</label>
-        <input type="date" class="tennis-add-event" name="enddate" required/>
+        <input type="date" class="tennis-add-event" value="<?php echo $today?>" name="enddate" required/>
     </fieldset>
 <div>
     <legend><b>Match Specifications</b></legend>
@@ -74,7 +75,7 @@ $scoreRulesDropDownNew .= "</select>";
 </div>
 <hr/>
 <div>
-    <button class="tennis-add-event-close leaf" formmethod="dialog" value="submitted">Submit</button> 
+    <button class="tennis-add-event-close leaf" formmethod="dialog" value="submitted">Save</button> 
     <button class="tennis-add-event-close leaf" formmethod="dialog" value="cancelled">Cancel</button>
 </div>
 </form>

@@ -32,7 +32,7 @@ $numChildren = count($event->getChildEvents());
 	?>
 	<ul class = 'tennis-event-linkbased-menu root'>
 	<?php if( $eventTypeRaw === EventType::LADDER && $numChildren > 0) { ?>
-		<li class="tennis-ladder-next-month">Prepare Next Month</li>
+		<li><a class="tennis-ladder-next-month" data-eventid='<?php echo $eventId?>'>Prepare Next Month</a></li>
 	<?php } elseif($eventTypeRaw === EventType::LADDER && $numChildren === 0) { ?>
 		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo _("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
 		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
@@ -69,14 +69,14 @@ $numChildren = count($event->getChildEvents());
 			$leafEvent = Event::getEventByExtRef( get_the_ID() );
 			$leafEventId = $leafEvent->getID();
 			$postId = get_the_ID();			
-			$genderType = get_post_meta( get_the_ID(), TennisEventCpt::GENDER_TYPE_META_KEY, true);
-			$genderType = GenderType::AllTypes()[$genderType];
-			$matchType = get_post_meta( get_the_ID(), TennisEventCpt::MATCH_TYPE_META_KEY, true );
-			$matchType   = MatchType::AllTypes()[$matchType];
+			$genderKey = get_post_meta( get_the_ID(), TennisEventCpt::GENDER_TYPE_META_KEY, true);
+			$genderType = GenderType::AllTypes()[$genderKey];
+			$matchTypeKey = get_post_meta( get_the_ID(), TennisEventCpt::MATCH_TYPE_META_KEY, true );
+			$matchType   = MatchType::AllTypes()[$matchTypeKey];
 			$terms = $support->tennis_events_get_term_names( get_the_ID(), TennisEventCpt::CUSTOM_POST_TYPE_TAX );
 			$terms = implode(";", $terms);
-			$eventFormat = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_FORMAT_META_KEY, true );
-			$eventFormat = Format::AllFormats()[$eventFormat];	
+			$formatKey = get_post_meta( get_the_ID(), TennisEventCpt::EVENT_FORMAT_META_KEY, true );
+			$eventFormat = Format::AllFormats()[$formatKey];	
 			$scoreType   = get_post_meta( get_the_ID(), TennisEventCpt::SCORE_TYPE_META_KEY, true );
 			$scoreRules  = ScoreType::get_instance()->ScoreRules[$scoreType];
 			$scoreRuleDesc = ScoreType::get_instance()->getRuleDescriptions()[$scoreType];
@@ -186,9 +186,9 @@ $numChildren = count($event->getChildEvents());
 			<table id='<?php echo $evtId ?>' class='tennis-event-meta' data-eventid='<?php echo $evtId; ?>' data-postid='<?php echo $postId; ?>'>
 			<tbody>				
 				<tr class="event-meta-detail"><td><strong><?php echo __("Gender", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><?php echo $genderTypeDisplay; ?></td></tr>
+					<td data-gender='<?php echo $genderKey; ?>'><?php echo $genderTypeDisplay; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><?php echo $matchTypeDisplay; ?></td></tr>
+					<td data-matchtype='<?php echo $matchTypeKey; ?>'><?php echo $matchTypeDisplay; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Categories", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><?php echo $terms; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Min Age", TennisEvents::TEXT_DOMAIN);?></strong></td>
@@ -202,7 +202,7 @@ $numChildren = count($event->getChildEvents());
 				<tr class="event-meta-detail"><td><strong><?php echo __("Ends", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><input class='end_date_input' type="date" min='<?php echo $startDate;?>' value="<?php echo $endDate; ?>" data-origval="<?php echo $endDate;?>"></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Format", TennisEvents::TEXT_DOMAIN);?></strong></td>
-					<td><?php echo $formatDisplay; ?></td></tr>
+					<td data-format='<?php echo $formatKey; ?>'><?php echo $formatDisplay; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Scoring", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><?php echo $scoreRulesDisplay; ?>
 					<div class="scoreruleslist">

@@ -192,22 +192,6 @@ div.match[data-matchtitle]:not(.byematch):focus::after {
   color: white;
 }
 
-a.tennis-delete-event
-,a.tennis-add-event
-,a.tennis-edit-event {
-  color: black;
-  font-weight: bold;
-}
-
-a.tennis-delete-event:hover
-,a.tennis-add-event:hover
-,a.tennis-edit-event:hover {
-  cursor:pointer;
-  color: red;
-  font-style: italic;
-  text-decoration: underline;
-}
-
 button.tennis-add-event
 ,button.tennis-delete-event
 ,button.tennis-add-event-close
@@ -239,14 +223,27 @@ button.tennis-add-event
 .gender_selector
 ,.match_type_selector
 ,.format_selector
-,.score_rules_selector {
+,.score_rules_selector
+,.event-type-selector {
   height: 2em;
   width: 10em;
   background-color: white;
   border: dotted 1px black;
   padding: 0 0;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
 }
 
+table.tennis-event-meta >tbody > tr > td > input {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  height: 2em;
+  width: 11em;
+}
 
 input.tennis-add-event {
   background: gray;
@@ -254,6 +251,10 @@ input.tennis-add-event {
   color: white;
   padding: 1px 0 0 1px;
   width: 8em;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
 input[type="text"].tennis-add-event {
@@ -275,6 +276,10 @@ select.tennis-add-event {
   color: white;
   padding: 1px 0 0 1px;
   width: 10em;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
 .tennis-add-event-dialog{
@@ -313,6 +318,13 @@ select.tennis-edit-event {
   border: dotted 1px black;
   background-color: white;
   font-weight: normal;
+  display:inline-block;
+  width: 25%;
+  margin-top: 10px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
 li.tennis-root-event-date > input[type="date"] {
@@ -320,6 +332,16 @@ li.tennis-root-event-date > input[type="date"] {
   width: 8em;
   border: dotted 1px black;
   padding: 0 0;
+}
+
+ul.tennis-event-meta-detail > li {
+  margin: 5px 5px 5px 5px;
+}
+ul.tennis-event-meta-detail > li input {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
 /**
@@ -408,6 +430,18 @@ ul.tennis-event-linkbased-menu.leaf {
   list-style-type:"\2192";
 }
 
+ul.tennis-event-linkbased-menu >li > a {
+  color: black;
+  font-weight: bold;
+}
+
+ul.tennis-event-linkbased-menu >li > a:hover {
+  cursor:pointer;
+  color: red;
+  font-style: italic;
+  text-decoration: underline;
+}
+
 h3.tennis-leaf-event-title {
   margin: 0 0 0 0;
 }
@@ -417,6 +451,7 @@ h3.tennis-leaf-event-title[contenteditable] {
   border: 1px solid grey;
   border-radius: 5px;
   font-style: italic;
+  background-color: white;
   /*box-shadow: 8px 8px grey;*/
 }
 
@@ -432,8 +467,9 @@ h3.tennis-leaf-event-title[contenteditable] {
 
 .tennis-event-meta-detail {
   font-size: medium;
+  margin: 5px 5px 5px 5px;
 }
-.tennis-event-meta-detail:nth-of-type(1) {
+.tennis-event-meta-detail:nth-child(1) {
   font-weight: bold !important;
 }
 
@@ -513,6 +549,12 @@ button.tennis-ladder-next-month {
   border-bottom-color: black;
   border-bottom-style: solid;
   border-bottom-width: 1px;
+}
+.tennis-ladder-next-month:hover {
+  cursor:pointer;
+  color: red;
+  font-style: italic;
+  text-decoration: underline;
 }
 
 hr.root-event-divider {

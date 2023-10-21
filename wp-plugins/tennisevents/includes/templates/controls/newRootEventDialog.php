@@ -8,6 +8,7 @@ foreach(EventType::AllTypes() as $key=>$value) {
 }
 $eventTypeDropDown .= "</select>";
 
+$today = (new \DateTime('now'))->format('Y-m-d');
 ?>
 <dialog class="tennis-add-event-dialog root">
 <form method="dialog" class="tennis-add-event-form root">
@@ -18,13 +19,13 @@ $eventTypeDropDown .= "</select>";
         <label><b>Event Type:</b><?php echo $eventTypeDropDown;?>
         </label>        
         <label for="startdate"><b>Start:</b></label>
-        <input type="date" class="tennis-add-event" name="startdate" required/>
+        <input type="date" class="tennis-add-event" value="<?php echo $today?>" name="startdate" required/>
         <label for="enddate"><b>End:</b></label>
-        <input type="date" class="tennis-add-event" name="enddate" required/>
+        <input type="date" class="tennis-add-event" value="<?php echo $today?>" name="enddate" required/>
     </fieldset>
 <hr/>
 <div>
-    <button class="tennis-add-event-close root" formmethod="dialog" value="submitted">save</button> 
+    <button class="tennis-add-event-close root" formmethod="dialog" value="submitted">Save</button> 
     <button class="tennis-add-event-close root" formmethod="dialog" value="cancelled">Cancel</button>
 </div>
 </form>
