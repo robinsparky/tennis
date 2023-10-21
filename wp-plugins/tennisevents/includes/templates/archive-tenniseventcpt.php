@@ -43,9 +43,9 @@ if(!empty($prevSeason)) {
 		<section class="tennis-events">
 			<div id="tabs" class="tennis-event-tabs-container">
 			<?php	
-				wp_enqueue_script( 'manage_brackets' ); 
+				wp_enqueue_script( 'manage_events' ); 
 				global $jsDataForTennisBrackets;        
-				wp_localize_script( 'manage_brackets', 'tennis_bracket_obj', $jsDataForTennisBrackets );
+				wp_localize_script( 'manage_events', 'tennis_event_obj', $jsDataForTennisBrackets );
 
 				while ( have_posts() ) : 
 					the_post();

@@ -3,7 +3,7 @@
     $(document).ready(function() {       
         let sig = '#tennis-event-message';
         console.log("Manage Events");
-        console.log(tennis_bracket_obj);
+        console.log(tennis_event_obj);
 
         var longtimeout = 60000;
         var shorttimeout = 5000;
@@ -18,14 +18,14 @@
          */
         let ajaxFun = function( eventData ) {
             console.log('Event Management: ajaxFun');
-            let reqData =  { 'action': tennis_bracket_obj.action      
-                           , 'security': tennis_bracket_obj.security 
+            let reqData =  { 'action': tennis_event_obj.action      
+                           , 'security': tennis_event_obj.security 
                            , 'data': eventData };    
             console.log("Parameters:");
             console.log( reqData );
 
             // Send Ajax request with data 
-            let jqxhr = $.ajax( { url: tennis_bracket_obj.ajaxurl    
+            let jqxhr = $.ajax( { url: tennis_event_obj.ajaxurl    
                                 , method: "POST"
                                 , async: true
                                 , data: reqData
@@ -106,6 +106,7 @@
                     reloadWindow( data )
                     break;
                 case 'deleteleafevent':
+                    reloadWindow( data )
                     break;
                 case 'addrootevent':
                     reloadWindow( data )
@@ -243,8 +244,8 @@
 
         /**
          * Hide a removed bracket
-         * @param  eventId
-         * @param bracketNum
+         * @param  {int} eventId
+         * @param {int} bracketNum
          */
         function hideBracket( eventId, bracketNum ) {            
             console.log("hideBracket(%d,%d)", eventId, bracketNum );
@@ -256,9 +257,9 @@
         /**
          * Find the match element on the page using its composite identifier.
          * It is very important that this find method is based on event/bracket identifiers and not on css class or element id.
-         * @param int eventId 
-         * @param int bracketNum 
-         * @return jquery object
+         * @param {int} eventId 
+         * @param {int} bracketNum 
+         * @return {jQuery} object
          */
         function findBracket( eventId, bracketNum ) {
             console.log("findBracket(%d,%d)", eventId, bracketNum );
@@ -269,7 +270,7 @@
         
         /**
          * Get all bracket data from the element/obj
-         * @param element el Assumes that el is a child of .item-bracket
+         * @param {element} el Assumes that el is a child of .item-bracket
          */
         function getBracketData( el ) {
             console.log('getBracketData')
@@ -305,8 +306,8 @@
 
         /**
          * Get all of the attributes of a leaf event. i.e. An event to which brackets are attached.
-         * @param {*} el 
-         * @returns Object with properties of a leaf event
+         * @param {element} el 
+         * @returns {Object} with properties of a leaf event
          */
         function getLeafEventData( el ) {
             let $parent = $(el).closest('.tennis-event-meta');
@@ -405,7 +406,7 @@
         function updateMinAge( data ) {
             console.log('updateMinAge')
             console.log(data)
-
+            setActiveTab(data)
         }
 
         //Update the max age
@@ -507,12 +508,12 @@
 
             let oldBracketName = $(event.target).data('beforeContentEdit');
             $(event.target).removeData('beforeContentEdit')
-            //let eventId = tennis_bracket_obj.eventId; 
             let config =  {"task": "editname"
                             , "eventId": bracketdata.eventid
                             , "bracketNum": bracketdata.bracketnum
                             , "bracketName": bracketName
-                            , "oldBracketName": oldBracketName }
+                            , "oldBracketName": oldBracketName
+                             }
             console.log(config)
             ajaxFun( config );
         }
@@ -562,7 +563,7 @@
                             , "eventId": eventId
                             , "postId": postId
                             , "newTitle": eventTitle
-                            , "oldTitle": oldTitle }
+                            , "oldTitle": oldTitle}
             console.log(config)
             ajaxFun( config );
         }
@@ -575,7 +576,7 @@
             console.log(`Event type change detected: ${newVal} with post=${postIt}`)
             const eventId = $(event.target).closest(".tennis-parent-event").attr("data-event-id");
             const postId = $(event.target).closest(".tennis-parent-event").attr("id");
-            const args = {"task": "modifyrooteventtype", "eventId": eventId, "postId": postId, "eventType": newVal }
+            let args = {"task": "modifyrooteventtype", "eventId": eventId, "postId": postId, "eventType": newVal }
             if(postIt === true) {
                 ajaxFun( args );
             }
@@ -781,7 +782,7 @@
                     ,"scoreType": scoreType
                 }
         }
-
+        
         /*---------------------------------- DOM Event Listeners -------------------------------------*/
 
         /**
@@ -840,6 +841,7 @@
                         }
                 data.task = "addrootevent"
                 console.log(data)
+                setActiveTab(0)
                 ajaxFun( data );
             }
             else {
@@ -853,7 +855,8 @@
             const eventId = event.target.dataset.eventid
             console.log("EventId=%d",eventId)
             if(confirm("Are you sure you want to delete this event?")) {
-                ajaxFun(  {"task": 'deleterootevent', "eventId": eventId } );
+                setActiveTab(0)
+                ajaxFun(  {"task": 'deleterootevent', "eventId": eventId} );
             }
         });
 
@@ -979,7 +982,7 @@
             let newName = uniqueBracketName(eventId);
             ajaxFun( {"task": "addbracket"
                     , "eventId": eventId
-                    , "bracketName": newName } );
+                    , "bracketName": newName} );
         });
 
         //On Remove a bracket
@@ -988,7 +991,6 @@
             console.log(this);
             let bracketdata = getBracketData(this);
             $(this).removeData('beforeContentEdit')
-            //let eventId = tennis_bracket_obj.eventId; 
             if(confirm("Are you sure you want to delete this bracket?")) {
                 //$(this).parent().hide()
                 hideBracket(  bracketdata.eventid, bracketdata.bracketnum )
@@ -1000,6 +1002,7 @@
                 ajaxFun( config );
             }
         });
+
         
         /**
          * ---------------------Copy Ladder Events Listeners------------------------------------
@@ -1044,14 +1047,66 @@
             onChangeScoreRule(evt, false)
         })
 
+        /*--------------------------Local Storage---------------------------------*/
+        function storageAvailable(type) {
+            var storage;
+            try {
+              storage = window[type];
+              var x = "__storage_test__";
+              storage.setItem(x, x);
+              storage.removeItem(x);
+              return true;
+            } catch (e) {
+              return (
+                e instanceof DOMException &&
+                // everything except Firefox
+                (
+                  // test name field too, because code might not be present
+                  // everything except Firefox
+                  e.name === "QuotaExceededError" ||
+                  // Firefox
+                  e.name === "NS_ERROR_DOM_QUOTA_REACHED") &&
+                // acknowledge QuotaExceededError only if there's something already stored
+                storage &&
+                storage.length !== 0
+              );
+            }
+          }
+
+        /**
+         * Gets the active tab index from local storage
+         * @returns {int}
+         */
+        function getActiveTab() {
+            if(localStorage.getItem('activeTab')) {
+                return localStorage.getItem('activeTab')
+            }
+            return 0;
+        }
+
+        /**
+         * Stores the active tab index into local storage
+         * @param {int} active 
+         */
+        function setActiveTab( active ) {
+            active = active || 0
+            localStorage.setItem('activeTab', active)
+        }
+        
+        //Test for storage
+        if (storageAvailable("localStorage")) {
+            console.log("Yippee! We can use localStorage awesomeness");
+        } else {
+            console.log("Too bad, no localStorage for us");
+        }
+    
         /**
          * ------------------------The following creates JQuery tabs based on parent events------------------------------
-         * Necessary because the number of tabs and panels is dynamic becaused it is based on the root events rendered
+         * Necessary because the number of tabs and panels is dynamic with each request
          */
         $("#tabs").prepend(`<ul class="tennis-event-tabs"></ul>`);//Creates ui-tabs-nav
-        let $parentEvents = $('.tennis-parent-event');
         let numTabs = 0
-        $parentEvents.each( function(idx, el ) {
+        $('.tennis-parent-event').each( function( idx, el ) {
             ++numTabs
             let title = $(this).find('ul.tennis-event-meta > li:first-child > span').text();
             let id = $(this).attr("id");
@@ -1083,15 +1138,22 @@
         // Setters
         //$(".tennis-event-tabs-container" ).tabs( "option", "disabled", true );
         $( ".tennis-event-tabs-container" ).tabs( "option", "collapsible", false );
-        $( ".tennis-event-tabs-container" ).tabs( "option", "active", 0 );
+ 
+        let activeTab=getActiveTab()
+        $( ".tennis-event-tabs-container" ).tabs( "option", "active", activeTab );
         $( ".tennis-event-tabs-container" ).tabs( "option", "event", "click" );
         $( ".tennis-event-tabs-container" ).tabs( "option", "hide", { effect: "fold", duration: 2000 } );
         $( ".tennis-event-tabs-container" ).tabs( "option", "show", { effect: "blind", duration: 2000 } );
 
+        $(".tennis-event-tabs-container" ).on('tabsactivate', (event)=>{
+            const active = $( ".tennis-event-tabs-container" ).tabs("option","active")
+            console.log(`Tab activated; ${active}`) 
+            setActiveTab(active)
+        })
         const active = $( ".tennis-event-tabs-container" ).tabs("option","active")
-        console.log(`Number of tabs is ${numTabs}. The active tab index is ${active}:`)
-        console.log($( ".tennis-event-tabs-container > ul" ).children().get(active))
-
+        console.log(`Number of tabs is ${numTabs}. The initial active tab index is ${active}:`)
+        //console.log($( ".tennis-event-tabs-container > ul" ).children().get(active))
+        setActiveTab(active)
         //Classes
         $('.tennis-event-tabs-container').tabs({"ui-tabs-nav": "tennis-event-tabs", "ui-tabs-tab": "tennis-tab-name ui-corner-all"});                                                 
     });
