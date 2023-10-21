@@ -67,7 +67,7 @@ class ManageEvents
         $this->log->error_log( $loc );
         
         $jsurl =  TE()->getPluginUrl() . 'js/events.js';
-        wp_register_script( 'manage_brackets', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable', 'jquery-ui-tabs'), TennisEvents::VERSION, true );
+        wp_register_script( 'manage_events', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable', 'jquery-ui-tabs'), TennisEvents::VERSION, true );
         
         // $cssurl = TE()->getPluginUrl() . 'css/tennisevents.css';
         // wp_enqueue_style( 'tennis_css', $cssurl );
