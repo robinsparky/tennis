@@ -425,7 +425,7 @@ ul.tennis-event-linkbased-menu.root {
 
 ul.tennis-event-linkbased-menu.leaf {
   border-top: 1px dotted black;
-  max-width: 50%;
+  max-width: 100%;
   /*list-style-type: "\1F44D";*/
   list-style-type:"\2192";
 }

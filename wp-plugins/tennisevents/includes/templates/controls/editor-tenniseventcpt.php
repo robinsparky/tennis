@@ -245,7 +245,7 @@ $numChildren = count($event->getChildEvents());
 			<?php } ?>
 			<?php if(!$restrictChanges) { ?>
 			<ul class="tennis-event-linkbased-menu leaf" >
-				<li><a id="deleteLeafEvent" class="tennis-delete-event leaf" data-eventid="<?php echo $leafEvent->getID();?>">Delete Tournament</a></li>
+				<li><a id="deleteLeafEvent" class="tennis-delete-event leaf" data-eventid="<?php echo $leafEvent->getID();?>">Delete '<?php echo $title; ?>'</a></li>
 			</ul>
 			<?php } ?>
 		</section> <!-- /leaf events -->	
