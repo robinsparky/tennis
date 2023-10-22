@@ -133,7 +133,7 @@ class ManageEvents
         $mess = '';
         switch( $task ) {
             case 'editname':
-                $mess = $this->modifyBracketName( $data );
+                $mess = $this->updateBracketName( $data );
                 $returnData = $data;
                 break;
             case 'addbracket':
@@ -193,14 +193,14 @@ class ManageEvents
             case 'modifysignupby':
             case 'modifystartdate':
             case 'modifyenddate':
-                $mess = $this->updateSimpleAttribute( $data );
+                $mess = $this->updateLeafSimpleAttributes( $data );
                 $returnData = $data;
                 break;
             case 'modifygender':
             case 'modifymatchtype':
             case 'modifyformat':
             case 'modifyscorerule':
-                $mess = $this->updateDrawAttributes( $data );
+                $mess = $this->updateLeafDrawAttributes( $data );
                 $returnData = $data;
                 break;
             default:
@@ -235,6 +235,9 @@ class ManageEvents
         $mess = "";
         try {
             $data["title"] =  htmlspecialchars(strip_tags($data["title"]));
+            if(empty($data['title'])) {
+                throw new InvalidArgumentException(__("Event name is required.",TennisEvents::TEXT_DOMAIN));
+            }
 
             $homeClubId = esc_attr(get_option('gw_tennis_home_club', 0));
             $this->log->error_log("$loc: home Club Id={$homeClubId}");
@@ -272,8 +275,8 @@ class ManageEvents
             if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}'", TennisEvents::TEXT_DOMAIN));
             $dateEndDate = $event->getEndDate();
 
-            $dummy = null;
-            $this->validateEventDates($dummy, $dateStartDate, $dateEndDate);
+            $dummySignup = '';
+            $this->validateEventDates($dateStartDate, $dummySignup, $dateEndDate);
  
             $endDate = $dateEndDate->format("Y-m-d");
             $event->setEndDate($endDate);
@@ -299,8 +302,8 @@ class ManageEvents
                         'post_modified' => $currentTime->format('Y-m-d G:i:s')
                         );
     
-            $newPostId = wp_insert_post($postData);//NOTE: This triggers updateDB in TennisEventCpt
-            if($newPostId instanceof WP_Error) {
+            $newPostId = wp_insert_post($postData, true);//NOTE: This triggers updateDB in TennisEventCpt
+            if(is_wp_error($newPostId)) {
                 $mess = $newPostId->get_error_message();
                 throw new InvalidEventException(__("{$mess}",TennisEvents::TEXT_DOMAIN));
             }
@@ -580,7 +583,8 @@ class ManageEvents
                 update_post_meta($postId, TennisEventCpt::TENNIS_SEASON, $season);
             }
 
-            $this->validateEventDates(null, $dateStartDate, $dateEndDate);
+            $dummySignup='';
+            $this->validateEventDates($dateStartDate, $dummySignup, $dateEndDate);
             $strEndDate = $dateEndDate->format('Y-m-d');
 
             if(!$event->setEndDate($strEndDate)) throw new InvalidArgumentException(__("Illegal end date '{$strEndDate}'", TennisEvents::TEXT_DOMAIN));
@@ -589,7 +593,7 @@ class ManageEvents
             $mess = __("Successfully updated the end date", TennisEvents::TEXT_DOMAIN);
             $event->save();
         } 
-        catch (RuntimeException | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
+        catch (Exception | TypeError | InvalidEventException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
             $mess = $ex->getMessage();
         }
@@ -753,7 +757,7 @@ class ManageEvents
             if(!$event->setEndDate($endDate)) throw new InvalidArgumentException(__("Illegal end date '{$endDate}'", TennisEvents::TEXT_DOMAIN));
             $dateEndDate = $event->getEndDate();
 
-            $this->validateEventDates($dateSignupBy, $dateStartDate, $dateEndDate);
+            $this->validateEventDates($dateStartDate, $dateSignupBy, $dateEndDate);
             $signupBy = $dateSignupBy->format("Y-m-d");
             $data['signupBy'] = $signupBy;
             $event->setSignupBy($signupBy);
@@ -814,8 +818,8 @@ class ManageEvents
                         'post_modified' => $currentTime->format('Y-m-d G:i:s')
                         );
     
-            $newPostId = wp_insert_post($postData);//NOTE: This triggers updateDB in TennisEventCpt
-            if($newPostId instanceof WP_Error) {
+            $newPostId = wp_insert_post($postData,true);//NOTE: This triggers updateDB in TennisEventCpt
+            if(is_wp_error($newPostId)) {
                 $mess = $newPostId->get_error_message();
                 throw new InvalidEventException(__("{$mess}",TennisEvents::TEXT_DOMAIN));
             }
@@ -898,7 +902,7 @@ class ManageEvents
             if(!$event->setName($newTitle)) throw new InvalidArgumentException(__("Could not change event name from '{$oldTitle}' to '{$newTitle}'", TennisEvents::TEXT_DOMAIN));
 
             $postData = array('ID'=>$postId, 'post_title'=>$newTitle);
-            wp_update_post($postData);
+            wp_update_post($postData,true);
             if (is_wp_error($postId)) {
                 $errors = $postId->get_error_messages();
                 foreach ($errors as $error) {
@@ -921,7 +925,7 @@ class ManageEvents
      * @param array $data A reference to a dictionary containing data for update
      * @return string A message describing success or failure
      */
-    private function updateSimpleAttribute( &$data ) {
+    private function updateLeafSimpleAttributes( &$data ) {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log($data,"$loc: data...");
 
@@ -969,7 +973,7 @@ class ManageEvents
                     $dateSignupBy = new \DateTime($signupBy);
                     $dateStartDate = $event->getStartDate();
                     $dateEndDate = $event->getEndDate();
-                    $this->validateEventDates( $dateSignupBy, $dateStartDate, $dateEndDate );
+                    $this->validateEventDates( $dateStartDate, $dateSignupBy, $dateEndDate );
                     
                     //Event's start date must be within the given season
                     $season = $this->getSeason();
@@ -997,7 +1001,7 @@ class ManageEvents
                     $dateStartDate = new \DateTime($startDate);
                     $dateSignupBy = $event->getSignupBy();
                     $dateEndDate = $event->getEndDate();
-                    $this->validateEventDates( $dateSignupBy, $dateStartDate, $dateEndDate );
+                    $this->validateEventDates( $dateStartDate, $dateSignupBy, $dateEndDate );
                     //Event's start date must be within the given season
                     $season = $this->getSeason();
                     if($season !== $dateStartDate->format('Y')) {
@@ -1024,7 +1028,7 @@ class ManageEvents
                     $dateEndDate = new \DateTime($endDate);
                     $dateSignupBy = $event->getSignupBy();
                     $dateStartDate = $event->getStartDate();
-                    $this->validateEventDates( $dateSignupBy, $dateStartDate, $dateEndDate );
+                    $this->validateEventDates(  $dateStartDate,$dateSignupBy, $dateEndDate );
                     $season = $this->getSeason();
                     if($season !== $dateStartDate->format('Y')) {
                         throw new InvalidArgumentException(__("Season '{$season}' does not match year in '{$dateStartDate->format('Y-m-d')}'.",TennisEvents::TEXT_DOMAIN));
@@ -1062,7 +1066,7 @@ class ManageEvents
      * @param array $data A reference to a dictionary containing data for update
      * @return string A message describing success or failure
      */
-    private function updateDrawAttributes( &$data ) {
+    private function updateLeafDrawAttributes( &$data ) {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log($data,"$loc: data...");
 
@@ -1150,7 +1154,7 @@ class ManageEvents
     /**
      * Change and existing bracket's name
      */
-    private function modifyBracketName( &$data ) {
+    private function updateBracketName( &$data ) {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log($data,"$loc: data...");
 
@@ -1462,11 +1466,12 @@ class ManageEvents
 
     /**
      * Make sure the dates have the correct order and spacing
-     * @param $signupBy
+     * SignupBy and Enddate pivot arround the StartDate
      * @param $startDate
+     * @param $signupBy
      * @param $endDate
      */
-    private function validateEventDates(&$signupBy, \DateTime &$startDate, &$endDate = '') {
+    private function validateEventDates(\DateTime &$startDate, &$signupBy='', &$endDate = '') {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log("$loc");
 
