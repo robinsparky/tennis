@@ -788,7 +788,8 @@ class ManageEvents
             //Ladder events must have the month as the name
             if($parentEvent->getEventType() === EventType::LADDER ) {
                 $data['title']=$dateStartDate->format('F');
-                $data['eventFormat'] = Format::ROUNDROBIN;
+                $data['format'] = Format::ROUNDROBIN;
+                $eventFormat =  Format::ROUNDROBIN;
                 $event->setFormat(Format::ROUNDROBIN);
             }
             if(empty($data['title'])) {
