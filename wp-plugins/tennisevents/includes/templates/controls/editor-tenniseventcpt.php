@@ -183,7 +183,7 @@ $numChildren = count($event->getChildEvents());
                 $leadTime = TennisEvents::getLeadTime();
 				$maxSignupBy = (new \DateTime($startDate))->modify("-{$leadTime} days")->format('Y-m-d');
 			?>
-			<table id='<?php echo $evtId ?>' class='tennis-event-meta' data-eventid='<?php echo $evtId; ?>' data-postid='<?php echo $postId; ?>'>
+			<table id='<?php echo $evtId ?>' class='tennis-event-meta' data-eventtype='<?php echo $eventTypeRaw;?>' data-eventid='<?php echo $evtId; ?>' data-postid='<?php echo $postId; ?>'>
 			<tbody>				
 				<tr class="event-meta-detail"><td><strong><?php echo __("Gender", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td data-gender='<?php echo $genderKey; ?>'><?php echo $genderTypeDisplay; ?></td></tr>

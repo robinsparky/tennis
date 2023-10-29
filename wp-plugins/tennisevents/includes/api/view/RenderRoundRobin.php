@@ -7,9 +7,11 @@ use \TennisEvents;
 use \TE_Install;
 use api\TournamentDirector;
 use datalayer\Event;
+use datalayer\EventType;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\MatchStatus;
+use datalayer\Match;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -154,9 +156,97 @@ class RenderRoundRobin
             return __($mess, TennisEvents::TEXT_DOMAIN );
         }
 
-        return $this->renderBracketByMatch( $td, $bracket, $titlePrefix );
+        if($td->getEvent()->getParent()->getEventType() === EventType::LADDER) {
+            return $this->renderBracketByEntrant( $td, $bracket, $titlePrefix );
+        }
+        else {
+            return $this->renderBracketByMatch( $td, $bracket, $titlePrefix );
+        }
     }
     
+    /**
+     * Renders matches by entrant for the given bracket
+     * Used mainly for Ladder matches
+     * @param TournamentDirector $td The tournament director for this bracket
+     * @param Bracket $bracket The bracket
+     * @return string HTML for table-based page showing the round robin draw
+     */
+    private function renderBracketByEntrant( TournamentDirector $td, Bracket $bracket, string $titlePrefix='Round' ) {        
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+            
+		$startFuncTime = microtime( true );
+
+        $tournamentName = str_replace("\'","&apos;", $td->getName() );
+        $parentName = str_replace("\'","&apos;", $td->getParentEventName() );
+        $bracketName    = $bracket->getName();
+        // if( !$bracket->isApproved() ) {
+        //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
+        // }
+
+        $umpire = $td->getChairUmpire();
+        $scoreType = $td->getEvent()->getScoreType();
+        $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
+
+        $loadedMatches = $bracket->getMatchHierarchy();
+        $numRounds = 0;
+        $numMatches = 0;
+        foreach( $loadedMatches as $r => $m ) {
+            if( $r > $numRounds ) $numRounds = $r;
+            foreach( $m as $match ) {
+                ++$numMatches;
+            }
+        }
+
+        $pointsPerWin = 1;
+        ///if( $td->getEvent()->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
+        //$summaryTable = $umpire->getEntrantSummary( $bracket );
+        //$bracketSummary = $umpire->getBracketSummary( $bracket ); //NOTE: calls $bracket->getMatchHierarchy();
+
+        $signupSize = $bracket->signupSize();
+        $this->log->error_log("$loc: num matches:$numMatches; number rounds=$numRounds; signup size=$signupSize");
+
+        $this->eventId = $td->getEvent()->getID();
+        $eventType = EventType::LADDER;
+        $eventId = $this->eventId;
+        $bracketnum = $bracket->getBracketNumber();
+        $jsData = $this->get_ajax_data();
+        $jsData["eventId"] = $this->eventId;
+        $jsData["bracketName"] = $bracketName;
+        $jsData["numSignedUp"] = $signupSize;
+        $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
+        $jsData["numSets"] = $umpire->getMaxSets();
+        $jsData["eventType"] = $eventType;
+
+        $entrantMatches = $this->getMatchesByEntrant( $td, $bracket );
+        $arrData = $this->getMatchesAsArray( $td, $bracket );
+        $this->log->error_log($arrData, "$loc: arrData...");
+        $jsData["matches"] = $arrData;
+        wp_enqueue_script( 'digital_clock' );  
+        wp_enqueue_script( 'manage_rr' );         
+        wp_localize_script( 'manage_rr', 'tennis_draw_obj', $jsData );        
+        
+	    // Start output buffering we don't output to the page
+        ob_start();
+
+        // Get template file to render the round robin matches
+        $path = TE()->getPluginPath() . 'includes\templates\render-roundrobin-grid.php';
+        $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+        require $path;
+        
+        //Render the score summary
+        $path = TE()->getPluginPath() . 'includes\templates\summaryladder-template.php';
+        $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+        require $path;
+
+        // Save output and stop output buffering
+        $output = ob_get_clean();
+
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
+    }
+
     /**
      * Renders rounds and matches for the given bracket
      * @param TournamentDirector $td The tournament director for this bracket
@@ -302,6 +392,64 @@ class RenderRoundRobin
             $arrMatches[] = $arrMatch;
         }
         return $arrMatches;
+    }
+
+    /**
+     * Get All Matches in the Bracket organized by Entrant name
+     * and sorted alphabetically
+     * @param TournamentDirector $td
+     * @param Bracket $bracket
+     * @return Array
+     */
+    private function getMatchesByEntrant( TournamentDirector $td,  Bracket $bracket ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+        
+        $arrMatchesByName=[];
+        $matches = $bracket->getMatches();
+        $entrants = $bracket->getSignup();
+        //Sort alphabetically by name
+        usort($entrants, function($a,$b){
+            if( $a->getName() === $b->getName() ) return 0; return ( $a->getName() < $b->getName() ) ? -1 : 1;
+        });
+
+        foreach( $entrants as $entrant ) {
+            $name = $entrant->getName();
+            $pos = $entrant->getPosition();
+            $entrantMatches = array();
+            foreach($matches as $match) {
+                if($name === $match->getHomeEntrant()->getName() || $name === $match->getVisitorEntrant()->getName()) {
+                    $entrantMatches[] = $match;
+                }
+            }
+            usort($entrantMatches, function($m1,$m2) use ($name) {
+                $n1 = $m1->getHomeEntrant()->getName();
+                if($name === $m1->getHomeEntrant()->getName()) {
+                    $n1 = $m1->getVisitorEntrant()->getName();
+                }
+                $n2 = $m2->getHomeEntrant()->getName();
+                if($name === $m2->getHomeEntrant()->getName()) {
+                    $n2 = $m2->getVisitorEntrant()->getName();
+                }
+                return strcmp($n1,$n2);
+            });
+            $arrMatchesByName[$name] = $entrantMatches;
+        }
+        // foreach($arrMatchesByName as $name=>$matches) {
+        //     $this->log->error_log("{$name}:");
+        //         foreach($matches as $match) {
+        //             $this->log->error_log("....{$match->title()}");
+        //         }
+        // }
+        return $arrMatchesByName;
+    }
+
+    private function sortByEntrantExtra($match, $anchor) {
+        if($anchor === $match->getHomeEntrant()->getName()) {
+
+        } elseif($anchor === $match->getVisitorEntrant()->getName()) {
+
+        }
     }
     
     private function getMatchesJson( TournamentDirector $td,  Bracket $bracket ) {

@@ -16,6 +16,7 @@ use datalayer\Club;
 use datalayer\Format;
 use datalayer\ScoreType;
 use datalayer\MatchStatus;
+use datalayer\EventType;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -334,6 +335,9 @@ class ManageRoundRobin
                 // $data['setsTrimmed'] = $numTrimmed;
                 $match->save();
 
+                $eventType = $event->getParent()->getEventType();
+                $data["eventType"] = $eventType;
+
                 $statusObj = $chairUmpire->matchStatusEx( $match );
                 $data['majorStatus'] = $statusObj->getMajorStatus();
                 $data['minorStatus'] = $statusObj->getMinorStatus();
@@ -472,6 +476,9 @@ class ManageRoundRobin
             
             $pointsPerWin = 1;
             if( $event->getScoreType() === ScoreType::POINTS2 ) $pointsPerWin = 2;
+            
+            $eventType = $event->getParent()->getEventType();
+            $data["eventType"] = $eventType;
             $summaryTable = $chairUmpire->getEntrantSummary( $bracket, $pointsPerWin );
             $data["entrantSummary"] = $summaryTable;
             $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
@@ -650,6 +657,9 @@ class ManageRoundRobin
             $pointsPerWin = 1;
             //if( $event->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
             $pointsPerWin = $chairUmpire->getPointsPerWin();
+
+            $eventType = $event->getParent()->getEventType();
+            $data["eventType"] = $eventType;
 
             $summaryTable = $chairUmpire->getEntrantSummary( $bracket );
             //$this->log->error_log($summaryTable, "$loc - entrant summary");

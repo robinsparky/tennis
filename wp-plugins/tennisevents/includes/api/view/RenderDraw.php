@@ -67,11 +67,7 @@ class RenderDraw
     public function registerScripts() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
-               
-        //By entrant
-        $jsurl =  TE()->getPluginUrl() . 'js/draw.js';
-        wp_register_script( 'manage_draw', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
-        
+       
         //By match
         $jsurl =  TE()->getPluginUrl() . 'js/matches.js';
         wp_register_script( 'manage_matches', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );

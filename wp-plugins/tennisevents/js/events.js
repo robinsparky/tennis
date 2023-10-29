@@ -288,7 +288,7 @@
             return data;
         }
 
-        function uniqueBracketName( eventId ) {
+        function uniqueBracketName( eventId, prefix='Bracket' ) {
             let sel = `.tennis-event-brackets[data-eventid="${eventId}"]`;
             let $parent = $(sel);
             let existingNames = [];
@@ -296,7 +296,7 @@
             $parent.find('span.bracket-name').each( function(idx) {
                 existingNames.push(this.innerText)} );
             for( num=1; num<100; num++ ) {
-                newName = `Bracket${num}`;
+                newName = `${prefix}${num}`;
                 if(existingNames.every( str => str !== newName  )) {
                     break;
                 }
@@ -979,7 +979,9 @@
             console.log(event.target);
             $(this).prop('disabled', true );
             let eventId = event.target.getAttribute("data-eventid");
-            let newName = uniqueBracketName(eventId);
+            let eventType = $(`table#${eventId}`).attr('data-eventtype');
+            let prefix = eventType === "ladder" ? "Box" : "Bracket"
+            let newName = uniqueBracketName(eventId, prefix);
             ajaxFun( {"task": "addbracket"
                     , "eventId": eventId
                     , "bracketName": newName} );

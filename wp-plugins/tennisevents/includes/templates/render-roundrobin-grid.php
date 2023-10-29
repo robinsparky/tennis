@@ -1,7 +1,9 @@
 <?php 
 use datalayer\MatchStatus; 
 ?>
-<?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
+<?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
+    $eventType = $td->getEvent()->getParent()->getEventType();
+?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>
     (<?php echo $scoreRuleDesc; ?>)<br><span id='digiclock'></span></h3>
@@ -93,6 +95,7 @@ use datalayer\MatchStatus;
 ?>
 
 <article class="item-player" data-eventid="<?php echo $eventId;?>" 
+ data-eventtype="<?php echo $eventType;?>" 
  data-bracketnum="<?php echo $bracketNum;?>" 
  data-roundnum="<?php echo $roundNum;?>" 
  data-matchnum="<?php echo $matchNum;?>" 

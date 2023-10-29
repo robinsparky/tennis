@@ -1089,6 +1089,47 @@ class Bracket extends AbstractData
     }
 
     /**
+     * NOT USED YET ... unfinished
+     */
+    public function getMatchesByEntrantName() {
+        $loc = __CLASS__ . '::' .  __FUNCTION__;
+        $this->log->error_log("{$loc}");
+
+        global $wpdb;
+
+        $pks=[$this->getEventId(),$this->getBracketNumber()];
+
+		$table = $wpdb->prefix . self::$tablename;
+        $match_entrant_table = $wpdb->prefix . "tennis_match_entrant";
+        $entrant_table = $wpdb->prefix . Entrant::$tablename;
+        $sql="SELECT ent.name as name, ent.position as position, me.match_event_ID as event_ID
+		,me.match_bracket_num as bracket_num, me.match_round_num as round_num, me.match_num as match_num, me.is_visitor as is_visitor
+        FROM {$entrant_table}
+        INNER JOIN {$match_entrant_table} me on me.entrant_position=ent.position AND me.match_event_ID=ent.event_ID
+        INNER JOIN {$table} b ON b.event_ID=me.match_event_ID AND b.bracket_num=me.match_bracket_num  
+        WHERE ent.event_ID=%d 
+        and   b.bracket_num=%d 
+        ORDER BY ent.name,me.match_round_num,me.match_num,me.is_visitor";
+		$safe = $wpdb->prepare( $sql, $pks );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
+
+        error_log( sprintf( "%s(B(%d,%d)) -> %d rows returned.", $loc, $pks[0], $pks[1], $wpdb->num_rows ) );
+        
+		$result=[];
+        foreach($rows as $row) {
+            $result["eventId"]     = (int) $row["event_ID"];
+            $result["bracket_num"] = (int) $row["bracket_num"];
+            $result["name"]        = str_replace("\'","'",$row["name"]);
+            $result["position"]    = (int) $row["position"];
+            $result["round_num"]   = (int) $row["round_num"];
+            $result["match_num"]   = (int) $row["match_num"];
+            $result["is_visitor"]  = (int) $row["is_visitor"];
+        }
+
+		return $result;
+    }
+
+    /**
      * Get the early losers in this bracket
      */
     private function getEarlyLosers( $umpire ) {

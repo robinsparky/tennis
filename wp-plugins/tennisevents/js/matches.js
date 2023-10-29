@@ -121,38 +121,7 @@
       data = data || [];
       console.log("Apply results:");
       console.log(data);
-      if ($.isArray(data)) {
-        console.log("Data is an array");
-        let task = data["task"];
-        switch (task) {
-          case 'switchplayers':
-            switchEntrants(data);
-            break;
-          case "recordscore":
-            updateMatchdate(data);
-            updateScore(data);
-            break;
-          case "setcomments":
-            updateComments(data);
-            break;
-          case "advance":
-            advanceMatches(data);
-            break;
-          case "insertAfter":
-            //window.location.reload();
-            updateMatchNumbers(data);
-            break;
-          case "undomatch":
-            undoMatch(data);
-            break;
-          case "resetmatch":
-            resetMatch(data);
-            break;
-          default:
-            console.log("Unknown task from server(array): '%s'", task);
-            break;
-        }
-      } else if (typeof data == "string") {
+      if (typeof data == "string") {
         console.log("Data is a string");
         switch (data) {
           case "createPrelim":
@@ -179,7 +148,12 @@
             break;
         }
       } else {
-        console.log("Data is an object");
+        if (Array.isArray(data)) {
+          console.log("Data is an array");
+        }
+        else {
+          console.log("Data is an object");
+        }
         let task = data.task;
         switch (task) {
           case 'switchplayers':
@@ -586,7 +560,12 @@
       });
       $matchEl.find(".matchinfo.matchstatus").text(data.status);
 
-      updateEntrantSummary(data);
+      if(data.eventType === 'ladder') {
+        updateLadderSummary(data)
+      }
+      else {
+        updateEntrantSummary(data);
+      }
 
       // if( typeof data['advanced'] != 'undefined' && data['advanced'] > 0 ) {
       //     alert("Reloading");
@@ -596,26 +575,27 @@
 
     /**
      * Update the entrant summary table
+     * but not including Ladder matches
      * Applies to round robins only
      * @param {*} data
      */
-    function updateEntrantSummary(data) {
+    function updateEntrantSummary(data) {        
+      console.log(`updateEntrantSummary: ${data.eventType}`);
+
+      if(data.evenType === undefined || data.eventType === 'ladder') return;
+
+      let parentSelector = "table.tennis-score-summary"
+      console.log(`ParentSelector is '${parentSelector}'`)
       if (data.entrantSummary) {
-        console.log("updateEntrantSummary");
+        console.log("entrantSummary is present");
         //console.log(data.entrantSummary);
-        $parent = $("table.tennis-score-summary");
+        $parent = $(parentSelector);
         for (entrant of data.entrantSummary) {
           //console.log(entrant);
-          $entRow = $parent.find(
-            "tr.entrant-match-summary[data-entrant='" + entrant.position + "']"
-          );
+          $entRow = $parent.find("tr.entrant-match-summary[data-entrant='" + entrant.position + "']");
           //console.log($entRow);
-          n1 = $entRow.children("td.entrant-name").text();
-          console.log(
-            "entrant '%s' compares with html: '%s'",
-            entrant.name,
-            n1
-          );
+          let n1 = $entRow.children("td.entrant-name").text();
+          console.log("entrant '%s' compares with html: '%s'",entrant.name,n1);
           $entRow.children("td.points").each(function (i, el) {
             $(el).text(entrant.totalPoints);
           });
@@ -628,7 +608,7 @@
           });
         }
       }
-      if (data.bracketSummary) {
+      if (data.bracketSummary && data.eventType !== 'ladder') {
         console.log("Bracket Summary");
         //console.log(data.bracketSummary);
         let $parent = $("table.tennis-score-summary");
@@ -643,6 +623,47 @@
         $summaryFooter.find("#bracket-summary").text(mycontent);
       }
     }
+
+    /**
+     * Update the ladder summary table
+     * NOTE: this assumes a player only plays once in a round
+     * Applies to Ladder RR's only
+     * @param {*} data
+     */
+      function updateLadderSummary(data) {        
+        console.log(`updateLadderSummary: ${data.eventType}`);
+  
+        if(data.eventType !== 'ladder') return
+        
+        parentSelector = "table.tennis-ladder.summary"
+        console.log(`ParentSelector is '${parentSelector}'`)
+        if (data.entrantSummary) {
+          console.log("entrantSummary is present");
+          console.log(data.entrantSummary);
+          $parent = $(parentSelector);
+          let ctr = 0
+          for (entrant of data.entrantSummary) {
+            console.log(`${++ctr}. Entrant:`)
+            console.log(entrant);
+            $entRow = $parent.find(`tr.entrant-match-summary[data-entrant='${entrant.position}']`);
+            console.log($entRow);
+            let n1 = $entRow.children("td.entrant-name").text();
+            console.log("entrant '%s' compares with html: '%s'",entrant.name,n1);
+            $entRow.children("td.points").each(function (i, el) {
+              $(el).text(entrant.totalPoints);
+            });
+            $entRow.children("td.games").each(function (i, el) {
+              $(el).text(entrant.totalGames);
+            });
+            //This part assumes a player plays only once in a given round
+            for(let i = 0; i < $entRow.children("td.matcheswon").length; i++) {
+              let rnd = i + 1
+              let $opponent = $entRow.children(`td.matcheswon[data-roundnum="${rnd}"]`)
+              $opponent.text(entrant[rnd])
+            }
+          }
+        }
+      }
 
     /**
      * Update the comments for a given match

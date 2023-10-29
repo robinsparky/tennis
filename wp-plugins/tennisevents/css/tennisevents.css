@@ -578,6 +578,7 @@ hr.leaf-event-divider {
   list-style-type: none;
 
 }
+
 /*------------------------------------------------------------------------------------
  * Elimination Draw Styling
  *-----------------------------------------------------------------------------------*/
@@ -708,6 +709,19 @@ table.tennis-score-summary > caption {
 
 hr.entrant-divider {
   border-top: 1px solid black;
+}
+
+
+/*-------------------------------------------------------
+ * Ladder match styling
+--------------------------------------------------------*/
+table.tennis-ladder.summary {
+  border: solid 1px black;
+  border-collapse: collapse;
+}
+table.tennis-ladder.summary th {
+  font-style: normal;
+  font-weight:normal;
 }
 
 /*---------------------------------------------------
