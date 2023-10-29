@@ -32,9 +32,13 @@
             <?php continue;
             } else { 
                 $match = array_shift($matches);
-                if(!isset($match)) throw new RuntimeException("Ran out of matches!! at {$row},{$col} for name={$name}");
+                if(!isset($match)) {
+                    $this->log->error_log("Ran out of matches!! at {$row},{$col} for name={$name}");
+                    throw new RuntimeException("Ran out of matches!! at {$row},{$col} for name={$name}");
+                    continue;
+                }
                 if(!($match instanceof Match)) {
-                    $this->log->error_log($match,"SUMMARY LADDER non match...");
+                    $this->log->error_log($match,"SUMMARY LADDER Encountered non match at {$row},{$col} for name={$name}");
                     throw new RuntimeException("Encountered non match at {$row},{$col} for name={$name}");
                 }
                 extract($umpire->getMatchSummary($match));

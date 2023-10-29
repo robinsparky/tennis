@@ -407,6 +407,8 @@ class RenderRoundRobin
         
         $arrMatchesByName=[];
         $matches = $bracket->getMatches();
+        if(count($matches) < 1) return $arrMatchesByName;
+        
         $entrants = $bracket->getSignup();
         //Sort alphabetically by name
         usort($entrants, function($a,$b){
