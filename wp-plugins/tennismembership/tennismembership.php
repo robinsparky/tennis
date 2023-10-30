@@ -1,4 +1,7 @@
 <?php
+namespace tennismembership;
+
+use includes\TM_Install;
 /*
 	Plugin Name: Tennis Membership
 	Plugin URI: grayware.ca/tennismembership
@@ -8,6 +11,8 @@
 	Author URI: grayware.ca
 */
 use commonlib\BaseLogger;
+use \WP_CLI;
+use \WP_CLI_Command;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -73,13 +78,13 @@ class TennisMembership {
 
 	public static function getInstaller() {
 		include_once( 'includes/class-tennis-install.php' );
-		return TE_Install::get_instance();
+		return TM_Install::get_instance();
 	}
 
-	static public function getControllerManager() {
-		include_once( 'includes/class-controller-manager.php' );
-		return TennisControllerManager::get_instance();
-	}
+	// static public function getControllerManager() {
+	// 	include_once( 'includes/class-controller-manager.php' );
+	// 	return TennisControllerManager::get_instance();
+	// }
 	
 	/**
 	 *  Constructor.
@@ -100,18 +105,18 @@ class TennisMembership {
 	private function includes() {
 		//include_once( 'includes/class-controller-manager.php' );
 		//include_once( 'includes/class-tennis-install.php' );
-		include_once( 'includes/functions-admin-menu.php' );
-		include_once( 'includes/tennis-template-loader.php' );
+		// include_once( 'includes/functions-admin-menu.php' );
+		// include_once( 'includes/tennis-template-loader.php' );
 
-		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			include_once( 'includes/commandline/class-clubcommands.php' );
-			include_once( 'includes/commandline/class-eventcommands.php' );
-			include_once( 'includes/commandline/class-cmdlinesupport.php' );
-			include_once( 'includes/commandline/class-environmentcommands.php' );
-			include_once( 'includes/commandline/class-showcommands.php' );
-			include_once( 'includes/commandline/class-tournamentcommands.php' );
-			include_once( 'includes/commandline/class-signupcommands.php' );
-		}
+		// if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		// 	include_once( 'includes/commandline/class-clubcommands.php' );
+		// 	include_once( 'includes/commandline/class-eventcommands.php' );
+		// 	include_once( 'includes/commandline/class-cmdlinesupport.php' );
+		// 	include_once( 'includes/commandline/class-environmentcommands.php' );
+		// 	include_once( 'includes/commandline/class-showcommands.php' );
+		// 	include_once( 'includes/commandline/class-tournamentcommands.php' );
+		// 	include_once( 'includes/commandline/class-signupcommands.php' );
+		// }
 	}
 
 	public function enqueue_admin( $hook ) {
@@ -129,14 +134,14 @@ class TennisMembership {
 	static public function on_activate() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc Start>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		TennisEvents::getInstaller()->activate();
+		TennisMembership::getInstaller()->activate();
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 	}
 
 	static public function on_deactivate() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc Start>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		TennisEvents::getInstaller()->deactivate();
+		TennisMembership::getInstaller()->deactivate();
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 	}
 
@@ -181,19 +186,19 @@ class TennisMembership {
 		$loc = __FILE__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc");
 		
-		if( $query->is_main_query() && !$query->is_feed() && !is_admin() 
-		&& $query->is_post_type_archive( TennisEventCpt::CUSTOM_POST_TYPE ) ) {
-			//$this->log->error_log($query, "Query Object Before");
-			$meta_query = array( 
-								array(
-									'key' => TennisEventCpt::PARENT_EVENT_META_KEY
-									,'compare' => 'NOT EXISTS'
-								)
-						);
+		// if( $query->is_main_query() && !$query->is_feed() && !is_admin() 
+		// && $query->is_post_type_archive( TennisEventCpt::CUSTOM_POST_TYPE ) ) {
+		// 	//$this->log->error_log($query, "Query Object Before");
+		// 	$meta_query = array( 
+		// 						array(
+		// 							'key' => TennisEventCpt::PARENT_EVENT_META_KEY
+		// 							,'compare' => 'NOT EXISTS'
+		// 						)
+		// 				);
 
-			$query->set( 'meta_query', $meta_query );
-			//$this->log->error_log($query, "Query Object After");
-		}
+		// 	$query->set( 'meta_query', $meta_query );
+		// 	//$this->log->error_log($query, "Query Object After");
+		// }
 	}
 	
 	/**
