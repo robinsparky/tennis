@@ -1,5 +1,6 @@
 <?php
 use api\TournamentDirector;
+use api\ELO;
 use cpt\TennisEventCpt;
 use datalayer\Event;
 use datalayer\EventType;
@@ -19,6 +20,7 @@ if(count($event->getChildEvents()) === 0) {
 	$eventTypeDropDown .= "</select>";
 }
 $numChildren = count($event->getChildEvents());
+
 ?>
 <!-- Root event -->
 <div id="<?php echo get_the_ID()?>" class="tennis-parent-event" data-event-id="<?php echo $event->getID();?>">
@@ -28,7 +30,7 @@ $numChildren = count($event->getChildEvents());
 	<li class='tennis-root-event-date start'><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN);?><input type="date" value="<?php echo $startDate;?>"></li>
 	<li class='tennis-root-event-date end'><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN);?><input type="date" value="<?php echo $endDate;?>"></li>	
 	<li class='tennis-root-event-description'><?php echo __("Description: ", TennisEvents::TEXT_DOMAIN);?><p><?php the_content();?></p></li>					
-	<?php include(TE()->getPluginPath() . 'includes\templates\controls\newLeafEventDialog.php');
+	<?php include(wp_normalize_path(TE()->getPluginPath() . 'includes\templates\controls\newLeafEventDialog.php'));
 	?>
 	<ul class = 'tennis-event-linkbased-menu root'>
 	<?php if( $eventTypeRaw === EventType::LADDER && $numChildren > 0) { ?>

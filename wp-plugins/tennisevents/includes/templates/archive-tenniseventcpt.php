@@ -28,7 +28,7 @@ if(!empty($prevSeason)) {
 <?php
 	if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
 		echo "<button class='tennis-add-event root'>" . __("Create New Event",TennisEvents::TEXT_DOMAIN) . "</button>";
-		include(TE()->getPluginPath() . 'includes\templates\controls\newRootEventDialog.php');
+		include(wp_normalize_path(TE()->getPluginPath() . 'includes\templates\controls\newRootEventDialog.php'));
 	}
 
 // Sidebar Alt 
@@ -93,11 +93,13 @@ if(!empty($prevSeason)) {
 					if(empty($endDate)) $endDate = '';
 
 					//The content is produced here
+					$path = wp_normalize_path( TE()->getPluginPath() . 'includes\templates\controls\readonly-tenniseventcpt.php');
 					if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
-						require(TE()->getPluginPath() . 'includes\templates\controls\editor-tenniseventcpt.php');
+						$path = wp_normalize_path(TE()->getPluginPath() . 'includes\templates\controls\editor-tenniseventcpt.php');
+						require($path);
 					}
 					else {
-						require( TE()->getPluginPath() . 'includes\templates\controls\readonly-tenniseventcpt.php');
+						require($path);
 					}
 				?>	
 
