@@ -120,7 +120,7 @@ class TennisEvents {
 	public function __construct() {
 		// Don't allow more than one instance of the class
 		if ( isset( TennisEvents::$_instance ) ) {
-			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ),get_class( $this ) ) );
+			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', self::TEXT_DOMAIN ),get_class( $this ) ) );
 		}
 	}
 
@@ -277,7 +277,7 @@ class TennisEvents {
 		RenderRoundRobin::register();
 		ManageRoundRobin::register();
 
-		//Bracket maintenance
+		//Event and bracket maintenance
 		ManageEvents::register();
 
 		//NOTE: Should call addCaps to cover case where admin is added after activation
