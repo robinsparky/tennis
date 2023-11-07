@@ -582,7 +582,7 @@
     function updateEntrantSummary(data) {        
       console.log(`updateEntrantSummary: ${data.eventType}`);
 
-      if(data.evenType === undefined || data.eventType === 'ladder') return;
+      if(data.eventType === 'ladder') return;
 
       let parentSelector = "table.tennis-score-summary"
       console.log(`ParentSelector is '${parentSelector}'`)
