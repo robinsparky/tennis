@@ -342,9 +342,10 @@ class TM_Install {
 			}
 		}
 	}
+	
 	/**
 	 * Create the Tennis Events schema
-	 * TODO: test upgrading using dbDelta
+	 * TODO: test using dbDelta
 	 */
 	public function createSchema( bool $withReports=false ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
