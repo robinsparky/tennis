@@ -33,17 +33,17 @@ use datalayer\Format;
 				 }
 
 				 $okToProceed = true;
-				 if( empty( $event ) ) {
+				 if( !isset( $event ) ) {
 					echo "<h3>Could not find the tennis event</h3>";
 					$okToProceed = false;
 				 }
 				 
-				 if( $event->isRoot() ) {
+				 if($okToProceed &&  $event->isRoot() ) {
 					echo "<h3>Root Tennis Event is not expected here</h3>";
 					$okToProceed = false;
 				} 
 
-				if( $event->getSeason() != $season ) {
+				if($okToProceed &&  $event->getSeason() != $season ) {
 					echo "<h3>Invalid season</h3>";
 					$okToProceed = false;
 				}
