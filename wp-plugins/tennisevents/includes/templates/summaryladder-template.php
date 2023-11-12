@@ -49,17 +49,16 @@ use datalayer\Match;
                 $winnerName  = is_null( $winner ) ? 'tba': $winner->getName();
                 $points = ($winnerName === $name) ? 1: 0;
                 $mess = "{$points}";
-                if( $winnerName === $name && $winnerName !== 'tba') {
-                    $points = 1;
-                    $rating = ELO::get_instance()->calcRating(0,0,true);
-                    $mess = "{$rating[0]} {$points} {$rating[1]}";
-                }
-                elseif($winnerName !== 'tba') {
-                    $points=0;
-                    $rating = ELO::get_instance()->calcRating(0,0,false);
-                    $mess = "{$rating[0]} {$points} {$rating[1]}";
-                }
-                //$mess = "{$points}"; //Comment out this line to include ELO ratings
+                // if( $winnerName === $name && $winnerName !== 'tba') {
+                //     $points = 1;
+                //     $rating = ELO::get_instance()->calcRating(0,0,true);
+                //     $mess = "{$rating[0]} {$points} {$rating[1]}";
+                // }
+                // elseif($winnerName !== 'tba') {
+                //     $points=0;
+                //     $rating = ELO::get_instance()->calcRating(0,0,false);
+                //     $mess = "{$rating[0]} {$points} {$rating[1]}";
+                // }
             ?>
             <td id='<?php  echo "({$row},{$col})" ?>' class='matcheswon' <?php echo " data-bracketnum='{$bracketnum}'"; echo " data-roundnum='{$match->getRoundNumber()}'"; echo " data-matchnum='{$match->getMatchNumber()}'"; ?>><?php echo $mess; ?></td>
             <?php } ?> 
