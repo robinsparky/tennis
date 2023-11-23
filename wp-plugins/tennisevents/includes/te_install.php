@@ -347,9 +347,10 @@ class TE_Install {
 			}
 		}
 	}
+
 	/**
 	 * Create the Tennis Events schema
-	 * TODO: test upgrading using dbDelta
+	 * TODO: test using dbDelta
 	 */
 	public function createSchema( bool $withReports=false ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -383,7 +384,8 @@ class TE_Install {
 			$newSchema = false;
 		}
 
-		//Temporarily until can test/fix dbDelta usage
+		//Temporarily until can test/fix dbDelta usage 
+		//see https://codex.wordpress.org/Creating_Tables_with_Plugins
 		if( ! $newSchema ) return;
 
 		/**
