@@ -1,7 +1,6 @@
 <?php
-namespace tennismembership;
+use \TM_Install;
 
-use includes\TM_Install;
 /*
 	Plugin Name: Tennis Membership
 	Plugin URI: grayware.ca/tennismembership
@@ -10,6 +9,7 @@ use includes\TM_Install;
 	Author: Robin Smith
 	Author URI: grayware.ca
 */
+use commonlib\GW_Support;
 use commonlib\BaseLogger;
 use \WP_CLI;
 use \WP_CLI_Command;
@@ -49,20 +49,13 @@ class TennisMembership {
 	public const PLUGIN_SLUG = 'tennismembership';
 	public const TEXT_DOMAIN = 'tennis_text';
 
-	public const ROOT_PAGE_META_KEY = 'gw_tennis_root_page';
-	public const EVENT_PAGE_META_KEY = 'gw_tennis_eventid';
-
-	
-	// Aspects: namely -> main signup,consolation signup, main matches, consolation matches, main draw, consolation draw
-	//private $aspects;
-
 	//This class's singleton
 	private static $_instance;
 
 	private $log;
 
 	/**
-	 * TennisEvents Singleton
+	 * TennisMembership Singleton
 	 *
 	 * @since 1.0
 	 * @static
@@ -98,7 +91,7 @@ class TennisMembership {
 
 	public function plugin_setup() {
 		$this->includes();
-		$this->log = new BaseLogger( true );//Must come after includes
+		$this->log = new BaseLogger( true );
 		$this->setup();
 	}
 	
@@ -148,7 +141,7 @@ class TennisMembership {
 	static public function on_uninstall() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc Start>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		TennisEvents::getInstaller()->uninstall();
+		TennisMembership::getInstaller()->uninstall();
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 	}
 	
@@ -210,8 +203,8 @@ class TennisMembership {
         // Add actions
 		add_action( 'init', array( $this, 'init') );
 		// add_action( 'rest_api_init', array( self::getControllerManager(), 'register_tennis_rest_routes' ) );
-		// add_action( 'admin_enqueue_scripts', array( $this,'enqueue_admin') );
-		// add_action( 'pre_get_posts', array( $this, 'archive_tennismembership_query' ) );
+		add_action( 'admin_enqueue_scripts', array( $this,'enqueue_admin') );
+		add_action( 'pre_get_posts', array( $this, 'archive_tennismembership_query' ) );
 		
 	}   
 	
@@ -219,15 +212,13 @@ class TennisMembership {
 	private function __clone() {}	
 
 }
+include_once( 'autoloader.php' );//Needed otherwise BaseLogger is not found (i.e. it is in 'includes')
 $tennisMembership = TennisMembership::get_instance();
 $GLOBALS['tennisMembership'] = $tennisMembership;
 function TE() {
 	global $tennisMembership;
 	return $tennisMembership;
 }
-
-include_once( 'autoloader.php' );
-include_once( 'includes/commonlib/support.php' );
 
 // Register activation/deactivation hooks
 register_activation_hook( __FILE__, array( 'TennisMembership', 'on_activate' ) );

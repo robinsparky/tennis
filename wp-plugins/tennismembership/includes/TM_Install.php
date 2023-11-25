@@ -1,13 +1,13 @@
 <?php
 use commonlib\BaseLogger;
-
+use \TennisMembership;
 
 /**
  * Installation related functions and actions.
  *
  * @author   Robin Smith
  * @category Admin
- * @package  Tennis Events
+ * @package  Tennis Membership
  * @version  1.0.0
  */
 
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once( ABSPATH . 'wp-admin/includes/upgrade.php');
 
 /**
- * TE_Install Class.
+ * TM_Install Class.
  */
 class TM_Install {
 
@@ -935,7 +935,7 @@ class TM_Install {
 	 * This check is done on all requests and runs if the versions do not match.
 	 */
 	public function check_version() {
-		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisEvents::VERSION ) {
+		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisMembership::VERSION ) {
 			//TODO: Do Something???
 		}
 	}
@@ -944,20 +944,19 @@ class TM_Install {
 		$loc = __CLASS__  . "::" . __FUNCTION__;
 		// guess current plugin directory URL
 		$plugin_url = plugin_dir_url(__FILE__);
-		wp_enqueue_style('tennis_css',$plugin_url . '../css/tennisevents.css');
+		wp_enqueue_style('tennis_css', $plugin_url . '../css/tennismembership.css');
 	}
 
 	public function enqueue_script() {
 		$loc = __CLASS__  . "::" . __FUNCTION__;
 		$plugin_url = plugin_dir_url(__FILE__);
-		wp_register_script( 'tennis_js', $plugin_url . 'js/te-support.js', array('jquery'),false,true );
-		wp_register_script( 'tennis_js', $plugin_url . 'js/create-drawtable.js', array('jquery'),false,true );
+		wp_register_script( 'tennis_js', $plugin_url . 'js/tm-support.js', array('jquery'),false,true );
 	}
 
 	//Need one extra query parameter
 	public function add_query_vars_filter( $vars ) {
 		$loc = __CLASS__  . "::" . __FUNCTION__;
-		$vars[] = "te_vars";
+		$vars[] = "tm_vars";
 		return $vars;
 	}
 
