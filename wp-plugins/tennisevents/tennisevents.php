@@ -8,6 +8,7 @@
 	Author URI: grayware.ca
 */
 use api\CustomMenu;
+use commonlib\GW_Support;
 use commonlib\BaseLogger;
 use cpt\TennisEventCpt;
 use cpt\TennisClubCpt;
@@ -125,8 +126,12 @@ class TennisEvents {
 	}
 
 	public function plugin_setup() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->includes();
-		$this->log = new BaseLogger( true );//Must come after includes
+		$this->log = new BaseLogger( true );
+		$this->log->error_log("$loc: created logger!");
+		$support = new GW_Support();
+		$this->log->error_log("$loc: created GW Support!");
 		$this->setup();
 		//Temporary test of CF7 filter
 		//$this->addCF7Filters();
@@ -369,13 +374,13 @@ class TennisEvents {
 	 */
 	private function setup() {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("<<<<<<<<<<<$loc start<<<<<<<<<<<");
 		
 		//Set the default time zone
 		//date_default_timezone_set(ini_get('date.timezone'));
 		$tz = wp_timezone_string();
 		$this->log->error_log("$loc: time zone={$tz}");
-		$tz = wp_timezone();
-		$this->log->error_log($tz,"$loc: time zone object:");
+		//$tz = wp_timezone();
 
         // Add actions
 		add_action( 'init', array( $this, 'init') );
@@ -383,6 +388,7 @@ class TennisEvents {
 		add_action( 'admin_enqueue_scripts', array( $this,'enqueue_admin') );
 		add_action( 'pre_get_posts', array( $this, 'archive_tennisevent_query' ) );
 		
+		$this->log->error_log("<<<<<<<<<<<$loc end<<<<<<<<<<<");
 	}   
 	
 	private function __wakeup() {}
@@ -439,6 +445,7 @@ class TennisEvents {
 		}
 	}
 }
+include( 'autoloader.php' );//Need to include otherwise otherwise BaseLogger cannot be found (i.e. it is under 'includes')
 $tennisEvents = TennisEvents::get_instance();
 $GLOBALS['tennisEvents'] = $tennisEvents;
 function TE() {
@@ -446,17 +453,11 @@ function TE() {
 	return $tennisEvents;
 }
 
-include_once( 'autoloader.php' );
-require_once( 'includes/commonlib/GW_Support.php' );
-
 // Register activation/deactivation hooks
 register_activation_hook( __FILE__, array( 'TennisEvents', 'on_activate' ) );
 register_deactivation_hook ( __FILE__, array( 'TennisEvents', 'on_deactivate' ) );
 register_uninstall_hook ( __FILE__, array( 'TennisEvents', 'on_uninstall' ) );
 add_action(	'plugins_loaded', array ( $tennisEvents, 'plugin_setup' ) );
-
-// $dir = plugin_dir_path( __DIR__ );
-// include_once(__DIR__ . '/includes/commonlib/support.php' );
 
 function tl_save_error() {
 	update_option('plugin_error', '');
