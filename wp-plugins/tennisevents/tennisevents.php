@@ -446,6 +446,7 @@ class TennisEvents {
 	}
 }
 include( 'autoloader.php' );//Need to include otherwise otherwise BaseLogger cannot be found (i.e. it is under 'includes')
+
 $tennisEvents = TennisEvents::get_instance();
 $GLOBALS['tennisEvents'] = $tennisEvents;
 function TE() {
