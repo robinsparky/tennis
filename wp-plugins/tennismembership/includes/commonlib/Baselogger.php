@@ -1,6 +1,11 @@
 <?php
 namespace commonlib;
 
+/* Uncomment to turn off logging
+$TennisEventNoLog = true;
+$GLOBALS['TennisEventNoLog'] = $TennisEventNoLog;
+*/
+
 /** 
  * Type for classes to compose to conditionally log errors
  * @class  BaseLogger
