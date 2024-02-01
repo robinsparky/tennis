@@ -36,10 +36,10 @@ $numChildren = count($event->getChildEvents());
 	<?php if( $eventTypeRaw === EventType::LADDER && $numChildren > 0) { ?>
 		<li><a class="tennis-ladder-next-month" data-eventid='<?php echo $eventId?>'>Prepare Next Month</a></li>
 	<?php } elseif($eventTypeRaw === EventType::LADDER && $numChildren === 0) { ?>
-		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo _("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
+		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo __("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
 		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
 	<?php } elseif($numChildren === 0) { ?>
-		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo _("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
+		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo __("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
 		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
 		<?php } else {?>
 		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
