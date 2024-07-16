@@ -1,9 +1,9 @@
 <?php
 namespace datalayer;
 use \TennisEvents;
-use commonlib\GW_Support;
 use commonlib\GW_Debug;
-use utilities\CleanJsonSerializer;
+// use commonlib\GW_Support;
+// use utilities\CleanJsonSerializer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -561,21 +561,21 @@ class Match extends AbstractData
 	/**
 	 * Get the local Match date in ISO 8601 format
 	 */
-	public function getMatchDate_ISO() {
-		if( !isset( $this->match_datetime ) ) return '';
-		else {
-            $temp = clone $this->match_datetime;
-            return $temp->setTimezone(TennisEvents::getTimeZone())->format(\DateTime::ISO8601 );
-        }
-	}
+	// public function getMatchDate_ISO() {
+	// 	if( !isset( $this->match_datetime ) ) return '';
+	// 	else {
+    //         $temp = clone $this->match_datetime;
+    //         return $temp->setTimezone(TennisEvents::getTimeZone())->format(\DateTime::ISO8601 );
+    //     }
+	// }
     
 	/**
 	 * Get the UTC Match date in ISO 8601 format
 	 */
-	public function getUTCMatchDate_ISO() {
-		if( !isset( $this->match_datetime ) ) return '';
-		else return $this->match_datetime->format(\DateTime::ISO8601 );
-	}
+	// public function getUTCMatchDate_ISO() {
+	// 	if( !isset( $this->match_datetime ) ) return '';
+	// 	else return $this->match_datetime->format(\DateTime::ISO8601 );
+	// }
 
     /**
      * Set the time of the match

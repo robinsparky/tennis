@@ -7,16 +7,15 @@ use \TennisEvents;
 use \TE_Install;
 use commonlib\BaseLogger;
 use api\TournamentDirector;
+use datalayer\Entrant;
 use datalayer\Event;
 use datalayer\Bracket;
-use datalayer\Club;
+use datalayer\Match as TMatch;
 use datalayer\MatchStatus;
 use datalayer\InvalidMatchException;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidTennisOperationException;
 use datalayer\InvalidEntrantException;
-use datalayer\Match;
-use datalayer\Entrant;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -270,7 +269,7 @@ class ManageDraw
 
             //get target entrant and match
             $test = strtolower(strtr($targetplayer,$trans));
-            $targetMatch = new Match($this->eventId,$bracketNum,0);
+            $targetMatch = new TMatch($this->eventId,$bracketNum,0);
             $switchTarget = new Entrant($this->eventId,$bracketNum,$targetplayer);
             $success = false;
             foreach($bracket->getMatchesByRound(1) as $prelimMatch ) {

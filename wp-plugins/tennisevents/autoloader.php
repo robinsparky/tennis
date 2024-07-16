@@ -7,7 +7,7 @@ class Autoloader
     public static function register()
     {
         spl_autoload_register( function ( $class ) {
-            //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Attempting to register class: ${class}" );
+            //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Attempting to register class: {$class}" );
             if( self::nameSpaceClassRegister( $class ) ) {
                 return true;
             }

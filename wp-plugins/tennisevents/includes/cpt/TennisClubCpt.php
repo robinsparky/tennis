@@ -309,7 +309,7 @@ class TennisClubCpt {
 	 */
 	public function updateTennisDB( $post_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log("$loc: post_id='${post_id}'");
+		$this->log->error_log("$loc: post_id='{$post_id}'");
 		
 		if( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			$this->log->error_log("$loc --> doing autosave");
@@ -430,7 +430,7 @@ class TennisClubCpt {
 		if(false === $test) $test = DateTime::createFromFormat( 'm-d-Y|', $testDate );
 		if(false === $test) $test = DateTime::createFromFormat( 'm/d/Y|', $testDate );
 		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ATOM, $testDate );
-		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ISO8601, $testDate );
+		//if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ISO8601, $testDate );
 		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::W3C, $testDate );
 		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::RFC822, $testDate );
 		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::RFC3339, $testDate );
@@ -463,7 +463,7 @@ class TennisClubCpt {
 		if(false === $test) $test = DateTime::createFromFormat( '!Y-m-d', $testDate );
 		if(false === $test) $test = DateTime::createFromFormat( '!Y-n-j', $testDate );
 		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ATOM, $testDate );
-		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ISO8601, $testDate );
+		//if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::ISO8601, $testDate );
 		if(false === $test) $test = DateTime::createFromFormat( DateTimeInterface::W3C, $testDate );
 		
 		if(false !== $test) {
