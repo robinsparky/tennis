@@ -124,6 +124,7 @@
             .html(entrant.position + ".");
           $(key).attr("data-currentPos", entrant.position);
           $(key).children("input.entrantName").val(entrant.name);
+          $(key).children("input.entrantName").attr('data-oldname',entrant.name);
           $(key).children("input.entrantSeed").val(entrant.seed);
         } else {
           console.log("Could not find entrant at index=" + i);
@@ -285,21 +286,25 @@
       console.log("Name change fired for entrantId=%s", entrantId);
       signupData = signupDataMask;
       signupData.task = "update";
-      //TODO: This is the incorrect name.
-      //      Must get the value of the element before change
-      signupData.name = entrantId.replace(/_/g, " ");
+
+      let oldname = $(this).attr("data-oldname");
+      console.log('Old name value is %s',oldname);
+      signupData.name = oldname;
       signupData.newName = $(this).val();
       if (signupData.newName.length < minNameLength) {
         $(this).val(signupData.name);
         return;
       }
+      console.log("New name value is %s", signupData.newName);
+      $(this).attr("data-oldname",signupData.newName);//Set the old name to the new one just entered
+
       //Change id to match the new name so it can be found using the new name
       $(this)
         .parent("li.entrantSignup")
         .attr("id", signupData.newName.replace(/ /g, "_"));
+
       //Make sure we don't change the seed
       signupData.seed = -99;
-      console.log("New name value is '%s'", signupData.newName);
       signupData.position = $(this)
         .parent("li.entrantSignup")
         .attr("data-currentPos");

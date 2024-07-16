@@ -268,7 +268,9 @@ class ManageSignup
         $fromPos = $data["position"];
         $seed    = $data["seed"];
         $oldName = sanitize_text_field($data["name"]); 
+        $oldName = str_replace("\\'","'",$oldName);
         $newName = sanitize_text_field($data["newName"]);
+        $newName = str_replace("\\'","'",$newName);
 
         $this->log->error_log($data, "$loc: data...");
         $this->log->error_log("$loc: newName='$newName'");
@@ -295,6 +297,8 @@ class ManageSignup
             }
             $entrant->save();
             $this->signup = [];
+            //$this->signup = $bracket->getSignup( true );
+
         }
         catch( Exception | InvalidEntrantException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

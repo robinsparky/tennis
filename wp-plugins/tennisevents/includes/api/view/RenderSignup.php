@@ -180,7 +180,7 @@ class RenderSignup
         $out = '';
         $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
         $out .= 'data-clubid="' . $this->clubId . '" data-bracketname="' . $bracketName . '">' . PHP_EOL;
-        $out .= "<h2 class='tennis-signup-title'>${parentName}</h2>" . PHP_EOL;
+        $out .= "<h2 class='tennis-signup-title'>{$parentName}</h2>" . PHP_EOL;
         $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;&lsquo;{$bracketName} Bracket&rsquo;&nbsp;Sign Up Sheet</h3>" . PHP_EOL;
         $out .= '<ul class="eventSignup tennis-event-signup">' . PHP_EOL;
         
@@ -193,7 +193,7 @@ EOT;
         $templw = <<<EOT
 <li id="%s" class="entrantSignup" data-currentpos="%d">
 <div class="entrantPosition">%d.</div>
-<input name="entrantName" type="text" maxlength="35" size="15" class="entrantName" value="%s">
+<input name="entrantName" type="text" maxlength="35" size="15" class="entrantName" data-oldname="%s" value="%s">
 <input name="entrantSeed" type="number" maxlength="2" size="2" class="entrantSeed" step="any" value="%d">
 <button class="button entrantDelete" type="button" id="%s">Delete</button>
 </li>
@@ -210,7 +210,7 @@ EOT;
                 $htm = sprintf( $templr, $nameId, $pos, $rname );
             }
             else {
-                $htm = sprintf( $templw, $nameId, $pos, $pos, $name, $seed, $nameId );
+                $htm = sprintf( $templw, $nameId, $pos, $pos,$name, $name, $seed, $nameId );
             }
             $out .= $htm;
         }
