@@ -190,6 +190,14 @@ class RenderSignup
 <div class="entrantName">%s</div>
 </li>
 EOT;
+       
+    $templu = <<<EOT
+<li id="%s" class="entrantSignup" data-currentpos="%d">
+<div class="entrantPosition">%d.</div>
+<input name="entrantName" type="text" maxlength="35" size="15" class="entrantName" data-oldname="%s" value="%s">
+</li>
+EOT;
+
         $templw = <<<EOT
 <li id="%s" class="entrantSignup" data-currentpos="%d">
 <div class="entrantPosition">%d.</div>
@@ -206,11 +214,15 @@ EOT;
             $nameId = str_replace( [' ',"\'","'",'&'], ['_','','',''], $entrant->getName() );
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
-            if( $numPrelimMatches > 0 || !is_user_logged_in() || !current_user_can( 'manage_options' ) ) {
-                $htm = sprintf( $templr, $nameId, $pos, $rname );
-            }
+            if( $numPrelimMatches > 0 )
+                if( current_user_can( 'manage_options' ) ) {
+                    $htm = sprintf( $templu, $nameId, $pos, $pos, $name, $name );
+                }
+                else {
+                    $htm = sprintf( $templr, $nameId, $pos, $rname );
+                }
             else {
-                $htm = sprintf( $templw, $nameId, $pos, $pos,$name, $name, $seed, $nameId );
+                $htm = sprintf( $templw, $nameId, $pos, $pos, $name, $name, $seed, $nameId );
             }
             $out .= $htm;
         }

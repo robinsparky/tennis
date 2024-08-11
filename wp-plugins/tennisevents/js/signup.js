@@ -469,6 +469,6 @@
       });
     });
 
-    toggleButtons(tennis_signupdata_obj.numPreliminary);
+    //toggleButtons(tennis_signupdata_obj.numPreliminary);
   });
 })(jQuery);
