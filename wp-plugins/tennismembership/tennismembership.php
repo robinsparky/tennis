@@ -11,8 +11,8 @@ use \TM_Install;
 */
 use commonlib\GW_Support;
 use commonlib\BaseLogger;
-use \WP_CLI;
-use \WP_CLI_Command;
+// use \WP_CLI;
+// use \WP_CLI_Command;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -26,7 +26,7 @@ if (isset($tennisMembership) && is_object($tennisMembership) && is_a($tennisMemb
 /**
  * Main Plugin class.
  *
- * @class TennisEvents
+ * @class TennisMembership
  * @version	1.0.0
 */
 class TennisMembership {
@@ -59,7 +59,7 @@ class TennisMembership {
 	 *
 	 * @since 1.0
 	 * @static
-	 * @see TE()
+	 * @see TM()
 	 * @return TennisMembership $_instance --singleton instance.
 	 */
 	public static function get_instance() {
@@ -171,7 +171,6 @@ class TennisMembership {
 
 	/**
 	 * Customize the Query for Tennis Membership Archives
-	 * Only want root events (i.e. no leaf events)
 	 * @param object $query 
 	 *
 	 */
@@ -215,7 +214,7 @@ class TennisMembership {
 include_once( 'autoloader.php' );//Needed otherwise BaseLogger is not found (i.e. it is in 'includes')
 $tennisMembership = TennisMembership::get_instance();
 $GLOBALS['tennisMembership'] = $tennisMembership;
-function TE() {
+function TM() {
 	global $tennisMembership;
 	return $tennisMembership;
 }
