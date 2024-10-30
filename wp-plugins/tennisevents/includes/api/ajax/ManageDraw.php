@@ -830,6 +830,7 @@ class ManageDraw
 
             //Check if the next match has acceptable properties
             $nextMatch = $bracket->getMatch( $match->getNextRoundNumber(), $match->getNextmatchNumber() );
+            $lastRoundNum = $td->getLastRoundNumber( $bracketName );
             $goodTask = true;
             if( !empty( $nextMatch ) ) {
                 $nextStatus = $chairUmpire->matchStatusEx( $nextMatch );
@@ -840,6 +841,9 @@ class ManageDraw
                     default:
                         $goodTask = false;
                 }
+            }
+            elseif( $lastRoundNum === $match->getRoundNumber() ) {
+                $goodTask = true;
             }
 
             if( $goodTask ) {
@@ -853,7 +857,7 @@ class ManageDraw
                 $match->save();
             }
             else {
-                $exMess = __("Next match not in acceptable state '{$nextStatus->toString()}'. Must be waiting state.", TennisEvents::TEXT_DOMAIN );
+                $exMess = __("Next match not in acceptable state '{$nextStatus->toString()}'. Must be 'Waiting' state.", TennisEvents::TEXT_DOMAIN );
                 throw new InvalidTennisOperationException($exMess);
             }
             

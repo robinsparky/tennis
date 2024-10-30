@@ -10,6 +10,7 @@
  <li><a class="defaultvisitor">Default Visitor</a></li>
  <li><a class="setcomments">Comment Match</a></li>
  <li><a class="undomatch">Undo Scores</a></li>
+ <li><a class="resetmatch">Reset Match</a></li>
 </ul>
 <ul class="matchaction unapproved">
  <li><a class="switchplayers">Switch Players</a></li>
