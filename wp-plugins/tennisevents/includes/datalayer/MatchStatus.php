@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /** 
- * Data and functions for a Tennis Event Match Status
+ * Data and functions for a Tennis Event TennisMatch Status
  * @class  MatchStatus
  * @package Tennis Events
  * @version 1.0.0

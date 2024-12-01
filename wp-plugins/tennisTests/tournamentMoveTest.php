@@ -32,7 +32,7 @@ class tournamentMoveTest extends TestCase
         $title = "+++++++++++++++++++++ Move non-existant match 999 to 5 +++++++++++++++++++++";
         error_log( $title );
 
-        $result = Match::move( self::$tournamentEvt, self::$round, 999, 5 );
+        $result = TennisMatch::move( self::$tournamentEvt, self::$round, 999, 5 );
         $mess = "Move non-existant match: $result matches";
         error_log($mess);
         $this->assertEquals(0,$result);
@@ -48,7 +48,7 @@ class tournamentMoveTest extends TestCase
         $low    = (int) $wpdb->get_var( $safe );
         $this->assertGreaterThan( 0, $low, "Low $low greater than 0" );
 
-        $result = Match::move( self::$tournamentEvt, self::$round, $low, $low + 1 );
+        $result = TennisMatch::move( self::$tournamentEvt, self::$round, $low, $low + 1 );
         $mess =  "Move low $low up one: $result matches";
         error_log( $mess );
         $this->assertGreaterThan( 0, $result, "Low $low up one" );
@@ -79,7 +79,7 @@ class tournamentMoveTest extends TestCase
         $median = (int) $wpdb->get_var( $safe );
         $this->assertGreaterThan( 3, $median, "Median $median greater than 3" );
 
-        $result = Match::move( self::$tournamentEvt, self::$round, $median, $median + 3 );
+        $result = TennisMatch::move( self::$tournamentEvt, self::$round, $median, $median + 3 );
         $mess = "Move median $median up one: $result matches";
         error_log( $mess );
         $this->assertGreaterThan( 0, $result,"Median $median up one" );
@@ -95,7 +95,7 @@ class tournamentMoveTest extends TestCase
         $high   = (int) $wpdb->get_var( $safe );
         $this->assertGreaterThan( 8, $high, "High $high greater than 8" );
 
-        $result = Match::move( self::$tournamentEvt, self::$round, $high, $high - 1 );
+        $result = TennisMatch::move( self::$tournamentEvt, self::$round, $high, $high - 1 );
         $mess =  "Move high $high back one: $result matches";
         error_log( $mess );
         $this->assertGreaterThan( 0, $result, "High $high back one" );

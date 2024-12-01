@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** 
  * Data and functions for Tennis Set(s)
- * Match class is responsible for deleting Sets.
+ * TennisMatch class is responsible for deleting Sets.
  * @class  Set
  * @package Tennis Events
  * @version 1.0.0
@@ -42,7 +42,7 @@ class Set extends AbstractData
     private $match; 
     
     /**
-     * Find all Sets belonging to a specific Match;
+     * Find all Sets belonging to a specific TennisMatch;
      */
     public static function find( ...$fk_criteria ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -143,7 +143,7 @@ class Set extends AbstractData
         return $this->set_num;
     }
 
-    public function setMatch( Match &$match ) {
+    public function setMatch( TennisMatch &$match ) {
         $this->match       = $match;
         $this->event_ID    = $match->getBracket()->getEvent()->getID();
         $this->bracket_num = $match->getBracket()->getBracketNumber();
@@ -296,7 +296,7 @@ class Set extends AbstractData
     }
 
     private function fetchMatch() {
-        $this->match = Match::get( $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num, $this->set_num );
+        $this->match = TennisMatch::get( $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num, $this->set_num );
     }
 
 	protected function create() {

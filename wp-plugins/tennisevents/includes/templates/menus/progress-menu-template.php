@@ -9,6 +9,6 @@
  <li><a class="defaulthome">Default Home</a></li>
  <li><a class="defaultvisitor">Default Visitor</a></li>
  <li><a class="setmatchstart">Start Date &amp; Time</a></li>
- <li><a class="setcomments">Comment Match</a></li>
+ <li><a class="setcomments">Comment TennisMatch</a></li>
 </ul>
 </div>

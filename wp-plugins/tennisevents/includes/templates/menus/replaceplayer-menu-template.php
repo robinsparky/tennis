@@ -6,6 +6,6 @@
 
 <ul class="matchaction approved">
  <li><a class="setmatchstart">Start Date &amp; Time</a></li>
- <li><a class="setcomments">Comment Match</a></li>
+ <li><a class="setcomments">Comment TennisMatch</a></li>
 </ul>
 </div>

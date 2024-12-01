@@ -10,7 +10,7 @@ use api\TournamentDirector;
 use datalayer\Entrant;
 use datalayer\Event;
 use datalayer\Bracket;
-use datalayer\Match as TMatch;
+use datalayer\TennisMatch as TMatch;
 use datalayer\MatchStatus;
 use datalayer\InvalidMatchException;
 use datalayer\InvalidBracketException;
@@ -265,7 +265,7 @@ class ManageDraw
             }
             
             $sourceMatchStr = $sourceMatch->title();
-            $this->log->error_log("$loc: source Match: $sourceMatchStr");
+            $this->log->error_log("$loc: source TennisMatch: $sourceMatchStr");
 
             //get target entrant and match
             $test = strtolower(strtr($targetplayer,$trans));
@@ -311,7 +311,7 @@ class ManageDraw
             }
 
             $targetMatchStr = $targetMatch->title();
-            $this->log->error_log("$loc: target Match: $targetMatchStr");
+            $this->log->error_log("$loc: target TennisMatch: $targetMatchStr");
 
             $sourceIsVisitor = $switchSource->isVisitor() ? "yes" : "no";
             $targetIsVisitor = $switchTarget->isVisitor() ? "yes" : "no";
@@ -571,7 +571,7 @@ class ManageDraw
             //Move the match
             $map = $bracket->insertAfter( $sourceMn, $targetMn );
             if( !empty( $map ) ) { 
-                $mess = __("Moved Match#{$sourceMn} to Match#{$targetMn}", TennisEvents::TEXT_DOMAIN );
+                $mess = __("Moved TennisMatch#{$sourceMn} to TennisMatch#{$targetMn}", TennisEvents::TEXT_DOMAIN );
                 $td->save();
                 $data["bracketNum"] = $bracketNum;
                 $data["move"] = $map;
@@ -620,7 +620,7 @@ class ManageDraw
             //Swap players
             $matchesAffected = $bracket->swapPlayers( $sourceMn, $targetMn );
             if( !empty( $matchesAffected ) ) { 
-                $mess = __("Swapped players between Match# {$matchesAffected["source"]["matchNum"]} and Match# {$matchesAffected["target"]["matchNum"]}", TennisEvents::TEXT_DOMAIN );
+                $mess = __("Swapped players between TennisMatch# {$matchesAffected["source"]["matchNum"]} and TennisMatch# {$matchesAffected["target"]["matchNum"]}", TennisEvents::TEXT_DOMAIN );
                 $td->save();
                 $data["bracketNum"] = $bracketNum;
                 $data["swap"] = $matchesAffected;
@@ -758,7 +758,7 @@ class ManageDraw
         $matchNum      = $data["matchNum"];
         $matchStartDate= $data["matchdate"];
         $matchStartTime= $data["matchtime"];
-        $mess          = __("Set Start Match Date/Time.", TennisEvents::TEXT_DOMAIN );
+        $mess          = __("Set Start TennisMatch Date/Time.", TennisEvents::TEXT_DOMAIN );
         try {                    
             if( !current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
                 throw new Exception("Insufficient privileges");
@@ -780,7 +780,7 @@ class ManageDraw
             $data['matchdate'] = $match->getMatchDate_Str();
             $data['matchtime'] = $match->getMatchTime_Str(2);
             $data['status'] = $chairUmpire->matchStatusEx( $match )->toString();
-            $mess = __("Set Start Match Date to '{$data['matchdate']}' and Time to '{$data['matchtime']}'.", TennisEvents::TEXT_DOMAIN );
+            $mess = __("Set Start TennisMatch Date to '{$data['matchdate']}' and Time to '{$data['matchtime']}'.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception | InvalidMatchException | InvalidBracketException  $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

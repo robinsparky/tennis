@@ -2,7 +2,7 @@
 /**
 * Simple autoloader, so we don't need Composer just for this.
 */
-class Autoloader
+class AutoloaderM
 {
     public static function register()
     {
@@ -46,4 +46,4 @@ class Autoloader
         return false;
     }
 }
-Autoloader::register();
+AutoloaderM::register();

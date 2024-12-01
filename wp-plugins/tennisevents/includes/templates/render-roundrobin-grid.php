@@ -91,7 +91,7 @@ use datalayer\MatchStatus;
     $this->log->error_log("$loc: {$match->toString()} start date: '{$startDate}'; start time: '{$startTime}'");
     $menupath = $this->getMenuPath( $majorStatus );
 
-    //$this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobin Elapsed time", GW_Support::getInstance()->micro_time_elapsed( $begin ), $title));
+    //$this->log->error_log( sprintf("%s: %0.6f for TennisMatch(%s)", "render-RoundRobin Elapsed time", GW_Support::getInstance()->micro_time_elapsed( $begin ), $title));
 ?>
 
 <article class="item-player" data-eventid="<?php echo $eventId;?>" 

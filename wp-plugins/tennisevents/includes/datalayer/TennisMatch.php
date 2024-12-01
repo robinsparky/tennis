@@ -10,14 +10,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /** 
- * Data and functions for a Tennis Event Match
+ * Data and functions for a Tennis Event TennisMatch
  * Note that all dates and times are held in UTC time zone
- * @class  Match
+ * @class  TennisMatch
  * @package Tennis Events
  * @version 1.0.0
  * @since   0.1.0
 */
-class Match extends AbstractData
+class TennisMatch extends AbstractData
 { 
     public const VISITOR = "visitor";
     public const HOME    = "home";
@@ -54,7 +54,7 @@ class Match extends AbstractData
     private $next_round_num = 0;
     private $next_match_num = 0;
 
-    //Match needs 2 entrants: home and visitor
+    //TennisMatch needs 2 entrants: home and visitor
     private $home_ID;
     private $home;
     private $visitor_ID;
@@ -62,7 +62,7 @@ class Match extends AbstractData
 
     private $comments;
     
-    //Sets in this Match
+    //Sets in this TennisMatch
     private $sets;
 
     /**
@@ -132,7 +132,7 @@ class Match extends AbstractData
         error_log("$loc: found {$wpdb->num_rows} matches");
 
 		foreach( $rows as $row ) {
-            $obj = new Match( $eventId, $bracket, $round );
+            $obj = new TennisMatch( $eventId, $bracket, $round );
             self::mapData( $obj, $row );
 			$col[] = $obj;
 		}
@@ -140,7 +140,7 @@ class Match extends AbstractData
     }
 
 	/**
-	 * Get instance of a Match using primary key: event_id, bracket_num, round_num, match_num
+	 * Get instance of a TennisMatch using primary key: event_id, bracket_num, round_num, match_num
 	 */
     static public function get( int ...$pks ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;		
@@ -157,10 +157,10 @@ class Match extends AbstractData
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		//error_log( sprintf("Match::get(%d,%d,%d,%d) returned %d rows.",$pks[0],$pks[1],$pks[2],$pks[3], $wpdb->num_rows ) );
+		//error_log( sprintf("TennisMatch::get(%d,%d,%d,%d) returned %d rows.",$pks[0],$pks[1],$pks[2],$pks[3], $wpdb->num_rows ) );
 
 		if( count($rows) === 1 ) {
-			$obj = new Match( ...$pks );
+			$obj = new TennisMatch( ...$pks );
             self::mapData( $obj, $rows[0] );
 		}
 		return $obj;
@@ -278,7 +278,7 @@ class Match extends AbstractData
     }
 
     /**
-     * Set the Match's Round Number
+     * Set the TennisMatch's Round Number
      */
     public function setRoundNumber( int $rn ) {
         $result = false;
@@ -290,14 +290,14 @@ class Match extends AbstractData
     }
 
     /**
-     * Get the Match's Round Number
+     * Get the TennisMatch's Round Number
      */
     public function getRoundNumber():int {
         return $this->round_num;
     }
 
     /**
-     * Set the Match's Number
+     * Set the TennisMatch's Number
      */
     public function setMatchNumber( int $mn ) {
         $result = false;
@@ -309,7 +309,7 @@ class Match extends AbstractData
     }
 
     /**
-     * Get the Match's Number
+     * Get the TennisMatch's Number
      */
     public function getMatchNumber():int {
         return $this->match_num;
@@ -340,7 +340,7 @@ class Match extends AbstractData
     }
 
     /**
-     * Set the next Match number
+     * Set the next TennisMatch number
      * This is the number of the match that follows
      * this one in the next round (i.e. the winner plays this one next)
      * This and the next round number comprise the pointer
@@ -356,7 +356,7 @@ class Match extends AbstractData
     }
 
     /**
-     * Get the next Match Number
+     * Get the next TennisMatch Number
      * This and the next round number comprise the pointer
      * for the linked list of matches
      */
@@ -379,7 +379,7 @@ class Match extends AbstractData
     }
     
     /**
-     * Get this Match's match type
+     * Get this TennisMatch's match type
      */
     public function getMatchType() {
         return $this->match_type ?? 'unknown';
@@ -473,7 +473,7 @@ class Match extends AbstractData
    }
 
 	/**
-	 * Get the local Match date in string format
+	 * Get the local TennisMatch date in string format
 	 */
 	public function getMatchDate_Str() {
         $loc = __CLASS__ . ":" . __FUNCTION__;
@@ -489,7 +489,7 @@ class Match extends AbstractData
 	}
 
     /**
-	 * Get the UTC Match date in string format
+	 * Get the UTC TennisMatch date in string format
 	 */
 	public function getMatchUTCDate_Str() {
         $loc = __CLASS__ . ":" . __FUNCTION__;
@@ -502,7 +502,7 @@ class Match extends AbstractData
 	}
     
 	/**
-	 * Get the local Match date AND time in string format
+	 * Get the local TennisMatch date AND time in string format
 	 */
 	public function getMatchDateTime_Str( int $formatNum=1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
@@ -531,7 +531,7 @@ class Match extends AbstractData
 	}
 	    
 	/**
-	 * Get the local Match date AND time in string format
+	 * Get the local TennisMatch date AND time in string format
 	 */
 	public function getMatchUTCDateTime_Str( int $formatNum=1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
@@ -559,7 +559,7 @@ class Match extends AbstractData
 	}
 	
 	/**
-	 * Get the local Match date in ISO 8601 format
+	 * Get the local TennisMatch date in ISO 8601 format
 	 */
 	// public function getMatchDate_ISO() {
 	// 	if( !isset( $this->match_datetime ) ) return '';
@@ -570,7 +570,7 @@ class Match extends AbstractData
 	// }
     
 	/**
-	 * Get the UTC Match date in ISO 8601 format
+	 * Get the UTC TennisMatch date in ISO 8601 format
 	 */
 	// public function getUTCMatchDate_ISO() {
 	// 	if( !isset( $this->match_datetime ) ) return '';
@@ -732,7 +732,7 @@ class Match extends AbstractData
     }
     
     /**
-     * Set this Match's comments
+     * Set this TennisMatch's comments
      */
     public function setComments( string $comment ) {
         $this->comments = $comment;
@@ -786,8 +786,8 @@ class Match extends AbstractData
     
     /**
      * Set a score for a given Set of tennis.
-     * Updates a Set if already a child of this Match
-     * or creates a new Set and adds it to the Match's array of Sets
+     * Updates a Set if already a child of this TennisMatch
+     * or creates a new Set and adds it to the TennisMatch's array of Sets
      * 
      * @param int $set Identifies the set by number
      * @param int $home_wins is the number of wins for the home entrant
@@ -836,7 +836,7 @@ class Match extends AbstractData
     }
     
     /**
-     * Get the Sets for this Match
+     * Get the Sets for this TennisMatch
 	 * @param $force When set to true will force loading of Sets from db
 	 *               This will cause unsaved Sets to be lost.
      */
@@ -879,7 +879,7 @@ class Match extends AbstractData
     }
 
     /**
-     * Add a Set to this Match
+     * Add a Set to this TennisMatch
      * @param $set 
      */
     public function addSet( Set &$set ) {
@@ -902,7 +902,7 @@ class Match extends AbstractData
     }
     
     /**
-     * Remove a Set from this Match
+     * Remove a Set from this TennisMatch
      */
     public function removeSet( int $set ) {
 		$result = false;
@@ -940,7 +940,7 @@ class Match extends AbstractData
             if( isset( $existing ) && ($existing->getName() === $h->getName()) ) {
                 return $result;
             }
-            elseif( isset( $existing ) && $this->getBracket()->isApproved() ) {
+            elseif( isset( $existing ) && $this->getBracket()->isApproved() && !$this->isWaiting() ) {
                 $mess = "$loc:{$this->toString()} Changing existing home entrant from '{$existing->getName()}' to '{$h->getName()}' cannot be done for approved bracket.";
                 $this->log->error_log( $mess );
                 throw new InvalidTennisOperationException($mess);
@@ -994,7 +994,7 @@ class Match extends AbstractData
             if( isset( $existing ) && ($existing->getName() === $v->getName()) ) {
                 return $result;
             }
-            elseif( isset( $existing )  && $this->getBracket()->isApproved() ) {
+            elseif( isset( $existing )  && $this->getBracket()->isApproved() && !$this->isWaiting() ) {
                 $mess = "$loc:{$this->toString()} Changing existing visitor entrant from '{$existing->getName()}' to '{$v->getName()}' cannot be done for approved bracket.";
                 $this->log->error_log( $mess );
                 throw new InvalidTennisOperationException($mess);
@@ -1091,7 +1091,7 @@ class Match extends AbstractData
         }
 
         if( false === MatchType::isValid( $this->match_type ) ) {
-            $mess = __( "{$id} - Match Type is invalid: {$this->match_type}", TennisEvents::TEXT_DOMAIN );
+            $mess = __( "{$id} - TennisMatch Type is invalid: {$this->match_type}", TennisEvents::TEXT_DOMAIN );
             $code = 560;
             $this->log->error_log( "$loc: $mess" );
         }
@@ -1129,7 +1129,7 @@ class Match extends AbstractData
     //         $from = $this->match_num;
     //         $to   = $forward ? $this->match_num + $places : $this->match_num - $places;
     //         $to   = max( 1, $to );
-    //         $result =  Match::move( $this->event_ID, $this->bracket_num, $this->round_num, $from, $to );
+    //         $result =  TennisMatch::move( $this->event_ID, $this->bracket_num, $this->round_num, $from, $to );
     //     }
     //     return $result > 0;
     // }
@@ -1262,14 +1262,14 @@ class Match extends AbstractData
                 }
                 break;
             default:
-                throw new InvalidMatchException( sprintf( "Match %s has %d entrants.", $this->toString(), count( $contestants ) ) );
+                throw new InvalidMatchException( sprintf( "TennisMatch %s has %d entrants.", $this->toString(), count( $contestants ) ) );
             break;
         }
         $this->log->error_log( sprintf( "%s(%s) has %d entrants.", $loc, $this->toString(), count( $contestants ) ) );
     }
 
 	/**
-	 * Fetch all Sets for this Match
+	 * Fetch all Sets for this TennisMatch
 	 */
     private function fetchSets() {
         //var_dump(debug_backtrace());
@@ -1305,7 +1305,7 @@ class Match extends AbstractData
             $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d;";
             $safe = $wpdb->prepare( $sql, $this->event_ID, $this->bracket_num, $this->round_num );
             $this->match_num = $wpdb->get_var( $safe ) + 1;
-            $this->log->error_log( sprintf( "Match::create -> creating '%s' with match type = '%s'", $this->toString(), $this->match_type ) );
+            $this->log->error_log( sprintf( "TennisMatch::create -> creating '%s' with match type = '%s'", $this->toString(), $this->match_type ) );
         }
 
         $values = array( 'event_ID'    => $this->event_ID
@@ -1382,7 +1382,7 @@ class Match extends AbstractData
 	}
     
     /**
-     * Map incoming data to an instance of Match
+     * Map incoming data to an instance of TennisMatch
      */
     protected static function mapData( $obj, $row ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;

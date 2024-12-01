@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** 
  * Data and functions for Tennis Event Entrant(s)
  * An Entrant is a player or team of players who represent either
- * the Home or the Visitor in a given tennis Match.
+ * the Home or the Visitor in a given tennis TennisMatch.
  * NOTE: Entrants cannot be deleted except via their owning Bracket
  * @class  Entrant
  * @package Tennis Events
@@ -78,7 +78,7 @@ class Entrant extends AbstractData
 	 * belonging to a specific Event (draw)
 	 * Or all Entrants in order of position
 	 * belonging to a specific Event and
-	 * assigned to a Match in a Round
+	 * assigned to a TennisMatch in a Round
      */
     public static function find(...$fk_criteria) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
@@ -125,7 +125,7 @@ class Entrant extends AbstractData
 				$where[] = $fk_criteria[0]; //Event
 				$where[] = $fk_criteria[1]; //Bracket
 				$where[] = $fk_criteria[2]; //Round
-				$where[] = $fk_criteria[3]; //Match
+				$where[] = $fk_criteria[3]; //TennisMatch
 				$bracketTable = $wpdb->prefix . "tennis_bracket";
 				$matchEntrantTable = $wpdb->prefix . "tennis_match_entrant";
 				

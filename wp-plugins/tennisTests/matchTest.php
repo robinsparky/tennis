@@ -60,7 +60,7 @@ class MatchTest extends TestCase
         $matchnum = 0;
         for( $i=0; $i < count($all) - 1; $i += 2 ) {
             $match = $bracket->addNewMatch( $round, MatchType::MENS_SINGLES, $matchnum, $all[$i], $all[$i+1] );
-            $this->assertTrue( $match instanceof Match );
+            $this->assertTrue( $match instanceof TennisMatch );
             $this->assertEquals( MatchType::MENS_SINGLES, $match->getMatchType() );
             $this->assertFalse( $match->isBye() );
         }
@@ -74,7 +74,7 @@ class MatchTest extends TestCase
     }
 
     public function test_match_scoring() {
-        $title = "Test Match Scoring";
+        $title = "Test TennisMatch Scoring";
         error_log("++++++++++++++++++++++++++++$title+++++++++++++++++++++++++++++++++++++++++++");
 
         $bracket = self::$mens->getBracket();
@@ -89,7 +89,7 @@ class MatchTest extends TestCase
         $this->assertCount( 6, $matches, 'count matches is 6' );
 
         foreach($matches as $match) {
-            $this->assertGreaterThan( 0, $match->getMatchNumber(), 'Match number > 0' );
+            $this->assertGreaterThan( 0, $match->getMatchNumber(), 'TennisMatch number > 0' );
             $match->setMatchDate( 2018, 4, 16 );
             $this->assertEquals( '2018-04-16', $match->getMatchDate_Str(), 'Test match date');
             //$match->setMatchTime( 2, 30 );
@@ -103,7 +103,7 @@ class MatchTest extends TestCase
             $this->assertEquals( 0, $set->earlyEnd() );
             $this->assertEquals( $hscore, $set->getHomeWins(), 'Home wins' );
             $this->assertEquals( $vscore, $set->getVisitorWins(), 'Visitor wins' );
-            $this->assertTrue( $match->isDirty(), 'Match is dirty 1' );
+            $this->assertTrue( $match->isDirty(), 'TennisMatch is dirty 1' );
             $this->assertTrue( $match->setComments( 'Results for match.' ) );
             $this->assertTrue( $match->getBracket()->isDirty(), 'Matches parent bracket is dirty 2' );
             $this->assertTrue( $match->getBracket()->getEvent()->isDirty(), 'Matchws grandarent event is dirty 2' );

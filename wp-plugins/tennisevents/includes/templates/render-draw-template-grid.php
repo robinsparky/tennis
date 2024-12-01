@@ -51,7 +51,7 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
         foreach( $round as $match ) {
             ++$numMatches;
             $this->log->error_log("$loc: numRounds={$numRounds} and numMatches={$numMatches}");
-            $this->log->error_log("$loc: Round Number={$match->getRoundNumber()} and Match Number={$match->getMatchNumber()}");
+            $this->log->error_log("$loc: Round Number={$match->getRoundNumber()} and TennisMatch Number={$match->getMatchNumber()}");
             try {
                 $title = $match->toString();
                 $eventId = $match->getBracket()->getEvent()->getID();

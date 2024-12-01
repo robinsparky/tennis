@@ -230,7 +230,7 @@
         let rowEl  = ui.item[0]
         let matchEl = rowEl.firstElementChild
         fromMatchNum = matchEl.dataset.matchnum
-        console.log("From Match Number:", fromMatchNum)
+        console.log("From TennisMatch Number:", fromMatchNum)
       },
       stop: function(event,ui) {
           console.log("stop")
@@ -238,12 +238,12 @@
           //console.log("rowEl:",rowEl)
           //console.log("Previous Sibling Element:", rowEl.previousElementSibling)
           let prevMatchEl = rowEl.previousElementSibling.firstElementChild
-          //console.log("Previous Match Element:", prevMatchEl)
+          //console.log("Previous TennisMatch Element:", prevMatchEl)
           let eventId = prevMatchEl.dataset.eventId
           let bracketNum = prevMatchEl.dataset.bracketnum
           let roundNum = prevMatchEl.dataset.roundnum
           let toMatchNum = prevMatchEl.dataset.matchnum
-          console.log("To Match Number:", toMatchNum)
+          console.log("To TennisMatch Number:", toMatchNum)
 
           let taskData = {};
           taskData.task = "insertAfter";
@@ -955,7 +955,7 @@
       hideMenu(event);
 
       if (!matchIsReady(this)) {
-        alert("Match is not ready for scoring.");
+        alert("TennisMatch is not ready for scoring.");
         return;
       }
       let matchdata = getMatchData(this);
@@ -990,7 +990,7 @@
       hideMenu(event);
 
       if (!matchIsReady(this)) {
-        alert("Match is not read for scoring.");
+        alert("TennisMatch is not read for scoring.");
         return;
       }
 
@@ -1024,7 +1024,7 @@
       //console.log(this);
       hideMenu(event);
       if (!matchIsReady(this)) {
-        alert("Match is not ready for scoring.");
+        alert("TennisMatch is not ready for scoring.");
         return;
       }
 

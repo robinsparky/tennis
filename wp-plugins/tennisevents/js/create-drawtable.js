@@ -88,7 +88,7 @@ function generateTable(rowsData, titles, type, _class) {
 function createScoreInputTable(home, visitor, numSets) {
   let $table = $("<table>").addClass("tablematchscores");
   let $caption = $("<caption>");
-  $caption.html("Match Scores");
+  $caption.html("TennisMatch Scores");
   $caption.appendTo($table);
 
   let $tbody = $("<tbody>").appendTo($table);

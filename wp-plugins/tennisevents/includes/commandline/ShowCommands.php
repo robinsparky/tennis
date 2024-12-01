@@ -12,7 +12,7 @@ use commonlib\GW_Debug;
 use datalayer\Club;
 use datalayer\Event;
 use datalayer\Bracket;
-use datalayer\Match;
+use datalayer\TennisMatch;
 use datalayer\Entrant;
 
 WP_CLI::add_command( 'tennis show', 'commandline\ShowCommands' );
@@ -282,7 +282,7 @@ class ShowCommands extends WP_CLI_Command {
                         $cmts    = $match->getComments();
                         $cmts    = isset( $cmts ) ? $cmts : '';
                         $items[] = array( "Round" => $round
-                                        , "Match Number" => $mn
+                                        , "TennisMatch Number" => $mn
                                         , "Status" => $status
                                         , "Score" => $score
                                         , "Home Name" => $hname
@@ -291,7 +291,7 @@ class ShowCommands extends WP_CLI_Command {
                                         , "Visitor Seed" => $vseed 
                                         , "Comments" => $cmts);
                     }
-                    WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
+                    WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'TennisMatch Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments' ) );
                 }
             }
             else {

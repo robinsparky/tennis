@@ -11,7 +11,7 @@ use datalayer\EventType;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\MatchStatus;
-use datalayer\Match;
+use datalayer\TennisMatch;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

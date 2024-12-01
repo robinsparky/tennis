@@ -115,7 +115,7 @@ class BracketsController extends \WP_REST_Controller
                     $cmts    = $match->getComments();
                     $cmts    = isset( $cmts ) ? $cmts : '';
                     $items[] = array( "Round" => $round
-                                    , "Match Number" => $mn
+                                    , "TennisMatch Number" => $mn
                                     , "Status" => $status
                                     , "Score" => $score
                                     , "Home Name" => $hname
@@ -202,7 +202,7 @@ class BracketsController extends \WP_REST_Controller
                 $cmts    = $match->getComments();
                 $cmts    = isset( $cmts ) ? $cmts : '';
                 $items   = array( "Round" => $round
-                                , "Match Number" => $mn
+                                , "TennisMatch Number" => $mn
                                 , "Status" => $status
                                 , "Score" => $score
                                 , "Home Name" => $hname
@@ -301,7 +301,7 @@ class BracketsController extends \WP_REST_Controller
                                             'description' =>  esc_html__( 'Round number.', TennisEvents::TEXT_DOMAIN )
                                             ,'type'        => 'integer' )
                           ,'match_num' => array(
-                                            'description' => esc_html__( 'Match Number.', TennisEvents::TEXT_DOMAIN )
+                                            'description' => esc_html__( 'TennisMatch Number.', TennisEvents::TEXT_DOMAIN )
                                             ,'type'       => 'integer' )
                           ,'home'     => array(
                                             'description' => esc_html__( 'Home team or player', TennisEvents::TEXT_DOMAIN )
@@ -316,10 +316,10 @@ class BracketsController extends \WP_REST_Controller
                                             'description' => esc_html__( 'Visitor player seeding', TennisEvents::TEXT_DOMAIN )
                                             ,'type'       => 'string' )
                           ,'score'  => array(
-                                            'description' => esc_html__( 'Match score', TennisEvents::TEXT_DOMAIN )
+                                            'description' => esc_html__( 'TennisMatch score', TennisEvents::TEXT_DOMAIN )
                                             ,'type' => 'string' )
                           ,'winner' => array(
-                                            'description' => esc_html__( 'Match winner', TennisEvents::TEXT_DOMAIN )
+                                            'description' => esc_html__( 'TennisMatch winner', TennisEvents::TEXT_DOMAIN )
                                             ,'type' => 'string' )
                         ) //match properties
             ) //end match

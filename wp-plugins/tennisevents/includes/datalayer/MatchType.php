@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Match Types
+ * TennisMatch Types
  */
 class MatchType {
     public const SINGLES   = "singles";

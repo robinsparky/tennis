@@ -64,7 +64,7 @@ class tournamentSetupTest extends TestCase
     //     $matchnum = 0;
     //     for( $i=0; $i < count($all) - 1; $i += 2 ) {
     //         $match = $bracket->addNewMatch( $round, MatchType::MENS_SINGLES, $matchnum, $all[$i], $all[$i+1] );
-    //         $this->assertTrue( $match instanceof Match );
+    //         $this->assertTrue( $match instanceof TennisMatch );
     //         $this->assertEquals( MatchType::MENS_SINGLES, $match->getMatchType() );
     //         $this->assertFalse( $match->isBye() );
     //         error_log( sprintf( "%d. Added match %s",$i, $match->toString() ) );

@@ -24,7 +24,7 @@
     {
       "label": "Deploy Tennis Members Plugin",
       "type": "shell",
-      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennismembers C:\\webserver\\htdocs\\ttc\\wp-content\\plugins\\tennismembers /MIR",
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennismembership C:\\webserver\\htdocs\\ttc\\wp-content\\plugins\\tennismembership /MIR",
       "problemMatcher": []
     },
     {

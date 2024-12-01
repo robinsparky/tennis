@@ -9,7 +9,7 @@ use datalayer\MatchType;
 use datalayer\ScoreType;
 use datalayer\GenderType;
 
-//Match type drop down
+//TennisMatch type drop down
 $eventTypeDropDown = $eventType;
 if(count($event->getChildEvents()) === 0) {
 	$eventTypeDropDown = "<select name='EventTypes' class='tennis-root-event-type event-type-selector'>";
@@ -134,7 +134,7 @@ $numChildren = count($event->getChildEvents());
 					$genderTypeDisplay = $genderTypeDropDown;
 				}
 
-				//Match Type Drop Down
+				//TennisMatch Type Drop Down
 				$matchTypes = MatchType::AllTypes();
 				$matchTypeDropDown = "<select name='MatchTypes' class='match_type_selector' data-origval='{$matchType}'>";
 				foreach( $matchTypes as $key=>$value ) {
@@ -189,7 +189,7 @@ $numChildren = count($event->getChildEvents());
 			<tbody>				
 				<tr class="event-meta-detail"><td><strong><?php echo __("Gender", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td data-gender='<?php echo $genderKey; ?>'><?php echo $genderTypeDisplay; ?></td></tr>
-				<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td>
+				<tr class="event-meta-detail"><td><strong><?php echo __("TennisMatch Type", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td data-matchtype='<?php echo $matchTypeKey; ?>'><?php echo $matchTypeDisplay; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Categories", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><?php echo $terms; ?></td></tr>

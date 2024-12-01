@@ -1,6 +1,6 @@
 <?php 
 use api\ELO;
-use datalayer\Match;
+use datalayer\TennisMatch;
 ?>
 <table id='<?php echo $eventId; ?>' class='tennis-ladder summary'>
 <tr>
@@ -40,7 +40,7 @@ use datalayer\Match;
                     throw new RuntimeException("Ran out of matches!! at {$row},{$col} for name={$name}");
                     continue;
                 }
-                if(!($match instanceof Match)) {
+                if(!($match instanceof TennisMatch)) {
                     $this->log->error_log($match,"SUMMARY LADDER Encountered non match at {$row},{$col} for name={$name}");
                     throw new RuntimeException("Encountered non match at {$row},{$col} for name={$name}");
                 }

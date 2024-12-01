@@ -4,7 +4,7 @@ namespace api;
 use \TennisEvents;
 use commonlib\GW_Debug;
 use datalayer\Event;
-use datalayer\Match;
+use datalayer\TennisMatch;
 use datalayer\EventType;
 use datalayer\MatchType;
 use datalayer\Entrant;
@@ -55,11 +55,11 @@ class RegulationMatchUmpire extends ChairUmpire
 	}
 
     /**
-     * Determine the winner of the given Match
-     * @param Match Reference to a $match object
+     * Determine the winner of the given TennisMatch
+     * @param TennisMatch Reference to a $match object
      * @return Entrant who won or null if not completed yet
      */
-    public function matchWinner( Match &$match ) {
+    public function matchWinner( TennisMatch &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $title = $match->toString();
         $this->log->error_log("$loc($title)");
@@ -96,7 +96,7 @@ class RegulationMatchUmpire extends ChairUmpire
     /**
      * Find the winner based on the score. Also detects early end due to defaults.
      * NOTE: This function forces a read of all sets for match from the db
-     * @param object Match $match
+     * @param object TennisMatch $match
      * @return array Array containing:
      *               indicator of winner (either 'home', 'visitor' or '')
      *               set number in progress (set still in progress if match started but not finished)
@@ -108,7 +108,7 @@ class RegulationMatchUmpire extends ChairUmpire
      *               visitor sets won
      *               visitor games won
      */
-    public function getMatchSummary( Match &$match, $force = false ) {
+    public function getMatchSummary( TennisMatch &$match, $force = false ) {
         $startTime = \microtime( true );
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $title = $match->toString();
@@ -244,7 +244,7 @@ class RegulationMatchUmpire extends ChairUmpire
                     , "comments"       => $cmts ];
 
         error_log( sprintf("%s: %0.6f", "${loc} Elapsed Time", GW_Debug::micro_time_elapsed( $startTime )));
-        $this->log->error_log($result, "$loc: Match Summary Result");
+        $this->log->error_log($result, "$loc: TennisMatch Summary Result");
 
         return $result;
     }
@@ -278,7 +278,7 @@ class RegulationMatchUmpire extends ChairUmpire
                 $errmess = "Final round in bracket '{$bracketName}' with {$lastRound} rounds does not have exactly one match({$c}).";
                 $this->log->error_log( $errmess );
                 foreach ($finalMatches as $match) {
-                    $this->log->error_log("Last Round Match: {$match->title()}");
+                    $this->log->error_log("Last Round TennisMatch: {$match->title()}");
                 }
                 throw new InvalidBracketException( $errmess );
             } else {

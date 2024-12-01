@@ -68,7 +68,7 @@
     if( !empty($startDate) > 0 ) {
         $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
     }
-    $this->log->error_log( sprintf("%s: %0.6f for Match(%s)", "render-RoundRobin Elapsed time", \commonlib\GW_Debug::micro_time_elapsed( $begin ), $title));
+    $this->log->error_log( sprintf("%s: %0.6f for TennisMatch(%s)", "render-RoundRobin Elapsed time", \commonlib\GW_Debug::micro_time_elapsed( $begin ), $title));
 ?>
 <tr>
 <td class="item-player" data-eventid="<?php echo $eventId;?>" 
@@ -91,7 +91,7 @@
   <li><a class="defaulthome">Default Home</a></li>
   <li><a class="defaultvisitor">Default Visitor</a></li>
   <li><a class="setmatchstart">Start Date &amp; Time</a></li>
-  <li><a class="setcomments">Comment Match</a></li></ul>
+  <li><a class="setcomments">Comment TennisMatch</a></li></ul>
 </div>
 <div class="matchinfo matchtitle"><?php echo $title; ?>&nbsp;<span class="matchinfo matchstatus"><?php echo $status; ?></span></div>
 <div class="matchinfo matchstart"><?php echo $startedMess; ?> &nbsp; <?php echo $startDate;?> &nbsp; <?php echo $startTime; ?></div>

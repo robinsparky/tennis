@@ -7,7 +7,7 @@ use commonlib\GW_Support;
 use \TennisEvents;
 use datalayer\Event;
 use datalayer\Bracket;
-use datalayer\Match;
+use datalayer\TennisMatch;
 use datalayer\EventType;
 use datalayer\MatchType;
 use datalayer\Entrant;
@@ -225,8 +225,8 @@ class TournamentDirector
     }
 
     /**
-     * Get the Match Type for this tournament
-     * @return float Match type
+     * Get the TennisMatch Type for this tournament
+     * @return float TennisMatch type
      */
     public function matchType():float {
         return $this->matchType;
@@ -261,7 +261,7 @@ class TournamentDirector
      *  ...
      * Once approved, the brackets cannot be modified, only deleted.
      * @param string $bracketName of the Bracket within the event
-     * @return array Match hierarchy for the bracket
+     * @return array TennisMatch hierarchy for the bracket
      */
     public function approve( $bracketName ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -394,7 +394,7 @@ class TournamentDirector
                 //When the bracket is approved all matches from preliminary to the end of the 
                 // tournament are generated. So we should not have the case where a next match
                 // is null until the very last match
-                $mess = "Match '{$title}' has invalid next match pointers.";
+                $mess = "TennisMatch '{$title}' has invalid next match pointers.";
                 $this->log->error_log( $mess );
                 throw new InvalidTournamentException( $mess );
             }
@@ -403,7 +403,7 @@ class TournamentDirector
             if( $umpire->isLocked( $match, $winner ) ) {
 
                 if( !($winner instanceof Entrant) ) {
-                    $mess = "Match $title is locked but cannot determine winner.";
+                    $mess = "TennisMatch $title is locked but cannot determine winner.";
                     $this->log->error_log( $mess );
                     throw new InvalidTournamentException( $mess );
                 }
@@ -454,7 +454,7 @@ class TournamentDirector
      * @param array $matches An array of matches
 	 * @param int $rndnum The round number
 	 * @param int $matchnum The match number
-	 * @return Match if successful, null otherwise
+	 * @return TennisMatch if successful, null otherwise
      */
 	private function getMatch( array $matches, int $rndnum, int $matchnum ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -855,7 +855,7 @@ class TournamentDirector
     //     $result = 0;
     //     $bracket = $this->event->getBracket( $bracketName );
     //     if( isset( $bracket ) ) {
-    //         $result = Match::resequence( $this->event->getID(), $bracket->getBracketNumber(), $start, $incr );
+    //         $result = TennisMatch::resequence( $this->event->getID(), $bracket->getBracketNumber(), $start, $incr );
     //     }
     //     return $result > 1;
 
@@ -881,10 +881,10 @@ class TournamentDirector
             throw new InvalidBracketException( __("Bracket does not exist for this event.", TennisEvents::TEXT_DOMAIN ) );
         }
 
-        //Match must exist
+        //TennisMatch must exist
         $match = $bracket->getMatch( $round, $match_num );
         if(is_null( $match ) ) {
-            $this->log->error_log( sprintf( "%s --> Match does not exist in bracket %s", $loc, $bracket->getName() ) );
+            $this->log->error_log( sprintf( "%s --> TennisMatch does not exist in bracket %s", $loc, $bracket->getName() ) );
             return $result;
         }
 
@@ -1071,7 +1071,7 @@ class TournamentDirector
             }
             array_push( $usedMatchNums, $lastSlot );
             $home = array_shift( $seeded );
-            $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
+            $match = new TennisMatch( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
             $match->setIsBye( true );
             $match->setHomeEntrant( $home );
             $match->setMatchType( $this->matchType );
@@ -1088,7 +1088,7 @@ class TournamentDirector
             $mn = $matchnum++;
             $mn = $this->getNextAvailable( $usedMatchNums, $mn );
             array_push( $usedMatchNums, $mn );
-            $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );
+            $match = new TennisMatch( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );
             $match->setIsBye( true );
             $match->setHomeEntrant( $home );
             $match->setMatchType( $this->matchType );
@@ -1130,7 +1130,7 @@ class TournamentDirector
                 $lastSlot = $this->getNextAvailable( $usedMatchNums, $lastSlot );
                 array_push( $usedMatchNums, $lastSlot );
                 
-                $match   = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
+                $match   = new TennisMatch( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $lastSlot );
                 $match->setHomeEntrant( $home );
                 $match->setVisitorEntrant( $visitor );
                 $match->setMatchType( $this->matchType );
@@ -1147,7 +1147,7 @@ class TournamentDirector
 
                 array_push( $usedMatchNums, $mn );
 
-                $match = new Match( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );
+                $match = new TennisMatch( $this->event->getID(), $bracket->getBracketNumber(), $initialRound, $mn );
                 $match->setHomeEntrant( $home );
 
                 $visitorName = '';
@@ -1281,7 +1281,7 @@ class TournamentDirector
                 $this->log->error_log($players,"$loc:Players for round={$r}, match={$m}");
                 $home = $bracket->getNamedEntrant( $players[0] );
                 $visitor = $bracket->getNamedEntrant( $players[1] );
-                $match = new Match( $this->getEvent()->getID(), $bracket->getBracketNumber(), $r, $m++ );
+                $match = new TennisMatch( $this->getEvent()->getID(), $bracket->getBracketNumber(), $r, $m++ );
                 $match->setHomeEntrant( $home );
                 $match->setVisitorEntrant( $visitor );
                 $match->setMatchType(  $this->matchType );
@@ -1441,7 +1441,7 @@ class TournamentDirector
                 $this->log->error_log($players,"$loc:Players for round={$r}, match={$m}");
                 $home = $bracket->getNamedEntrant( $players[0] );
                 $visitor = $bracket->getNamedEntrant( $players[1] );
-                $match = new Match( $this->getEvent()->getID(), $bracket->getBracketNumber(), $r, $m++ );
+                $match = new TennisMatch( $this->getEvent()->getID(), $bracket->getBracketNumber(), $r, $m++ );
                 $match->setHomeEntrant( $home );
                 $match->setVisitorEntrant( $visitor );
                 $match->setMatchType( $this->matchType );

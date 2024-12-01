@@ -164,7 +164,7 @@ class Bracket extends AbstractData
         $result += $wpdb->rows_affected;
         
         //Delete all matches for the identified Bracket
-        $table = $wpdb->prefix . Match::$tablename;
+        $table = $wpdb->prefix . TennisMatch::$tablename;
         $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum );
         $formats_where = array( '%d', '%d' );
         $wpdb->delete( $table, $where, $formats_where );
@@ -187,7 +187,7 @@ class Bracket extends AbstractData
         if( 0 === $eventId || 0 === $bracketNum ) return $result;
         
         global $wpdb;
-		$table = $wpdb->prefix . Match::$tablename;
+		$table = $wpdb->prefix . TennisMatch::$tablename;
 		$query = "SELECT IFNULL(COUNT(*),0) from $table
 				  WHERE event_ID=%d AND bracket_num=%d;";
 		$safe = $wpdb->prepare( $query, $eventId, $bracketNum );
@@ -723,7 +723,7 @@ class Bracket extends AbstractData
 
         global $wpdb;  
         $intersectionTable = $wpdb->prefix . EntrantMatchRelations::$tablename;
-        $matchTable = $wpdb->prefix . Match::$tablename;
+        $matchTable = $wpdb->prefix . TennisMatch::$tablename;
         $tempMatchTable = $wpdb->prefix . "tempMatch";
         $tempIntersectionTable =  $wpdb->prefix . "tempIntersection";
         $eventId = $this->getEventId();
@@ -1176,22 +1176,22 @@ class Bracket extends AbstractData
     }
     
     /**
-     * Create a new Match and add it to this Event.
-	 * The Match must pass validity checks
+     * Create a new TennisMatch and add it to this Event.
+	 * The TennisMatch must pass validity checks
 	 * @param int $round The round number for this match
 	 * @param int $matchType The type of match @see MatchType class
 	 * @param int $matchnum The match number if known
      * @param Entrant $home
      * @param Entrant $visitor
      * @param bool $bye Set to true if the new match is a bye
-     * @return Match if successful; null otherwise
+     * @return TennisMatch if successful; null otherwise
      */
     public function addNewMatch( int $round, float $matchType, $matchnum = 0, Entrant $home = null, Entrant $visitor = null, bool $bye = false ) {
 		$result = null;
 
         if( isset( $home ) ) {
             $this->getMatches();
-            $match = new Match( $this->getEvent()->getID(), $this->bracket_num, $round, $matchnum );
+            $match = new TennisMatch( $this->getEvent()->getID(), $this->bracket_num, $round, $matchnum );
             $match->setIsBye( $bye );				
             $match->setMatchType( $matchType );
             $match->setBracket( $this );
@@ -1213,12 +1213,12 @@ class Bracket extends AbstractData
     }
 
     /**
-     * Add a Match to this Bracket
-	 * The Match must pass validity checks
-     * @param Match $match
+     * Add a TennisMatch to this Bracket
+	 * The TennisMatch must pass validity checks
+     * @param TennisMatch $match
 	 * @return true if successful, false otherwise
      */
-    public function addMatch( Match &$match ) {
+    public function addMatch( TennisMatch &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $result = false;
@@ -1281,7 +1281,7 @@ class Bracket extends AbstractData
      * Get a specific match in this Bracket
 	 * @param int $rndnum The round number
 	 * @param int $matchnum The match number
-	 * @return Match if successful, null otherwise
+	 * @return TennisMatch if successful, null otherwise
      */
 	public function getMatch( int $rndnum, int $matchnum, $force = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
@@ -1391,11 +1391,11 @@ class Bracket extends AbstractData
     }
 
     /**
-     * This method moves (i.e. swaps) the Home and Visitor of the source Match
+     * This method moves (i.e. swaps) the Home and Visitor of the source TennisMatch
      * with the Home and Visitor of the target match.
      * Only works for Round 1 (i.e. Preliminary round). The Bracket cannot be approved!
-     * @param int $sourceMatchNum Match number of the source match
-     * @param int $targetMatchNum Match number of the target match
+     * @param int $sourceMatchNum TennisMatch number of the source match
+     * @param int $targetMatchNum TennisMatch number of the target match
      * @return array The 2 matches affected by the swap
      */
     public function swapPlayers(int $sourceMatchNum, int $targetMatchNum ) {
@@ -1650,7 +1650,7 @@ class Bracket extends AbstractData
                 $this->log->error_log("$loc: Round $r nextRoundNumber=$nextRoundNum nextMatchNum=$nextMatchNum");
                 $nextMatch = $this->getMatch( $nextRoundNum, $nextMatchNum );
                 if( is_null( $nextMatch ) ) {
-                    $nextMatch = new Match( $this->getEventId(), $this->getID(), $nextRoundNum, $nextMatchNum );
+                    $nextMatch = new TennisMatch( $this->getEventId(), $this->getID(), $nextRoundNum, $nextMatchNum );
                     $nextMatch->setMatchType( $this->getEvent()->getMatchType() );
                     $this->addMatch( $nextMatch );
                     $this->log->error_log("$loc: NEW nextMatch = {$nextMatch->toString()}");
@@ -1667,7 +1667,7 @@ class Bracket extends AbstractData
 
     /**
      * Given a match number calculate what the match number in the next round should be.
-     * @param int $m Match number
+     * @param int $m TennisMatch number
      * @return int Number of the next match
      */
     private function getNextMatchPointer( int $m ) {
@@ -1753,7 +1753,7 @@ class Bracket extends AbstractData
         $bracket_num = $this->getBracketNumber();
         $this->log->error_log("$loc: eventId=$eventId; bracket_num=$bracket_num ");
 
-		$this->matches = Match::find( $eventId, $bracket_num );
+		$this->matches = TennisMatch::find( $eventId, $bracket_num );
 	}
     
 	private function sortByMatchNumberAsc( $a, $b ) {

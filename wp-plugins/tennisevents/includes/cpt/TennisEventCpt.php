@@ -212,7 +212,7 @@ class TennisEventCpt {
 		$newColumns['start_date'] = __('Start', TennisEvents::TEXT_DOMAIN);
 		$newColumns['end_date'] = __('End', TennisEvents::TEXT_DOMAIN);
 		$newColumns['gender_type'] = __('Gender Type', TennisEvents::TEXT_DOMAIN );
-		$newColumns['match_type'] = __('Match Type', TennisEvents::TEXT_DOMAIN);
+		$newColumns['match_type'] = __('TennisMatch Type', TennisEvents::TEXT_DOMAIN);
 		$newColumns['event_format'] = __('Format', TennisEvents::TEXT_DOMAIN);
 		$newColumns['score_type'] = __('Score Type', TennisEvents::TEXT_DOMAIN);
 		$newColumns['num_brackets'] = __('Number of Brackets', TennisEvents::TEXT_DOMAIN);
@@ -736,7 +736,7 @@ class TennisEventCpt {
 
 		add_meta_box(
 			'tennis_match_type_meta_box',
-			'Match Type' //Title
+			'TennisMatch Type' //Title
 			,array($this, 'matchTypeCallBack') //Callback
 			,self::CUSTOM_POST_TYPE //mixed: screen cpt name or ???
 			,'normal' //context: normal, side
@@ -958,7 +958,7 @@ class TennisEventCpt {
 	}
 
 	/**
-	 * Match Type callback
+	 * TennisMatch Type callback
 	 */
 	public function matchTypeCallBack($post) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
@@ -979,7 +979,7 @@ class TennisEventCpt {
 		if (!empty($parentId)) {
 			//Now echo the html desired
 			echo '<select name="tennis_match_type_field">';
-			echo '<option value="">Select Match Type...</option>';
+			echo '<option value="">Select TennisMatch Type...</option>';
 			foreach (MatchType::AllTypes() as $key => $val) {
 				$disp = esc_attr($val);
 				$value = esc_attr($key);
@@ -994,7 +994,7 @@ class TennisEventCpt {
 	}
 	
 	/**
-	 * Match Type callback
+	 * TennisMatch Type callback
 	 */
 	public function genderTypeCallBack($post) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
@@ -1406,7 +1406,7 @@ class TennisEventCpt {
 			update_post_meta( $post_id, self::MATCH_TYPE_META_KEY, $matchType );
 		} else {
 			if( !is_null($parentEvent) ) {
-				$this->add_error(__('Match type is required', TennisEvents::TEXT_DOMAIN ) );
+				$this->add_error(__('TennisMatch type is required', TennisEvents::TEXT_DOMAIN ) );
 				++$errorsFound;
 			}
 			delete_post_meta( $post_id, self::MATCH_TYPE_META_KEY );

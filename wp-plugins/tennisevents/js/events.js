@@ -667,7 +667,7 @@
         //Change Gender
         const onChangeMatchType = function( event, postIt = true ) {
             const newVal = event.target.value;
-            console.log(`Match type change detected: ${newVal} with post=${postIt}`)
+            console.log(`TennisMatch type change detected: ${newVal} with post=${postIt}`)
             let data = getLeafEventData(event.target)
             if(postIt === true) {
                 ajaxFun( {"task": "modifymatchtype"
@@ -873,7 +873,7 @@
             onChangeGender(event);
         });
 
-        //On Change the Match Type     
+        //On Change the TennisMatch Type     
         $(".match_type_selector").on("change", function(event) {
             onChangeMatchType(event);
         });

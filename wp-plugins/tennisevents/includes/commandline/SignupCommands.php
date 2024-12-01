@@ -12,7 +12,7 @@ use commonlib\GW_Debug;
 use datalayer\Club;
 use datalayer\Event;
 use datalayer\Bracket;
-use datalayer\Match;
+use datalayer\TennisMatch;
 use datalayer\Entrant;
 
 

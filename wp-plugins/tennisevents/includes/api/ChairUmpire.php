@@ -8,7 +8,7 @@ use commonlib\BaseLogger;
 use datalayer\ScoreType;
 use datalayer\Format;
 use datalayer\Event;
-use datalayer\Match;
+use datalayer\TennisMatch;
 use datalayer\Bracket;
 use datalayer\MatchStatus;
 use datalayer\Entrant;
@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 abstract class ChairUmpire
 {
-    //Match Statuses
+    //TennisMatch Statuses
 	public const INPROGRESS = "In progress";
 	public const NOTSTARTED = "Not started";
 	public const COMPLETED  = "Completed";
@@ -61,8 +61,8 @@ abstract class ChairUmpire
 	
 	protected $log;
 
-    abstract public function matchWinner( Match &$match );
-    abstract public function getMatchSummary( Match &$match, $force = false );
+    abstract public function matchWinner( TennisMatch &$match );
+    abstract public function getMatchSummary( TennisMatch &$match, $force = false );
     abstract public function getChampion( Bracket &$bracket );
     
     /**
@@ -178,12 +178,12 @@ abstract class ChairUmpire
     }
 
     /**
-     * Return the score by set of the given Match
-     * @param object Match $match
+     * Return the score by set of the given TennisMatch
+     * @param object TennisMatch $match
      * @param bool $winnerFirst return winner's scores first is set to true
      * @return array of scores
      */
-	public function getScores( Match &$match, bool $winnerFirst = false ) {
+	public function getScores( TennisMatch &$match, bool $winnerFirst = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $mess = sprintf( "%s(%s)", $loc,$match->toString() );
@@ -210,10 +210,10 @@ abstract class ChairUmpire
 
     /**
      * Manupliate (massage) game, tie breaker scores beforing saving them.
-     * @param Match $match The match whose score are recorded
+     * @param TennisMatch $match The match whose score are recorded
      * @param array $score dictionary of game scores and tb scores for home and visitor; also contains the associated set number
      */
-    public function recordScores( Match &$match, array $score ) {
+    public function recordScores( TennisMatch &$match, array $score ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $calledBy = isset(debug_backtrace()[1]['class']) ? debug_backtrace()[1]['class'] . '::'. debug_backtrace()[1]['function'] : debug_backtrace()[1]['function'];
@@ -265,7 +265,7 @@ abstract class ChairUmpire
     /**
      * Get the name of the home entrant
      */
-	public function getHomePlayer( Match &$match ):string {
+	public function getHomePlayer( TennisMatch &$match ):string {
 		if( isset( $match ) ) {
 			return $match->getHomeEntrant()->getName();
 		}
@@ -275,7 +275,7 @@ abstract class ChairUmpire
     /**
      * Get the name of the visitor entrant
      */
-	public function getVisitorPlayer( Match &$match ):string {
+	public function getVisitorPlayer( TennisMatch &$match ):string {
 		if( isset( $match ) ) {
 			return $match->getVisitorEntrant()->getName();
 		}
@@ -357,31 +357,31 @@ abstract class ChairUmpire
     }
 	
     /**
-     * Default the home player/team for this Match
-     * @param object Match $match The match being played
+     * Default the home player/team for this TennisMatch
+     * @param object TennisMatch $match The match being played
      * @param string $cmts  Any comments explaining the default.
      * @return true if successful, false otherwise
      */
-	public function defaultHome( Match &$match, string $cmts ) {
-        return $this->defaultEntrant( $match, Match::HOME, $cmts );
+	public function defaultHome( TennisMatch &$match, string $cmts ) {
+        return $this->defaultEntrant( $match, TennisMatch::HOME, $cmts );
     }	
 
     /**
-     * Default the visitor player/team for this Match
-     * @param object Match $match The match being played
+     * Default the visitor player/team for this TennisMatch
+     * @param object TennisMatch $match The match being played
      * @param string $cmts  Any comments explaining the default.
      */
-    public function defaultVisitor( Match &$match, string $cmts ) {
-        return $this->defaultEntrant( $match, Match::VISITOR, $cmts );
+    public function defaultVisitor( TennisMatch &$match, string $cmts ) {
+        return $this->defaultEntrant( $match, TennisMatch::VISITOR, $cmts );
     }
     
     /**
-     * Default the entrant (player/team) for this Match
-     * @param object Match $match The match being played
+     * Default the entrant (player/team) for this TennisMatch
+     * @param object TennisMatch $match The match being played
      * @param string @entrantType either 'visitor' or 'home'
      * @param string $cmts  Any comments explaining the default.
      */
-    public function defaultEntrant( Match &$match, string $entrantType, string $cmts ) {
+    public function defaultEntrant( TennisMatch &$match, string $entrantType, string $cmts ) {
         $sets = $match->getSets();
         $final = array_reduce($sets, function($carry, $set) {
                                         if($set->getHomeWins() > 0
@@ -394,7 +394,7 @@ abstract class ChairUmpire
                                     }
                             , 1 );
 
-        $early = $entrantType === Match::HOME ? 1 : 2;
+        $early = $entrantType === TennisMatch::HOME ? 1 : 2;
         $set = $match->getSet($final);
         if(is_null( $set )) {
             $set = new Set();
@@ -414,11 +414,11 @@ abstract class ChairUmpire
 	}
     
     /**
-     * Get status of the Match
-     * @param object Match $match Match whose status is calculated
+     * Get status of the TennisMatch
+     * @param object TennisMatch $match TennisMatch whose status is calculated
      * @return object MatchStatus of the given match
      */
-	public function matchStatusEx( Match &$match ) {
+	public function matchStatusEx( TennisMatch &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $status = new MatchStatus();
@@ -463,7 +463,7 @@ abstract class ChairUmpire
      * Determines if the visitor entrant was winner
      * @return bool True if visitor won false otherwise
      */
-    public function winnerIsVisitor(  Match &$match ) {
+    public function winnerIsVisitor(  TennisMatch &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $visitor = $match->getVisitorEntrant();
@@ -487,7 +487,7 @@ abstract class ChairUmpire
      * Determines if the home entrant was winner
      * @return bool True if home won false otherwise
      */
-    public function winnerIsHome(  Match &$match ) {
+    public function winnerIsHome(  TennisMatch &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $home = $match->getHomeEntrant();
@@ -511,17 +511,17 @@ abstract class ChairUmpire
      * A match is locked if it has a winner
      * @return bool true if locked, false otherwise
      */
-    public function isLocked( Match $match, Entrant &$entrant = null ) {
+    public function isLocked( TennisMatch $match, Entrant &$entrant = null ) {
         $entrant = $this->matchWinner( $match );
         return is_null( $entrant ) ? false : true; 
     }
     
     /**
      * Return the score by set as a string
-     * @param object Match $match
+     * @param object TennisMatch $match
      * @return string representation of the scores
      */
-	public function strGetScores( Match &$match, bool $winnerFirst=false ) {
+	public function strGetScores( TennisMatch &$match, bool $winnerFirst=false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $mess = sprintf( "%s(%s)", $loc,$match->toString() );
@@ -595,10 +595,10 @@ abstract class ChairUmpire
     /**
      * Provides HTML for modifying scores.
      * Includes games and tie break points by set.
-     * @param object Match $match
+     * @param object TennisMatch $match
      * @return string HTML markup for table with save and cancel buttons
      */
-    public function tableModifyScores( Match &$match ) {
+    public function tableModifyScores( TennisMatch &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $mess = sprintf( "%s(%s) called", $loc, $match->toString() );
@@ -706,10 +706,10 @@ EOT;
 
     /**
      * Provides HTML for displaying scores as a table.
-     * @param object Match $match
+     * @param object TennisMatch $match
      * @return string HTML markup for table
      */
-    public function tableDisplayScores( Match &$match ) { 
+    public function tableDisplayScores( TennisMatch &$match ) { 
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $calledBy = debug_backtrace()[1]['function'];
         $mess = sprintf( "%s(%s) called by: ", $loc, $match->toString(), $calledBy );
@@ -771,10 +771,10 @@ EOT;
     
     /**
      * Provides the HTML markup for displaying scores in list format
-     * @param object Match $match
+     * @param object TennisMatch $match
      * @return string HTML markup showing scores in a list <ul>...</ul>
      */
-    public function listGetScores( Match &$match ) {
+    public function listGetScores( TennisMatch &$match ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $mess = sprintf( "%s(%s) called", $loc, $match->toString() );
@@ -985,7 +985,7 @@ EOT;
     
     /**
      * This function removes sets that were kept after the final set or set in progress
-     * @param object Match
+     * @param object TennisMatch
      * @return int The number of sets removed from the match
      */
     public function trimSets( &$match ) {
@@ -1139,12 +1139,12 @@ EOT;
     }
     
     /**
-     * Save the game, tie breaker and tie scores for a given set of the supplied Match.
-     * @param Match $match The match whose score are recorded
+     * Save the game, tie breaker and tie scores for a given set of the supplied TennisMatch.
+     * @param TennisMatch $match The match whose score are recorded
      * @param int $setnum The set number 
      * @param int ...$scores if 2 args then game scores; if 4 then games and tiebreaker scores
      */
-	private function saveScores( Match &$match, int $setnum,  int $home_wins, int $visitor_wins, int $home_tb = 0, int $visitor_tb = 0, $home_ties = 0, $visitor_ties = 0 ) {
+	private function saveScores( TennisMatch &$match, int $setnum,  int $home_wins, int $visitor_wins, int $home_tb = 0, int $visitor_tb = 0, $home_ties = 0, $visitor_ties = 0 ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
         $title = $match->title();

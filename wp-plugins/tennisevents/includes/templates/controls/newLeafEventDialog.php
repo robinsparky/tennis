@@ -13,7 +13,7 @@ foreach( GenderType::AllTypes() as $key=>$value ) {
 }
 $genderTypeDropDownNew .= "</select>";
 
-//Match type drop down
+//TennisMatch type drop down
 $matchTypeDropDownNew = "<select name='MatchTypesNew' class='tennis-add-event match_type_selector_new'>";
 foreach( MatchType::AllTypes() as $key=>$value ) {
     $matchTypeDropDownNew .= "<option value='{$key}'>{$value}</option>";
@@ -51,13 +51,13 @@ $today = (new \DateTime('now'))->format('Y-m-d');
         <input type="date" class="tennis-add-event" value="<?php echo $today?>" name="enddate" required/>
     </fieldset>
 <div>
-    <legend><b>Match Specifications</b></legend>
+    <legend><b>TennisMatch Specifications</b></legend>
     <fieldset>
         <div>
         <label>Gender:
         <?php echo $genderTypeDropDownNew;?>
         </label>
-        <label>Match Type:
+        <label>TennisMatch Type:
         <?php echo $matchTypeDropDownNew;?>
         </label>
         <label>Format:

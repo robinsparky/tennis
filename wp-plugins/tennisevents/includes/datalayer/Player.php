@@ -80,7 +80,7 @@ class Player extends AbstractData
     }
 
 	/**
-	 * Get instance of a Match using it's ID
+	 * Get instance of a TennisMatch using it's ID
 	 */
     static public function get(int ...$pks) {
 		global $wpdb;

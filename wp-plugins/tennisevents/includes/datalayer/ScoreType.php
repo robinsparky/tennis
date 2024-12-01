@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
-* Match scoring:
+* TennisMatch scoring:
 * No ad
     * A popular alternative to advantage scoring is "no-advantage" (or "no-ad") scoring, created by James Van Alen in order to shorten match playing time.
     * No-advantage scoring is a scoring method in which the first player to reach four points wins the game. 
@@ -21,11 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     * A pro set is first to 8 (or 10) games by a margin of two games, instead of first to 6 games. 
     * A 12-point tie-break is usually played when the score is 8–8 (or 10–10). 
     * These are often played with no-ad scoring.
-* Match tie-break
+* TennisMatch tie-break
     * This is sometimes played instead of a third set. 
     * A match tie-break (also called super tie-break) is played like a regular tie-break, 
     * but the winner must win ten points instead of seven. 
-    * Match tie-breaks are used in the Hopman Cup, Grand Slams (excluding Wimbledon) and the Olympic Games for mixed doubles; 
+    * TennisMatch tie-breaks are used in the Hopman Cup, Grand Slams (excluding Wimbledon) and the Olympic Games for mixed doubles; 
     * on the ATP (since 2006), WTA (since 2007) and ITF (excluding four Grand Slam tournaments and the Davis Cup) tours for doubles and as a player's choice in USTA league play.
 * Fast4
     * Fast4 is a shortened format that offers a "fast" alternative, with four points, four games and four rules: 

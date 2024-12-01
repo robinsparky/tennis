@@ -1,6 +1,4 @@
 <?php
-use \TM_Install;
-
 /*
 	Plugin Name: Tennis Membership
 	Plugin URI: grayware.ca/tennismembership
@@ -11,6 +9,7 @@ use \TM_Install;
 */
 use commonlib\GW_Support;
 use commonlib\BaseLogger;
+
 // use \WP_CLI;
 // use \WP_CLI_Command;
 
@@ -70,7 +69,6 @@ class TennisMembership {
 	}
 
 	public static function getInstaller() {
-		include_once( 'includes/class-tennis-install.php' );
 		return TM_Install::get_instance();
 	}
 
@@ -211,7 +209,9 @@ class TennisMembership {
 	private function __clone() {}	
 
 }
-include_once( 'autoloader.php' );//Needed otherwise BaseLogger is not found (i.e. it is in 'includes')
+
+include_once( 'autoloader.php' );
+
 $tennisMembership = TennisMembership::get_instance();
 $GLOBALS['tennisMembership'] = $tennisMembership;
 function TM() {

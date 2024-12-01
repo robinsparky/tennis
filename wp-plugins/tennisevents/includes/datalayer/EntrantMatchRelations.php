@@ -17,7 +17,7 @@ class EntrantMatchRelations {
 	public static $tablename = 'tennis_match_entrant';
 	
 	/**
-	 * Create a relationship between an Entrant and a Match
+	 * Create a relationship between an Entrant and a TennisMatch
 	 * NOTE: This method will delete any existing Home/Visitor relationship first
 	 * @param int $eventId The ID of the event
 	 * @param int $bracket The bracket number
@@ -74,7 +74,7 @@ class EntrantMatchRelations {
 	}
 
 	/**
-	 * Remove relationship between an Entrant and a Match
+	 * Remove relationship between an Entrant and a TennisMatch
 	 * @param int $eventId The ID of the event
 	 * @param int $bracket The bracket number
 	 * @param int $roundNum The round number of the match
@@ -106,7 +106,7 @@ class EntrantMatchRelations {
 	}
 
 	/**
-	 * Remove relationships between all Entrants (in a bracket) and a given Match
+	 * Remove relationships between all Entrants (in a bracket) and a given TennisMatch
 	 * @param int $eventId The ID of the event
 	 * @param int $bracket The bracket number
 	 * @param int $roundNum The round number of the match

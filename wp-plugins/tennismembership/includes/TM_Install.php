@@ -1,6 +1,6 @@
 <?php
 use commonlib\BaseLogger;
-use \TennisMembership;
+//use \TennisMembership;
 
 /**
  * Installation related functions and actions.
@@ -52,14 +52,14 @@ class TM_Install {
 	 *
 	 * @since 0.1.0
 	 *
-	 * @var   TE_Install singleton
+	 * @var   TM_Install singleton
 	 */
 	private static $instance;
 
     /**
-    * TE_Install Singleton
+    * TM_Install Singleton
     *
-    * @return   TE_Install
+    * @return   TM_Install
     * @since    1.0.0
     */
     public static function get_instance()
@@ -74,24 +74,10 @@ class TM_Install {
 		$this->log = new BaseLogger( true );
 
 		global $wpdb;
-		$this->dbTableNames = array("club"					=> $wpdb->prefix . "tennis_club"
-								   ,"court"					=> $wpdb->prefix . "tennis_court"
-								   ,"event"					=> $wpdb->prefix . "tennis_event"
-								   ,"bracket"				=> $wpdb->prefix . "tennis_bracket"
-								   ,"entrant"				=> $wpdb->prefix . "tennis_entrant"
-								   ,"match"					=> $wpdb->prefix . "tennis_match"
-								   ,"set"					=> $wpdb->prefix . "tennis_set"
-								   ,"player"				=> $wpdb->prefix . "tennis_player"
-								   ,"team"					=> $wpdb->prefix . "tennis_team"
-								   ,"squad"					=> $wpdb->prefix . "tennis_squad"
-								   ,"player_team"			=> $wpdb->prefix . "tennis_player_team_squad"
-								   ,"player_entrant"		=> $wpdb->prefix . "tennis_player_entrant"
-								   ,"match_entrant"			=> $wpdb->prefix . "tennis_match_entrant"
-								   ,"court_booking"			=> $wpdb->prefix . "tennis_court_booking"
-								   ,"match_court_booking"	=> $wpdb->prefix . "tennis_match_court_booking"
-								   ,"club_event"			=> $wpdb->prefix . "tennis_club_event"
-								   ,"external_event"        => $wpdb->prefix . "tennis_external_event"
-								   ,"external_club"			=> $wpdb->prefix . "tennis_external_club"
+		$this->dbTableNames = array("person"			=> $wpdb->prefix . "membership_person"
+									,"address"			=> $wpdb->prefix . "membership_address"
+									,"member"			=> $wpdb->prefix . "membership_member"
+									,"membertype"		=> $wpdb->prefix . "membership_type"
 								);
 		
         add_filter( 'query_vars', array( $this,'add_query_vars_filter' ) );
@@ -183,52 +169,6 @@ class TM_Install {
 	protected function delete_customTaxonomies() {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$this->log->error_log($loc);
-
-		// $this->delete_customTerms(TennisEventCpt::CUSTOM_POST_TYPE_TAX);
-		// $this->delete_customTerms(TennisClubCpt::CUSTOM_POST_TYPE_TAX);
-
-		/*
-		//Events
-		$terms = get_terms( array('taxonomy' => TennisEventCpt::CUSTOM_POST_TYPE_TAX
-									,'fields' => 'ids'
-									,'hide_empty' => false));
-		
-		if( is_wp_error($terms) ) {
-			$this->log->error_log("$loc: for tax='Tennis Event Tax' with error='{$terms->get_error_message()}'.");
-		}
-		else {
-			foreach($terms as $term_id ) {
-				$this->log->error_log("$loc: for tax='Tennis Event Tax' term id='{$term_id}'.");
-
-				if( wp_delete_category( $term_id) ) {
-					$this->log->error_log("$loc: for tax='Tennis Event Tax' deleted '{$term_id}' successfully.");
-				}
-				else {					
-					$this->log->error_log("$loc: for tax='Tennis Event Tax' delete '{$term_id}' failed.");
-				}
-			}
-		}
-		
-		//Clubs
-		$terms = get_terms( array('taxonomy'=>TennisClubCpt::CUSTOM_POST_TYPE_TAX
-							,'fields' => 'ids'
-							,'hide_empty'=>false));
-		if( is_wp_error($terms) ) {
-			$this->log->error_log("$loc: for tax='Tennis Club Tax' with error='{$terms->get_error_message()}'.");
-		}
-		else {
-			foreach($terms as $term_id ) {					
-				$this->log->error_log("$loc: for tax='Tennis Club Tax' term id='{$term_id}'.");
-				echo("$loc: for tax='Tennis Club Tax' term id='{$term->term_id}'.");
-				if( wp_delete_category( $term_id) ) {
-					$this->log->error_log("$loc: for tax='Tennis Club Tax' deleted '{$term_id}' successfully.");
-				}
-				else {					
-					$this->log->error_log("$loc: for tax='Tennis Club Tax' delete '{$term_id}' failed.");
-				}
-			}
-		}
-		*/
 	}
 	
 	/**
@@ -240,29 +180,6 @@ class TM_Install {
 		$this->log->error_log($loc);
 
 		global $wpdb;
-	
-		$tax_table = $wpdb->prefix . 'term_taxonomy';
-		$terms_table = $wpdb->prefix . 'terms';
-
-		$query = "SELECT t.name, t.term_id
-				FROM  {$terms_table} AS t
-				INNER JOIN {$tax_table}  AS tt
-				ON t.term_id = tt.term_id
-				WHERE tt.taxonomy = '%s'";
-	
-		$safe = $wpdb->prepare( $query, $taxonomy );
-		$rows = $wpdb->get_results( $safe, ARRAY_A );
-	
-		foreach ($rows as $row) {				
-			$this->log->error_log("$loc: for tax='$taxonomy', term id='{$row['term_id']}'.");
-
-			if( wp_delete_term( intval($row['term_id']), $taxonomy ) ) {
-				$this->log->error_log("$loc: for tax='{$taxonomy}' deleted '{$row['term_id']}' successfully.");
-			}
-			else {
-				$this->log->error_log("$loc: for tax='{$taxonomy}' delete '{$row['term_id']}' failed.");
-			}
-		}
 	}
 
 	/**
@@ -344,7 +261,7 @@ class TM_Install {
 	}
 	
 	/**
-	 * Create the Tennis Events schema
+	 * Create the Tennis Membership schema
 	 * TODO: test using dbDelta
 	 */
 	public function createSchema( bool $withReports=false ) {
@@ -352,555 +269,124 @@ class TM_Install {
 		$this->log->error_log($loc);
 
 		global $wpdb;
-		if($withReports) $wpdb->show_errors(); 
-		
-		$club_table 				= $this->dbTableNames["club"];
-		$court_table 				= $this->dbTableNames["court"];
-		$event_table 				= $this->dbTableNames["event"];
-		$bracket_table 				= $this->dbTableNames["bracket"];
-		$entrant_table 				= $this->dbTableNames["entrant"];
-		$match_table 				= $this->dbTableNames["match"];
-		$set_table 					= $this->dbTableNames["set"];
-		$player_table 				= $this->dbTableNames["player"];
-		$team_table 				= $this->dbTableNames["team"];
-		$squad_table 				= $this->dbTableNames["squad"];
-		$team_squad_player_table 	= $this->dbTableNames["player_team"];
-		$player_entrant_table 		= $this->dbTableNames["player_entrant"];
-		$match_entrant_table 		= $this->dbTableNames["match_entrant"];
-		$booking_table 				= $this->dbTableNames["court_booking"];
-		$booking_match_table 		= $this->dbTableNames["match_court_booking"];
-		$club_event_table			= $this->dbTableNames["club_event"];
-		$ext_event_ref_table        = $this->dbTableNames["external_event"];
-		$ext_club_ref_table         = $this->dbTableNames["external_club"];
+		if($withReports) $wpdb->show_errors();
 
 		//Check if schema already installed
+		$person_table = $this->dbTableNames["person"];
 		$newSchema = true;
-		if( $wpdb->get_var("SHOW TABLES LIKE '$club_table'") == $club_table ) {
+		if( $wpdb->get_var("SHOW TABLES LIKE '$person_table'") == $person_table ) {
 			$newSchema = false;
 		}
 
 		//Temporarily until can test/fix dbDelta usage
 		if( ! $newSchema ) return;
-
-		/**
-		 * Club or venue that provides tennis courts
-		 */
-		$sql = "CREATE TABLE `$club_table` ( 
-					`ID` INT NOT NULL AUTO_INCREMENT,
-					`name` VARCHAR(255) NOT NULL,
-					PRIMARY KEY (`ID`) 
-				) ENGINE = MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $club_table" : "$club_table Created";
-			$this->log->error_log( $res );
-		}
-		else {
-			$this->log->error_log( dbDelta( $sql ), "$club_table");
-		}
 		
 		/**
-		 * This table enables a relationship
-		 * between clubs and external clubs in a foreign schema table 
-		 * Namely, the custom post type in WordPress called TennisClubCPT 
-		 * ,
-			CONSTRAINT `fk_ext_club`
-			FOREIGN KEY (`club_ID`)
-				REFERENCES `$club_table` (`ID`)
-				ON DELETE CASCADE
-				ON UPDATE NO ACTION
+		 * Person is someone who interacts with the club
+		 * Information is stored in this table and in the Wordpress users table.
 		 */
-		$sql = "CREATE TABLE `$ext_club_ref_table` (
-			`club_ID` INT NOT NULL,
-			`external_ID` NVARCHAR(100) NOT NULL,
-			INDEX USING BTREE (`external_ID`),
-			PRIMARY KEY (`club_ID`, `external_ID`)
-			) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $ext_club_ref_table" : "$ext_event_ref_table Created";
-			$this->log->error_log( $res );
-		}
-		else {
-			$this->log->error_log( dbDelta( $sql ), "$ext_club_ref_table");
-		}
-
-		/**
-		 * Court is the surface on which you play tennis!
-		 * ,
-				CONSTRAINT `fk_court_club`
-				FOREIGN KEY (`club_ID`)
-				  REFERENCES `$club_table` (`ID`)
-				  ON DELETE CASCADE
-				  ON UPDATE NO ACTION
-		 */
-		$sql = "CREATE TABLE `$court_table` (
-				`club_ID` INT NOT NULL,
-				`court_num` INT NOT NULL,
-				`court_type` VARCHAR(45) NOT NULL DEFAULT 'hard',
-				PRIMARY KEY (`club_ID`,`court_num`)
-				) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $court_table" : "$court_table Created";
-			$this->log->error_log( $res );
-		}
-		else {
-			$this->log->error_log( dbDelta( $sql ), "$court_table");
-		}
-
-		/**
-		 * Court bookings are recorded in this table.
-		 * ,
-			CONSTRAINT `fk_club_court_booking`
-			FOREIGN KEY (`club_ID`,`court_num`)
-			  REFERENCES $court_table (`club_ID`,`court_num`)
-			  ON DELETE CASCADE
-			  ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE $booking_table (
+		$sql = "CREATE TABLE `$person_table` ( 
 			`ID` INT NOT NULL AUTO_INCREMENT,
-			`club_ID` INT NOT NULL,
-			`court_num` INT NOT NULL,
-			`book_date` DATE NULL,
-			`book_time` TIME(6) NULL,
-			PRIMARY KEY (`ID`)
-			) ENGINE=MyISAM;";	
+			`first_name`    VARCHAR(45) NULL,
+			`last_name`     VARCHAR(45) NOT NULL,
+			`gender`        VARCHAR(1) NOT NULL DEFAULT 'M',
+			`birthdate`     DATE NULL,
+			`skill_level`   DECIMAL(4,1) NULL DEFAULT 2.0,
+			`emailHome`     VARCHAR(100),
+			`emailBusiness` VARCHAR(100),
+			`phoneHome`     VARCHAR(45),
+			`phoneMobile`   VARCHAR(45),
+			`phoneBusiness` VARCHAR(45),
+			`notes` VARCHAR(255),
+			PRIMARY KEY (`ID`) 
+		) ENGINE = MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $booking_table" : "$booking_table Created";
+			$res = false === $res ? $wpdb->last_error . " when creating $person_table" : "$person_table Created";
 			$this->log->error_log( $res );
 		}
 		else {
-			$this->log->error_log( dbDelta( $sql ), "$booking_table");
+			$this->log->error_log( dbDelta( $sql ), "$person_table");
 		}
 
 		/**
-		 * Events are hierarchical entities
-		 * representing leagues, tournaments, ladder, etc.
-		 * For example an event called 'Year End Tournament' 
-		 * having sub-events: 'Mens Singles', 'Mens Doubles', 'Womens Doubles', etc.
-		 * ,
-				CONSTRAINT `fk_hierarchy`
-				FOREIGN KEY (`parent_ID`)
-				  REFERENCES `$event_table` (`ID`)
-				  ON DELETE CASCADE
-				  ON UPDATE CASCADE
+		 * Security Questions for a Person
 		 */
-		$sql = "CREATE TABLE `$event_table` (
-				`ID` INT NOT NULL AUTO_INCREMENT,
-				`name` VARCHAR(256) NOT NULL,
-				`parent_ID` INT NULL COMMENT 'parent event',
-				`event_type` VARCHAR(25) NULL COMMENT 'tournament, league, ladder',
-				`score_type` VARCHAR(25) NULL COMMENT 'best2of3, best3or5, fast4, pro-set etc',
-				`match_type` VARCHAR(10) COMMENT 'singles, doubles',
-				`gender_type` VARCHAR(10) COMMENT 'males, females or mixed',
-				`age_min` INT DEFAULT 1,
-				`age_max` INT DEFAULT 99,
-				`format` VARCHAR(25) NULL COMMENT 'elimination, round robin',
-				`signup_by` DATE NULL,
-				`start_date` DATE NULL,
-				`end_date` DATE NULL,
-				`num_brackets` INT DEFAULT 1,
-				PRIMARY KEY (`ID`)
-				) ENGINE=MyISAM;";
+		
+		/**
+		 * Address
+		 */
+		$address_table	= $this->dbTableNames["address"];
+		$sql = "CREATE TABLE `$address_table` ( 
+			`ID` INT NOT NULL AUTO_INCREMENT,
+			`person_ID` 	INT NOT NULL COMMENT 'References someone in the person table',
+			`street1` 		VARCHAR(255) NOT NULL,
+			`street2` 		VARCHAR(255) NOT NULL,
+			`city` 			VARCHAR(100) NOT NULL,
+			`province` 		VARCHAR(100) NOT NULL,
+			`country` 		VARCHAR(100) NOT NULL,
+			`postal_code` 	VARCHAR(10) NOT NULL,
+			PRIMARY KEY (`ID`) 
+		) ENGINE = MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $event_table" : "$event_table Created";
+			$res = false === $res ? $wpdb->last_error . " when creating $address_table" : "$address_table Created";
 			$this->log->error_log( $res );
 		}
 		else {
-			$this->log->error_log( dbDelta( $sql ), "$event_table");
+			$this->log->error_log( dbDelta( $sql ), "$address_table");
 		}
-	
+		
 		/**
-		 * This table enables a relationship
-		 * between events and external events in a foreign schema table 
-		 * Namely, the custom post type in WordPress called TennisEventCPT 
-		 * ,
-				CONSTRAINT `fk_ext_event`
-				FOREIGN KEY (`event_ID`)
-					REFERENCES `$event_table` (`ID`)
-					ON DELETE CASCADE
-					ON UPDATE NO ACTION
+		 * Membership Type are the types of memberships available
 		 */
-		$sql = "CREATE TABLE `$ext_event_ref_table` (
-				`event_ID` INT NOT NULL,
-				`external_ID` NVARCHAR(100) NOT NULL,
-				INDEX `external_event` USING BTREE (`external_ID`),
-				PRIMARY KEY (`event_ID`, `external_ID`)
-				) ENGINE=MyISAM;";
+		$membership_type_table = $this->dbTableNames["membertype"];
+		$sql = "CREATE TABLE `$membership_type_table` ( 
+			`ID` INT NOT NULL AUTO_INCREMENT,
+			`membership_type` VARCHAR(255),
+			PRIMARY KEY (`ID`) 
+		) ENGINE = MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $ext_event_ref_table" : "$ext_event_ref_table Created";
+			$res = false === $res ? $wpdb->last_error . " when creating $membership_type_table" : "$membership_type_table Created";
 			$this->log->error_log( $res );
 		}
 		else {
-			$this->log->error_log( dbDelta( $sql ), "$ext_event_ref_table");
+			$this->log->error_log( dbDelta( $sql ), "$membership_type_table");
 		}
 
 		/**
-		 * This table enables a many-to-many relationship
-		 * between clubs and events 
-		 * paving the way for interclub leagues and tournaments
-		 * ,
-				CONSTRAINT `fk_club_event`
-				FOREIGN KEY (`club_ID`)
-					REFERENCES `$club_table` (`ID`)
-					ON DELETE CASCADE
-					ON UPDATE NO ACTION,
-				CONSTRAINT `fk_event_club`
-				FOREIGN KEY (`event_ID`)
-					REFERENCES `$event_table` (`ID`)
-					ON DELETE CASCADE
-					ON UPDATE NO ACTION
+		 * Member is a Person who joins the club
 		 */
-		$sql = "CREATE TABLE `$club_event_table` (
-				`club_ID` INT NOT NULL,
-				`event_ID` INT NOT NULL,
-				PRIMARY KEY(`club_ID`,`event_ID`)
-				) ENGINE=MyISAM;";	
+		$member_table = $this->dbTableNames["member"];
+		$sql = "CREATE TABLE `$member_table` ( 
+			`ID` INT NOT NULL AUTO_INCREMENT,
+			`person_ID` 			INT NOT NULL COMMENT 'References someone in the person table',
+			`season_ID` 			INT NOT NULL COMMENT 'References the season table',
+			`membership_type_ID` 	INT NOT NULL COMMENT 'References the membership type table',
+			`member_type`			VARCHAR(25) NOT NULL DEFAULT 'primary' COMMENT 'Values are primary, sponsored',
+			`start_date` 			DATE NOT NULL,
+			`expiry_date` 			DATE NOT NULL,
+			`receive_emails` 		TINYINT DEFAULT 0,
+			`include_in_directory` 	TINYINT DEFAULT 0,
+			`share_email` 			TINYINT DEFAULT 0,
+			`notes` 				VARCHAR(255),
+			PRIMARY KEY (`ID`) 
+		) ENGINE = MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $club_event_table" : "Created table '$club_event_table'";
+			$res = false === $res ? $wpdb->last_error . " when creating $member_table" : "$member_table Created";
 			$this->log->error_log( $res );
 		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$club_event_table");
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$member_table");
 		}
-
-		/**
-		 * Brackets divide a draw into sections such as Main vs Consolation
-		 * or Box1, Box2, etc for Ladders
-		 * ,
-			CONSTRAINT `fk_bracket_event`
-			FOREIGN KEY (`event_ID`)
-			   REFERENCES `$event_table` (`ID`)
-			  ON DELETE CASCADE
-			  ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE `$bracket_table` (
-			`event_ID` INT NOT NULL,
-			`bracket_num` INT NOT NULL,
-			`is_approved` TINYINT NOT NULL DEFAULT 0,
-			`name` VARCHAR(256) NOT NULL,
-			PRIMARY KEY (`event_ID`,`bracket_num`)
-			) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $bracket_table" : "Created table '$bracket_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$bracket_table");
-		}
-
-		/**
-		 * An entrant into a tournament event.
-		 * The relationship between the event and all entrants is called a draw.
-		 * This can be a single player or a doubles pair.
-		 * ,
-				CONSTRAINT `fk_entrant_bracket`
-				FOREIGN KEY  (`event_ID`,`bracket_num`)
-				  REFERENCES `$bracket_table` (`event_ID`,`bracket_num`)
-				  ON DELETE CASCADE
-				  ON UPDATE NO ACTION,
-				CONSTRAINT `fk_entrant_event`
-				FOREIGN KEY  (`event_ID`)
-				  REFERENCES `$event_table` (`ID`)
-				  ON DELETE CASCADE
-				  ON UPDATE NO ACTION
-		 */
-		$sql = "CREATE TABLE `$entrant_table` (
-				`event_ID` INT NOT NULL,
-				`bracket_num` INT NOT NULL,
-				`position` INT NOT NULL,
-				`name` VARCHAR(100) NOT NULL,
-				`seed` INT NULL,
-				PRIMARY KEY  (`event_ID`,`bracket_num`,`position`)
-				) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $entrant_table" : "Created table '$entrant_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$entrant_table");
-		}
-		
-		/**
-		 * A tennis match within a round within an event
-		 * Holds pointers to the next round creating a linked list
-		 * , 
-				CONSTRAINT `fk_match_bracket`
-				FOREIGN KEY (`event_ID`,`bracket_num`) 
-				  REFERENCES `$bracket_table` (`event_ID`,`bracket_num`) 
-				  ON DELETE CASCADE 
-				  ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE `$match_table` (
-				`event_ID` INT NOT NULL, 
-				`bracket_num` INT NOT NULL DEFAULT 0, 
-				`round_num` INT NOT NULL  DEFAULT 0, 
-				`match_num` INT NOT NULL  DEFAULT 0, 
-				`match_type` DECIMAL(3,1) NOT NULL COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles', 
-				`match_date` DATETIME NULL, 
-				`is_bye` TINYINT DEFAULT 0, 
-				`next_round_num` INT DEFAULT 0, 
-				`next_match_num` INT DEFAULT 0, 
-				`comments` VARCHAR(255) NULL, 
-				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
-				) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $match_table" : "Created table '$match_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$match_table");
-		}
-		
-		/**
-		 * Assigns entrants to a matches within a round within an event
-		 * ,
-			CONSTRAINT `fk_entrant_match`
-			FOREIGN KEY (`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`)
-				REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
-				ON DELETE CASCADE
-				ON UPDATE CASCADE,
-			CONSTRAINT `fk_match_entrant`
-			FOREIGN KEY (`match_event_ID`,`match_bracket_num`,`entrant_position`)
-				REFERENCES `$entrant_table` (`event_ID`,`bracket_num`,`position`)
-				ON DELETE CASCADE
-				ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE `$match_entrant_table` (
-			`match_event_ID` INT NOT NULL,
-			`match_bracket_num` INT NOT NULL,
-			`match_round_num` INT NOT NULL,
-			`match_num` INT NOT NULL,
-			`entrant_position` INT NOT NULL,
-			`is_visitor` TINYINT DEFAULT 0,
-			PRIMARY KEY(`match_event_ID`,`match_bracket_num`,`match_round_num`,`match_num`,`entrant_position`)) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $match_entrant_table" : "Created table '$match_entrant_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$match_entrant_table");
-		}
-
-		/**
-		 * Sets scores are kept here.
-		 * ,
-				CONSTRAINT `fk_set_match`
-				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
-				  REFERENCES `$match_table` (`event_ID`,`bracket_num`,`round_num`,`match_num`)
-				  ON DELETE CASCADE
-				  ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE `$set_table` (
-				`event_ID` INT NOT NULL,
-				`bracket_num` INT NOT NULL,
-				`round_num` INT NOT NULL,
-				`match_num` INT NOT NULL,
-				`set_num` INT NOT NULL,
-				`home_wins` INT NOT NULL DEFAULT 0,
-				`visitor_wins` INT NOT NULL DEFAULT 0,
-				`home_tb_pts` INT NOT NULL DEFAULT 0,
-				`visitor_tb_pts` INT NOT NULL DEFAULT 0,
-				`home_ties` INT NOT NULL DEFAULT 0,
-				`visitor_ties` INT NOT NULL DEFAULT 0,
-				`early_end` TINYINT DEFAULT 0 COMMENT '0 means set completed normally, 1 means abnormal end home defaulted, 2 means abnormal end visitor defaulted, see comments for details',
-				`comments` VARCHAR(512), 
-				PRIMARY KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`,`set_num`)
-				) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $set_table" : "Created table '$set_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$set_table");
-		}
-
-		/**
-		 * A tennis team from a league for example
-		 * ,
-			CONSTRAINT `fk_team_club`
-			FOREIGN KEY (`club_ID`)
-				REFERENCES `$club_table` (`ID`)
-				ON DELETE SET NULL
-				ON UPDATE CASCADE,
-			CONSTRAINT `fk_team_event`
-			FOREIGN KEY (`event_ID`)
-				REFERENCES `$event_table` (`ID`)
-				ON DELETE CASCADE
-				ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE `$team_table` (
-				`event_ID` INT NOT NULL,
-				`team_num` INT NOT NULL,
-				`club_ID` INT NULL,
-				`name` VARCHAR(100) NOT NULL,
-			PRIMARY KEY (`event_ID`,`team_num`)
-			) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $team_table" : "Created table '$team_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$team_table");
-		}
-
-		/**
-		 * Teams can be divided into squads
-		 * This supports things like Team 1 with 'a' and 'b' divisions for example.
-		 * OR Team "Adrie and Robin"
-		 * CONSTRAINT `fk_squad_team`
-		 *	  FOREIGN KEY (`event_ID`,`team_num`)
-		 *		REFERENCES `$team_table` (`event_ID`,`team_num`)
-		 *		ON DELETE CASCADE
-		 *		ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE `$squad_table` (
-				`event_ID` INT NOT NULL,
-			  	`team_num` INT NOT NULL,
-			  	`division` VARCHAR(25) NOT NULL,
-			  PRIMARY KEY (`event_ID`,`team_num`,`division`)
-			) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $squad_table" : "Created table '$squad_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$squad_table");
-		}
-		
-		/**
-		 * All the info about a tennis player
-		 */
-		$sql = "CREATE TABLE `$player_table` (
-			  `ID`            INT NOT NULL AUTO_INCREMENT,
-			  `first_name`    VARCHAR(45) NULL,
-			  `last_name`     VARCHAR(45) NOT NULL,
-			  `gender`        VARCHAR(1) NOT NULL DEFAULT 'M',
-			  `birthdate`     DATE NULL,
-			  `skill_level`   DECIMAL(4,1) NULL DEFAULT 2.0,
-			  `emailHome`     VARCHAR(100),
-			  `emailBusiness` VARCHAR(100),
-			  `phoneHome`     VARCHAR(45),
-			  `phoneMobile`   VARCHAR(45),
-			  `phoneBusiness` VARCHAR(45),
-			  PRIMARY KEY (`ID`)) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $player_table" : "Created table '$player_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$player_table");
-		}
-		
-		/**
-		 * This table maps players to a team's squads
-		 * ,
-				CONSTRAINT `fk_squad_player`
-				FOREIGN KEY (`player_ID`)
-					REFERENCES $player_table (`ID`)
-					ON DELETE CASCADE
-					ON UPDATE CASCADE,
-				CONSTRAINT `fk_player_squad`
-				FOREIGN KEY (`event_ID`,`team_num`,`division`)
-					REFERENCES $squad_table (`event_ID`,`team_num`,`division`)
-					ON DELETE CASCADE
-					ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE `$team_squad_player_table` ( 
-				`player_ID` INT NOT NULL,
-				`event_ID`  INT NOT NULL,
-				`team_num`  INT NOT NULL,
-				`division`  VARCHAR(2) NOT NULL
-				) ENGINE=MyISAM;";	
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $team_squad_player_table" : "Created table '$team_squad_player_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$team_squad_player_table");
-		}
-
-		/**
-		 * The player_entrant table is an intersection
-		 * between an an entrant in a draw and the player
-		 * ,
-				CONSTRAINT `fk_entrant_player`
-				FOREIGN KEY (`player_ID`)
-					REFERENCES `$player_table` (`ID`)
-					ON DELETE CASCADE
-					ON UPDATE CASCADE,
-				CONSTRAINT `fk_player_entrant`
-				FOREIGN KEY (`event_ID`,`bracket_num`,`position`)
-					REFERENCES $entrant_table (`event_ID`,`bracket_num`,`position`)
-					ON DELETE CASCADE
-					ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE `$player_entrant_table` (
-				`player_ID`  INT NOT NULL,
-				`event_ID`   INT NOT NULL,
-				`bracket_num`   INT NOT NULL,
-				`position`  INT NOT NULL 
-				) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $player_entrant_table" : "Created table '$player_entrant_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$player_entrant_table");
-		}
-
-		/**
-		 * This table is the intersection between
-		 * a court booking and a tennis match
-		 * ,
-				CONSTRAINT `fk_match_booking`
-				FOREIGN KEY (`booking_ID`)
-					REFERENCES $booking_table (`ID`)
-					ON DELETE CASCADE
-					ON UPDATE NO ACTION,
-				CONSTRAINT `fk_booking_match`
-				FOREIGN KEY (`event_ID`,`bracket_num`,`round_num`,`match_num`)
-					REFERENCES $match_table (`event_ID`,`bracket_num`,`round_num`,`match_num`)
-					ON DELETE CASCADE
-					ON UPDATE CASCADE
-		 */
-		$sql = "CREATE TABLE $booking_match_table (
-				`booking_ID` INT NOT NULL,
-				`event_ID` INT NOT NULL,
-				`bracket_num` INT NOT NULL,
-				`round_num` INT NOT NULL,
-				`match_num` INT NOT NULL
-				) ENGINE=MyISAM;";
-		if( $newSchema ) {
-			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $booking_match_table" : "Created table '$booking_match_table'";
-			$this->log->error_log( $res );
-		}
-		else {			
-			$this->log->error_log( dbDelta( $sql ), "$booking_match_table");
-		}
-
 		return $wpdb->last_error;
 
 	} //end add schema
 	
 	/**
-	 * Drop the Tennis Events schema
+	 * Drop the Tennis Membership schema
 	 */
 	public function dropSchema(bool $withReports=false) {
 		global $wpdb;
@@ -908,24 +394,10 @@ class TM_Install {
 
 		//NOTE: The order is important
 		$sql = "DROP TABLE IF EXISTS ";
-		$sql = $sql       . $this->dbTableNames["match_court_booking"];
-		$sql = $sql . "," . $this->dbTableNames["court_booking"];
-		$sql = $sql . "," . $this->dbTableNames["player_entrant"];
-		$sql = $sql . "," . $this->dbTableNames["match_entrant"];
-		$sql = $sql . "," . $this->dbTableNames["player_team"];
-		$sql = $sql . "," . $this->dbTableNames["club_event"];
-		$sql = $sql . "," . $this->dbTableNames["external_event"];
-		$sql = $sql . "," . $this->dbTableNames["external_club"];
-		$sql = $sql . "," . $this->dbTableNames["squad"];
-		$sql = $sql . "," . $this->dbTableNames["team"];
-		$sql = $sql . "," . $this->dbTableNames["player"];
-		$sql = $sql . "," . $this->dbTableNames["set"];
-		$sql = $sql . "," . $this->dbTableNames["match"];
-		$sql = $sql . "," . $this->dbTableNames["entrant"];
-		$sql = $sql . "," . $this->dbTableNames["bracket"];
-		$sql = $sql . "," . $this->dbTableNames["event"];
-		$sql = $sql . "," . $this->dbTableNames["court"];
-		$sql = $sql . "," . $this->dbTableNames["club"];
+		$sql = $sql . $this->dbTableNames["address"];
+		$sql = $sql . "," . $this->dbTableNames["member"];
+		$sql = $sql . "," . $this->dbTableNames["membertype"];
+		$sql = $sql . "," . $this->dbTableNames["person"];
 
 		return $wpdb->query( $sql );
 	}

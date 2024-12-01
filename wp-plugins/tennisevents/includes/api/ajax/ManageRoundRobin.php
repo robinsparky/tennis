@@ -551,7 +551,7 @@ class ManageRoundRobin
         $matchNum      = $data["matchNum"];
         $matchStartDate= $data["matchdate"];
         $matchStartTime= $data["matchtime"];
-        $mess          = __("Set Start Match Date/Time.", TennisEvents::TEXT_DOMAIN );
+        $mess          = __("Set Start TennisMatch Date/Time.", TennisEvents::TEXT_DOMAIN );
         try {                        
             if( !current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
                 throw new Exception("Insufficient privileges");
@@ -574,7 +574,7 @@ class ManageRoundRobin
             $data['matchdate'] = $match->getMatchDate_Str();
             $data['matchtime'] = $match->getMatchTime_Str(2);
             $data['status'] = $chairUmpire->matchStatusEx($match)->toString();
-            $mess = __("Set Start Match Date to '{$data['matchdate']}' and Time to '{$data['matchtime']}'.", TennisEvents::TEXT_DOMAIN );
+            $mess = __("Set Start TennisMatch Date to '{$data['matchdate']}' and Time to '{$data['matchtime']}'.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception | InvalidBracketException | InvalidMatchException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

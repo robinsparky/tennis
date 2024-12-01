@@ -15,7 +15,7 @@ use commonlib\Math_Combinatorics;
 use datalayer\Club;
 use datalayer\Event;
 use datalayer\Bracket;
-use datalayer\Match;
+use datalayer\TennisMatch;
 use datalayer\Entrant;
 use datalayer\InvalidBracketException;
 
@@ -108,7 +108,7 @@ class TournamentCommands extends WP_CLI_Command {
                         $cmts    = $match->getComments();
                         $cmts    = isset( $cmts ) ? $cmts : '';
                         $items[] = array( "Round" => $round
-                                        , "Match Number" => $mn
+                                        , "TennisMatch Number" => $mn
                                         , "Status" => $status
                                         , "Score" => $score
                                         , "Home Name" => $hname
@@ -118,7 +118,7 @@ class TournamentCommands extends WP_CLI_Command {
                                         , "Comments" => $cmts
                                         , "Winner" => $winner );
                     }
-                    WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'Match Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments', 'Winner' ) );
+                    WP_CLI\Utils\format_items( 'table', $items, array( 'Round', 'TennisMatch Number', 'Status', 'Score', 'Home Name', 'Home Seed', 'Visitor Name', 'Visitor Seed', 'Comments', 'Winner' ) );
                 }
                 WP_CLI::success("Done!");
             }
@@ -402,10 +402,10 @@ class TournamentCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 $td = new TournamentDirector( $target );
                 if( $td->comment( $bracketName, $round, $matchnum, $comments ) ) {
-                    WP_CLI::success("Match commented.");
+                    WP_CLI::success("TennisMatch commented.");
                 }
                 else {
-                    WP_CLI::warning("Match not commented");
+                    WP_CLI::warning("TennisMatch not commented");
                 }
             }
             else {
@@ -487,10 +487,10 @@ class TournamentCommands extends WP_CLI_Command {
     //             $evtName = $target->getName();
     //             $td = new TournamentDirector( $target );
     //             if( $td->matchMove($bracketName, $round, $source, $dest, $cmts ) ) {
-    //                 WP_CLI::success("Match moved.");
+    //                 WP_CLI::success("TennisMatch moved.");
     //             }
     //             else {
-    //                 WP_CLI::warning("Match was not moved");
+    //                 WP_CLI::warning("TennisMatch was not moved");
     //             }
     //         }
     //         else {
@@ -555,8 +555,8 @@ class TournamentCommands extends WP_CLI_Command {
     //         WP_CLI::error("Invalid step value");
     //     }
 
-    //     $fromId = "Match($bracket,$round,$source)";
-    //     $toId   = "Match($bracket,$round,$dest)";
+    //     $fromId = "TennisMatch($bracket,$round,$source)";
+    //     $toId   = "TennisMatch($bracket,$round,$dest)";
         
     //     date_default_timezone_set("America/Toronto");
     //     $stamp = date("Y-m-d h:i:sa");
@@ -579,10 +579,10 @@ class TournamentCommands extends WP_CLI_Command {
     //             $evtName = $target->getName();
     //             $td = new TournamentDirector( $target );
     //             if( $td->matchMove($bracketName, $round, $source, $dest, $cmts ) ) {
-    //                 WP_CLI::success("Match moved.");
+    //                 WP_CLI::success("TennisMatch moved.");
     //             }
     //             else {
-    //                 WP_CLI::warning("Match was not moved");
+    //                 WP_CLI::warning("TennisMatch was not moved");
     //             }
     //         }
     //         else {

@@ -725,7 +725,7 @@ table.tennis-ladder.summary th {
 }
 
 /*---------------------------------------------------
- Match score styling
+ TennisMatch score styling
 ----------------------------------------------------*/
 .displaymatchscores {
   width: 50%;
@@ -834,7 +834,7 @@ div.modifymatchscores.save-cancel-buttons {
 }
 
 /*-------------------------------------------------------
- * Match props styling such as title, start, entrants
+ * TennisMatch props styling such as title, start, entrants
  -------------------------------------------------------*/
 .matchinfo {
   color: black;
@@ -933,7 +933,7 @@ div.modifymatchscores.save-cancel-buttons {
 }
 
 /*-------------------------------------------------------------------
- Match Menu styling
+ TennisMatch Menu styling
 ----------------------------------------------------------------------*/
 .menu-icon {
   display: block;
