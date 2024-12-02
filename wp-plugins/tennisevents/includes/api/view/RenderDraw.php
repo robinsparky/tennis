@@ -191,7 +191,9 @@ class RenderDraw
 		$startFuncTime = microtime( true );
         $winnerClass = "matchwinner";
 
-        $eventId = $td->getEvent()->getID(); //$this->eventId;
+        $eventId = $td->getEvent()->getID(); 
+        $strEventStartDate = $td->getEvent()->getStartDate()->format('Y-m-d');
+        $strEventEndDate = $td->getEvent()->getEndDate()->format('Y-m-d');
         $tournamentName = str_replace("\'","'",$td->getName());
         $bracketName    = $bracket->getName();
         $champion = $td->getChampion( $bracketName )[ChairUmpire::CHAMPIONNAME];

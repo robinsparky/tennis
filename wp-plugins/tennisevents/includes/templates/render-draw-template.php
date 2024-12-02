@@ -5,7 +5,10 @@
 <?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
 <h2 id="parent-event-name"><?php echo $parentName; ?></h2>
 <table id="<?php echo $bracketName; ?>" class="managedraw" data-eventid="<?php echo $eventId; ?>" data-bracketname="<?php echo $bracketName ?>">
-<caption class='tennis-draw-caption'><?php echo $tournamentName ?>&#58;&nbsp;<?php echo $bracketName ?>&nbsp;(<?php echo $scoreRuleDesc ?>)<br><span id='digiclock'></span></caption>
+<caption class='tennis-draw-caption'><?php echo $tournamentName ?>&#58;&nbsp;<?php echo $bracketName ?>&nbsp;(<?php echo $scoreRuleDesc ?>)
+<h5 class='tennis-draw-caption-dates'>Starts&colon; <?php echo $strEventStartDate;?> Ends&colon; <?php echo $strEventEndDate;?></h5>
+<h5><span id='digiclock'></span></h5>
+</caption>
 <thead>
 <tr>
 <?php
