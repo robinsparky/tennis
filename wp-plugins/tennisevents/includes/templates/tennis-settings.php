@@ -10,7 +10,7 @@
     <?php settings_fields('gw-tennis-settings-group'); ?>
     <?php do_settings_sections('gwtennissettings'); ?>
     <?php submit_button(
-        'Save Tennis Options' // some text
+        'Save Tennis Settings' // some text
         // ,'' // type
         // ,'' // name
         // ,'' // wrap

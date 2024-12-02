@@ -3,6 +3,7 @@ namespace datalayer;
 
 use commonlib\GW_Debug;
 use commonlib\GW_Support;
+use DateInterval;
 use \TennisEvents;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -1512,6 +1513,11 @@ class Bracket extends AbstractData
         $this->is_approved = true;
         $this->setDirty();
 
+        if($this->getEvent()->getEventType() === EventType::TOURNAMENT
+        && $this->getEvent()->getFormat()    === Format::ELIMINATION) {
+            $this->getRoundTargetDates();
+        }
+
         return $this->matchHierarchy;
     }
     /**
@@ -1565,7 +1571,7 @@ class Bracket extends AbstractData
      * a 2-dimensional array[round number][match number]
      * @return array of matches by round and match number
      */
-    public function getMatchHierarchy( $force = false) {
+    public function getMatchHierarchy( $force = false ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log($loc);
 
@@ -1578,6 +1584,72 @@ class Bracket extends AbstractData
         }
 
         return $this->matchHierarchy;
+    }
+
+    /**
+     * Create array of target end dates for each round
+     * Places messages in comments of affected matches in this bracket
+     * i.e. byes are skipped
+     */
+    public function getRoundTargetDates() {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($loc);
+        $minEvtDays = get_option(TENNISEVENTS::OPTION_MINIMUM_DURATION_SUGGESTIONS,0);
+        $leadTime = get_option(TENNISEVENTS::OPTION_MINIMUM_LEADTIME);
+
+        $numRounds = $this->getNumberOfRounds();
+        $roundTargets = array();
+
+        $evtId = $this->getEvent()->toString();
+        $evtStart = $this->getEvent()->getStartDate();
+        $evtEnd   = $this->getEvent()->getEndDate();
+        
+        $startStr = $evtStart->format( "Y-m-d" );
+        $endStr = $evtEnd->format("Y-m-d");
+
+        $evtLen = $evtStart->diff(($evtEnd));
+        $evtLenStr = $evtLen->format("%a");
+        $evtLenInt = (int) $evtLenStr;
+        $this->log->error_log("{$loc}: {$evtId} Starts '{$startStr}', Ends '{$endStr}', interval  is {$evtLenStr} days");
+
+        if( $minEvtDays > 0 && $evtLenInt >  $minEvtDays ) {
+            $progress = clone $evtStart;
+            $totMatches = 0;
+            foreach( $this->getMatches() as $match) {
+                if(!$match->isBye()) ++$totMatches;
+            }
+
+            $hier = $this->getMatchHierarchy();
+            $ratio = $evtLenInt / $totMatches;
+            $this->log->error_log("{$loc}: totalMatches = {$totMatches} ratio = {$ratio}");
+            for($r=1;$r<=$numRounds;$r++) {
+                $numMatches = 0;
+                $matches = $hier[$r];
+                foreach($matches as $match ) {
+                    if(!$match->isBye()) ++$numMatches;
+                }
+                //$ratio = $numMatches / $totMatches;
+                $rndDays = round($ratio * $numMatches);
+
+                //The first round must leave at least the same as the lead time requested to create the draw
+                if(1 === $r ) $rndDays = max($rndDays,$leadTime);
+
+                $this->log->error_log("{$loc}: ({$numMatches} matches in round {$r} times {$ratio} gives {$rndDays} rndDays");
+                $rndInt = DateInterval::createFromDateString("{$rndDays} days");
+                $rndTarget = $progress->add($rndInt);
+                $rndTargetStr = $rndTarget->format("Y-m-d");
+                $this->log->error_log("{$loc}: round Target Date is '{$rndTargetStr}'");
+                $roundTargets[$r] = $rndTarget;
+                $progress = clone $rndTarget;
+            }
+
+            foreach($this->getMatches() as $match ) {
+                if($match->isBye()) continue;
+                $target = $roundTargets[$match->getRoundNumber()];
+                $targetCmts = sprintf("Complete by %s", $target->format('Y-m-d'));
+                $match->setComments($targetCmts);
+            }
+        }
     }
 
     /*----------------------------------------- Private Functions --------------------------------*/

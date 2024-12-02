@@ -146,7 +146,7 @@ class RenderRoundRobin
         $bracketName = urldecode($my_atts["bracketname"]);
 
         //Title prefix
-        $titlePrefix = filter_var($my_atts["titleprefix"], FILTER_SANITIZE_STRING );
+        $titlePrefix = strip_tags($my_atts["titleprefix"]);
 
         //Go
         $td = new TournamentDirector( $target );

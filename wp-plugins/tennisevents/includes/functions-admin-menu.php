@@ -101,6 +101,13 @@ function gw_tennis_custom_settings() {
                     ,'description' => __('The minimum lead time after signup ends.', TennisEvents::TEXT_DOMAIN)]
                 );
 
+    register_setting( 'gw-tennis-settings-group' //Options group
+                    , TennisEvents::OPTION_MINIMUM_DURATION_SUGGESTIONS //Option name used in get_option
+                    , ['type'=>'number'
+                    ,'sanitize_callback'=>'gw_sanitize_minimum_suggestions'
+                    ,'description' => __('The minimum duration (days) in an event beyond which suggested completion dates are produced.', TennisEvents::TEXT_DOMAIN)]
+                );
+
 
     add_settings_section( 'gw-tennis-options' //id
                         , __('Tennis Settings', TennisEvents::TEXT_DOMAIN) //title
@@ -156,6 +163,14 @@ function gw_tennis_custom_settings() {
                     , 'gw-tennis-options' // section
                     //,  array of args
                 );
+                                
+    add_settings_field( 'gw_tennis_minimum_suggestion' // id
+                    , __('Completion date suggestions', TennisEvents::TEXT_DOMAIN) // title
+                    , 'gw_tennisMinSuggestionTime' // callback
+                    , 'gwtennissettings' // page
+                    , 'gw-tennis-options' // section
+                    //,  array of args
+                );
 }
 
 function gw_tennis_options() {
@@ -207,6 +222,14 @@ function gw_tennisMinLeadTime() {
     $optName = TennisEvents::OPTION_MINIMUM_LEADTIME;
     echo "<input id='{$optName}' name='{$optName}' type='number' value='{$leadTime}' min='1' max='7' max= step='1' maxlength='4' size='4'>";
     $txt = __("days after signup ends",TennisEvents::TEXT_DOMAIN);
+    echo "<span>&nbsp;{$txt}</span>";
+}
+
+function gw_tennisMinSuggestionTime() {
+    $suggestTime = esc_attr( get_option(TennisEvents::OPTION_MINIMUM_DURATION_SUGGESTIONS, 0) );
+    $optName = TennisEvents::OPTION_MINIMUM_DURATION_SUGGESTIONS;
+    echo "<input id='{$optName}' name='{$optName}' type='number' value='{$suggestTime}' min='0' max='99' max= step='1' maxlength='4' size='4'>";
+    $txt = __("min days before completion dates are suggested for elimination tournaments (0 = no suggestions)",TennisEvents::TEXT_DOMAIN);
     echo "<span>&nbsp;{$txt}</span>";
 }
 
@@ -369,6 +392,32 @@ function gw_sanitize_minium_leadtime( $input ) {
     }
 
     add_settings_error('gw_tennisMinLeadTime', esc_attr('main_tennis_min_leadtime_updated'), $message, $type);
+
+    return $output;
+}
+  
+function gw_sanitize_minimum_suggestions( $input ) {
+    $message = null;
+    $type = null;
+    $output = 0;
+
+    if( !is_null( $input ) ) {
+        if( is_numeric( $input ) ) {
+            $output = $input;
+            $type = 'success';
+            $message = __('Tennis minimum suggestion time updated', TennisEvents::TEXT_DOMAIN );
+        }
+        else {
+            $type = 'error';
+            $message = __('Tennis minimum suggestion time setting must be numeric', TennisEvents::TEXT_DOMAIN );
+        }
+    }
+    else {
+        $type = 'error';
+        $message = __('Tennis minimum suggestion time must not be empty', TennisEvents::TEXT_DOMAIN );
+    }
+
+    add_settings_error('gw_tennisMinSuggestionTime', esc_attr('main_tennis_min_suggestiontime_updated'), $message, $type);
 
     return $output;
 }

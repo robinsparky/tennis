@@ -55,6 +55,7 @@ class TennisEvents {
 	public const OPTION_TENNIS_SEASON = 'gw_tennis_event_season';
 	public const OPTION_HOME_TENNIS_CLUB = 'gw_tennis_home_club';
 	public const OPTION_MINIMUM_LEADTIME = 'gw_tennis_event_min_leadtime';
+	public const OPTION_MINIMUM_DURATION_SUGGESTIONS = 'gw_tennis_event_min_days_suggestions';
 	
 	/**
 	 * Unique identifier for the plugin.
