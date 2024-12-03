@@ -18,9 +18,24 @@
 }
 
 #digiclock {
-  font-size: small;
-  color: #0030c0;
-  background-color: yellow;
+  font-size: large;
+  color: red;
+  background-color: white;
+  text-decoration: underline;
+}
+
+.tennis-draw-caption-dates>span:nth-child(odd) {
+  font-size: large;
+  color:black;
+  background-color: white;
+}
+
+.tennis-draw-caption-dates>span:nth-child(even) {
+  font-size: large;
+  color:black;
+  background-color: white;
+  font-style: italic;
+  text-decoration: underline;
 }
 
 /*-----------------------------------------------------
