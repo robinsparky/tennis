@@ -37,7 +37,7 @@ switch($totalRounds) {
 ?>
 <h2 id="parent-event-name"><?php echo $parentName; ?></h2>
 <h3 class='tennis-draw-caption'><?php echo $tournamentName ?>&#58;&nbsp;<?php echo $bracketName ?>&nbsp;(<?php echo $scoreRuleDesc ?>)</h3>
-<h5 class='tennis-draw-caption-dates'><span>Starts On</span>&nbsp;<span><?php echo $strEventStartDate;?></span>&semi;&nbsp;<span>Ends On</span>&nbsp;<span><?php echo $strEventEndDate;?></span>&semi;&nbsp;<span>And Today Is</span>&nbsp;<span><?php echo $now;?></span></h5>
+<h5 class='tennis-draw-caption-dates'><span>Starts</span>&colon;&nbsp;<span><?php echo $strEventStartDate;?></span>&nbsp;<span>Ends</span>&colon;&nbsp;<span><?php echo $strEventEndDate;?></span>&nbsp;<span id='digiclock'></span></h5>
 <!--Start of Grid-->
 <div id="<?php echo $bracketName;?>" class="drawgrid" style="<?php echo $cols;?>;" data-eventid="<?php echo $eventId;?>" 
 data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $championName;?>" data-championscore="<?php echo $championScore;?>" data-tournament="<?php echo $tournamentName; ?>">

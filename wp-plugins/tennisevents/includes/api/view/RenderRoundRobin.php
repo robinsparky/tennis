@@ -187,6 +187,8 @@ class RenderRoundRobin
         $umpire = $td->getChairUmpire();
         $scoreType = $td->getEvent()->getScoreType();
         $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
+        $strEventStartDate = $td->getEvent()->getStartDate()->format('Y-m-d');
+        $strEventEndDate = $td->getEvent()->getEndDate()->format('Y-m-d');
 
         $loadedMatches = $bracket->getMatchHierarchy();
         $numRounds = 0;
@@ -270,6 +272,8 @@ class RenderRoundRobin
         $umpire = $td->getChairUmpire();
         $scoreType = $td->getEvent()->getScoreType();
         $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
+        $strEventStartDate = $td->getEvent()->getStartDate()->format('Y-m-d');
+        $strEventEndDate = $td->getEvent()->getEndDate()->format('Y-m-d');
 
         $loadedMatches = $bracket->getMatchHierarchy();
         $numRounds = 0;
