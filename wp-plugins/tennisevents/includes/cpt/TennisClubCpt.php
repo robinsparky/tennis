@@ -336,7 +336,7 @@ class TennisClubCpt {
         //Temporary
         // $club = $this->getClubByExtRef( $post_id ) ?? $this->getClubByName($clubName);
         // if( empty($club) ) {
-        //     $this->log->error_log( "$loc - could not find club ${clubName}." );
+        //     $this->log->error_log( "$loc - could not find club {$clubName}." );
 		// 	return;
         // }
 

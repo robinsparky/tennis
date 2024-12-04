@@ -205,12 +205,12 @@ class TennisMembership {
 		
 	}   
 	
-	private function __wakeup() {}
-	private function __clone() {}	
+	// private function __wakeup() {}
+	// private function __clone() {}	
 
 }
 
-include_once( 'autoloader.php' );
+include_once( 'autoloaderm.php' );
 
 $tennisMembership = TennisMembership::get_instance();
 $GLOBALS['tennisMembership'] = $tennisMembership;

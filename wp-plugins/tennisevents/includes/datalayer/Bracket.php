@@ -1194,7 +1194,7 @@ class Bracket extends AbstractData
             $this->getMatches();
             $match = new TennisMatch( $this->getEvent()->getID(), $this->bracket_num, $round, $matchnum );
             $match->setIsBye( $bye );				
-            $match->setMatchType( $matchType );
+            //$match->setMatchType( $matchType );
             $match->setBracket( $this );
             if( isset( $home ) ) {
                 $match->setHomeEntrant( $home );
@@ -1484,12 +1484,13 @@ class Bracket extends AbstractData
 	public function getMatchType() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-		if( $this->numMatches() > 0 ) {
-			return $this->matches[0]->getMatchType();
-		}
-		else {
-			return $this->getEvent()->getMatchType();
-		}
+        return $this->getEvent()->getMatchType();
+		// if( $this->numMatches() > 0 ) {
+		// 	return $this->matches[0]->getMatchType();
+		// }
+		// else {
+		// 	return $this->getEvent()->getMatchType();
+		// }
     }
     
     /**
@@ -1723,7 +1724,7 @@ class Bracket extends AbstractData
                 $nextMatch = $this->getMatch( $nextRoundNum, $nextMatchNum );
                 if( is_null( $nextMatch ) ) {
                     $nextMatch = new TennisMatch( $this->getEventId(), $this->getID(), $nextRoundNum, $nextMatchNum );
-                    $nextMatch->setMatchType( $this->getEvent()->getMatchType() );
+                    //$nextMatch->setMatchType( $this->getEvent()->getMatchType() );
                     $this->addMatch( $nextMatch );
                     $this->log->error_log("$loc: NEW nextMatch = {$nextMatch->toString()}");
                 }

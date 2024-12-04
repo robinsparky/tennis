@@ -33,6 +33,6 @@
     }
 
     displayDigitalClock();
-    //setInterval(displayDigitalClock, 1000);
+    setInterval(displayDigitalClock, 1000);
   });
 })(jQuery);

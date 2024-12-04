@@ -369,20 +369,21 @@ class TennisMatch extends AbstractData
 	 * @param $mtype singles or dodubles
 	 * @return true if successful; false otherwise
 	 */
-	public function setMatchType( $mtype ) {
-		$result = false;
-        if( MatchType::isValid( $mtype ) ) {
-            $this->match_type = $mtype;
-            $result = $this->setDirty();
-        }
-		return $result;
-    }
+	// public function setMatchType( $mtype ) {
+	// 	$result = false;
+    //     if( MatchType::isValid( $mtype ) ) {
+    //         $this->match_type = $mtype;
+    //         $result = $this->setDirty();
+    //     }
+	// 	return $result;
+    // }
     
     /**
      * Get this TennisMatch's match type
      */
     public function getMatchType() {
-        return $this->match_type ?? 'unknown';
+        return $this->getBracket()->getMatchType();
+        //return $this->match_type ?? 'unknown';
     }
 
     /**
@@ -1078,11 +1079,6 @@ class TennisMatch extends AbstractData
              $code = 520;
              $this->log->error_log( "$loc: $mess" );
         }
-        elseif( !isset( $this->match_type ) ) {
-            $mess = __( "$id must have a match type." );
-            $code = 525;
-            $this->log->error_log( "$loc: $mess" );
-        }
         elseif( $this->round_num < 1 || $this->round_num > self::MAX_ROUNDS ) {
             $max = self::MAX_ROUNDS;
             $mess = __( "$id round number not between 1 and $max (inclusive)." );
@@ -1090,8 +1086,9 @@ class TennisMatch extends AbstractData
             $this->log->error_log( "$loc: $mess" );
         }
 
-        if( false === MatchType::isValid( $this->match_type ) ) {
-            $mess = __( "{$id} - TennisMatch Type is invalid: {$this->match_type}", TennisEvents::TEXT_DOMAIN );
+        if( false === MatchType::isValid( $this->getMatchType() ) ) {
+            $match_type = $this->getMatchType();
+            $mess = __( "{$id} - Match Type is invalid: '{$match_type}'", TennisEvents::TEXT_DOMAIN );
             $code = 560;
             $this->log->error_log( "$loc: $mess" );
         }
@@ -1312,7 +1309,7 @@ class TennisMatch extends AbstractData
                         ,'bracket_num' => $this->bracket_num 
                         ,'round_num'   => $this->round_num
                         ,'match_num'   => $this->match_num
-                        ,'match_type'  => $this->match_type
+                        ,'match_type'  => 9.9 //$this->match_type
                         ,'match_date'  => $this->getMatchUTCDateTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'next_round_num' => $this->next_round_num
@@ -1350,7 +1347,7 @@ class TennisMatch extends AbstractData
 		global $wpdb;
         parent::update();
 
-        $values = array( 'match_type'  => $this->match_type
+        $values = array( 'match_type'  => 9.9 //$this->match_type
                         ,'match_date'  => $this->getMatchUTCDateTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'next_round_num' => $this->next_round_num
@@ -1395,7 +1392,7 @@ class TennisMatch extends AbstractData
         $obj->bracket_num  = (int) $row["bracket_num"];
         $obj->round_num    = (int) $row["round_num"];
         $obj->match_num    = (int) $row["match_num"];
-        $obj->match_type   = (float) $row["match_type"];
+        //$obj->match_type   = (float) $row["match_type"];
         
         if( !empty($row["match_date"]) && $row["match_date"] !== '0000-00-00 00:00:00') {
             $st = new \DateTime( $row["match_date"], new \DateTimeZone('UTC') );
@@ -1405,7 +1402,7 @@ class TennisMatch extends AbstractData
             $obj->match_datetime = $st;
         }
         else {
-            $obj->match_date = null;
+            $obj->match_datetime = null;
         }
 
         $obj->is_bye       = $row["is_bye"] == 1 ? true : false;
