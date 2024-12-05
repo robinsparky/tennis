@@ -71,10 +71,10 @@
         document.getElementById("search-text").focus({focusVisible: true, preventScroll: false })
 
         let top = parseInt(searchButton.offsetTop) //- parseInt(searchButton.offsetHeight) * 1
-        let left = parseInt(searchButton.offsetLeft) //+ parseInt(searchButton.offsetWidth) * 1
+        let left = parseInt(searchButton.offsetLeft) //+ parseInt(searchButton.offsetWidth) * 1=
 
-        srchDialog.style.top = `{$top}px`
-        srchDialog.style.left = `{$left}px`
+        srchDialog.style.top = `${top}px`
+        srchDialog.style.left = `${left}px`
     }
 
     //Close the search/find dialog and remove highligts
@@ -91,8 +91,8 @@
         let getContainerStyle = window.getComputedStyle(srchDialog);
         let leftValue = parseInt(getContainerStyle.left);
         let topValue = parseInt(getContainerStyle.top);
-        srchDialog.style.left = `{$leftValue + movementX}px`;
-        srchDialog.style.top = `{$topValue + movementY}px`;
+        srchDialog.style.left = `${leftValue + movementX}px`;
+        srchDialog.style.top = `${topValue + movementY}px`;
     }
 
     //Action taken on mousedown event
@@ -108,6 +108,10 @@
      * On Document Ready
     */
     document.addEventListener("DOMContentLoaded", function() {
+        // console.log("Event Listener....")
+        // console.log(`Search Target Selector: ${srchTargetSelector}`)
+        // console.log(`Search Container Selector: ${srchContainerSelector}`)
+
         srchDialog = document.querySelector(".searchDialog")
         if(srchContainerSelector === "body") {
             srchContainer = document;
@@ -121,7 +125,7 @@
         document.querySelector('.search-content').addEventListener('input', function(event){
             let srchText = event.target.innerText.replaceAll(/[\n\f\r\t]/g,'');
             if(srchText.length > 1 ) {
-                const regex = `.*{$srchText}.*`;
+                const regex = `.*${srchText}.*`;
                 let reobj = new RegExp(regex,"i");
                 let textVal = "";
                 srchCandidates.forEach(function(element,index,array) {
