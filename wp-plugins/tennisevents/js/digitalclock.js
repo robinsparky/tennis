@@ -3,7 +3,7 @@
     console.log("Digital Clock");
 
     function formatDate(date) {
-      console.log("formatDate:%s",date);
+      //console.log("formatDate:%s",date);
       var d = date ? new Date(date) : new Date(),
         month = "" + (d.getMonth() + 1),
         day = "" + d.getDate(),
@@ -12,7 +12,7 @@
       if (month.length < 2) month = "0" + month;
       if (day.length < 2) day = "0" + day;
       let res = [year, month, day].join("-");
-      console.log(res);
+      //console.log(res);
       //res = d.toDateString();
       let ampm = d.getHours() >= 12 ? " pm" : " am";
       let hours = d.getHours() <= 12 ? d.getHours() : d.getHours() - 12;
