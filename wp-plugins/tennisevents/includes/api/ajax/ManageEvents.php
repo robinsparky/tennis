@@ -1161,6 +1161,7 @@ class ManageEvents
 
         $eventId = $data["eventId"];
         $newBracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
+        $newBracketName = strtr($newBracketName,[' '=>'']);
         $oldBracketName = strip_tags( htmlspecialchars( $data['oldBracketName'] ));
         $bracketNum = $data["bracketNum"];
         $mess = "";
@@ -1197,6 +1198,7 @@ class ManageEvents
 
         $eventId = $data["eventId"];
         $newBracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
+        $newBracketName = strtr($newBracketName,[' '=>'']);
         try {
             $event = Event::get( $eventId );
             if(!isset($event)) {
