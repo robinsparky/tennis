@@ -21,9 +21,6 @@ require_once( ABSPATH . 'wp-admin/includes/upgrade.php');
  * TM_Install Class.
  */
 class TM_Install {
-
-	const OPTION_NAME_VERSION = 'tennis_version';
-
 	const TOURNAMENTDIRECTOR_ROLENAME = "tennis_tournament_director";
 	const CHAIRUMPIRE_ROLENAME = "tennis_chair_umpire";
 	const TENNISPLAYER_ROLENAME = "tennis_player";
@@ -137,15 +134,54 @@ class TM_Install {
 	}
 	
 	protected function create_options() {
-		update_option( self::OPTION_NAME_VERSION , TennisEvents::VERSION, false );
+		update_option( TennisMembership::OPTION_NAME_VERSION , TennisMembership::VERSION, false );
 	}
+		
+	/**
+	 * Delete transient data
+	 */
+	protected function delete_transients() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		//delete any existing transients
+		// $transients = array(
+		// 	'myplugin_transient_1',
+		// 	'myplugin_transient_2',
+		// 	'myplugin_transient_3',
+		// );
+		// foreach ($transients as $transient) {
+		// 	delete_transient($transient);
+		// }
+	}
+
+	/**
+	 * Delete cron jobs
+	 */
+	protected function delete_cron_jobs() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		//delete cron jobs
+		// $timestamp = wp_next_scheduled('myplugin_cron_event');
+		// wp_unschedule_event($timestamp, 'myplugin_cron_event');
+
+	}
+
+	/**
+	 * Delete user meta data
+	 */
+	protected function delete_user_meta() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+	// 	$users = get_users();
+	// 	foreach ($users as $user) {
+	// 		delete_user_meta($user->ID, 'myplugin_user_meta');
+	// 	}
+	}
+
 	
 	/**
 	 * Delete options for this plugin
 	 */
 	protected function delete_options() {
-		delete_option( self::OPTION_NAME_VERSION );
-		delete_option( TennisEvents::OPTION_NAME_SEEDED );
+		delete_option( TennisMembership::OPTION_NAME_VERSION );
+		//delete_option( TennisMembership::OPTION_NAME_SEEDED );
 	}
 
 	/**
@@ -400,16 +436,6 @@ class TM_Install {
 		$sql = $sql . "," . $this->dbTableNames["person"];
 
 		return $wpdb->query( $sql );
-	}
-
-	/**
-	 * Check version and run the updater if required.
-	 * This check is done on all requests and runs if the versions do not match.
-	 */
-	public function check_version() {
-		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisMembership::VERSION ) {
-			//TODO: Do Something???
-		}
 	}
 
 	public function enqueue_style() {

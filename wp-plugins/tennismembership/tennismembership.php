@@ -36,6 +36,7 @@ class TennisMembership {
 	 * @var     string
 	 */
 	public const VERSION = '1.0.0';
+	const OPTION_NAME_VERSION = 'tennismember_version';
 	
 	/**
 	 * Unique identifier for the plugin.
@@ -88,26 +89,14 @@ class TennisMembership {
 	}
 
 	public function plugin_setup() {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->includes();
 		$this->log = new BaseLogger( true );
+		$this->log->error_log("$loc: created logger!");
+		$support = new GW_Support();
+		$this->log->error_log("$loc: created GW Support!");
+		$this->check_version();
 		$this->setup();
-	}
-	
-	private function includes() {
-		//include_once( 'includes/class-controller-manager.php' );
-		//include_once( 'includes/class-tennis-install.php' );
-		// include_once( 'includes/functions-admin-menu.php' );
-		// include_once( 'includes/tennis-template-loader.php' );
-
-		// if ( defined( 'WP_CLI' ) && WP_CLI ) {
-		// 	include_once( 'includes/commandline/class-clubcommands.php' );
-		// 	include_once( 'includes/commandline/class-eventcommands.php' );
-		// 	include_once( 'includes/commandline/class-cmdlinesupport.php' );
-		// 	include_once( 'includes/commandline/class-environmentcommands.php' );
-		// 	include_once( 'includes/commandline/class-showcommands.php' );
-		// 	include_once( 'includes/commandline/class-tournamentcommands.php' );
-		// 	include_once( 'includes/commandline/class-signupcommands.php' );
-		// }
 	}
 
 	public function enqueue_admin( $hook ) {
@@ -190,7 +179,35 @@ class TennisMembership {
 		// 	//$this->log->error_log($query, "Query Object After");
 		// }
 	}
-	
+		
+	private function includes() {
+		//include_once( 'includes/class-controller-manager.php' );
+		//include_once( 'includes/class-tennis-install.php' );
+		// include_once( 'includes/functions-admin-menu.php' );
+		// include_once( 'includes/tennis-template-loader.php' );
+
+		// if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		// 	include_once( 'includes/commandline/class-clubcommands.php' );
+		// 	include_once( 'includes/commandline/class-eventcommands.php' );
+		// 	include_once( 'includes/commandline/class-cmdlinesupport.php' );
+		// 	include_once( 'includes/commandline/class-environmentcommands.php' );
+		// 	include_once( 'includes/commandline/class-showcommands.php' );
+		// 	include_once( 'includes/commandline/class-tournamentcommands.php' );
+		// 	include_once( 'includes/commandline/class-signupcommands.php' );
+		// }
+	}
+			
+	/**
+	 * Check version and run the updater if required.
+	 * This check is done on all requests and runs if the versions do not match.
+	 */
+	private function check_version() {
+		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisMembership::VERSION ) {
+			//TODO: inlcude a file to perform the upgrade to this plugin
+			update_option( self::OPTION_NAME_VERSION , TennisMembership::VERSION );
+		}
+	}
+
 	/**
 	 * Setup this plugin
 	 * @since  1.0
