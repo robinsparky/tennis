@@ -1161,9 +1161,10 @@ class ManageEvents
 
         $eventId = $data["eventId"];
         $newBracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
-        $newBracketName = strtr($newBracketName,[' '=>'']);
+        $newBracketName = preg_replace('/\s+/u', '', $newBracketName);
         $oldBracketName = strip_tags( htmlspecialchars( $data['oldBracketName'] ));
         $bracketNum = $data["bracketNum"];
+
         $mess = "";
         try {
             $event = Event::get( $eventId );
@@ -1198,7 +1199,8 @@ class ManageEvents
 
         $eventId = $data["eventId"];
         $newBracketName = strip_tags( htmlspecialchars( $data["bracketName"] ));
-        $newBracketName = strtr($newBracketName,[' '=>'']);
+        $newBracketName = preg_replace('/\s+/u', '', $newBracketName);
+
         try {
             $event = Event::get( $eventId );
             if(!isset($event)) {

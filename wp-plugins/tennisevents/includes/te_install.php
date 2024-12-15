@@ -26,9 +26,6 @@ require_once( ABSPATH . 'wp-admin/includes/upgrade.php');
  * TE_Install Class.
  */
 class TE_Install {
-
-	const OPTION_NAME_VERSION = 'tennis_version';
-
 	const TOURNAMENTDIRECTOR_ROLENAME = "tennis_tournament_director";
 	const CHAIRUMPIRE_ROLENAME = "tennis_chair_umpire";
 	const TENNISPLAYER_ROLENAME = "tennis_player";
@@ -145,26 +142,69 @@ class TE_Install {
 	public function uninstall() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
+		// exit if uninstall constant is not defined
+		if (!defined('WP_UNINSTALL_PLUGIN')) exit;
 
 		$this->removeCap();
 		$this->removeRoles();
 		$this->delete_options();
 		$this->delete_customPostTypes();
 		$this->delete_customTaxonomies();
+		$this->delete_transients();
+		$this->delete_cron_jobs();
+		$this->delete_user_meta();
 		$this->dropSchema();
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
 	
 	protected function create_options() {
-		update_option( self::OPTION_NAME_VERSION , TennisEvents::VERSION, false );
+		update_option( TennisEvents::OPTION_NAME_VERSION , TennisEvents::VERSION, false );
 	}
 	
+	/**
+	 * Delete transient data
+	 */
+	protected function delete_transients() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		//delete any existing transients
+		// $transients = array(
+		// 	'myplugin_transient_1',
+		// 	'myplugin_transient_2',
+		// 	'myplugin_transient_3',
+		// );
+		// foreach ($transients as $transient) {
+		// 	delete_transient($transient);
+		// }
+	}
+
+	/**
+	 * Delete cron jobs
+	 */
+	protected function delete_cron_jobs() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		//delete cron jobs
+		// $timestamp = wp_next_scheduled('myplugin_cron_event');
+		// wp_unschedule_event($timestamp, 'myplugin_cron_event');
+
+	}
+
 	/**
 	 * Delete options for this plugin
 	 */
 	protected function delete_options() {
-		delete_option( self::OPTION_NAME_VERSION );
+		delete_option( TennisEvents::OPTION_NAME_VERSION );
 		delete_option( TennisEvents::OPTION_NAME_SEEDED );
+	}
+
+	/**
+	 * Delete user meta data
+	 */
+	protected function delete_user_meta() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+	// 	$users = get_users();
+	// 	foreach ($users as $user) {
+	// 		delete_user_meta($user->ID, 'myplugin_user_meta');
+	// 	}
 	}
 
 	/**
@@ -649,8 +689,8 @@ class TE_Install {
 				`bracket_num` INT NOT NULL DEFAULT 0, 
 				`round_num` INT NOT NULL  DEFAULT 0, 
 				`match_num` INT NOT NULL  DEFAULT 0, 
-				`match_type` DECIMAL(3,1) NOT NULL COMMENT '1.1=mens singles, 1.2=ladies singles, 2.1=mens doubles, 2.2=ladies doubles, 2.3=mixed doubles', 
-				`match_date` DATETIME NULL, 
+				`match_date` DATETIME NULL, 				
+				`expected_end` DATETIME NULL, 
 				`is_bye` TINYINT DEFAULT 0, 
 				`next_round_num` INT DEFAULT 0, 
 				`next_match_num` INT DEFAULT 0, 
@@ -934,16 +974,6 @@ class TE_Install {
 		$sql = $sql . "," . $this->dbTableNames["club"];
 
 		return $wpdb->query( $sql );
-	}
-
-	/**
-	 * Check version and run the updater if required.
-	 * This check is done on all requests and runs if the versions do not match.
-	 */
-	public function check_version() {
-		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisEvents::VERSION ) {
-			//TODO: Do Something???
-		}
 	}
 	
 	//shortcode: tennis_brackets clubId=number eventId=number

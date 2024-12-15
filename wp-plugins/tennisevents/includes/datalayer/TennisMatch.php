@@ -37,7 +37,7 @@ class TennisMatch extends AbstractData
     private static $outtimeformat1 = "G:i"; 
     private static $outtimeformat2 = "g:i a";
     
-    private $match_type; 
+    private $expected_end; 
     private $bracket;
 
     //Primary key---
@@ -100,26 +100,26 @@ class TennisMatch extends AbstractData
             $eventId = $fk_criteria["event_ID"];
             $bracket = $fk_criteria["bracket_num"];
             $round = $fk_criteria["round_num"];
-            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
+            $sql = "SELECT event_ID,bracket_num,round_num,match_num,expected_end,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d AND round_ID = %d;";
             $safe = $wpdb->prepare( $sql, $eventId, $bracket, $round );
         }
         elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) ) {
             $eventId = $fk_criteria["event_ID"];
             $bracket = $fk_criteria["bracket_num"];
-            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
+            $sql = "SELECT event_ID,bracket_num,round_num,match_num,expected_end,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d;";
             $safe = $wpdb->prepare( $sql, $eventId, $bracket );
         }
         elseif( 3 === count( $fk_criteria ) ) {
             list( $eventId, $bracketnum, $round ) = $fk_criteria;
-            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
+            $sql = "SELECT event_ID,bracket_num,round_num,match_num,expected_end,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d AND round_num = %d;";
             $safe = $wpdb->prepare( $sql, $eventId, $bracketnum, $round );
         }
         elseif( 2 === count( $fk_criteria ) ) {
             list( $eventId, $bracket ) = $fk_criteria;
-            $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments 
+            $sql = "SELECT event_ID,bracket_num,round_num,match_num,expected_end,match_date,is_bye,next_round_num,next_match_num,comments 
                     FROM $table WHERE event_ID = %d AND bracket_num = %d;";
             $safe = $wpdb->prepare( $sql, $eventId, $bracket );
         }
@@ -152,7 +152,7 @@ class TennisMatch extends AbstractData
         $obj = NULL;
         if( count( $pks ) !== 4 ) return $obj;
         
-        $sql = "SELECT event_ID,bracket_num,round_num,match_num,match_type,match_date,is_bye,next_round_num,next_match_num,comments  
+        $sql = "SELECT event_ID,bracket_num,round_num,match_num,expected_end,match_date,is_bye,next_round_num,next_match_num,comments  
                 FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d AND match_num=%d;";
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
@@ -364,26 +364,12 @@ class TennisMatch extends AbstractData
         return $this->next_match_num;
     }
     
-	/**
-	 * Choose whether this match is a mens, ladies or mixed event.
-	 * @param $mtype singles or dodubles
-	 * @return true if successful; false otherwise
-	 */
-	// public function setMatchType( $mtype ) {
-	// 	$result = false;
-    //     if( MatchType::isValid( $mtype ) ) {
-    //         $this->match_type = $mtype;
-    //         $result = $this->setDirty();
-    //     }
-	// 	return $result;
-    // }
-    
     /**
      * Get this TennisMatch's match type
+     * Taken from its owning Bracket
      */
     public function getMatchType() {
         return $this->getBracket()->getMatchType();
-        //return $this->match_type ?? 'unknown';
     }
 
     /**
@@ -453,6 +439,7 @@ class TennisMatch extends AbstractData
         $this->match_datetime->setTimeStamp( $timestamp );
     }
 
+    
     /**
      * Get the localized DateTime object representing the start date/time of the match
      * @return object DateTime or null
@@ -711,6 +698,181 @@ class TennisMatch extends AbstractData
         $this->log->error_log("$loc: returning '{$result}'");
         return $result;
     }
+
+    
+    /**
+     * Set the expected end date of the match. 
+     * This date will be stored in the db as a UTC date.
+     * @param $date is local date in string in Y-m-d format
+     */
+    public function setExpectedEndDate_Str( string $date = '' ) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $result = false;
+        $tz = TennisEvents::getTimeZone();
+        $this->log->error_log("$loc:('{$date}')");
+
+        if( empty( $date ) ) {
+            $this->expected_end = null;
+			$result = $this->setDirty();
+        }
+        else {
+            try {
+                $dt_local = new \DateTime( $date, $tz );
+                $this->expected_end = $dt_local;
+                $this->expected_end->setTimezone(new \DateTimeZone('UTC'));
+                $result = $this->setDirty();
+                return $result; //early return
+            }
+            catch( \Exception $ex ) {
+                $this->log->error_log("$loc: failed to construct using '{$date}'");
+            }
+
+            $test = \DateTime::createFromFormat("Y-m-d G:i", $date );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d H:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d g:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d h:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d G:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d H:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d g:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d h:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y G:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y H:i", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date, $tz );
+            
+            $last = \DateTIme::getLastErrors();
+            if( $last['error_count'] > 0 ) {
+                $arr = $last['errors'];
+                $mess = '';
+                foreach( $arr as $err ) {
+                    $mess .= $err.':';
+                }
+                throw new InvalidMatchException( $mess );
+            }
+            elseif( $test instanceof \DateTime ) {
+                $this->expected_end = $test;
+                $this->expected_end->setTimezone( new \DateTimeZone('UTC'));
+                $result = $this->setDirty();
+            }
+        }
+
+        return $result;
+    }
+
+    public function setExpectedEndDate_TS( int $timestamp ) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log("$loc:{$this->toString()}($timestamp)");
+
+        if( !isset( $this->expected_end ) ) $this->expected_end = new \DateTime('now', new \DateTimeZone('UTC'));
+        $this->expected_end->setTimeStamp( $timestamp );
+    }
+    
+    /**
+     * Get the localized DateTime object representing the expected end date/time of the match
+     * @return object DateTime or null
+     */
+    public function getExpectedEndDateTime() {
+        if(empty($this->expected_end ) ) return null;
+        else {
+            $temp = clone $this->expected_end;
+            return $temp->setTimezone(TennisEvents::getTimeZone());
+        }
+    } 
+    
+    /**
+    * Get the UTC DateTime object representing the expected end time of the match
+    * @return object DateTime or null
+    */
+   public function getExpectedEndUTCDateTime() {
+       return $this->expected_end;
+   }
+
+	/**
+	 * Get the local TennisMatch expected end date in string format
+	 */
+	public function getExpectedEndDate_Str() {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->expected_end, $loc);
+
+		if( !isset( $this->expected_end ) || is_null( $this->expected_end ) ) {
+            return '';
+        }
+		else {
+            $temp = clone $this->expected_end;
+            return $temp->setTimezone(TennisEvents::getTimeZone())->format( self::$outdateformat );
+        }
+	}
+
+    /**
+	 * Get the UTC TennisMatch expected end date in string format
+	 */
+	public function getExpectedEndUTCDate_Str() {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->expected_end, $loc);
+
+		if( !isset( $this->expected_end ) || is_null( $this->expected_end ) ) {
+            return '';
+        }
+		else return $this->expected_end->format( self::$outdateformat );
+	}
+    
+	/**
+	 * Get the local TennisMatch expected end date AND time in string format
+	 */
+	public function getExpectedEndDateTime_Str( int $formatNum=1) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->expected_end, $loc);
+
+        $result = '';
+        $format = self::$outdatetimeformat1;
+        switch($formatNum) {
+            case 1:
+                $format = self::$outdatetimeformat1;
+                break;
+            case 2:
+                $format = self::$outdatetimeformat2;
+                break;
+            default:
+                $format = self::$outdatetimeformat1;
+        }
+        
+		if( isset( $this->expected_end ) ) {
+            $temp = clone $this->expected_end;
+            $result = $temp->setTimezone(TennisEvents::getTimeZone())->format($format);
+        }
+		
+        $this->log->error_log("$loc: returning {$result}");
+        return $result;
+	}
+	    
+	/**
+	 * Get the local TennisMatch expected end date AND time in string format
+	 */
+	public function getExpectedEndUTCDateTime_Str( int $formatNum=1) {
+        $loc = __CLASS__ . ":" . __FUNCTION__;
+        $this->log->error_log( $this->expected_end, $loc);
+
+        $result = '';
+        $format = self::$outdatetimeformat1;
+        switch($formatNum) {
+            case 1:
+                $format = self::$outdatetimeformat1;
+                break;
+            case 2:
+                $format = self::$outdatetimeformat2;
+                break;
+            default:
+                $format = self::$outdatetimeformat1;
+        }
+        
+		if( isset( $this->expected_end ) ) {
+            $temp = clone $this->expected_end;
+            $result = $temp->setTimezone(TennisEvents::getTimeZone())->format($format);
+        }
+		
+        $this->log->error_log("$loc: returning {$result}");
+        return $result;
+	}
 
     public function setIsBye( bool $by = false ) {
         $this->is_bye = $by;
@@ -1185,7 +1347,7 @@ class TennisMatch extends AbstractData
                ,"bracketNumber"=>$this->bracket_num
                ,"roundNumber"=>$this->getRoundNumber()
                ,"matchNumber"=>$this->getMatchNumber()
-               ,"matchType" => $this->match_type
+               ,"matchType" => $this->getMatchType()
                ,"isBye"     => $this->isBye()
                ,"homeEntrant"=>$homeName
                ,"visitorEntrant"=>$visitorName
@@ -1302,20 +1464,20 @@ class TennisMatch extends AbstractData
             $sql = "SELECT IFNULL(MAX(match_num),0) FROM $table WHERE event_ID=%d AND bracket_num=%d AND round_num=%d;";
             $safe = $wpdb->prepare( $sql, $this->event_ID, $this->bracket_num, $this->round_num );
             $this->match_num = $wpdb->get_var( $safe ) + 1;
-            $this->log->error_log( sprintf( "TennisMatch::create -> creating '%s' with match type = '%s'", $this->toString(), $this->match_type ) );
+            $this->log->error_log( sprintf( "TennisMatch::create -> creating '%s' with match type = '%s'", $this->toString(), $this->getMatchType() ) );
         }
 
         $values = array( 'event_ID'    => $this->event_ID
                         ,'bracket_num' => $this->bracket_num 
                         ,'round_num'   => $this->round_num
                         ,'match_num'   => $this->match_num
-                        ,'match_type'  => 9.9 //$this->match_type
+                        ,'expected_end'  => $this->getExpectedEndUTCDateTime_Str()
                         ,'match_date'  => $this->getMatchUTCDateTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'next_round_num' => $this->next_round_num
                         ,'next_match_num' => $this->next_match_num
                         ,'comments'    => $this->comments );
-        $formats_values = array( '%d', '%d', '%d', '%d', '%f', '%s', '%d', '%d', '%d', '%s' );
+        $formats_values = array( '%d', '%d', '%d', '%d', '%s', '%s', '%d', '%d', '%d', '%s' );
 		$wpdb->insert( $wpdb->prefix . self::$tablename, $values, $formats_values );
         $result = $wpdb->rows_affected;
         $wpdb->query( "UNLOCK TABLES;" );
@@ -1347,13 +1509,13 @@ class TennisMatch extends AbstractData
 		global $wpdb;
         parent::update();
 
-        $values = array( 'match_type'  => 9.9 //$this->match_type
+        $values = array( 'expected_end'  => $this->getExpectedEndUTCDateTime_Str()
                         ,'match_date'  => $this->getMatchUTCDateTime_Str()
                         ,'is_bye'      => $this->is_bye ? 1 : 0
                         ,'next_round_num' => $this->next_round_num
                         ,'next_match_num' => $this->next_match_num
                         ,'comments'    => $this->comments );
-		$formats_values = array( '%f', '%s', '%d', '%d', '%d', '%s' );
+		$formats_values = array( '%s', '%s', '%d', '%d', '%d', '%s' );
         $where          = array( 'event_ID'  => $this->event_ID
                                , 'bracket_num' => $this->bracket_num
                                , 'round_num' => $this->round_num
@@ -1392,7 +1554,6 @@ class TennisMatch extends AbstractData
         $obj->bracket_num  = (int) $row["bracket_num"];
         $obj->round_num    = (int) $row["round_num"];
         $obj->match_num    = (int) $row["match_num"];
-        //$obj->match_type   = (float) $row["match_type"];
         
         if( !empty($row["match_date"]) && $row["match_date"] !== '0000-00-00 00:00:00') {
             $st = new \DateTime( $row["match_date"], new \DateTimeZone('UTC') );
@@ -1403,6 +1564,17 @@ class TennisMatch extends AbstractData
         }
         else {
             $obj->match_datetime = null;
+        }
+               
+        if( !empty($row["expected_end"]) && $row["expected_end"] !== '0000-00-00 00:00:00') {
+            $st = new \DateTime( $row["expected_end"], new \DateTimeZone('UTC') );
+            $mess = print_r($st,true);
+            error_log("$loc: DateTime using expected_end ...");
+            error_log($mess);
+            $obj->expected_end = $st;
+        }
+        else {
+            $obj->expected_end = null;
         }
 
         $obj->is_bye       = $row["is_bye"] == 1 ? true : false;

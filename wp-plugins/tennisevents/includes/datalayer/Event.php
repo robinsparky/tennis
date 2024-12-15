@@ -281,7 +281,7 @@ class Event extends AbstractData
 
 	/**
 	 * Remove all events that fall outside of the history retention period.
-	 * NOT USED YET
+	 * TODO: NOT USED YET
 	 * @return int the number of events removed
 	 */
 	static public function removeOldEvents() {
@@ -768,7 +768,7 @@ class Event extends AbstractData
 	 * Get the signup by date of this event as a DateTime object
 	 * @return DateTime
 	 */
-	public function getSignupBy() {
+	public function getSignupBy() : DateTime {
 		return $this->signup_by;
 	}
 	
@@ -812,7 +812,7 @@ class Event extends AbstractData
 	 * as a DateTime object
 	 * @return DateTime
 	 */
-	public function getStartDate() {
+	public function getStartDate() : DateTime {
 		return $this->start_date;
 	}
 	
@@ -960,7 +960,7 @@ class Event extends AbstractData
 	 * Get the end date for this event as a DateTime object
 	 * @return DateTime 
 	 */
-	public function getEndDate() {
+	public function getEndDate() : DateTime {
 		return $this->end_date;
 	}
 

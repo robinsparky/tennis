@@ -1514,9 +1514,10 @@ class Bracket extends AbstractData
         $this->is_approved = true;
         $this->setDirty();
 
+        //Assign expected/target end dates for each match depending on the round it falls into
         if($this->getEvent()->getEventType() === EventType::TOURNAMENT
         && $this->getEvent()->getFormat()    === Format::ELIMINATION) {
-            $this->getRoundTargetDates();
+            $this->assignRoundTargetDates();
         }
 
         return $this->matchHierarchy;
@@ -1592,7 +1593,7 @@ class Bracket extends AbstractData
      * Places messages in comments of affected matches in this bracket
      * i.e. byes are skipped
      */
-    public function getRoundTargetDates() {
+    public function assignRoundTargetDates() {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log($loc);
         $minEvtDays = get_option(TENNISEVENTS::OPTION_MINIMUM_DURATION_SUGGESTIONS,0);
@@ -1649,6 +1650,7 @@ class Bracket extends AbstractData
                 $target = $roundTargets[$match->getRoundNumber()];
                 $targetCmts = sprintf("Complete by %s", $target->format('Y-m-d'));
                 $match->setComments($targetCmts);
+                $match->setExpectedEndDate_Str($target->format('Y-m-d'));
             }
         }
     }

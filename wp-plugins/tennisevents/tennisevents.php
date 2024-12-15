@@ -48,7 +48,9 @@ class TennisEvents {
 	 * @since   1.0.0
 	 * @var     string
 	 */
-	public const VERSION = '1.0.0';
+	
+	public const OPTION_NAME_VERSION = 'tennis_version';
+	public const VERSION = '1.0.1';
 	public const OPTION_NAME_SEEDED  = 'data_seeded';
 	public const OPTION_HISTORY_RETENTION_DEFAULT = 5;
     public const OPTION_HISTORY_RETENTION = 'gw_tennis_event_history';
@@ -133,6 +135,9 @@ class TennisEvents {
 		$this->log->error_log("$loc: created logger!");
 		$support = new GW_Support();
 		$this->log->error_log("$loc: created GW Support!");
+
+		$this->check_version();
+
 		$this->setup();
 		//Temporary test of CF7 filter
 		//$this->addCF7Filters();
@@ -209,22 +214,6 @@ class TennisEvents {
 			$this->log->error_log("wpcf7 Id: $html_class");
 			return $html_class;
 		});
-	}
-	
-	private function includes() {
-		//include_once( 'includes/class-controller-manager.php' );
-		include_once( 'includes/functions-admin-menu.php' );
-		include_once( 'includes/tennis-template-loader.php' );
-
-		if ( defined( 'WP_CLI' ) /**&& WP_CLI**/ ) {
-			include_once( 'includes/commandline/ClubCommands.php' );
-			include_once( 'includes/commandline/EventCommands.php' );
-			include_once( 'includes/commandline/CmdlineSupport.php' );
-			include_once( 'includes/commandline/EnvironmentCommands.php' );
-			include_once( 'includes/commandline/ShowCommands.php' );
-			include_once( 'includes/commandline/TournamentCommands.php' );
-			include_once( 'includes/commandline/SignupCommands.php' );
-		}
 	}
 
 	public function enqueue_admin( $hook ) {
@@ -368,7 +357,54 @@ class TennisEvents {
 			//$this->log->error_log($query, "Query Object After");
 		}
 	}
-	
+		
+	private function includes() {
+		//include_once( 'includes/class-controller-manager.php' );
+		include_once( 'includes/functions-admin-menu.php' );
+		include_once( 'includes/tennis-template-loader.php' );
+
+		if ( defined( 'WP_CLI' ) /**&& WP_CLI**/ ) {
+			include_once( 'includes/commandline/ClubCommands.php' );
+			include_once( 'includes/commandline/EventCommands.php' );
+			include_once( 'includes/commandline/CmdlineSupport.php' );
+			include_once( 'includes/commandline/EnvironmentCommands.php' );
+			include_once( 'includes/commandline/ShowCommands.php' );
+			include_once( 'includes/commandline/TournamentCommands.php' );
+			include_once( 'includes/commandline/SignupCommands.php' );
+		}
+	}
+		
+	/**
+	 * Check version and run the updater if required.
+	 * This check is done on all requests but only runs if the versions do not match.
+	 */
+	private function check_version() {
+		$loc = __FILE__ . '::' . __FUNCTION__;
+		$this->log->error_log("{$loc}");
+		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisEvents::VERSION ) {
+			try {
+				$version = TennisEvents::VERSION;
+				$path = $this->getPluginPath() . 'versions\\' . "{$version}" . '\versionUpgrader.php';
+				$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+				if(file_exists($path)) {
+					require $path;
+					update_option( self::OPTION_NAME_VERSION , TennisEvents::VERSION );
+				}
+			}
+			catch(Exception | WP_Error $ex) {
+				$mess = "???";
+				if(is_wp_error($ex)) {
+					$mess = $ex->get_error_message();
+				}
+				else {
+					$mess = $ex->getMessage();
+				}
+				$this->log->error_log("{$loc}: {$mess}");
+				wp_die($mess);
+			}
+		}
+	}
+	 
 	/**
 	 * Setup this plugin
 	 * @since  1.0
