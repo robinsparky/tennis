@@ -525,17 +525,18 @@
                   let newEntrant = {'position': id, 'name': playerName, 'seed':0, 'partner': addinfo}
                   bulkEntrants.push(newEntrant)
                 }
-                //Remove duplicates based on additional info
+                //Remove duplicates based on additional info (i.e. doubles)
                 console.log("bulkEntrants.length=%d",bulkEntrants.length)
                 let slimEntrants = [];
                 bulkEntrants.forEach(entrant => {
                   let found = false;
+                  let entpartner = entrant.partner.trim().toLowerCase();
                   for(i=0;i<slimEntrants.length;i++) {
-                    let sname = slimEntrants[i].name
-                    let bpartner = entrant.partner;
-                    let res = sname.toLowerCase().indexOf(bpartner.trim().toLowerCase()) 
-                    if( res > -1) {
-                      console.log(`slim name ${sname} matched entrant partner ${bpartner}`)
+                    let slimname = slimEntrants[i].name.trim().toLowerCase()
+                    let res = slimname.indexOf(entpartner) 
+                    //console.log("%d. Comparing '%s' with '%s' and res=%d",i, slimname, entpartner, res);
+                    if( entpartner != '' && res > -1) {
+                      //console.log(`>>>>>slim name ${slimname} matched entrant partner ${entpartner}`)
                       found = true;
                     }
                   }
@@ -551,18 +552,9 @@
                 signupData.clubId = $(".signupContainer").attr("data-clubid");
                 signupData.eventId = $(".signupContainer").attr("data-eventid");
                 signupData.bracketName = $(".signupContainer").attr("data-bracketname");
-                //NOTE: slimEntrants will always get the first entrant from bulk
-                // but should not get any more in a singles tournament as the additional info cell should not name other players
-                if(slimEntrants.length > 1) { 
-                    slimEntrants.forEach(element => {
-                    signupData.entrants.push(element);          
-                  });
-                }
-                else {
-                    bulkEntrants.forEach(element => {
-                    signupData.entrants.push(element);          
-                  });
-                }
+                slimEntrants.forEach(element => {
+                  signupData.entrants.push(element);          
+                });
                 console.log(signupData)
                 ajaxFun(signupData);
           }
