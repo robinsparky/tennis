@@ -248,7 +248,7 @@ class TennisEvents {
 		TennisEvents::getInstaller()->uninstall();
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 	}
-	
+
 	/**
 	 * Init Tennis Events 
 	 */
@@ -424,7 +424,7 @@ class TennisEvents {
 		//add_action( 'rest_api_init', array( self::getControllerManager(), 'register_tennis_rest_routes' ) );
 		add_action( 'admin_enqueue_scripts', array( $this,'enqueue_admin') );
 		add_action( 'pre_get_posts', array( $this, 'archive_tennisevent_query' ) );
-		
+				
 		$this->log->error_log("<<<<<<<<<<<$loc end<<<<<<<<<<<");
 	}   
 	

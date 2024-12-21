@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<xs:complexType name="member">
+    <xs:sequence>
+        <xs:element name="id" type="xs:positiveInteger"/>
+        <xs:element name="firstname" type="xs:string"/>
+        <xs:element name="lastname" type="xs:string"/>
+        <xs:element name="appliedtime" type="xs:dateTime"/>
+        <xs:element name="status" type="xs:string"/>
+        <xs:element name="gender" type="xs:string"/>
+        <xs:element name="birthdate" type="xs:date"/>
+        <xs:element name="age" type="xs:positiveInteger"/>
+        <xs:element name="membertype" type="xs:string"/>
+        <xs:element name="email" type="xs:string"/>
+        <xs:element name="dayphone" type="xs:string"/>
+        <xs:element name="nightphone" type="xs:string"/>
+        <xs:element name="cellphone" type="xs:string"/>
+        <xs:element name="emergencycontact" type="xs:string"/>
+        <xs:element name="emergencyphone" type="xs:string"/>
+        <xs:element name="additionalinfo" type="xs:string"/>
+    </xs:sequence>
+</xs:complexType>
+<xs:complexType name="signupType">
+    <xs:sequence>
+        <xs:element name="player" maxOccurs="unbounded" type="member"/>
+    </xs:sequence>
+</xs:complexType>
+<xs:element name="signup" type="signupType"/>
+</xs:schema>

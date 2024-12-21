@@ -1153,6 +1153,14 @@ button.cancelmatchstart {
 /*-----------------------------------------------------------------
  * Signup styling
  *----------------------------------------------------------------*/
+.hidden {
+  display: none;
+}
+
+.uploadentrants {
+  position: relative;
+}
+
 .eventSignup {
   width: 75%;
   list-style: none;
@@ -1249,6 +1257,7 @@ a.entrantDelete:active {
   box-sizing: border-box;
   border-radius: 8px;
   text-transform: none;
+  font-size: 14px;
 }
 
 div.bracketDrawButtons {

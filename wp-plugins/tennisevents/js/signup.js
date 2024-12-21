@@ -111,6 +111,10 @@
         //toggleButtons( data.numPreliminary );
         window.location = $("a.link-to-draw").attr("href");
       }
+      else if (data.task.startsWith("addBulk")) {
+        window.location.reload();
+        return
+      }
 
       ctr = 1;
       for (var i = 0; i < data.entrants.length; i++) {
@@ -468,6 +472,106 @@
         bracketName: bracketName,
       });
     });
+    
+    /***********XML File ******************************************************/
+    
+    $("#entrant_uploads_file").css("opacity","0")
+    let bulkEntrants = []
+    let uploadInput = document.getElementById('entrant_uploads_file')
+    if(null !== uploadInput) {
+          uploadInput.addEventListener('change', function (event) {
+          let fr = new FileReader();
+          fr.onload = function () {
+              let xmlContent = fr.result;
+              let parser = new DOMParser();
+              let xmlDoc = parser.parseFromString(xmlContent,'text/xml');
+              const errorNode = xmlDoc.querySelector("parsererror");
+              if (errorNode) {
+                // parsing failed
+                console.log(errorNode.nodeValue)
+              } else {
+                // parsing succeeded
+                console.log(xmlDoc)
+                let players = xmlDoc.getElementsByTagName('player');
+                console.log("players.length=%d",players.length)
+                console.log(players)
+                let numAddinfo = 0;
+                for (i = 0; i < players.length; i++) {
+                  let player = players[i];
+                  //console.log(player)
+                  let first = 'unknown'
+                  let last = 'unknown'
+                  let id = 'unknown'
+                  let addinfo = ''
+                  for (j = 0; j < player.children.length; j++) {
+                    switch(player.children[j].nodeName) {
+                      case 'firstname':
+                        first = player.children[j].textContent;
+                        break;
+                      case 'lastname':
+                        last = player.children[j].textContent;
+                        break;
+                      case 'id':
+                        id = player.children[j].textContent;
+                        break;
+                      case 'additionalinfo':
+                        addinfo = player.children[j].textContent;
+                        ++numAddinfo
+                        break;
+                    }
+                  }
+                  // console.log("%d. %s %s - %s", id, first, last, addinfo)
+                  let playerName = `${first} ${last}`
+                  let newEntrant = {'position': id, 'name': playerName, 'seed':0, 'partner': addinfo}
+                  bulkEntrants.push(newEntrant)
+                }
+                //Remove duplicates based on additional info
+                console.log("bulkEntrants.length=%d",bulkEntrants.length)
+                let slimEntrants = [];
+                bulkEntrants.forEach(entrant => {
+                  let found = false;
+                  for(i=0;i<slimEntrants.length;i++) {
+                    let sname = slimEntrants[i].name
+                    let bpartner = entrant.partner;
+                    let res = sname.toLowerCase().indexOf(bpartner.trim().toLowerCase()) 
+                    if( res > -1) {
+                      console.log(`slim name ${sname} matched entrant partner ${bpartner}`)
+                      found = true;
+                    }
+                  }
+                  if(!found) {
+                    slimEntrants.push(entrant);
+                  }
+                })
+
+                console.log("slimEntrants.length=%d",slimEntrants.length)
+                signupData = {"task": '', 'name':'bulk', 'clubId': 0, 'eventId':0, 'bracketName': '', 'entrants': []}
+                signupData.task = "addBulk";
+                signupData.name = 'bulk'
+                signupData.clubId = $(".signupContainer").attr("data-clubid");
+                signupData.eventId = $(".signupContainer").attr("data-eventid");
+                signupData.bracketName = $(".signupContainer").attr("data-bracketname");
+                //NOTE: slimEntrants will always get the first entrant from bulk
+                // but should not get any more in a singles tournament as the additional info cell should not name other players
+                if(slimEntrants.length > 1) { 
+                    slimEntrants.forEach(element => {
+                    signupData.entrants.push(element);          
+                  });
+                }
+                else {
+                    bulkEntrants.forEach(element => {
+                    signupData.entrants.push(element);          
+                  });
+                }
+                console.log(signupData)
+                ajaxFun(signupData);
+          }
+        }
+        fr.readAsText(this.files[0]);
+    })
+    };
+
+    /**************************************************************************/
 
     //toggleButtons(tennis_signupdata_obj.numPreliminary);
   });

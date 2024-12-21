@@ -102,7 +102,6 @@ class ManageSignup
         $this->errobj->add( $this->errcode++, __( 'You have been reported to the authorities!', TennisEvents::TEXT_DOMAIN ));
         $this->handleErrors("You've been a bad boy.");
     }
-     
 
     /**
      * Perform the CRUD or Move tasks as indicated by the Ajax request
@@ -166,6 +165,9 @@ class ManageSignup
                 break;
             case "reseqSignup":
                 $mess = $this->reseqSignup( $data );
+                break;
+            case 'addBulk':
+                $mess = $this->addBulk( $data );
                 break;
             default:
                 wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
@@ -369,6 +371,59 @@ class ManageSignup
             $mess = $ex->getMessage();
         }
 
+        return $mess;
+    }
+    
+    /**
+     * Add array of new entrants to the signup for an event
+     * @param array $data Associative array containing the entrant's data
+     * @return string message describing result of the operation
+     */
+    private function addBulk( array &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}");
+
+        $this->eventId = $data["eventId"];
+        $this->bracketName = $data["bracketName"];
+        $event   = Event::get( $this->eventId );
+        $bracket = $event->getBracket( $this->bracketName );
+        $numFailed = 0;
+        $numTotal = 0;
+        foreach($data['entrants'] as $entrant) {
+            ++$numTotal;
+            $pos     = $entrant["position"];
+            $seed    = $entrant["seed"];
+            $name    = sanitize_text_field($entrant["name"]); 
+            $partner = key_exists("partner",$entrant) && !empty($entrant["partner"]) ? sanitize_text_field($entrant["partner"]) : '';
+            $name    = empty($partner) ? $name : $name . " and " . $partner;
+            $entrant["name"] = $name;
+            try {            
+                if( false === $bracket->addToSignup( $name, $seed ) ) {
+                    $mess =  __("Bulk Add Entrant {$pos}, '{$name}' failed.", TennisEvents::TEXT_DOMAIN );
+                    $this->log->error_log($mess);
+                    ++$numFailed;
+                    continue;
+                }
+                else {
+                    $mess =  __("Bulk Add Entrant {$pos}, '{$name}' succeeded.", TennisEvents::TEXT_DOMAIN );
+                    $this->log->error_log($mess);
+                }
+            }
+            catch( Exception $ex ) {
+                ++$numFailed;
+                $this->errobj->add( $this->errcode++, $ex->getMessage() );
+                $mess = $ex->getMessage();
+                $this->log->error_log($mess);
+            }
+        }
+        if($numFailed > 0) {
+            $mess = __("Bulk Add Entrant: {$numFailed} failed out of {$numTotal}.",TennisEvents::TEXT_DOMAIN);
+        }
+        else {
+            $mess = __("Bulk Add Entrant: added {$numTotal} entrants.",TennisEvents::TEXT_DOMAIN); 
+        }
+        $event->save();
+        $this->signup = $bracket->getSignup( true );
         return $mess;
     }
 

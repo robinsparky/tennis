@@ -207,6 +207,14 @@ EOT;
 </li>
 EOT;
 
+$templfile = <<<EOT
+    <input
+      type="file"
+      id="entrant_uploads_file"
+      name="entrant_uploads_file"
+      accept=".xml"/>
+EOT;
+
         $ctr = 1;
         foreach( $this->signup as $entrant ) {
             $pos = $entrant->getPosition();
@@ -229,10 +237,11 @@ EOT;
         $out .= '</ul>' . PHP_EOL;
 
         if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP )  ) {
-            $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button><br/>' . PHP_EOL;
+            $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button> <label class="button addentrant" for="entrant_uploads_file">Upload Entrants</label><br>' . PHP_EOL;
             $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button randomize" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
             $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
+            $out .= $templfile . PHP_EOL;
         }
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';

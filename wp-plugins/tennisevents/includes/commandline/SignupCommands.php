@@ -472,7 +472,7 @@ class SignupCommands extends WP_CLI_Command {
                 $evtName = $target->getName();
                 $bracket = $target->getWinnersBracket();
                 $td = new TournamentDirector( $target );
-                $ents = $this->readDatabase( $filename );
+                $ents = $this->readDatabaseEx( $filename );
                 $num = 0;
                 try {
                     foreach( $ents as $ent ) {
@@ -504,6 +504,46 @@ class SignupCommands extends WP_CLI_Command {
         }
     }
 
+       
+    private function readDatabaseEx( $filename ) 
+    {
+        // read the XML database of players
+        $data = implode( "", file( $filename ) );
+
+        if( false === $data) {
+            WP_CLI::error("No such file $filename");
+        }
+
+        $parser = xml_parser_create();
+        xml_parser_set_option( $parser, XML_OPTION_CASE_FOLDING, 0 );
+        xml_parser_set_option( $parser, XML_OPTION_SKIP_WHITE, 1 );
+
+        if( 0 == xml_parse_into_struct( $parser, $data, $values, $tags )) {
+            $err = sprintf("XML error: %s at line %d"
+                        ,xml_error_string(xml_get_error_code( $parser ) )
+                        ,xml_get_current_line_number( $parser ) );
+            print_r($err);
+        }
+        xml_parser_free( $parser );
+
+        $tdb = array();
+        // loop through the structures
+        foreach ( $tags as $key=>$val ) {
+            if ( $key == "player" ) {
+                $playerData = $val;
+                // each contiguous pair of array entries are the 
+                // lower and upper range for each player definition
+                for ( $i=0; $i < count( $playerData ); $i += 2 )  {
+                    $offset = $playerData[$i] + 1;
+                    $len = $playerData[$i + 1] - $offset;
+                    $tdb[] = $this->parsePlayer( array_slice( $values, $offset, $len ) );
+                }
+            } else {
+                continue;
+            }
+        }
+        return $tdb;
+    }
     
     private function readDatabase( $filename ) 
     {
