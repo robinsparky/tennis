@@ -482,6 +482,90 @@ class TennisEvents {
 		}
 	}
 }
+
+/**
+ * Download a file based on a moniker which identifies 
+ * the enumeration of allowable files to download
+ */
+function tennis_send_file( $moniker = 'signupschema') {
+
+	$path = '';
+	switch($moniker) {
+		case 'signupschema':
+			$path = wp_normalize_path(plugin_dir_path( __FILE__ ) . "{$moniker}.xsd");
+			break;
+	}
+	if(empty($path)) wp_die("Invalid file!");
+
+	$info = pathinfo($path);
+	error_log("download file ...  " . print_r($info,true));
+
+	$file_extension = pathinfo($path)['extension'];
+	$file_name = pathinfo($path)['filename'];
+	$basename = pathinfo($path)['basename'];
+	$dirname = pathinfo($path)['dirname'];
+	
+
+	if( strpos($path,"tennisevents") == FALSE ) {
+		wp_die("Invalid tennisevents file!");
+	}
+
+	if(in_array(strtolower($file_extension),['php','html','css','js'])) {
+		wp_die("Invalid extension!");
+	}
+	
+	$theFile = fopen($path,"r") or wp_die("Unable to open {$path}");
+	if( FALSE == $theFile ) {
+		wp_die("Could not open the file.");
+	}
+
+	$content_type = "";
+	//check filetype
+	switch( $file_extension ) {
+		case "png": 
+			$content_type="image/png"; 
+			break;
+		case "gif": 
+			$content_type="image/gif"; 
+			break;
+		case "tiff": 
+			$content_type="image/tiff"; 
+			break;
+		case "jpeg":
+		case "jpg": 
+			$content_type="image/jpg"; 
+			break;
+		case "xsd": 
+			$content_type="text/xsd"; 
+			break;
+			case "xml": 
+			$content_type="text/xml"; 
+			break;	
+		default: 
+			$content_type="application/force-download";
+	}
+
+	header("Expires: 0");
+	header("Cache-Control: no-cache, no-store, must-revalidate"); 
+	header('Cache-Control: pre-check=0, post-check=0, max-age=0', false); 
+	header("Pragma: no-cache");	
+	header("Content-type: {$content_type}");
+	header("Content-Disposition:attachment; filename={$basename}");
+	header("Content-Type: application/force-download");
+    header('Content-Length: ' . filesize($path));
+
+	readfile($path);
+	exit();
+}
+
+// Start the download if there is a request for it
+function tennis_download_request(){
+   
+	if( isset( $_GET["moniker"] ) ) {
+		  tennis_send_file($_GET["moniker"]);
+	  }
+  }
+
 include( 'autoloader.php' );//Need to include otherwise otherwise BaseLogger cannot be found (i.e. it is under 'includes')
 
 $tennisEvents = TennisEvents::get_instance();
@@ -491,7 +575,10 @@ function TE() {
 	return $tennisEvents;
 }
 
-// Register activation/deactivation hooks
+//Add init action hooks which are outside the normal functioning of the plugin
+add_action('init','tennis_download_request');
+
+// Register this plugin's	 hooks
 register_activation_hook( __FILE__, array( 'TennisEvents', 'on_activate' ) );
 register_deactivation_hook ( __FILE__, array( 'TennisEvents', 'on_deactivate' ) );
 register_uninstall_hook ( __FILE__, array( 'TennisEvents', 'on_uninstall' ) );

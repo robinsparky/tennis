@@ -235,9 +235,10 @@ EOT;
             $out .= $htm;
         }
         $out .= '</ul>' . PHP_EOL;
-
+        $link = get_bloginfo('url');
         if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP )  ) {
-            $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button> <label class="button addentrant" for="entrant_uploads_file">Upload Entrants</label><br>' . PHP_EOL;
+            $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button> <label class="button addentrant" for="entrant_uploads_file">Upload Entrants</label>' . PHP_EOL;
+            $out .= '&nbsp;<a class="download" id="downloadtennisfile" href="' . $link . '?moniker=signupschema">(Download schema)</a><br>' . PHP_EOL;
             $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button randomize" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
             $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
