@@ -522,22 +522,27 @@
                   }
                   // console.log("%d. %s %s - %s", id, first, last, addinfo)
                   let playerName = `${first} ${last}`
-                  let newEntrant = {'position': id, 'name': playerName, 'seed':0, 'partner': addinfo}
+                  let newEntrant = {'position': id,'name': playerName, 'fname': first, 'lname': last, 'seed':0, 'partner': addinfo}
                   bulkEntrants.push(newEntrant)
                 }
-                //Remove duplicates based on additional info (i.e. doubles)
+                //Remove duplicates based on additional info (i.e. doubles partner)
                 console.log("bulkEntrants.length=%d",bulkEntrants.length)
                 let slimEntrants = [];
                 bulkEntrants.forEach(entrant => {
                   let found = false;
                   let entpartner = entrant.partner.trim().toLowerCase();
                   for(i=0;i<slimEntrants.length;i++) {
-                    let slimname = slimEntrants[i].name.trim().toLowerCase()
-                    let res = slimname.indexOf(entpartner) 
-                    //console.log("%d. Comparing '%s' with '%s' and res=%d",i, slimname, entpartner, res);
-                    if( entpartner != '' && res > -1) {
-                      //console.log(`>>>>>slim name ${slimname} matched entrant partner ${entpartner}`)
-                      found = true;
+                    let slimfname = slimEntrants[i].fname.trim().toLowerCase()
+                    let slimlname = slimEntrants[i].lname.trim().toLowerCase()  
+                    let regex1 = new RegExp(`\\b${slimfname}\\b`,"g")
+                    let regex2 = new RegExp(`\\b${slimlname}\\b`,"g")
+                    if(entpartner.search(regex1) > -1) {                  
+                      console.log("%d. Skipping entrant '%s' ...additional info '%s' matched First name '%s' ",entrant.position, entrant.name, entpartner, slimfname);
+                      found = true
+                    }
+                    else if(entpartner.search(regex2) > -1) {
+                      console.log("%d. Skipping entrant '%s' ...additional info '%s' with matched Last name '%s'  ",entrant.position, entrant.name, entpartner, slimlname);
+                      found = true
                     }
                   }
                   if(!found) {
