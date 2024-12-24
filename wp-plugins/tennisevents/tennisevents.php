@@ -58,6 +58,7 @@ class TennisEvents {
 	public const OPTION_HOME_TENNIS_CLUB = 'gw_tennis_home_club';
 	public const OPTION_MINIMUM_LEADTIME = 'gw_tennis_event_min_leadtime';
 	public const OPTION_MINIMUM_DURATION_SUGGESTIONS = 'gw_tennis_event_min_days_suggestions';
+	public const OPTION_LOCK_PREVIOUS_SEASONS = 'gw_tennis_lock_previous_seasons';
 	
 	/**
 	 * Unique identifier for the plugin.
@@ -292,8 +293,8 @@ class TennisEvents {
 	}
 	
 	/**
-	 * Seed the newly created schema
-	 */
+	 * Seed the newly created schema with a club custom post type
+	 */ 
 	public function seedData() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 
@@ -372,6 +373,14 @@ class TennisEvents {
 			include_once( 'includes/commandline/TournamentCommands.php' );
 			include_once( 'includes/commandline/SignupCommands.php' );
 		}
+	}
+
+	/**
+	 * Are previous seasons' events locked from edit?
+	 */
+	public function lockOldEvents() {
+		$opt = get_option(self::OPTION_LOCK_PREVIOUS_SEASONS,'no');
+		return 'yes' === $opt;
 	}
 		
 	/**

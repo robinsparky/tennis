@@ -94,13 +94,10 @@ if(!empty($prevSeason)) {
 
 					//The content is produced here
 					$path = wp_normalize_path( TE()->getPluginPath() . 'includes\templates\controls\readonly-tenniseventcpt.php');
-					if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+					if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$event->isClosed() ) {
 						$path = wp_normalize_path(TE()->getPluginPath() . 'includes\templates\controls\editor-tenniseventcpt.php');
-						require($path);
 					}
-					else {
-						require($path);
-					}
+					require($path);
 				?>	
 
 				<?php endwhile;

@@ -756,15 +756,6 @@ class Event extends AbstractData
 	}
 
 	/**
-	 * Get the date by which players must signup for this event 
-	 * in ISO 8601 format
-	 */
-	public function getSignupBy_ISO() {
-		if( !isset( $this->signup_by ) ) return '';
-		else return $this->signup_by->format( \DateTime::ISO8601 );
-	}
-
-	/**
 	 * Get the signup by date of this event as a DateTime object
 	 * @return DateTime
 	 */
@@ -783,7 +774,7 @@ class Event extends AbstractData
 		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j H:i:s', $start );
 		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-j H:i:s', $start );
 		$last = DateTIme::getLastErrors();
-		if( $last['error_count'] > 0 ) {
+		if( $last !== false &&  $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
 			$mess = 'Start Date: ';
 			foreach( $arr as $err ) {
@@ -794,6 +785,15 @@ class Event extends AbstractData
 		elseif( $test instanceof \DateTime ) {
 			$this->start_date = $test;
 			$result = $this->setDirty();
+			$parent = $this->getParent();
+			if(isset($parent)) {
+				if($parent->getStartDate() > $this->start_date ) {
+					$newDte = $this->start_date->format('Y-m-d');
+					//$this->log->error_log("{$loc}: setting parent start date to {$newDte}");
+					$parent->setStartDate($newDte);
+					$parent->save();
+				}
+			}
 		}
 
         return $result;
@@ -815,14 +815,6 @@ class Event extends AbstractData
 	public function getStartDate() : DateTime {
 		return $this->start_date;
 	}
-	
-	/**
-	 * Get the start date for this event in ISO 8601 format
-	 */
-	public function getStartDate_ISO() {
-		if( !isset( $this->start_date ) ) return null;
-		else return $this->start_date->format( \DateTime::ISO8601 );
-	}
 
 	/**
 	 * Get the season (i.e. year) in which this event was held
@@ -838,6 +830,9 @@ class Event extends AbstractData
 	 * @param $end End date in string format
 	 */
 	public function setEndDate( string $end ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("{$loc}");
+
 		$result = false;
 		if( empty( $end ) ) return $result;
 
@@ -848,7 +843,7 @@ class Event extends AbstractData
 		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j H:i:s', $end );
 		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-j H:i:s', $end );
 		$last = DateTIme::getLastErrors();
-		if( $last['error_count'] > 0 ) {
+		if( false !== $last &&  $last['error_count'] > 0 ) {
 			$arr = $last['errors'];
 			$mess = 'End Date: ';
 			foreach( $arr as $err ) {
@@ -858,6 +853,15 @@ class Event extends AbstractData
 		}
 		elseif( $test instanceof \DateTime ) {
 			$this->end_date = $test;
+			$parent = $this->getParent();
+			if(isset($parent)) {
+				if($parent->getEndDate() < $this->end_date ) {
+					$newDte = $this->end_date->format('Y-m-d');
+					$this->log->error_log("{$loc}: setting parent end date to {$newDte}");
+					$parent->setEndDate($newDte);
+					$parent->save();
+				}
+			}
 			$result = $this->setDirty();
 		}
 
@@ -865,16 +869,15 @@ class Event extends AbstractData
 	}
 
 	/**
-	 * If an end data has been set and the current date 
+	 * If an end date has been set and the current date 
 	 * is after the end date then the event is considered closed.
 	 * @return boolean
 	 */
 	public function isClosed() : bool {
 		$result = false;
 		if( !is_null( $this->end_date ) ) {
-			if( $this->end_date < new \DateTime() ) $result = true;
+			if( $this->end_date < new \DateTime() && TE()->lockOldEvents() ) $result = true;
 		}
-
 		return $result;
 	}
 
@@ -946,14 +949,6 @@ class Event extends AbstractData
 	public function getEndDate_Str() {
 		if( !isset( $this->end_date ) ) return null;
 		else return $this->end_date->format( self::$datetimeformat );
-	}
-	
-	/**
-	 * Get the end date for this event in ISO 8601 format
-	 */
-	public function getEndDate_ISO() {
-		if( !isset( $this->end_date ) ) return null;
-		else return $this->end_date->format( \DateTime::ISO8601 );
 	}
 
 	/**

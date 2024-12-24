@@ -502,10 +502,28 @@ class ManageEvents
                 $this->log->error_log("$loc: Season mismatch between post and event. Post was '{$postSeason}' Using '{$season}'");
                 update_post_meta($postId, TennisEventCpt::TENNIS_SEASON, $season);
             }
+                       
+            //Use the earliest child start date if applicable
+            $earliest = null;
+            foreach($event->getChildEvents(true) as $child) {
+                $childId = $child->getID();
+                $childStartDate = $child->getStartDate()->format('Y-m-d');
+                $this->log->error_log("{$loc}: Child {$childId} has start date '{$childStartDate}'");
+                if(is_null($earliest)) $earliest = clone $child->getStartDate();
+                if( $child->getStartDate() < $earliest) $earliest = clone $child->getStartDate();
+            }
+            $earliest = is_null($earliest) ? clone $dateStartDate : $earliest;
+            $this->log->error_log("{$loc}: Root event {$eventId}'s child's earliest is '{$earliest->format('Y-m-d')}' ");
+            if($earliest < $dateStartDate) {
+                $dateStartDate = clone $earliest;
+                $strStartDate = $dateStartDate->format('Y-m-d');
+                $this->log->error_log("{$loc}: Root event {$eventId}'s start set to child's earliest '{$strStartDate}' ");
+            }
 
             if($dateStartDate > $dateEndDate) {
-                $dateEndDate = $dateStartDate;
-                $dateEndDate->modify("+2 days");//Default end date to 2 days after start date
+                $this->log->error_log("{$loc}: Root event {$eventId}'s start date '{$dateStartDate->format('Y-m-d')}' is later than it's end date '{$dateEndDate->format('Y-m-d')}'");
+                $dateEndDate = clone $dateStartDate;
+                $dateEndDate->modify("+5 days");//Default end date to 5 days after start date
                 $strEndDate = $dateEndDate->format("Y-m-d");
             }
 
@@ -582,6 +600,17 @@ class ManageEvents
                 $this->log->error_log("$loc: Season mismatch between post and event. Was '{$postSeason}' Using '{$season}'");
                 update_post_meta($postId, TennisEventCpt::TENNIS_SEASON, $season);
             }
+            
+            $latest = null;
+            foreach($event->getChildEvents(true) as $child) {
+                $childId = $child->getID();
+                $childEndDate = $child->getEndDate()->format('Y-m-d');
+                if(is_null($latest)) $latest = $child->getEndDate();
+                $this->log->error_log("{$loc}: Child {$childId} has end date '{$childEndDate}'");
+                if( $child->getEndDate() > $latest) $latest = clone $child->getEndDate();
+            }
+            $latest = is_null($latest) ? clone $dateEndDate : $latest;
+            if($latest > $dateEndDate) $dateEndDate = clone $latest;
 
             $dummySignup='';
             $this->validateEventDates($dateStartDate, $dummySignup, $dateEndDate);
@@ -1019,6 +1048,14 @@ class ManageEvents
                     update_post_meta( $postId, TennisEventCpt::SIGNUP_BY_DATE_META_KEY, $dateSignupBy->format('Y-m-d') );
                     update_post_meta( $postId, TennisEventCpt::START_DATE_META_KEY, $dateStartDate->format('Y-m-d') );
                     update_post_meta( $postId, TennisEventCpt::END_DATE_META_KEY, $dateEndDate->format('Y-m-d') );
+                    
+                    //Update the cpt parent's start date to match the db event start date
+                    $parent = $event->getParent();
+                    if(isset($parent)) {
+                        $parentPostId = $parent->getExternalRefs()[0];
+                        update_post_meta( $parentPostId, TennisEventCpt::START_DATE_META_KEY, $parent->getStartDate()->format('Y-m-d') );
+                    }
+            
                     $data['signupBy'] = $dateSignupBy->format('Y-m-d');
                     $data['startDate'] = $dateStartDate->format('Y-m-d');
                     $data['endDate'] = $dateEndDate->format('Y-m-d');
@@ -1045,6 +1082,12 @@ class ManageEvents
                     update_post_meta( $postId, TennisEventCpt::SIGNUP_BY_DATE_META_KEY, $dateSignupBy->format('Y-m-d') );
                     update_post_meta( $postId, TennisEventCpt::START_DATE_META_KEY, $dateStartDate->format('Y-m-d') );
                     update_post_meta( $postId, TennisEventCpt::END_DATE_META_KEY, $dateEndDate->format('Y-m-d') );
+                    $parent = $event->getParent();
+                    if(isset($parent)) {
+                        $refs = $parent->getExternalRefs();
+                        $parentPostId = $refs[0];
+                        update_post_meta( $parentPostId, TennisEventCpt::END_DATE_META_KEY, $parent->getEndDate()->format('Y-m-d') );
+                    }
                     $data['signupBy'] = $dateSignupBy->format('Y-m-d');
                     $data['startDate'] = $dateStartDate->format('Y-m-d');
                     $data['endDate'] = $dateEndDate->format('Y-m-d');

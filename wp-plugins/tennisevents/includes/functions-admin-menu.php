@@ -107,6 +107,13 @@ function gw_tennis_custom_settings() {
                     ,'sanitize_callback'=>'gw_sanitize_minimum_suggestions'
                     ,'description' => __('The minimum duration (days) in an event beyond which suggested completion dates are produced.', TennisEvents::TEXT_DOMAIN)]
                 );
+    
+    register_setting( 'gw-tennis-settings-group' //Options group
+                    , TennisEvents::OPTION_LOCK_PREVIOUS_SEASONS //Option name used in get_option
+                    , ['type'=>'string'
+                    ,'sanitize_callback'=>'gw_sanitize_lockdown_previous'
+                    ,'description' => __('Lock down events from previous seasons (yes or no)', TennisEvents::TEXT_DOMAIN)]
+                );
 
 
     add_settings_section( 'gw-tennis-options' //id
@@ -171,6 +178,14 @@ function gw_tennis_custom_settings() {
                     , 'gw-tennis-options' // section
                     //,  array of args
                 );
+                                               
+    add_settings_field( 'gw_tennis_lockdown_previous' // id
+                    , __('Lockdown old events', TennisEvents::TEXT_DOMAIN) // title
+                    , 'gw_tennisLockdown' // callback
+                    , 'gwtennissettings' // page
+                    , 'gw-tennis-options' // section
+                    //,  array of args
+                );
 }
 
 function gw_tennis_options() {
@@ -231,6 +246,39 @@ function gw_tennisMinSuggestionTime() {
     echo "<input id='{$optName}' name='{$optName}' type='number' value='{$suggestTime}' min='0' max='99' max= step='1' maxlength='4' size='4'>";
     $txt = __("min days before completion dates are suggested for elimination tournaments (0 = no suggestions)",TennisEvents::TEXT_DOMAIN);
     echo "<span>&nbsp;{$txt}</span>";
+}
+
+function gw_tennisLockdown() {
+    $lockdown = esc_attr( get_option(TennisEvents::OPTION_LOCK_PREVIOUS_SEASONS, 'no') );
+    $yesChecked = '';
+    $noChecked = '';
+    if($lockdown == 'yes') {
+        $yesChecked = 'checked';
+    }
+    else {
+        $noChecked = 'checked';
+    }
+    
+    $optName = TennisEvents::OPTION_LOCK_PREVIOUS_SEASONS;
+    
+    $txt = __("Are old events prevented from being edited?",TennisEvents::TEXT_DOMAIN);
+    $templ = <<<EOT
+        <fieldset>
+        <legend>Choose:</legend>
+        <div>
+            <input type="radio" id="tennis_yes_lockdown" name="{$optName}" value="yes" {$yesChecked} />
+            <label for="tennis_yes_lockdown">Yes</label>
+        </div>
+
+        <div>
+            <input type="radio" id="tennis_no_lockdown" name="{$optName}" value="dewey" {$noChecked} />
+            <label for="tennis_no_lockdown">No</label>
+        </div>
+        <div>{$txt}</div>
+        </fieldset>
+    EOT;
+    echo $templ;
+
 }
 
 function gw_sanitize_clubId( $input ) {
@@ -418,6 +466,33 @@ function gw_sanitize_minimum_suggestions( $input ) {
     }
 
     add_settings_error('gw_tennisMinSuggestionTime', esc_attr('main_tennis_min_suggestiontime_updated'), $message, $type);
+
+    return $output;
+}
+
+function gw_sanitize_lockdown_previous( $input ) {
+    $message = null;
+    $type = null;
+    $output = 'no';
+
+    if( !is_null( $input ) ) {
+        $input = trim(strtolower($input));
+        if( is_string( $input ) && in_array($input,['yes','no'])  ) {
+            $output = $input;
+            $type = 'success';
+            $message = __('Tennis lockdown previous seasons updated', TennisEvents::TEXT_DOMAIN );
+        }
+        else {
+            $type = 'error';
+            $message = __('Tennis lockdown previous seasons setting must be a string', TennisEvents::TEXT_DOMAIN );
+        }
+    }
+    else {
+        $type = 'error';
+        $message = __('Tennis lockdown previous seasons setting must not be empty', TennisEvents::TEXT_DOMAIN );
+    }
+
+    add_settings_error('gw_tennisLockdown', esc_attr('main_tennis_lockdown_previous_updated'), $message, $type);
 
     return $output;
 }

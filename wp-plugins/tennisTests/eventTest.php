@@ -142,8 +142,6 @@ class EventTest extends TestCase
         // fwrite(STDOUT,PHP_EOL .  __METHOD__ .$mess . PHP_EOL);
         $this->assertEquals('2018-02-20 00:00:00',$test);
 
-        $test = $child->getEndDate_ISO();
-        $this->assertEquals('2018-02-20T00:00:00+0000',$test);
         // $mess = isset($test) ? " ***** end ISO = $test" : " **** end ISO is null";
         // fwrite(STDOUT,PHP_EOL .  __METHOD__ .$mess . PHP_EOL);
     }
