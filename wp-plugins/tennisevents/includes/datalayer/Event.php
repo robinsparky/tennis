@@ -871,12 +871,14 @@ class Event extends AbstractData
 	/**
 	 * If an end date has been set and the current date 
 	 * is after the end date then the event is considered closed.
+	 * The parent event's end date is used.
 	 * @return boolean
 	 */
 	public function isClosed() : bool {
 		$result = false;
-		if( !is_null( $this->end_date ) ) {
-			if( $this->end_date < new \DateTime() && TE()->lockOldEvents() ) $result = true;
+		$endDate = !$this->isParent() ? $this->getParent(true)->getEndDate() : $this->getEndDate();
+		if( !is_null( $endDate ) ) {
+			if( $endDate < new \DateTime() && TE()->lockOldEvents() ) $result = true;
 		}
 		return $result;
 	}
