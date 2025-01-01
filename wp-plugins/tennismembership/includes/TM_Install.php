@@ -71,10 +71,12 @@ class TM_Install {
 		$this->log = new BaseLogger( true );
 
 		global $wpdb;
-		$this->dbTableNames = array("person"			=> $wpdb->prefix . "membership_person"
-									,"address"			=> $wpdb->prefix . "membership_address"
-									,"member"			=> $wpdb->prefix . "membership_member"
-									,"membertype"		=> $wpdb->prefix . "membership_type"
+		$this->dbTableNames = array("person"					=> $wpdb->prefix . "membership_person"
+									,"address"					=> $wpdb->prefix . "membership_address"
+									,"registration"				=> $wpdb->prefix . "membership_registration"
+									,"registrationtype"			=> $wpdb->prefix . "membership_type"
+									,"registrationsupertype" 	=> $wpdb->prefix . "membership_supertype"
+									,"sponsors" 				=> $wpdb->prefix . "membership_sponsor"
 								);
 		
         add_filter( 'query_vars', array( $this,'add_query_vars_filter' ) );
@@ -376,10 +378,11 @@ class TM_Install {
 		/**
 		 * Membership Type are the types of memberships available
 		 */
-		$membership_type_table = $this->dbTableNames["membertype"];
+		$membership_type_table = $this->dbTableNames["registrationtype"];
 		$sql = "CREATE TABLE `$membership_type_table` ( 
 			`ID` INT NOT NULL AUTO_INCREMENT,
-			`membership_type` VARCHAR(255),
+			`supertype_ID` INT NOT NULL COMMENT 'References super type table',
+			`name` VARCHAR(255) NOT NULL COMMENT 'Adult, Couples, Family, Junior, Student vs Staff, Public, Instructor',
 			PRIMARY KEY (`ID`) 
 		) ENGINE = MyISAM;";
 		if( $newSchema ) {
@@ -390,17 +393,35 @@ class TM_Install {
 		else {
 			$this->log->error_log( dbDelta( $sql ), "$membership_type_table");
 		}
+				
+		/**
+		 * Membership Type are the super types of memberships available
+		 */
+		$membership_supertype_table = $this->dbTableNames["registrationsupertype"];
+		$sql = "CREATE TABLE `$membership_supertype_table` ( 
+			`ID` INT NOT NULL AUTO_INCREMENT,
+			`name` VARCHAR(255) NOT NULL COMMENT 'Player vs NonPlayer',
+			PRIMARY KEY (`ID`) 
+		) ENGINE = MyISAM;";
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $membership_supertype_table" : "$membership_supertype_table Created";
+			$this->log->error_log( $res );
+		}
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$membership_supertype_table");
+		}
 
 		/**
-		 * Member is a Person who joins the club
+		 * A Person who joins the club is Registered as a certain registration type
+		 * Need to consider player versus non-player, sponsor vs sponsored
 		 */
-		$member_table = $this->dbTableNames["member"];
+		$member_table = $this->dbTableNames["registration"];
 		$sql = "CREATE TABLE `$member_table` ( 
 			`ID` INT NOT NULL AUTO_INCREMENT,
 			`person_ID` 			INT NOT NULL COMMENT 'References someone in the person table',
 			`season_ID` 			INT NOT NULL COMMENT 'References the season table',
-			`membership_type_ID` 	INT NOT NULL COMMENT 'References the membership type table',
-			`member_type`			VARCHAR(25) NOT NULL DEFAULT 'primary' COMMENT 'Values are primary, sponsored',
+			`registration_type_ID` 	INT NOT NULL COMMENT 'References the registration type table',
 			`start_date` 			DATE NOT NULL,
 			`expiry_date` 			DATE NOT NULL,
 			`receive_emails` 		TINYINT DEFAULT 0,
@@ -417,6 +438,25 @@ class TM_Install {
 		else {
 			$this->log->error_log( dbDelta( $sql ), "$member_table");
 		}
+		
+		/**
+		 * Relates sponsors with the people they are sponsoring. 
+		 * Usually family members
+		 */
+		$sponsor_table = $this->dbTableNames['sponsors'];
+		$sql = "CREATE TABLE `$sponsor_table` (
+			`sponsor_ID` INT NOT NULL COMMENT 'References a person',
+			`sponsored_ID` INT NOT NULL COMMENT 'References a person',
+			PRIMARY KEY(`sponsor_ID`, `sponsored_ID`)) ENGINE=MyISAM;";
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $sponsor_table" : "Created table '$sponsor_table'";
+			$this->log->error_log( $res );
+		}
+		else {			
+			$this->log->error_log( dbDelta( $sql ), "$sponsor_table");
+		}
+
 		return $wpdb->last_error;
 
 	} //end add schema
@@ -431,8 +471,10 @@ class TM_Install {
 		//NOTE: The order is important
 		$sql = "DROP TABLE IF EXISTS ";
 		$sql = $sql . $this->dbTableNames["address"];
-		$sql = $sql . "," . $this->dbTableNames["member"];
-		$sql = $sql . "," . $this->dbTableNames["membertype"];
+		$sql = $sql . "," . $this->dbTableNames["registration"];
+		$sql = $sql . "," . $this->dbTableNames["registrationsupertype"];
+		$sql = $sql . "," . $this->dbTableNames["registrationtype"];
+		$sql = $sql . "," . $this->dbTableNames["sponsors"];
 		$sql = $sql . "," . $this->dbTableNames["person"];
 
 		return $wpdb->query( $sql );
