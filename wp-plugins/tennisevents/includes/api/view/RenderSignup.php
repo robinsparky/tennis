@@ -173,6 +173,7 @@ class RenderSignup
         $jsData["numSignedUp"] = $numSignedUp;
         $jsData["numPreliminary"] = $numPrelimMatches;
         $jsData["isBracketApproved"] = $isApproved ? 1:0;
+        $jsData["matchType"] = $target->getMatchType();
         wp_enqueue_script( 'manage_signup' );   
         wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $jsData );
         
@@ -222,13 +223,16 @@ EOT;
             $nameId = str_replace( [' ',"\'","'",'&'], ['_','','',''], $entrant->getName() );
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
-            if( $numPrelimMatches > 0 )
-                if( current_user_can( 'manage_options' ) ) {
+            if( $numPrelimMatches > 0 ) 
+                if( current_user_can( 'manage_options' ) && !$target->isClosed() ) {
                     $htm = sprintf( $templu, $nameId, $pos, $pos, $name, $name );
                 }
                 else {
                     $htm = sprintf( $templr, $nameId, $pos, $rname );
                 }
+            else if($target->isClosed() ) {
+                $htm = sprintf( $templr, $nameId, $pos, $rname );
+            }
             else {
                 $htm = sprintf( $templw, $nameId, $pos, $pos, $name, $name, $seed, $nameId );
             }
@@ -236,7 +240,7 @@ EOT;
         }
         $out .= '</ul>' . PHP_EOL;
         $link = get_bloginfo('url');
-        if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP )  ) {
+        if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() ) {
             $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button> <label class="button addentrant" for="entrant_uploads_file">Upload Entrants</label>' . PHP_EOL;
             $out .= '&nbsp;<a class="download" id="downloadtennisfile" href="' . $link . '?moniker=signupschema">(Download schema)</a><br>' . PHP_EOL;
             $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;

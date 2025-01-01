@@ -3,6 +3,7 @@ use datalayer\MatchStatus;
 ?>
 <?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
     $eventType = $td->getEvent()->getParent()->getEventType();
+    $isClosed = $td->getEvent()->isClosed();
 ?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php echo $tournamentName;?>&colon;&nbsp;<?php echo $bracketName; ?>(<?php echo $scoreRuleDesc; ?>)</h3>
@@ -122,7 +123,15 @@ use datalayer\MatchStatus;
 </main>
 
 <div class='bracketDrawButtons'>
-<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+<?php 
+    if(!current_user_can( TE_Install::MANAGE_EVENTS_CAP )) {
+        $this->log->error_log("render-RoundRobin: Current user is not PRIVILEGED!");
+    }
+    if($isClosed) {
+        $this->log->error_log("render-RoundRobin: Event is closed!");
+    }
+?>
+<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$isClosed ) {
     if( count( $loadedMatches ) >= 1 ) {
     if( !$bracket->isApproved() ) { ?>
         <button class="button" type="button" id="approveDraw">Approve</button>

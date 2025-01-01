@@ -474,7 +474,6 @@
     });
     
     /***********XML File ******************************************************/
-    
     $("#entrant_uploads_file").css("opacity","0")
     let bulkEntrants = []
     let uploadInput = document.getElementById('entrant_uploads_file')
@@ -525,31 +524,36 @@
                   let newEntrant = {'position': id,'name': playerName, 'fname': first, 'lname': last, 'seed':0, 'partner': addinfo}
                   bulkEntrants.push(newEntrant)
                 }
-                //Remove duplicates based on additional info (i.e. doubles partner)
-                console.log("bulkEntrants.length=%d",bulkEntrants.length)
                 let slimEntrants = [];
-                bulkEntrants.forEach(entrant => {
-                  let found = false;
-                  let entpartner = entrant.partner.trim().toLowerCase();
-                  for(i=0;i<slimEntrants.length;i++) {
-                    let slimfname = slimEntrants[i].fname.trim().toLowerCase()
-                    let slimlname = slimEntrants[i].lname.trim().toLowerCase()  
-                    let regex1 = new RegExp(`\\b${slimfname}\\b`,"g")
-                    let regex2 = new RegExp(`\\b${slimlname}\\b`,"g")
-                    if(entpartner.search(regex1) > -1) {                  
-                      console.log("%d. Skipping entrant '%s' ...additional info '%s' matched First name '%s' ",entrant.position, entrant.name, entpartner, slimfname);
-                      found = true
-                    }
-                    else if(entpartner.search(regex2) > -1) {
-                      console.log("%d. Skipping entrant '%s' ...additional info '%s' with matched Last name '%s'  ",entrant.position, entrant.name, entpartner, slimlname);
-                      found = true
-                    }
+                if(tennis_signupdata_obj.matchType === 'doubles') {
+                    //Remove duplicates based on additional info (i.e. doubles partner)
+                    console.log("bulkEntrants.length=%d",bulkEntrants.length)
+                    bulkEntrants.forEach(entrant => {
+                      let found = false;
+                      let entpartner = entrant.partner.trim().toLowerCase();
+                      for(i=0;i<slimEntrants.length;i++) {
+                        let slimfname = slimEntrants[i].fname.trim().toLowerCase()
+                        let slimlname = slimEntrants[i].lname.trim().toLowerCase()  
+                        let regex1 = new RegExp(`\\b${slimfname}\\b`,"g")
+                        let regex2 = new RegExp(`\\b${slimlname}\\b`,"g")
+                        if(entpartner.search(regex1) > -1) {                  
+                          console.log("%d. Skipping entrant '%s' ...additional info '%s' matched First name '%s' ",entrant.position, entrant.name, entpartner, slimfname);
+                          found = true
+                        }
+                        else if(entpartner.search(regex2) > -1) {
+                          console.log("%d. Skipping entrant '%s' ...additional info '%s' with matched Last name '%s'  ",entrant.position, entrant.name, entpartner, slimlname);
+                          found = true
+                        }
+                      }
+                      if(!found) {
+                        slimEntrants.push(entrant);
+                      }
+                    })
+                  } else {
+                    bulkEntrants.forEach(entrant => {
+                      slimEntrants.push(entrant);
+                    })
                   }
-                  if(!found) {
-                    slimEntrants.push(entrant);
-                  }
-                })
-
                 console.log("slimEntrants.length=%d",slimEntrants.length)
                 signupData = {"task": '', 'name':'bulk', 'clubId': 0, 'eventId':0, 'bracketName': '', 'entrants': []}
                 signupData.task = "addBulk";

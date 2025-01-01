@@ -223,6 +223,7 @@ class RenderDraw
         $jsData["numPreliminary"] = $numPreliminaryMatches;
         $jsData["isBracketApproved"] = $bracket->isApproved() ? 1 : 0;
         $jsData["numSets"] = $umpire->getMaxSets();
+        $jsData["matchType"] = $td->getEvent()->getMatchType();
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $jsData["matches"] = $arrData;
         wp_enqueue_script( 'manage_matches' ); 
@@ -230,12 +231,12 @@ class RenderDraw
         wp_localize_script( 'manage_matches', 'tennis_draw_obj', $jsData );        
 
         // Get template file
-        if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
+        $path = TE()->getPluginPath() . 'includes\templates\render-draw-template-grid.php';
+        if( (current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
         || current_user_can( TE_Install::RESET_MATCHES_CAP )
-        || current_user_can( TE_Install::SCORE_MATCHES_CAP ) ) {
+        || current_user_can( TE_Install::SCORE_MATCHES_CAP ))
+        && !$td->getEvent()->isClosed() ) {
             $path = TE()->getPluginPath() . 'includes\templates\render-draw-template.php';
-        } else {
-            $path = TE()->getPluginPath() . 'includes\templates\render-draw-template-grid.php';
         }
         $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
 

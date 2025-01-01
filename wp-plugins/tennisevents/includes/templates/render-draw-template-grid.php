@@ -177,7 +177,7 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
 </div> <!--End of Grid-->
 	 
 <div class='bracketDrawButtons'>
-<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP )) {
+<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$td->getEvent()->isClosed() ) {
     if( $numPreliminaryMatches > 0 ) {
     if( !$bracket->isApproved() ) { ?>
         <button class="button" type="button" id="approveDraw">Approve</button>

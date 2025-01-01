@@ -300,6 +300,7 @@ class RenderRoundRobin
         $jsData["numSignedUp"] = $signupSize;
         $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
         $jsData["numSets"] = $umpire->getMaxSets();
+        $jsData["matchType"] = $td->getEvent()->getMatchType();
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $this->log->error_log($arrData, "$loc: arrData...");
         $jsData["matches"] = $arrData; 
