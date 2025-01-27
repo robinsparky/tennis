@@ -55,7 +55,7 @@ function tennis_pre_get_posts( $query ) {
 	$my_post_types = array( 'tenniseventcpt' );
 	  
 	if( ! is_singular( $my_post_types) && ! is_post_type_archive( $my_post_types ) ) {
-	  return $template;
+	  return $query;
 	}
 
 	$manage = get_query_var( 'manage' );

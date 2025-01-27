@@ -271,7 +271,7 @@ function gw_tennisLockdown() {
         </div>
 
         <div>
-            <input type="radio" id="tennis_no_lockdown" name="{$optName}" value="dewey" {$noChecked} />
+            <input type="radio" id="tennis_no_lockdown" name="{$optName}" value="no" {$noChecked} />
             <label for="tennis_no_lockdown">No</label>
         </div>
         <div>{$txt}</div>
