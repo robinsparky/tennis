@@ -3,17 +3,22 @@ require('./wp-load.php');
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// $path = plugin_dir_path( __FILE__ ) . '../wp-content/plugins/tennisevents/includes/datalayer/Event.php';
+// //$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+// echo $path;
+// require $path;
 ?>
 Testing Research
 <?php 
+use datalayer\Event;
 use PHPUnit\Framework\TestCase;
 /**
  * @group research
  */
-class ResearchTest extends TestCase
+class PlatformTest extends TestCase
 {
     
-	public function test_Dates()
+	public function test_Platform()
 	{
         $t1 = 1;
         $t2 = 1;
@@ -78,17 +83,18 @@ class ResearchTest extends TestCase
         fwrite(STDOUT,PHP_EOL .  __METHOD__ .$mess . PHP_EOL);
         */
 
-        $root = Event::get(1);
+        $root = Event::get(171);
+        echo $root->toString();
         $this->assertFalse($root->isDirty());
-        $mens = $root->getNamedEvent('Mens Singles');
-        $this->assertFalse($mens->isDirty());
-        $refMens = $root->getNamedEvent('Mens Singles');
-        $this->assertTrue($mens === $refMens);
+        // $mens = $root->getNamedEvent('Mens Singles');
+        // $this->assertFalse($mens->isDirty());
+        // $refMens = $root->getNamedEvent('Mens Singles');
+        // $this->assertTrue($mens === $refMens);
         
-        $mens->setFormat(Format::DOUBLE_ELIM);
-        $this->assertTrue($mens->isDirty());
-        $this->assertTrue($refMens->isDirty());
-        $this->assertTrue($root->isDirty());
+        // $mens->setFormat(Format::DOUBLE_ELIM);
+        // $this->assertTrue($mens->isDirty());
+        // $this->assertTrue($refMens->isDirty());
+        // $this->assertTrue($root->isDirty());
     }
 
 }

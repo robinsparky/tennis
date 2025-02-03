@@ -6,6 +6,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <?php 
+
+$path = plugin_dir_path( __FILE__ ) . '../tools/PhpUnit.phar';
+//$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+require $path;
+
 use PHPUnit\Framework\TestCase;
 /**
  * @group club

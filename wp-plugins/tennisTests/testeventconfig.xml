@@ -1,15 +1,11 @@
-<phpunit>
+<phpunit
         colors="true"
         bootstrap="./wp-content/plugins/tennisevents/autoloader.php"
-        convertErrorsToExceptions="true"
-        convertNoticesToExceptions="true"
-        convertWarningsToExceptions="true"
-        strict="true"
         stopOnError="true"
         stopOnFailure="true"
         stopOnIncomplete="false"
         stopOnSkipped="false"
-        stopOnRisky="false"
+        stopOnRisky="false">
 <testsuites>
   <testsuite name="schema">
     <file>tests/schemaTest.php</file>

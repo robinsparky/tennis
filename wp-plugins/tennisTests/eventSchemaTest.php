@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  * @group schema
  * @group all
  */
-class SchemaTest extends TestCase
+class eventSchemaTest extends TestCase
 {
 
 

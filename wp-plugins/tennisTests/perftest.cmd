@@ -1,1 +1,1 @@
-curl "http://tennisadmin.dev/tennisevent/ladies-singles/?mode=draw&bracket=Main" -w "Connect:%{time_connect}\nTotal:%{time_total}\nSpeed:%{speed_download}\nStatus:%{http_code}\nSize:%{size_download}\nURL:%{url_effective}\n" -o poopout -D poophead
+curl "http://ttc.test/tennisevent/mens-singles/?season=2024&mode=draw&bracket=Main" -w "Connect:%{time_connect}\nTotal:%{time_total}\nSpeed:%{speed_download}\nStatus:%{http_code}\nSize:%{size_download}\nURL:%{url_effective}\n" -o poopout -D poophead
