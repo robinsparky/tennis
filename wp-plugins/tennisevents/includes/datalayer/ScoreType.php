@@ -91,7 +91,7 @@ class ScoreType {
 	 * @static
 	 * @return $_instance --Main instance.
 	 */
-	public static function get_instance() {
+	public static function get_instance() : self {
 		if ( is_null( self::$_instance ) ) {
 			self::$_instance = new self();
 		}
