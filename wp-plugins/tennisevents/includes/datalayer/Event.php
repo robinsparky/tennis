@@ -447,7 +447,7 @@ class Event extends AbstractData
 		$this->log->error_log("{$loc} ... event #{$numEvents}");
 		
 		$this->parent = null;
-			if(isset($this->childEvents)) {
+		if(isset($this->childEvents)) {
 			foreach($this->childEvents as &$event){
 				unset( $event );
 			}
@@ -702,7 +702,10 @@ class Event extends AbstractData
     }
 
     public function getParent($force=false) {
-        if( ( isset( $this->parent_ID ) && !isset( $this->parent ) ) || $force ) {
+        if( ( isset( $this->parent_ID ) && !isset( $this->parent ) ) ) {
+            $this->parent = Event::get( $this->parent_ID );
+		}
+		elseif( isset( $this->parent_ID) && $force ) {
             $this->parent = Event::get( $this->parent_ID );
 		}
         return $this->parent;
@@ -876,7 +879,7 @@ class Event extends AbstractData
 	 */
 	public function isClosed() : bool {
 		$result = false;
-		$endDate = !$this->isParent() ? $this->getParent(true)->getEndDate() : $this->getEndDate();
+		$endDate = $this->isParent() ? $this->getParent(true)->getEndDate() : $this->getEndDate();
 		if( !is_null( $endDate ) ) {
 			if( $endDate < new \DateTime() && TE()->lockOldEvents() ) $result = true;
 		}
