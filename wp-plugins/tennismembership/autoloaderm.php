@@ -6,14 +6,11 @@ class AutoloaderM
 {
     public static function register()
     {
-        $tmpFileName = tempnam(sys_get_temp_dir(), 'tennis');
+        //$tmpFileName = tempnam(sys_get_temp_dir(), 'tennis');
         //error_log(  __CLASS__ . '::' . __FUNCTION__ ,3,$tmpFileName);
 
         spl_autoload_register( function ( $class ) {
             if( self::nameSpaceClassRegister( $class ) ) {
-                return true;
-            }
-            elseif( self::cptClassRegister( $class ) ) {
                 return true;
             }
             else {
@@ -26,23 +23,11 @@ class AutoloaderM
         $class_filename = __DIR__ . "\\includes\\$class" . ".php";
         $file = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
         if ( file_exists( $file ) ) {
-            //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register namespace class - loading: $class_filename" );
+            error_log( __CLASS__ . '::' . __FUNCTION__ . " Register namespace class - loading: $class_filename}" );
             require $file;
             return true;
         }
         //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register namespace class failed: $class_filename" );
-        return false;
-    }
-
-    public static function cptClassRegister( $class ) {
-        $class_filename = __DIR__ . "\\includes\\cpt\\$class" . ".php";
-        $file = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
-        if ( file_exists( $file ) ) {
-            require $file;
-            //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register custom post type class - succeeded: $class_filename" );
-            return true;
-        }
-        //error_log( __CLASS__ . '::' . __FUNCTION__ . " Register custom post type class failed: $class_filename" );
         return false;
     }
 }

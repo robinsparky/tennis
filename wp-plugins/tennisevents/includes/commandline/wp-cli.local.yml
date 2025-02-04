@@ -1,4 +1,4 @@
-url: http://tennisadmin.dev
+url: http://ttc.test/
 user: robin
 color: true
 debug: false
@@ -6,7 +6,7 @@ debug: false
 # An alias can include 'user', 'url', 'path', 'ssh', or 'http'
 @staging:
     user: robin
-    path: c:\webserver\htdocs\TennisAdmin
+    path: c:\webserver\htdocs\ttc
 @production:
     user: robin
-    path: c:\webserver\htdocs\TennisAdmin
+    path: c:\webserver\htdocs\ttc

@@ -1,0 +1,26 @@
+<phpunit
+        colors="true"
+        bootstrap="./wp-content/plugins/tennismembership/autoloaderm.php"
+        stopOnError="true"
+        stopOnFailure="true"
+        stopOnIncomplete="false"
+        stopOnSkipped="false"
+        stopOnRisky="false">
+<source restrictDeprecations="true"
+  restrictNotices="true"
+  restrictWarnings="true">
+  <include>
+  <directory>./wp-content/plugins/tennismembership/</directory>
+  </include>
+</source>
+<testsuites>
+  <testsuite name="schema">
+    <file>tests/memberSchemaTest.php</file>
+  </testsuite>
+  <testsuite name="crud">
+  </testsuite>
+  <testsuite name="current">
+    <file>tests/platformTest.php</file>
+  </testsuite>
+</testsuites>
+</phpunit>
