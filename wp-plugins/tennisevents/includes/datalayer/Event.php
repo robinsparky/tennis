@@ -880,7 +880,8 @@ class Event extends AbstractData
 	 */
 	public function isClosed() : bool {
 		$result = false;
-		$endDate = !$this->isParent() ? $this->getParent(true)->getEndDate() : $this->getEndDate();
+		$parent = !$this->isParent() ? $this->getParent(true) : null;
+		$endDate = !is_null($parent) ? $parent->getEndDate() : $this->getEndDate();
 		if( !is_null( $endDate ) ) {
 			if( $endDate < new \DateTime() && TE()->lockOldEvents() ) $result = true;
 		}
