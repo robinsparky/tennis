@@ -493,7 +493,7 @@ class Event extends AbstractData
 	 */
 	public function isLeaf() {
 		$p = $this->getParent();
-		return ( isset( $p ) && count( $this->getChildEvents() ) === 0 );
+		return ( isset( $p ) /*&& count( $this->getChildEvents() ) === 0*/ );
 	}
 
 	/**
@@ -734,7 +734,7 @@ class Event extends AbstractData
 		if(false === $test) $test = \DateTime::createFromFormat( 'Y-n-j H:i:s', $signup );
 		if(false === $test) $test = \DateTime::createFromFormat( 'Y-m-j H:i:s', $signup );
 		$last = DateTIme::getLastErrors();
-		if( $last['error_count'] > 0 && false === $test ) {
+		if( $last !== false &&  $last['error_count'] > 0 && false === $test ) {
 			$arr = $last['errors'];
 			$mess = 'SignupBy: ';
 			foreach($arr as $err) {
@@ -767,6 +767,7 @@ class Event extends AbstractData
 	}
 	
 	public function setStartDate( string $start ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$result = false;
 		if( empty( $start ) ) return $result;
 
@@ -792,9 +793,9 @@ class Event extends AbstractData
 			if(isset($parent)) {
 				if($parent->getStartDate() > $this->start_date ) {
 					$newDte = $this->start_date->format('Y-m-d');
-					//$this->log->error_log("{$loc}: setting parent start date to {$newDte}");
+					$this->log->error_log("{$loc}: setting parent start date to {$newDte}");
 					$parent->setStartDate($newDte);
-					$parent->save();
+					//$parent->save();
 				}
 			}
 		}
@@ -834,7 +835,7 @@ class Event extends AbstractData
 	 */
 	public function setEndDate( string $end ) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
-		$this->log->error_log("{$loc}");
+		$this->log->error_log("{$loc} id={$this->getID()} date='$end'");
 
 		$result = false;
 		if( empty( $end ) ) return $result;
@@ -862,7 +863,7 @@ class Event extends AbstractData
 					$newDte = $this->end_date->format('Y-m-d');
 					$this->log->error_log("{$loc}: setting parent end date to {$newDte}");
 					$parent->setEndDate($newDte);
-					$parent->save();
+					//$parent->save();
 				}
 			}
 			$result = $this->setDirty();
@@ -879,7 +880,7 @@ class Event extends AbstractData
 	 */
 	public function isClosed() : bool {
 		$result = false;
-		$endDate = $this->isParent() ? $this->getParent(true)->getEndDate() : $this->getEndDate();
+		$endDate = !$this->isParent() ? $this->getParent(true)->getEndDate() : $this->getEndDate();
 		if( !is_null( $endDate ) ) {
 			if( $endDate < new \DateTime() && TE()->lockOldEvents() ) $result = true;
 		}

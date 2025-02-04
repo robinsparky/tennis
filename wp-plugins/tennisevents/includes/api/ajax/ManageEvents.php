@@ -756,8 +756,8 @@ class ManageEvents
             if( !isset($homeClub) ) {				
                 throw new InvalidEventException(__( 'Home club is not set.', TennisEvents::TEXT_DOMAIN ));
             }
-            $data['title'] = htmlspecialchars(strip_tags($data['title']));
             $event = new Event($data["title"]);
+            $data['title'] = htmlspecialchars(strip_tags($data['title']));
 			//Set the parent event of the Event before setting other props
 			$event->setParent($parentEvent);
             $event->addClub($homeClub);
@@ -769,6 +769,25 @@ class ManageEvents
             else {	
                 throw new InvalidEventException(__( 'Parent post id is missing.', TennisEvents::TEXT_DOMAIN ));
             }
+
+            $gender = $data['gender'];
+            if( !$event->setGenderType($data['gender'])) throw new InvalidArgumentException(__("Illegal gender '{$gender}'", TennisEvents::TEXT_DOMAIN));
+            $matchType = $data['matchType'];
+            if(!$event->setMatchType($matchType)) throw new InvalidArgumentException(__("Illegal match type '{$matchType}'", TennisEvents::TEXT_DOMAIN));
+            $eventFormat = $data['format'];
+            $this->log->error_log("$loc: setting format '$eventFormat'");
+            if(!$event->setFormat($eventFormat)) throw new InvalidArgumentException(__("Illegal format '{$eventFormat}'", TennisEvents::TEXT_DOMAIN));
+            $scoreType = $data['scoreType'];
+            if(!$event->setScoreType($scoreType)) throw new InvalidArgumentException(__("Illegal score rule '{$scoreType}'", TennisEvents::TEXT_DOMAIN));
+
+            $data["title"] =  htmlspecialchars(strip_tags($data["title"]));
+ 
+        
+            if(empty($data['title'])) {
+                $genderDisp = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
+                $data['title'] = $genderDisp;
+            }
+            $event->setName($data['title']);
 
             //TODO Ensure that start and end dates conform to parent event's
             $data['startDate'] = strip_tags($data['startDate']);
@@ -801,18 +820,6 @@ class ManageEvents
             if($season !== $dateStartDate->format('Y')) {
                 throw new InvalidArgumentException(__("Season '{$season}' does not match year in '{$dateStartDate->format("Y-m-d")}'.",TennisEvents::TEXT_DOMAIN));
             }
-
-            $gender = $data['gender'];
-            if( !$event->setGenderType($data['gender'])) throw new InvalidArgumentException(__("Illegal gender '{$gender}'", TennisEvents::TEXT_DOMAIN));
-            $matchType = $data['matchType'];
-            if(!$event->setMatchType($matchType)) throw new InvalidArgumentException(__("Illegal match type '{$matchType}'", TennisEvents::TEXT_DOMAIN));
-            $eventFormat = $data['format'];
-            if(!$event->setFormat($eventFormat)) throw new InvalidArgumentException(__("Illegal format '{$eventFormat}'", TennisEvents::TEXT_DOMAIN));
-            $scoreType = $data['scoreType'];
-            if(!$event->setScoreType($scoreType)) throw new InvalidArgumentException(__("Illegal score rule '{$scoreType}'", TennisEvents::TEXT_DOMAIN));
-
-            $data["title"] =  htmlspecialchars(strip_tags($data["title"]));
- 
             
             //Ladder events must have the month as the name
             if($parentEvent->getEventType() === EventType::LADDER ) {
@@ -821,11 +828,6 @@ class ManageEvents
                 $eventFormat =  Format::ROUNDROBIN;
                 $event->setFormat(Format::ROUNDROBIN);
             }
-            if(empty($data['title'])) {
-                $genderDisp = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
-                $data['title'] = $genderDisp;
-            }
-            $event->setName($data['title']);
 
             $current_user = wp_get_current_user();
             if ( $current_user->exists() ) {
@@ -872,7 +874,10 @@ class ManageEvents
             update_post_meta($newPostId, TennisEventCpt::AGE_MIN_META_KEY, 5);
 
             $event->addExternalRef((string)$newPostId);
-            $event->save();
+            $this->log->error_log("$loc Last. Debugging event ????");
+            $this->log->error_log($event,"$loc: Dumping event ....",true);
+            $parentEvent->save();
+            //$event->save();
             $newEventId = $event->getID();
             $mess = __("Created new leaf event with id={$newEventId}.",TennisEvents::TEXT_DOMAIN);
         }
@@ -919,7 +924,7 @@ class ManageEvents
 
             $gender = $event->getGenderType();
             $matchType = $event->getMatchType();
-            $data['newTitle'] = htmlspecialchars(strip_tags($data['newTitle']));
+            $data['newTitle'] = strip_tags($data['newTitle']);
             if(empty($data['newTitle'])) {
                 $data['newTitle'] = GenderType::AllTypes()[$gender] . " " . MatchType::AllTypes()[$matchType];
             }
