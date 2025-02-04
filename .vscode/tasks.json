@@ -22,20 +22,22 @@
       "problemMatcher": []
     },
     {
-      "label": "Deploy Tennis Members Plugin",
+      "label": "Deploy Tennis Club Membership Plugin",
       "type": "shell",
-      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennismembership C:\\webserver\\htdocs\\ttc\\wp-content\\plugins\\tennismembership /MIR",
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennismembership C:\\webserver\\htdocs\\ttc\\wp-content\\plugins\\tennisclubmembership /MIR" ,
       "problemMatcher": []
     },
     {
       "label": "Deploy Tests",
       "type": "shell",
-      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\ttc\\tests *.php"
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\ttc\\tests *.php",
+      "problemMatcher": []
     },
     {
       "label": "Deploy Test Config",
       "type": "shell",
-      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\ttc *.xml"
+      "command": "robocopy C:\\Users\\robin\\OneDrive\\Documents\\MyProjects\\Tennis\\wp-plugins\\tennisTests\\ C:\\webserver\\htdocs\\ttc *.xml",
+      "problemMatcher": []
     },
     {
       "label": "Deploy Common Library",
