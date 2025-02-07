@@ -874,10 +874,8 @@ class ManageEvents
             update_post_meta($newPostId, TennisEventCpt::AGE_MIN_META_KEY, 5);
 
             $event->addExternalRef((string)$newPostId);
-            $this->log->error_log("$loc Last. Debugging event ????");
-            $this->log->error_log($event,"$loc: Dumping event ....",true);
+            //Save via the parent event as we added this leaf to it
             $parentEvent->save();
-            //$event->save();
             $newEventId = $event->getID();
             $mess = __("Created new leaf event with id={$newEventId}.",TennisEvents::TEXT_DOMAIN);
         }

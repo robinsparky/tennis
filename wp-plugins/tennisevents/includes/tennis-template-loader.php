@@ -22,12 +22,12 @@ use cpt\TennisEventCpt;
  * @return 	string 							Path to the template file.
  */
 
-function tennis_locate_template( $template_name, $template_path = '', $default_path = '' ) {
+function tennis_template_locate( $template_name, $template_path = '', $default_path = '' ) {
 	$loc = __FUNCTION__;
 	
-	// Set variable to search in tennisevents-plugin-templates folder of theme.
+	// Set variable to search in tennisevents-plugin-templates folder of THEME.
 	if ( ! $template_path ) :
-		$template_path = 'tennisevents-plugin-templates/';
+		$template_path = 'tennisevent-plugin-templates/';
 	endif;
 
 	// Set default plugin templates path.
@@ -44,11 +44,13 @@ function tennis_locate_template( $template_name, $template_path = '', $default_p
 		$template = $default_path . $template_name;
 	}
 
-	return apply_filters( 'tennis_locate_template', $template, $template_name, $template_path, $default_path );
+	return $template;
+	//return apply_filters( 'tennis_template_locate', $template, $template_name, $template_path, $default_path );
 
 }
 
 /**
+ * NOT USED
  * Get template.
  *
  * Search for the template and include the file.
@@ -70,7 +72,7 @@ function tennis_get_template( $template_name, $args = null, $template_path = '',
 	endif;
 	error_log("$loc: template_name='{$template_name}', template_path='{$template_path}', default_path='{$default_path}'");
 
-	$template_file = tennis_locate_template( $template_name, $template_path, $default_path );
+	$template_file = tennis_template_locate( $template_name, $template_path, $default_path );
 	error_log("$loc: template_file='{$template_file}'");
 
 	if ( ! file_exists( $template_file ) ) :
@@ -79,11 +81,10 @@ function tennis_get_template( $template_name, $args = null, $template_path = '',
 	endif;
 
 	load_template( $template_file, true, $args );
-	//include $template_file;
-
 }
 
 /**
+ * NOT USED
  * Get template part.
  *
  * Search for the template and include the file.
@@ -107,7 +108,6 @@ function tennis_get_template_part( $slug, $name = null, $args = null ) {
 	}
  
 	tennis_get_template( $template_name, $args );
-
 }
 
 /**
@@ -126,97 +126,35 @@ function tennis_template_loader( $template ) {
 	$loc =  __FUNCTION__;	
 	error_log( "$loc: template='$template'" );
 
-	$find = array();
 	$file = '';
 
-	$cptName =  TennisEventCpt::CUSTOM_POST_TYPE;
-	$my_post_types = array( $cptName );
-	  
+	$my_post_types = array( TennisEventCpt::CUSTOM_POST_TYPE );
+
 	if( ! is_singular( $my_post_types) && ! is_post_type_archive( $my_post_types ) ) {
-		error_log("$loc: E A R L Y   R E T U R N");
+		error_log("$loc: you're not my type!");
 	  return $template;
 	}
-	
-	// if ( is_singular( 'post' ) ) :
-	// 	$file = 'post-override.php';
-	// elseif ( is_singular( 'page' ) ) :
-	// 	$file = 'page-override.php';
-	// endif;
-	  // Provided Template $template: /Users/you/Sites/your_site/wp-content/themes/your_theme/archive.php
-	  $provided_template_array = explode( '/', $template );
-	  
-	  /* Provided Template Array:
-	  *  Array ( 
-	      [0] => 
-	      [1] => Users 
-	      [2] => you 
-	      [3] => Sites 
-	      [4] => your_site 
-	      [5] => wp-content 
-	      [6] => themes 
-	      [7] => your_theme 
-	      [8] => archive.php )
-	  **/
-	  // This will give us archive.php
-	  $file = end( $provided_template_array );
-	  if( is_post_type_archive( $my_post_types ) ) {
-		  $file = 'archive-tenniseventcpt.php';
-	  }
-	  elseif( is_singular( $my_post_types ) ) {
-		  $file = 'single-tenniseventcpt.php';
-	  }
-	  error_log("$loc: looking for file='$file'");
-	
-	  $templateFile = tennis_locate_template( $file );
-	  if ( file_exists( $templateFile ) ) {
-		$template = $templateFile;
-	  }
+
+	$provided_template_array = explode( '/', $template );
+
+	$file = end( $provided_template_array );
+	if( is_post_type_archive( $my_post_types ) ) {
+		$file = 'archive-tenniseventcpt.php';
+	}
+	elseif( is_singular( $my_post_types ) ) {
+		$file = 'single-tenniseventcpt.php';
+	}
+	error_log("$loc: looking for file='$file'");
+
+	$template = tennis_template_locate( $file );
+
+	if ( ! file_exists( $template ) ) :
+		error_log("$loc: file not exists '$template'");
+		_doing_it_wrong( __FUNCTION__, sprintf( '<code>%s</code> does not exist.', $template ), '1.0.0' );
+		return;
+	endif;
 
 	return $template;
 
 }
 add_filter( 'template_include', 'tennis_template_loader' );
-
-
-
-// define( 'MY_PLUGIN_DIR', plugin_dir_path( __FILE__) );
-// define( 'MY_PLUGIN_TEMPLATE_DIR', MY_PLUGIN_DIR . '/templates/' );
-// add_filter( 'template_include', 'ibenic_include_from_plugin', 99 );
-
-// function ibenic_include_from_plugin( $template ) {
-	  
-// 	  $our_post_types = array( 'portfolio', 'services' );
-	  
-// 	  if( ! is_singular( $our_post_types) && ! is_post_type_archive( $our_post_types ) ){
-// 	    return $template;
-// 	  }
-	  
-// 	  // Provided Template $template: /Users/you/Sites/your_site/wp-content/themes/your_theme/archive.php
-// 	  $provided_template_array = explode( '/', $template );
-	  
-// 	  /* Provided Template Array:
-// 	  *  Array ( 
-// 	      [0] => 
-// 	      [1] => Users 
-// 	      [2] => you 
-// 	      [3] => Sites 
-// 	      [4] => your_site 
-// 	      [5] => wp-content 
-// 	      [6] => themes 
-// 	      [7] => your_theme 
-// 	      [8] => archive.php )
-// 	  **/
-// 	  // This will give us archive.php
-// 	  $new_template = end( $provided_template_array );
-	  
-// 	  // Getting the post type slug for folder name
-//   	$subfolder = get_post_type();
-  	
-//  	  $plugin_template = MY_PLUGIN_TEMPLATE_DIR . $subfolder . '/' . $new_template;
- 	
-//   	if( file_exists( $plugin_template ) ) {
-//   	  return $plugin_template;
-//   	}
-	
-// 	  return $template;
-// }
