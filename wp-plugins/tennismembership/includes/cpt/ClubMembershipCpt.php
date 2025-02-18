@@ -16,12 +16,15 @@ use commonlib\BaseLogger;
  * @version 1.0.0
  * @since   0.1.0
 */
-class TennisClubRegistrationCpt {
+class ClubMembershipCpt 
+{
 	
-	const CUSTOM_POST_TYPE     = 'tennisclubregcpt';
-	const CUSTOM_POST_TYPE_TAX = 'tennisclubregcategory';
-	const CUSTOM_POST_TYPE_TAG = 'tennisclubregtag';
-    const CLUBMEMBERSHIP_NAME  = '_tennisclubreg_name';
+	const CUSTOM_POST_TYPE     = 'clubmembershipcpt';
+	const CUSTOM_POST_TYPE_TAX = 'clubmemcategory';
+	const CUSTOM_POST_TYPE_TAG = 'clubmemtag';
+    const CLUBMEMBERSHIP_SLUG  = 'clubmemberships';
+	
+	const MEMBERSHIP_SEASON    = '_membership_season';
 	
     //Only emit on this page
 	private $hooks = array('post.php', 'post-new.php');
@@ -38,8 +41,8 @@ class TennisClubRegistrationCpt {
 		$tennisClubRegistration = new self();
 
 		$tennisClubRegistration->customPostType(); 
-		//$tennisClub->customTaxonomy();
-		add_action( 'admin_enqueue_scripts', array( $tennisClubRegistration, 'enqueue') );
+		//$tennisClubRegistration->customTaxonomy();
+		//add_action( 'admin_enqueue_scripts', array( $tennisClubRegistration, 'enqueue') );
 			
 		// add_filter( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_columns', array( $tennisMembership, 'addColumns' ), 10 );
 		// add_action( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array( $tennisMembership, 'getColumnValues'), 10, 2 );
@@ -49,7 +52,7 @@ class TennisClubRegistrationCpt {
 		//Required actions for meta boxes
 		//add_action( 'add_meta_boxes', array( $tennisMembership, 'metaBoxes' ) );
 
-		// Hook for updating/inserting into Tennis tables
+		// Hook for updating/inserting into custom tables
 		//add_action( 'save_post', array( $tennisMembership, 'updateTennisDB'), 12 );
 		//Hook for deleting cpt
 		//add_action( 'delete_post', array( $tennisMembership, 'deleteTennisDB') );
@@ -83,22 +86,22 @@ class TennisClubRegistrationCpt {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log( $loc );
 
-		$labels = array( 'name' => 'Club Registration'
-					   , 'singular_name' => 'Club Registration'
-					   //, 'add_new' => 'Add Club Registration'
-					   //, 'add_new_item' => 'New Club Registration'
-					   //, 'new_item' => 'New Club Registration'
-					   //, 'edit_item' => 'Edit Club Registration'
-					   , 'view_item' => 'View Club Registration'
-					   , 'all_items' => 'All Club Registrations'
-					   , 'menu_name' => 'Club Registration'
-					   , 'search_items'=>'Search Club Registrations'
-					   , 'not_found' => 'No Club Registrations found'
-                       , 'not_found_in_trash'=> 'No Club Registrations found in Trash');
+		$labels = array( 'name' => 'Club Membership'
+					   , 'singular_name' => 'Club Membership'
+					   //, 'add_new' => 'Add Club Membership'
+					   //, 'add_new_item' => 'New Membership'
+					   //, 'new_item' => 'New Club Membership'
+					   //, 'edit_item' => 'Edit Club Membership'
+					   , 'view_item' => 'View Club Membership'
+					   , 'all_items' => 'All Club Memberships'
+					   , 'menu_name' => 'Club Membership'
+					   , 'search_items'=>'Search Club Memberships'
+					   , 'not_found' => 'No Club Memberships found'
+                       , 'not_found_in_trash'=> 'No Club Memberships found in Trash');
                        
 		$args = array( 'labels' => $labels
 					 //, 'taxonomies' => array( 'category', 'post_tag' )
-					 , 'description' => 'Club Registration as a CPT'
+					 , 'description' => 'Club Membership as a CPT'
 					 , 'menu_position' => 93
 					 , 'menu_icon' => 'dashicons-code-standards'
 					 , 'exclude_from_search' => false
@@ -106,13 +109,19 @@ class TennisClubRegistrationCpt {
 					 , 'publicly_queryable' => true
 					 , 'query_var' => true
 					 , 'capability_type' => 'post'
+					 , 'capabilities' => array('create_posts'=>false) //Cannot add new registrations; 'do_not_allow' removes support for the "Add New" function, including Super Admin's
+					 , 'map_meta_cap' => true //Set to `false`, if users are not allowed to edit/delete existing posts
 					 , 'hierarchical' => true
 					 , 'show_in_rest' => true //causes Gutenberg editor to be used
-					 , 'rewrite' => array( 'slug' => 'clubregistrations', 'with_front' => false )
+					 , 'rewrite' => array( 'slug' => self::CLUBMEMBERSHIP_SLUG, 'with_front' => false )
 					 //, 'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'comments', 'excerpt', 'revisions', 'custom-fields', 'page-attributes' ) 
-					 , 'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'revisions' ) 
+					 //, 'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'revisions' ) 
 					 , 'public' => true );
-		register_post_type( self::CUSTOM_POST_TYPE, $args );
+		$res = register_post_type( self::CUSTOM_POST_TYPE, $args );
+
+		if(is_wp_error($res)) {
+			throw new \Exception($res->get_error_message());
+		}
 	}
 
 	/**
@@ -125,8 +134,8 @@ class TennisClubRegistrationCpt {
 		// column vs displayed title
         //$newColumns['club_name'] = __( 'Club Name', TennisEvents::TEXT_DOMAIN );
 		$newColumns['cb'] = $columns['cb'];
-		//$newColumns['title'] = __( 'Club Name', TennisMembership::TEXT_DOMAIN ); //$columns['title'];
-		//$newColumns['taxonomy-tennisclubcategory'] = __('Category', TennisEvents::TEXT_DOMAIN );
+		//$newColumns['title'] = __( 'Club Name', TennisClubMembership::TEXT_DOMAIN ); //$columns['title'];
+		//$newColumns['taxonomy-tennisclubcategory'] = __('Category', TennisClubMembership::TEXT_DOMAIN );
 		// $newColumns['author'] = $columns['author'];
         // $newColumns['date'] = $columns['date'];
 		return $newColumns;
@@ -148,7 +157,7 @@ class TennisClubRegistrationCpt {
 	}
 
 	/**
-     * Populate the MemberRegistration columns with values
+     * Populate the TennisClubRegistrationCpt columns with values
      */
 	public function getColumnValues( $column_name, $postID ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;

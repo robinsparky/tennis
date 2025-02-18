@@ -7,11 +7,16 @@
 	Author: Robin Smith
 	Author URI: grayware.ca
 */
+
+use api\view\RenderRegistrations;
+use api\ajax\ManageRegistrations;
 use commonlib\GW_Support;
 use commonlib\BaseLogger;
+use cpt\ClubMembershipCpt;
+use cpt\TennisMemberCpt;
+use datalayer\Corporation;
 use datalayer\MembershipType;
-use datalayer\MembershipSuperType;
-use cpt\TennisClubRegistrationCpt;
+use datalayer\MembershipCategory;
 
 // use \WP_CLI;
 // use \WP_CLI_Command;
@@ -39,10 +44,12 @@ class TennisClubMembership {
 	 * @var     string
 	 */
 	public const VERSION = '1.0.0';
-	const OPTION_NAME_VERSION = 'tennisclubmember_version';
 	public const OPTION_TENNIS_SEASON = 'gw_tennis_event_season';
 	public const OPTION_NAME_SEEDED  = 'clubmembership_data_seeded';
+	public const OPTION_HOME_CORPORATION = 'clubmembership_home_corp';
 
+    public const USER_PERSON_ID = '_user_person_id';
+	public const QUERY_PARM_CORPORATEID = 'corpid';
 	public const PIVOT = "Player";
 	public static $initialSuperTypes = [self::PIVOT,"NonPlayer"];
 	public static $initialPlayerTypes = ["Adult","Couples","Family","Student","Junior"];
@@ -51,6 +58,8 @@ class TennisClubMembership {
 	public const INITIALMEMBERSHIPTYPES = ["Player"=>["Adult","Couples","Family","Student","Junior"]
 	                                      ,"NonPlayer"=> ["Public","Parent","Staff","Instructor"]
                                           ];
+
+	const OPTION_NAME_VERSION = 'tennisclubmember_version';
 
 	/**
 	 * Unique identifier for the plugin.
@@ -148,15 +157,6 @@ class TennisClubMembership {
 	static public function on_activate() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc Start>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		
-		$incpath = __DIR__ . "/includes";
-		self::filePerms($incpath);
-		$datalayerpath = __DIR__ . "/includes/datalayer";
-		self::filePerms($datalayerpath);
-		$exceptpath = __DIR__ . "/includes/datalayer/appexceptions";
-		self::filePerms($exceptpath);
-		$phpfile = __DIR__ . "/includes/datalayer/appexceptions/InvalidAddressException.php";
-		self::filePerms($phpfile);
 
 		TennisClubMembership::getInstaller()->activate();
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
@@ -175,65 +175,6 @@ class TennisClubMembership {
 		TennisClubMembership::getInstaller()->uninstall();
 		error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>$loc End>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 	}
-
-	static public function filePerms(string $filePath) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-		if(!file_exists($filePath)) return;
-
-		error_log("$loc: Permissions for {$filePath}");
-
-		$perms = fileperms($filePath);
-		$octal=substr(sprintf('%o', $perms), -4);
-		error_log("---------> octal $octal");
-		
-		switch ($perms & 0xF000) {
-			case 0xC000: // socket
-				$info = 's';
-				break;
-			case 0xA000: // symbolic link
-				$info = 'l';
-				break;
-			case 0x8000: // regular
-				$info = 'r';
-				break;
-			case 0x6000: // block special
-				$info = 'b';
-				break;
-			case 0x4000: // directory
-				$info = 'd';
-				break;
-			case 0x2000: // character special
-				$info = 'c';
-				break;
-			case 0x1000: // FIFO pipe
-				$info = 'p';
-				break;
-			default: // unknown
-				$info = 'u';
-		}
-		// Owner
-		$info .= (($perms & 0x0100) ? 'r' : '-');
-		$info .= (($perms & 0x0080) ? 'w' : '-');
-		$info .= (($perms & 0x0040) ?
-					(($perms & 0x0800) ? 's' : 'x' ) :
-					(($perms & 0x0800) ? 'S' : '-'));
-
-		// Group
-		$info .= (($perms & 0x0020) ? 'r' : '-');
-		$info .= (($perms & 0x0010) ? 'w' : '-');
-		$info .= (($perms & 0x0008) ?
-					(($perms & 0x0400) ? 's' : 'x' ) :
-					(($perms & 0x0400) ? 'S' : '-'));
-
-		// World
-		$info .= (($perms & 0x0004) ? 'r' : '-');
-		$info .= (($perms & 0x0002) ? 'w' : '-');
-		$info .= (($perms & 0x0001) ?
-					(($perms & 0x0200) ? 't' : 'x' ) :
-					(($perms & 0x0200) ? 'T' : '-'));
-
-		error_log("---------> perms $info");
-	}
 	
 	/**
 	 * Init Club Membership 
@@ -243,12 +184,16 @@ class TennisClubMembership {
 	public function init() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log( ">>>>>>>>>>>$loc start>>>>>>>>>" );
-		//Register various 
-		TennisClubRegistrationCpt::register();
-		// ManageSignup::register();
-		// ManageDraw::register();
-		// ManageRoundRobin::register();
-		flush_rewrite_rules(); //necessary to make permlinks work for tennis templates
+
+		//Register custom post types 
+		ClubMembershipCpt::register();
+		TennisMemberCpt::register();
+
+		//Register Membership Registrations
+		RenderRegistrations::register();
+		ManageRegistrations::register();
+
+		flush_rewrite_rules(); //necessary to make permlinks work for clubmembership templates
 		$this->seedData();
 		$this->log->error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
 	}
@@ -262,12 +207,15 @@ class TennisClubMembership {
 
 		$result = 0;
 		if( false === get_option(TennisClubMembership::OPTION_NAME_SEEDED) ) {
-			foreach(array_keys(self::INITIALMEMBERSHIPTYPES) as $super) {
-				$superType = MembershipSuperType::fromData($super);
-				$result = $superType->save();
-				$supId = $superType->getID();
-				foreach(self::INITIALMEMBERSHIPTYPES[$super] as $mbrship) {
-					$memType = MembershipType::fromData($supId,$mbrship);
+			$corp = Corporation::fromData("Tyandaga Ltd.");
+			$corp->save();
+			update_option(TennisClubMembership::OPTION_HOME_CORPORATION, $corp->getID());
+			foreach(array_keys(self::INITIALMEMBERSHIPTYPES) as $cat) {
+				$catType = MembershipCategory::fromData($cat,$corp->getID());
+				$result = $catType->save();
+				$catId = $catType->getID();
+				foreach(self::INITIALMEMBERSHIPTYPES[$cat] as $mbrship) {
+					$memType = MembershipType::fromData($catId,$mbrship);
 					$result += $memType->save();
 				}
 			}
@@ -283,6 +231,50 @@ class TennisClubMembership {
 	public function getPluginUrl() {
 		return trailingslashit(plugins_url()) . trailingslashit(self::PLUGIN_SLUG);
 	}
+
+	/**
+	 * Retrieve the season
+	 * If not in the URL then retrieved from options
+	 * @return season
+	 */
+	 public function getSeason() {
+		 $loc = __CLASS__. "::" .__FUNCTION__;
+		 $this->log->error_log("$loc");
+		 
+		 $seasonDefault = esc_attr( get_option(TennisClubMembership::OPTION_TENNIS_SEASON, date('Y') ) ); 
+		 $season = isset($_GET['season']) ? $_GET['season'] : '';
+		 if(empty($season)) {
+			 $season = $seasonDefault;
+			 $this->log->error_log("$loc: Using default season='{$seasonDefault}'");
+		 }
+		 else {
+			$this->log->error_log("$loc: Using posted season='{$season}'");    
+		 }
+		 return $season;
+	 }
+ 
+	 
+	/**
+	 * Retrieve the Corporation ID
+	 * If not in the URL then retrieved from options
+	 * @return int Corporate Id
+	 */
+	public function getCorporationId() {
+		$loc = __CLASS__. "::" .__FUNCTION__;
+		$this->log->error_log("$loc");
+		
+		$corpDefault = esc_attr( get_option(TennisClubMembership::OPTION_HOME_CORPORATION), 1 ); 
+		$corp = isset($_GET[self::QUERY_PARM_CORPORATEID]) ? $_GET[self::QUERY_PARM_CORPORATEID] : '';
+		if(empty($corp)) {
+			$corp = $corpDefault;
+			$this->log->error_log("$loc: Using default corporation='{$corpDefault}'");
+		}
+		else {
+		   $this->log->error_log("$loc: Using posted corporation='{$corp}'");    
+		}
+		return $corp;
+	}
+
 
 	/**
 	 * Customize the Query for Tennis Membership Archives
@@ -312,7 +304,7 @@ class TennisClubMembership {
 		//include_once( 'includes/class-controller-manager.php' );
 		//include_once( 'includes/class-tennis-install.php' );
 		// include_once( 'includes/functions-admin-menu.php' );
-		// include_once( 'includes/tennis-template-loader.php' );
+		include_once( 'includes/clubmembership-template-loader.php' );
 
 		// if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		// 	include_once( 'includes/commandline/class-clubcommands.php' );

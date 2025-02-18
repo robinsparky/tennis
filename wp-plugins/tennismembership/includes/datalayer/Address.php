@@ -1,8 +1,11 @@
 <?php
 namespace datalayer;
 
-use TennisMembership;
+use TennisClubMembership;
 use datalayer\appexceptions\InvalidAddressException;
+use \DateTime;
+use \DateTimeZone;
+use tidy;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -18,11 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Address  extends AbstractMembershipData 
 {
 
-    public static $tablename = TennisMembership::getInstaller()->getDBTablenames()['membership_address'];
+    public static $tablename = 'address';
 
 	public const COLUMNS = <<<EOD
 ID 			
-,person_ID
+,owner_ID
 ,addr1
 ,addr2
 ,city
@@ -33,7 +36,7 @@ ID
 EOD;
 
     //DB fields
-    private $personId;
+    private $ownerId;
     private $addr1;
     private $addr2;
     private $city;
@@ -42,7 +45,7 @@ EOD;
     private $postal_code;
 
     //Private properties
-    private $person;
+    private $owner;
 
     /**
      * Find collection of Addresses for a given person
@@ -51,10 +54,11 @@ EOD;
         $loc = __CLASS__ . '::' . __FUNCTION__;
 
         global $wpdb;
-        $table = $wpdb->prefix . self::$tablename;
+        $table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
         $columns = self::COLUMNS;
         $col = array();
         $sql = "select {$columns} from $table where person_ID = %d";
+
         $safe = $wpdb->prepare($sql,$fk_criteria);
         $rows = $wpdb->get_results($safe, ARRAY_A);
         
@@ -76,7 +80,7 @@ EOD;
         $loc = __CLASS__ . '::' . __FUNCTION__;
 
         global $wpdb;
-        $table = $wpdb->prefix . self::$tablename;
+        $table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
         $columns = self::COLUMNS;
         $sql = "select {$columns} from $table where ID=%d";
         $safe = $wpdb->prepare($sql,$pks);
@@ -92,10 +96,10 @@ EOD;
         return $obj;
     }
 
-    public static function fromData(int $personId, string $addr2, string $city) :self {
+    public static function fromData(AbstractMembershipData $owner, string $addr2, string $city) :self {
         $new = new Address;
-        if(!$new->setPersonId($personId)) {
-            $mess = __("No such person with this Id", TennisMembership::TEXT_DOMAIN);
+        if(!$new->setOwner($owner)) {
+            $mess = __("No such object with this Id", TennisClubMembership::TEXT_DOMAIN);
             throw new InvalidAddressException($mess);
         }
         $new->setAddr2($addr2);
@@ -107,33 +111,18 @@ EOD;
         parent::__construct( true );
     }
 
-    /**
-     * Set the ID of the person living at this address
-     * @param int $personId - the db ID of the person
-     * @return bool - true if successful; false otherwise
-     */
-    public function setPersonId(int $personId) : bool {
-        $this->personId = $personId;
-        $this->person = Person::get($personId);
-        if(is_null($this->person)) {
-            $this->personId = 0;
-            return false;
-        }
+    public function getOwnerId() : int {
+        return $this->ownerId;
+    }
+
+    public function setOwner( AbstractMembershipData $owner ) : bool {
+        $this->owner = $owner;
+        $this->ownerId = $owner->getID();
         return $this->setDirty();
     }
 
-    public function getPersonId() : int {
-        return $this->personId;
-    }
-
-    public function setPerson( Person $person ) : bool {
-        $this->person = $person;
-        $this->personId = $person->getID();
-        return $this->setDirty();
-    }
-
-    public function getPerson() : Person {
-        return $this->person;
+    public function getOwner() : AbstractMembershipData {
+        return $this->owner;
     }
 
     public function setAddr1(string $addr) : bool {
@@ -195,8 +184,8 @@ EOD;
 		global $wpdb;
 		$result = 0;
 
-		//Delete the Person
-		$table = $wpdb->prefix . self::$tablename;
+		//Delete the Address		
+        $table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
 		$where = array( 'ID'=>$this->getID() );
 		$formats_where = array( '%d' );
 		$wpdb->delete( $table, $where, $formats_where );
@@ -212,9 +201,9 @@ EOD;
 
         $valid = true;
         $mess = '';
-        if(!isset($this->personId)) $mess = __("{$loc} must have a person assigned. ",TennisMembership::TEXT_DOMAIN);
-        if(!isset($this->addr2)) $mess = __( "{$loc} must have a street assigned. ",TennisMembership::TEXT_DOMAIN);
-        if(!isset($this->city)) $mess = __( "{$loc} must have a city assigned. ",TennisMembership::TEXT_DOMAIN);
+        if(!isset($this->ownerId)) $mess = __("{$loc} must have a person assigned. ",TennisClubMembership::TEXT_DOMAIN);
+        if(!isset($this->addr2)) $mess = __( "{$loc} must have a street assigned. ",TennisClubMembership::TEXT_DOMAIN);
+        if(!isset($this->city)) $mess = __( "{$loc} must have a city assigned. ",TennisClubMembership::TEXT_DOMAIN);
 
         if(strlen($mess) > 0 ) throw new InvalidAddressException($mess);
 
@@ -231,7 +220,7 @@ EOD;
 
 		parent::create();
         
-        $values = array( 'person_ID'=>$this->getPersonId() 
+        $values = array( 'person_ID'=>$this->getOwnerId() 
                         ,'addr1'=>$this->getAddr1()
                         ,'addr2'=>$this->getAddr2()
                         ,'city'=>$this->getCity()
@@ -240,7 +229,8 @@ EOD;
                         ,'postal_code'=>$this->getPostalCode()
         );
         $formats_values = array('%d,%s,%s,%s,%s,%s,%s');
-        $res = $wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+        $table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
+        $res = $wpdb->insert($table, $values, $formats_values);
 
         if( $res === false || $res === 0 ) {
             $mess = "$loc: wpdb->insert returned false or inserted 0 rows.";
@@ -269,7 +259,7 @@ EOD;
 		global $wpdb;
 		parent::update();
         
-        $values = array( 'person_ID'=>$this->getPersonId() 
+        $values = array( 'person_ID'=>$this->getOwnerId() 
                         ,'addr1'=>$this->getAddr1()
                         ,'addr2'=>$this->getAddr2()
                         ,'city'=>$this->getCity()
@@ -280,7 +270,8 @@ EOD;
 		$formats_values = array('%d,%s,%s,%s,%s,%s,%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
-		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
+        $table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
+		$wpdb->update($table,$values,$where,$formats_values,$formats_where);
 		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 
@@ -294,12 +285,14 @@ EOD;
     protected static function mapData($obj,$row) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 
-        $obj->personId = $row['person_ID'];
+        parent::mapData($obj,$row);
+
+        $obj->ownerId = $row['person_ID'];
         $obj->addr1 = $row['addr1'];
         $obj->addr2 = $row['addr2'];
         $obj->city = $row['city'];
         $obj->province = $row['province'];
         $obj->country = $row['country'];
-        $obj->postal_code = $row['postal_code'];
+        $obj->postal_code = $row['postal_code']; 
     }
 }

@@ -2,33 +2,14 @@
 namespace datalayer;
 
 use TennisClubMembership;
+use datalayer\ExternalMaping;
 use DateTime;
 use DateTimeZone;
 use datalayer\appexceptions\InvalidRegistrationException;
+use TM_Install;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
-}
-
-//Primary types
-enum RegSuperType {
-	case Players;
-	case NonPlayers;
-}
-
-//Sub types
-enum RegType : string {
-	//--Players
-    case Adult      = "Adult";
-    case Couple     = "Couple";
-    case Family     = "Family";
-    case Student    = "Student";
-    case Junior     = "Junior";
-	//--Non Players
-    case Parent     = "Parent";
-    case Public     = "Public";
-    case Staff      = "Staff";
-    case Instructor = "Instructor";
 }
 
 //Registration Status
@@ -40,7 +21,7 @@ enum RegStatus : string {
 
 /** 
  * Data and functions for MemberRegistration
- * @class  Registration
+ * @class  MemberRegistration
  * @package Tennis Membership
  * @version 1.0.0
  * @since   0.1.0
@@ -48,8 +29,9 @@ enum RegStatus : string {
 class MemberRegistration  extends AbstractMembershipData 
 {
 
-	public static $tablename = '';
-	private static $membershipTypeTable =  '';
+	public static $tablename = 'registraton';
+	private static $membershipTypeTable =  'membershiptype';
+	private static $categoryTable = 'membershipcategory';
 
 	public const COLUMNS = <<<EOD
 ID 
@@ -66,11 +48,27 @@ ID
 ,last_update
 EOD;
 
+public const JOINCOLUMNS = <<<EOD
+reg.ID 
+,reg.person_ID
+,reg.season_ID
+,reg.membership_type_ID
+,reg.status
+,reg.start_date
+,reg.expiry_date
+,reg.receive_emails
+,reg.include_in_directory
+,reg.share_email
+,reg.notes 
+,reg.last_update
+,cat.corporate_ID
+EOD;
+
+	//DB fields
 	private $personId;
 	private $seasonId;
 	private $regTypeId;
 	private $regType;
-	private $regSuperType;
 	private $regStatus;
 	private $startDate;
 	private $endDate;
@@ -79,21 +77,31 @@ EOD;
 	private $shareEmail;
 	private $notes;
 
+	//Properties
 	private $person;
+	private $membershipCategory;
+	private $corporateId;
+	private $external_refs = array();
 
 	/**
 	 * Find MemberRegistrations
+	 * @param array $fk_criteria (foreign keys)
+	 *        ['seasonId' => nnnn]
+	 *        ['seasonId' => nnnn, 'personId' => ID]
+	 *        ['seasonId' => nnnn, 'membershiptype' => 'name']
+	 *        ['seasonId' => nnnn, 'registrationId' => ID]
 	 */
 	static public function find(...$fk_criteria) {
 		$loc = __CLASS__ . '::'. __FUNCTION__;
 
 		global $wpdb;
 
-		$table = $wpdb->prefix . self::$tablename;
-		$memTypeTable = $wpdb->prefix . self::$membershipTypeTable;
+		$table =  TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
+		$memTypeTable = TennisClubMembership::getInstaller()->getDBTablenames()[self::$membershipTypeTable];
+		$catTable = TennisClubMembership::getInstaller()->getDBTablenames()[self::$categoryTable];
 		$columns = self::COLUMNS;
 		$col = array();
-		$seasonId = 0;
+		$seasonId = TM()->getSeason();
 		if( array_key_exists( 'seasonId', $fk_criteria ) ) {
 			$seasonId = $fk_criteria['seasonId'];
 		}
@@ -104,29 +112,43 @@ EOD;
 		if( array_key_exists( 'personId', $fk_criteria ) ) {
 		//All Registrations for a given Person in a given Season
 			$col_value = $fk_criteria["personId"];
-			$seasonId = $fk_criteria['seasonId'];
-			error_log("{$loc}: seasonID={$seasonId} person_ID={$col_value}");
+			error_log("{$loc}: seasonId={$seasonId} person_Id={$col_value}");
 			$sql = "SELECT {$columns}
 					FROM $table 
 					WHERE person_ID = %d and season_ID = %d;";
-		} elseif( array_key_exists('membershiptype',$fk_criteria) ) {
-		//All Registrations of a given MembershipType in a specified season
+					
+		} 
+		elseif( array_key_exists('membershiptype',$fk_criteria) ) {
+		//All Registrations of a given MembershipType by name in a specified season
 			$col_value = $fk_criteria["membershiptype"];
-			error_log("{$loc}: seasonID={$seasonId} registrationID=$col_value");
+			error_log("{$loc}: seasonID={$seasonId} registration type=$col_value");
+			$columns = self::JOINCOLUMNS;
 			$sql = "SELECT {$columns}
 					FROM $table reg
-					INNER JOIN $memTypeTable mt on reg.membership_type_ID = reg.ID 
-					WHERE reg.season_ID = %d and mt.name = %s;";
+					INNER JOIN $memTypeTable mt on reg.membership_type_ID = mt.ID 
+					INNER JOIN $catTable cat on mt.category_ID = cat.ID
+					WHERE reg.season_ID = %d and mt.name = '%s';";
+		}
+		elseif( array_key_exists('categorytype',$fk_criteria) ) {
+		//All Registrations of a given Category by name in a specified season
+			$col_value = $fk_criteria["categorytype"];
+			error_log("{$loc}: seasonID={$seasonId} category type id=$col_value");
+			$columns = self::JOINCOLUMNS;
+			$sql = "SELECT {$columns}
+					FROM $table reg
+					INNER JOIN $memTypeTable mt on reg.membership_type_ID = mt.ID 
+					INNER JOIN $catTable cat on mt.category_ID = cat.ID
+					WHERE reg.season_ID = %d and mt.name = '%s';";
 		} elseif( array_key_exists('registrationId',$fk_criteria) ) {
 		//A given Registration in a given season
 			$col_value = $fk_criteria["registrationId"];
-			error_log("{$loc}: seasonID={$seasonId} registrationID=$col_value");
+			error_log("{$loc}: seasonId={$seasonId} registrationId=$col_value");
 			$sql = "SELECT {$columns}
 					FROM $table
 					ON reg.
 					WHERE ID = %d and season_ID = %d;";
 		} elseif( !isset( $fk_criteria ) ) {
-		//All Registrations for a season
+		//All Registrations for a given season
 			error_log( "{$loc}: seasonID={$seasonId} all registrations" );
 			$col_value = 0;
 			$sql = "SELECT {$columns}
@@ -157,7 +179,7 @@ EOD;
 		$loc = __CLASS__ . '::'. __FUNCTION__;
 
 		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
+		$table =  TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
 		$columns = self::COLUMNS;
 		$id = $pks[0];
 		$sql = "select {$columns} from $table where ID=%d";
@@ -176,21 +198,21 @@ EOD;
 	/**
 	 * Create a registration with necessary (but insufficient) data
 	 * @param int $seasonId - the numeric version of season
-	 * @param RegType $regtype - the type of registration
-	 * @param int $person - the ID of the person registering
+	 * @param int $membershipTypeId - the ID of the membership type
+	 * @param int $personId - the ID of the person registering
 	 * @return MemberRegistration - an incomplete instance of a Registration
 	 */
-	public static function fromIds(int $seasonId, int $regtypeId, int $personId) : self {
+	public static function fromIds(int $seasonId, int $membershipTypeId, int $personId) : self {
 		$new = new static;
         if(!$new->setPersonId($personId)) {
             $mess = __("No such person with this Id", TennisClubMembership::TEXT_DOMAIN);
             throw new InvalidRegistrationException($mess);
         }
-		if($seasonId < 2020) {
-			$seasonId = esc_attr( get_option(TennisClubMembership::OPTION_TENNIS_SEASON, date('Y') ) ); 
+		if($seasonId < 2020 || $seasonId > date('Y')) {
+			$seasonId = TM()->getSeason(); 
 		}
 		$new->setSeasonId($seasonId);
-		$new->setRegTypeId($regtypeId);
+		$new->setMembershipTypeId($membershipTypeId);
 		$new->setStatus();
 		return $new;
 	}
@@ -207,7 +229,7 @@ EOD;
 			$new = new static;
 			$new->setPerson($person);
 			$new->setSeasonId($reg->getSeasonId());
-			//$new->setRegType($reg->getRegType());
+			$new->setMembershipType($reg->getMembershipType());
 			$new->setStatus($reg->getStatus());
 			$new->setStartDate_TS($reg->getStartDateTime()->format('U'));
 			$new->setEndDate_TS($reg->getEndDateTime()->format('U'));
@@ -223,8 +245,6 @@ EOD;
 	/*************** Instance Methods ****************/
     public function __construct() { 
 		parent::__construct( true );
-		self::$tablename = TennisClubMembership::getInstaller()->getDBTablenames()['membership_registration'];
-		self::$membershipTypeTable =  TennisClubMembership::getInstaller()->getDBTablenames()['membership_membershiptype'];
     } 
 
     /**
@@ -275,7 +295,7 @@ EOD;
 		return $this->seasonId;
 	}
 
-	public function setRegTypeId(int $regTypId) : bool {
+	public function setMembershipTypeId(int $regTypId) : bool {
 		$this->regTypeId = $regTypId;
 		$this->regType = MembershipType::get($regTypId);
 		if(is_null($this->regType )) {
@@ -285,28 +305,28 @@ EOD;
 		return $this->setDirty();
 	}
 
-	public function getRegTypeId() : int {
+	public function getMembershipTypeId() : int {
 		return $this->regTypeId;
 	}
 
-	public function setRegType(MembershipType $regtype) : bool {
+	public function setMembershipType(MembershipType $regtype) : bool {
 		$this->regType = $regtype;
 		$this->regTypeId = $this->regType->getID();
 		return $this->setDirty();
 	}
 
-	public function getRegType() : MembershipType {
+	public function getMembershipType() : MembershipType {
 		return $this->regType;
 	}
 
-	public function getRegSuperType() : MembershipSuperType {
+	public function getMembershipCategory() : string {
 		if(!isset($this->regTypeId)) return null;
-		if(!isset($this->regType)) $this->setRegType(MembershipType::get($this->regTypeId));
-		if(!isset($this->regSuperType)) {
-			$superId = $this->getRegType()->getSuperTypeId();
-			$this->regSuperType = MembershipSuperType::get($superId);
-		}
-		return $this->regSuperType;
+		if(!isset($this->regType)) $this->setMembershipType(MembershipType::get($this->regTypeId));
+		return $this->getMembershipType()->getCategory();
+	}
+
+	public function getCorporateId() {
+		return $this->corporateId;
 	}
 
 	public function setStatus( RegStatus $regStatus = RegStatus::Active ) {
@@ -350,7 +370,7 @@ EOD;
 	public function setNotes(string $notes = '') {
         $loc = __CLASS__ . ":" . __FUNCTION__;
 
-		$this->notes = htmlspecialchars($notes);
+		$this->notes = $notes;
 		return $this->setDirty();
 	}
 
@@ -500,7 +520,7 @@ EOD;
 	}
 		
     /**
-     * Set the end date. 
+     * Set the end/expiry date. 
      * This date will be stored in the db as a UTC date.
      * @param $date is local date in string in Y-m-d format
      */
@@ -557,7 +577,12 @@ EOD;
 
         return $result;
     }
-
+		
+    /**
+     * Set the end/expiry date. 
+     * This date will be stored in the db as a UTC date.
+     * @param $date is local date represented as a timestamp
+     */
     public function setEndDate_TS( int $timestamp ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc:{$this->toString()}($timestamp)");
@@ -638,11 +663,14 @@ EOD;
 	}
 
 	/**
-	 * Remove Registration for a given Person
+	 * Delete a Registration for a given Person in a given season
+	 * @param int personId - the DB id of the affected person
+	 * @param int $registrationId - the DB id of the registration to be deleted
+	 * @param int $seasonId - the id of the season; defaults to current season
 	 */
-	public function remove(int $personId, int $registrationId, int $seasonId = 0 ) : int {
+	public function deleteRegistration(int $personId, int $registrationId, int $seasonId = 0 ) : int {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log("{$loc}($personId, $registrationId)");
+		error_log("{$loc}($personId, $registrationId, $seasonId)");
 
 		$result = 0;
 		if($seasonId < 1) {
@@ -650,7 +678,7 @@ EOD;
 		}
 
 		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
+		$table = TennisClubMembership::getInstaller()->getDBTablenames(self::$tablename);
 		if( $registrationId > 0 && $personId > 0 ) {
 				$result = $wpdb->delete($table,array( "person_ID" => $personId, 'ID' => $registrationId, 'season_ID'=>$seasonId ),array('%d','%d','%d'));
 		}
@@ -662,6 +690,103 @@ EOD;
 		error_log("$loc: deleted $result rows");
 		return $result;
 	}
+	
+	/**
+	 * Delete all Registrations for a given Person in a given season
+	 * @param int personId - the DB id of the affected person
+	 * @param int $seasonId - the id of the season; 
+	 */
+	public function deleteAllForPerson(int $personId, int $seasonId ) : int {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log("{$loc}($personId, $seasonId)");
+
+		$result = 0;
+		if($seasonId < 1) {
+			 return 0; //$seasonId = esc_attr( get_option(TennisClubMembership::OPTION_TENNIS_SEASON, date('Y') ) ); 
+		}
+
+		global $wpdb;
+		$table = TennisClubMembership::getInstaller()->getDBTablenames(self::$tablename);
+		if( $personId > 0 ) {
+				$result = $wpdb->delete($table,array( "person_ID" => $personId, 'season_ID'=>$seasonId ),array('%d','%d'));
+		}
+		$result = $wpdb->rows_affected;
+		if( $wpdb->last_error ) {
+			error_log("$loc: Last error='$wpdb->last_error'");
+		}
+		
+		error_log("$loc: deleted $result rows");
+		return $result;
+	}
+		
+	/**
+	 * A Registration can have zero or more external references associated with it.
+	 * How these are usesd is up to the developer. 
+	 * For example, a custom post type in WordPress
+	 * @param string $extRef the external reference to be added to this event
+	 * @return bool True if successful; false otherwise
+	 */
+	public function addExternalRef( string $extRef ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log( $extRef, "$loc: External Reference Value");
+
+		$result = false;
+		if( !empty( $extRef ) ) {
+			$found = false;
+			foreach( $this->getExternalRefs( true ) as $er ) {
+				if( $extRef === $er ) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->external_refs[] = $extRef;
+				$result = $this->setDirty();
+			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Remove the external reference
+	 * @param string $extRef The external reference to be removed	 
+	 * @return True if successful; false otherwise
+	 */
+	public function removeExternalRef( string $extRef ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("$loc: extRef='{$extRef}'");
+
+		$result = false;
+		if( !empty( $extRef ) ) {
+			$i=0;
+			foreach( $this->getExternalRefs() as $er ) {
+				if( $extRef === $er ) {
+					unset( $this->external_refs[$i] );
+					$result = $this->setDirty();
+					ExternalMapping::remove(self::$tablename, $this->getID(), $er );
+				}
+				$i++;
+			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Get all external references associated with this Registration
+	 * @param $force When set to true will force loading of related external references
+	 *               This will cause unsaved external refernces to be lost.
+	 */
+	public function getExternalRefs( $force = false ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+		
+		if( !isset( $this->external_refs ) 
+		   || (0 === count( $this->external_refs))  || $force ) {
+			$this->external_refs = ExternalMapping::fetchExternalRefs(self::$tablename, $this->getID());
+		}
+		return $this->external_refs;
+	}
+
 	
 	/**
 	 * Test the validity of this Registration
@@ -704,11 +829,11 @@ EOD;
 	 */
     public function toString() {
 		$loc = __CLASS__;
-		if(is_null($this->getRegType())) {
-			return sprintf( "%s:(%d) unknown reg type)",$loc, $this->getID() );{
+		if(is_null($this->getMembershipType())) {
+			return sprintf( "%s:(%d) unknown membership type)",$loc, $this->getID() );{
 		}
 		}
-		return sprintf( "%s:(%d)-%s/%s)",$loc, $this->getID(), $this->getRegSuperType()->toString(), $this->getRegType()->toString() );
+		return sprintf("%s:(%d)-%s)",$loc, $this->getID(), $this->getMembershipType()->toString());
     }
 
 		
@@ -722,9 +847,10 @@ EOD;
 
 		parent::create();
 
+		$table = TennisClubMembership::getInstaller()->getDBTablenames(self::$tablename);
 		$values = array('person_ID'=>$this->getPersonId() 
 					   ,'season_ID'=>$this->seasonId
-					   ,'membership_type_ID'=>$this->getRegTypeId()
+					   ,'membership_type_ID'=>$this->getMembershipTypeId()
 					   ,'status'=>$this->getStatus()->value
 					   ,'start_date'=>$this->getStartDate_Str() 
 					   ,'expiry_date'=>$this->getEndDate_Str() 
@@ -733,8 +859,9 @@ EOD;
 					   ,'share_email'=>$this->getShareEmail() ? 1 : 0 
 					   ,'notes'=>$this->getNotes()
 		);
-		$formats_values = array('%d,%d,%s,%s,%s,%s,%d,%d,%d,%s');
-		$res = $wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+		
+		$formats_values = array('%d,%d,%d,%s,%s,%s,%d,%d,%d,%s');
+		$res = $wpdb->insert($table, $values, $formats_values);
 		
 		if( $res === false || $res === 0 ) {
 			$mess = "$loc: wpdb->insert returned false or inserted 0 rows.";
@@ -766,9 +893,10 @@ EOD;
 
 		parent::update();
 
+		$table = TennisClubMembership::getInstaller()->getDBTablenames(self::$tablename);
 		$values = array('person_ID'=>$this->getPersonId() 
 					   ,'season_ID'=>$this->seasonId
-					   ,'membership_type_ID'=>$this->getRegTypeId()
+					   ,'membership_type_ID'=>$this->getMembershipTypeId()
 					   ,'status'=>$this->getStatus()->value
 					   ,'start_date'=>$this->getStartDate_Str() 
 					   ,'expiry_date'=>$this->getEndDate_Str() 
@@ -777,10 +905,10 @@ EOD;
 					   ,'share_email'=>$this->getShareEmail() ? 1 : 0 
 					   ,'notes'=>$this->getNotes()
 		);
-		$formats_values = array('%d,%d,%s,%s,%s,%s,%d,%d,%d,%s');
+		$formats_values = array('%d,%d,%d,%s,%s,%s,%d,%d,%d,%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
-		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
+		$wpdb->update($table,$values,$where,$formats_values,$formats_where);
 		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 
@@ -791,10 +919,20 @@ EOD;
 	}
 
 	/**
-	 * TODO: complete the related data processing for Registration
+	 * Manage data related to this Registration
 	 */
 	private function manageRelatedData() {
 		return $result = 0;
+
+		//Save the External references related to this Registration
+		if( isset( $this->external_refs ) ) {
+			foreach($this->external_refs as $er) {
+				//Create relation between this Registration and its external references
+				$result += ExternalMapping::add(self::$tablename, $this->getID(), $er );
+			}
+		}
+
+		return $result;
 	}
 
     /**
@@ -813,6 +951,8 @@ EOD;
 		$obj->shareEmails =  $row['share_email'] > 0 ? true : false;
 		$obj->incInDir = $row['inlcude_in_directory'] > 0 ? true : false;
 		$obj->notes = $row["notes"];
+		$obj->corporateId = array_key_exists("corporate_ID",$row) ? $row['corporate_ID'] : -1;
+
         if( !empty($row["start_date"]) && $row["start_date"] !== '0000-00-00 00:00:00') {
             $st = new DateTime( $row["start_date"], new DateTimeZone('UTC') );
             $mess = print_r($st,true);
@@ -822,7 +962,8 @@ EOD;
         }
         else {
             $obj->startDate = null;
-        }      
+        }
+
         if( !empty($row["end_date"]) && $row["end_date"] !== '0000-00-00 00:00:00') {
             $st = new DateTime( $row["end_date"], new DateTimeZone('UTC') );
             $mess = print_r($st,true);
@@ -832,8 +973,6 @@ EOD;
         }
         else {
             $obj->endDate = null;
-        }
+        }     
 	}
-	
-	
 } //end of class

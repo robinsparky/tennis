@@ -1,6 +1,7 @@
 <?php
 use commonlib\BaseLogger;
-// use TennisClubMembership;
+use cpt\ClubMembershipCpt;
+use cpt\TennisMemberCpt;
 
 /**
  * Installation functions and actions.
@@ -21,25 +22,39 @@ require_once( ABSPATH . 'wp-admin/includes/upgrade.php');
  * TM_Install Class.
  */
 class TM_Install {
-	const TOURNAMENTDIRECTOR_ROLENAME = "tennis_tournament_director";
-	const CHAIRUMPIRE_ROLENAME = "tennis_chair_umpire";
-	const TENNISPLAYER_ROLENAME = "tennis_player";
+	const PUBLICMEMBER_ROLENAME = "public_member";
+	const TENNISPLAYER_ROLENAME = "tennis_member";
+	const STAFF_ROLENAME = "staff_member";
+	const INSTRUCTOR_ROLENAME = "instructor_coach";
 
 	const SCORE_MATCHES_CAP = 'score_matches';
 	const RESET_MATCHES_CAP = 'reset_matches';
-	const MANAGE_EVENTS_CAP = 'manage_events';
+	const MANAGE_REGISTRATIONS_CAP = 'manage_registrations';
 
-	static public $tennisRoles=array(self::TENNISPLAYER_ROLENAME => "Tennis Player"
-									,self::CHAIRUMPIRE_ROLENAME  => "Chair Umpire"
-								    ,self::TOURNAMENTDIRECTOR_ROLENAME => "Tournament Director");
+	static public $registrationManagerCaps = array(self::SCORE_MATCHES_CAP => 1
+                                                    ,self::RESET_MATCHES_CAP => 1
+                                                    ,self::MANAGE_REGISTRATIONS_CAP => 1 );
+
+	static public $tennisRoles=array(self::TENNISPLAYER_ROLENAME => "Tennis Member"
+								    ,self::PUBLICMEMBER_ROLENAME => "Public Member"
+								    ,self::STAFF_ROLENAME => "Staff Member"
+								    ,self::INSTRUCTOR_ROLENAME => "Instructor or Coach");
 	
-	static private $chairUmpireCaps=array(self::SCORE_MATCHES_CAP => 1
+	static private $tennisMemberCaps=array(self::SCORE_MATCHES_CAP => 1
 											,self::RESET_MATCHES_CAP => 0
-											,self::MANAGE_EVENTS_CAP => 0 );
+											,self::MANAGE_REGISTRATIONS_CAP => 0 );
 
-	static private $tournamentDirectorCaps=array(self::SCORE_MATCHES_CAP => 1
-												,self::RESET_MATCHES_CAP => 1
-												,self::MANAGE_EVENTS_CAP => 1 );
+	static private $publicMemberCaps=array(self::SCORE_MATCHES_CAP => 0
+											,self::RESET_MATCHES_CAP => 0
+											,self::MANAGE_REGISTRATIONS_CAP => 0 );
+												
+	static private $staffMemberCaps=array(self::SCORE_MATCHES_CAP => 1
+											,self::RESET_MATCHES_CAP => 0
+											,self::MANAGE_REGISTRATIONS_CAP => 0 );
+											
+	static private $instructorMemberCaps=array(self::SCORE_MATCHES_CAP => 1
+											,self::RESET_MATCHES_CAP => 0
+											,self::MANAGE_REGISTRATIONS_CAP => 0 );
 
 	private $dbTableNames; 
 	private $log;
@@ -71,11 +86,13 @@ class TM_Install {
 		$this->log = new BaseLogger( true );
 
 		global $wpdb;
-		$this->dbTableNames = array("person"					=> $wpdb->prefix . "membership_person"
+		$this->dbTableNames = array( "person"					=> $wpdb->prefix . "membership_person"
+		                            ,"corporation"              => $wpdb->prefix . "membership_corporation"
 									,"address"					=> $wpdb->prefix . "membership_address"
 									,"registration"				=> $wpdb->prefix . "membership_memberregistration"
 									,"membershiptype"			=> $wpdb->prefix . "membership_membershiptype"
-									,"membershipsupertype"		=> $wpdb->prefix . "membership_membershipsupertype"
+									,"membershipcategory"		=> $wpdb->prefix . "membership_membershipcategory"
+									,"externalmap"              => $wpdb->prefix . "membership_externalmap"
 								);
 		
         add_filter( 'query_vars', array( $this,'add_query_vars_filter' ) );
@@ -83,10 +100,6 @@ class TM_Install {
         add_action( 'wp_enqueue_scripts', array( $this,'enqueue_script' ) );
 
         add_action( 'wp_enqueue_scripts', array( $this,'enqueue_style' ) );
-
-        // Action hook to create the shortcode
-        //add_shortcode('tennis_shorts', array( $this,'do_shortcode'));
-
 	}
 
 	public function getDBTablenames() {
@@ -116,8 +129,8 @@ class TM_Install {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc Start+++++++++++++++++++++++++++++++");
 		// unregister the post type, so the rules are no longer in memory
-		// unregister_post_type( TennisEventCpt::CUSTOM_POST_TYPE );
-		// unregister_post_type( TennisClubCpt::CUSTOM_POST_TYPE );
+		unregister_post_type( ClubMembershipCpt::CUSTOM_POST_TYPE );
+		unregister_post_type( TennisMemberCpt::CUSTOM_POST_TYPE );
 		// clear the permalinks to remove our post type's rules from the database
 		flush_rewrite_rules();
 
@@ -134,6 +147,8 @@ class TM_Install {
 		$this->delete_options();
 		$this->delete_customPostTypes();
 		$this->delete_customTaxonomies();
+		//$this->delete_user_meta();
+		$this->delete_users();
 		$this->dropSchema();
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
@@ -174,34 +189,48 @@ class TM_Install {
 	 */
 	protected function delete_user_meta() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-	// 	$users = get_users();
-	// 	foreach ($users as $user) {
-	// 		delete_user_meta($user->ID, 'myplugin_user_meta');
-	// 	}
+		// $users = get_users();
+		// foreach ($users as $user) {
+		// 	delete_user_meta($user->ID, TennisClubMembership::USER_PERSON_ID);
+		// }
+	}
+	
+	/**
+	 * Delete WP users representing Members/Persons
+	 */
+	protected function delete_users() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		$users = get_users();
+		foreach ($users as $user) {
+			if(!empty(get_user_meta($user->id, TennisClubMembership::USER_PERSON_ID, true))) {
+				delete_user_meta($user->id, TennisClubMembership::USER_PERSON_ID);
+				wp_delete_user($user->id);
+			}
+		}
 	}
 
-	
 	/**
 	 * Delete options for this plugin
 	 */
 	protected function delete_options() {
 		delete_option( TennisClubMembership::OPTION_NAME_VERSION );
 		delete_option( TennisClubMembership::OPTION_NAME_SEEDED );
+		delete_option( TennisClubMembership::OPTION_HOME_CORPORATION );
 	}
 
 	/**
 	 * Delete Custom Post Types for this plugin:
-	 * TennisEventCpt, TennisClubCpt
+	 * TennisClubRegistrationCpt, TennisMemberCpt
 	 */
 	protected function delete_customPostTypes() {
-		// $eventposts = get_posts( array( 'post_type' => TennisEventCpt::CUSTOM_POST_TYPE, 'numberposts' => -1));
-		// foreach( $eventposts as $cpt ) {
-		// 	wp_delete_post( $cpt->ID, true );
-		// }
-		// $clubposts = get_posts( array( 'post_type' => TennisClubCpt::CUSTOM_POST_TYPE, 'numberposts' => -1));
-		// foreach( $clubposts as $cpt ) {
-		// 	wp_delete_post( $cpt->ID, true );
-		// }
+		$regposts = get_posts( array( 'post_type' => ClubMembershipCpt::CUSTOM_POST_TYPE, 'numberposts' => -1));
+		foreach( $regposts as $cpt ) {
+			wp_delete_post( $cpt->ID, true );
+		}
+		$memposts = get_posts( array( 'post_type' => TennisMemberCpt::CUSTOM_POST_TYPE, 'numberposts' => -1));
+		foreach( $memposts as $cpt ) {
+			wp_delete_post( $cpt->ID, true );
+		}
 	}
 
 	/**
@@ -210,6 +239,8 @@ class TM_Install {
 	protected function delete_customTaxonomies() {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$this->log->error_log($loc);
+		$this->delete_customTerms(ClubMembershipCpt::CUSTOM_POST_TYPE_TAX);
+		$this->delete_customTerms(TennisMemberCpt::CUSTOM_POST_TYPE_TAX);
 	}
 	
 	/**
@@ -219,6 +250,30 @@ class TM_Install {
 	protected function delete_customTerms($taxonomy) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
 		$this->log->error_log($loc);
+		global $wpdb;
+	
+		$tax_table = $wpdb->prefix . 'term_taxonomy';
+		$terms_table = $wpdb->prefix . 'terms';
+
+		$query = "SELECT t.name, t.term_id
+				FROM  {$terms_table} AS t
+				INNER JOIN {$tax_table}  AS tt
+				ON t.term_id = tt.term_id
+				WHERE tt.taxonomy = '%s'";
+	
+		$safe = $wpdb->prepare( $query, $taxonomy );
+		$rows = $wpdb->get_results( $safe, ARRAY_A );
+	
+		foreach ($rows as $row) {				
+			$this->log->error_log("$loc: for tax='$taxonomy', term id='{$row['term_id']}'.");
+
+			if( wp_delete_term( intval($row['term_id']), $taxonomy ) ) {
+				$this->log->error_log("$loc: for tax='{$taxonomy}' deleted '{$row['term_id']}' successfully.");
+			}
+			else {
+				$this->log->error_log("$loc: for tax='{$taxonomy}' delete '{$row['term_id']}' failed.");
+			}
+		}
 
 		global $wpdb;
 	}
@@ -234,13 +289,18 @@ class TM_Install {
 		$caps = array();
 		foreach(self::$tennisRoles as $slug => $name ) {
 			switch($slug) {
-				case self::TOURNAMENTDIRECTOR_ROLENAME:			
-					$caps = array_merge(self::$tournamentDirectorCaps, get_role('subscriber')->capabilities );
+				case self::TENNISPLAYER_ROLENAME:			
+					$caps = array_merge(self::$tennisMemberCaps, get_role('subscriber')->capabilities );
 					break;
-				case self::CHAIRUMPIRE_ROLENAME:
-					$caps = array_merge(self::$chairUmpireCaps, get_role('subscriber')->capabilities );
+				case self::PUBLICMEMBER_ROLENAME:
+					$caps = array_merge(self::$publicMemberCaps, get_role('subscriber')->capabilities );
 					break;
-				case self::TENNISPLAYER_ROLENAME;
+				case self::INSTRUCTOR_ROLENAME;
+					$caps = array_merge(self::$instructorMemberCaps, get_role('subscriber')->capabilities );
+					break;
+				case self::STAFF_ROLENAME;
+					$caps = array_merge(self::$staffMemberCaps, get_role('subscriber')->capabilities );
+					break;
 				default;
 					$caps = get_role('subscriber')->capabilities;
 			}
@@ -259,7 +319,7 @@ class TM_Install {
 	}
 
 	/**
-	 * Remove the roles of 'Tennis Player', 'Tournament Director', etc.
+	 * Remove the roles 
 	 */
 	protected function removeRoles() {
 		foreach (self::$tennisRoles as $slug => $name) {
@@ -268,7 +328,7 @@ class TM_Install {
 	}
 	
     /**
-	 * Add the new tennis capabilities to all roles having the 'manage_options' capability
+	 * Add the new capabilities to all roles having the 'manage_options' capability
 	 */
     private function addCap() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -278,7 +338,7 @@ class TM_Install {
 
         foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
             if (isset($roles[$key]) && $role->has_cap('manage_options')) {
-				foreach(self::$tournamentDirectorCaps as $cap => $grant) {
+				foreach(self::$registrationManagerCaps as $cap => $grant) {
                 	$role->add_cap( $cap );
 				}
             }
@@ -286,7 +346,7 @@ class TM_Install {
 	}
 
 	/**
-	 * Remove the tennis-specific custom capabilities
+	 * Remove the membership specific custom capabilities
 	 */
 	private function removeCap() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
@@ -295,7 +355,7 @@ class TM_Install {
 		$roles = get_editable_roles();
 		foreach ($GLOBALS['wp_roles']->role_objects as $key => $role) {
 			if (isset($roles[$key]) && $role->has_cap('manage_options')) {
-				foreach(self::$tournamentDirectorCaps as $cap => $grant) {
+				foreach(self::$registrationManagerCaps as $cap => $grant) {
 					$role->remove_cap( $cap );
 				}
 			}
@@ -313,37 +373,62 @@ class TM_Install {
 		if($withReports) $wpdb->show_errors();
 
 		//Check if schema already installed
-		$person_table = $this->dbTableNames["person"];
-		$newSchema = true;
-		if( $wpdb->get_var("SHOW TABLES LIKE '$person_table'") == $person_table ) {
-			$newSchema = false;
-		}
+		$numTables = $wpdb->query("SHOW TABLES LIKE '%_membership_%'");
+		$this->log->error_log("$loc: Number of tables = $numTables");
+		$newSchema = $numTables > 0 ? false : true;
 
 		//Temporarily until can test/fix dbDelta usage
 		if( ! $newSchema ) return;
-		
+				
+		/**
+		 * Corporaton
+		 */
+		$coporation_table	= $this->dbTableNames["corporation"];
+		$sql = "CREATE TABLE `$coporation_table` ( 
+			`ID`            INT NOT NULL AUTO_INCREMENT,
+			`name`          VARCHAR(255) NOT NULL,
+			`yearend_date`  DATETIME NOT NULL,
+			`status`        VARCHAR(25) NULL COMMENT 'Open, Closed, Open for Renewal',
+			`gst_number`    VARCHAR(50) NULL,
+			`gst_rate1`     DECIMAL(5,3) NULL,
+            `gst_rate2`     DECIMAL(5,3) NULL,			
+			`last_update`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY (`ID`)
+		) ENGINE = MyISAM;";
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $coporation_table" : "$coporation_table Created";
+			$this->log->error_log( $res );
+		}
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$coporation_table");
+		}
+
 		/**
 		 * Person is someone who interacts with the club
 		 * Information is stored in this table and in the Wordpress users table.
 		 */
+		$person_table = $this->dbTableNames["person"];
 		$sql = "CREATE TABLE `$person_table` ( 
 			`ID`            INT NOT NULL AUTO_INCREMENT,
+			`corporate_ID`   INT NOT NULL,
 			`sponsor_ID`    INT NULL,
 			`first_name`    VARCHAR(45) NULL,
 			`last_name`     VARCHAR(45) NOT NULL,
-			`gender`        VARCHAR(1) NOT NULL DEFAULT 'M',
+			`gender`        VARCHAR(10) NOT NULL,
 			`birthdate`     DATE NULL,
-			`skill_level`   DECIMAL(4,1) NULL DEFAULT 2.0,
+			`skill_level`   DECIMAL(4,1) DEFAULT 2.0,
 			`emailHome`     VARCHAR(100),
 			`emailBusiness` VARCHAR(100),
 			`phoneHome`     VARCHAR(45),
 			`phoneMobile`   VARCHAR(45),
 			`phoneBusiness` VARCHAR(45),
-			`notes`         VARCHAR(255),
+			`notes`         VARCHAR(2000),
 			`last_update`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY (`ID`),
-			INDEX sponsors (sponsor_ID),
-			INDEX fornames (last_name,first_name)
+			INDEX corpperson (`corporate_ID`),
+			INDEX sponsors (`sponsor_ID`),
+			INDEX fornames (`last_name`,`first_name`)
 		) ENGINE = MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
@@ -364,7 +449,7 @@ class TM_Install {
 		$address_table	= $this->dbTableNames["address"];
 		$sql = "CREATE TABLE `$address_table` ( 
 			`ID`            INT NOT NULL AUTO_INCREMENT,
-			`person_ID` 	INT NOT NULL COMMENT 'References someone in the person table',
+			`owner_ID` 	    INT NOT NULL COMMENT 'References someone in the person or corporation table',
 			`addr1` 		VARCHAR(255) NULL,
 			`addr2` 		VARCHAR(255) NOT NULL,
 			`city` 			VARCHAR(100) NOT NULL,
@@ -373,7 +458,7 @@ class TM_Install {
 			`postal_code` 	VARCHAR(20),
 			`last_update`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY (`ID`),
-			INDEX personaddress (`person_ID`)
+			INDEX owneraddress (`owner_ID`)
 		) ENGINE = MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
@@ -389,10 +474,11 @@ class TM_Install {
 		 */
 		$membership_type_table = $this->dbTableNames["membershiptype"];
 		$sql = "CREATE TABLE `$membership_type_table` ( 
-			`ID` INT NOT NULL AUTO_INCREMENT,
-			`supertype_ID` INT NOT NULL COMMENT 'References super type table',
-			`name`         VARCHAR(255) NOT NULL COMMENT 'Adult, Couples, Family, Junior, Student, Staff, Public, Instructor',
-			`last_update` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			`ID`           INT NOT NULL AUTO_INCREMENT,
+			`category_ID`  INT NOT NULL COMMENT 'References super type table',
+			`name`         VARCHAR(25) NOT NULL COMMENT 'Adult, Couples, Family, Junior, Student, Staff, Public, Instructor',
+			`description`  VARCHAR(1024) DEFAULT '',
+			`last_update`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY (`ID`) 
 		) ENGINE = MyISAM;";
 		if( $newSchema ) {
@@ -407,11 +493,12 @@ class TM_Install {
 		/**
 		 * Membership Super Type
 		 */
-		$membership_supertype_table = $this->dbTableNames["membershipsupertype"];
+		$membership_supertype_table = $this->dbTableNames["membershipcategory"];
 		$sql = "CREATE TABLE `$membership_supertype_table` ( 
-			`ID`          INT NOT NULL AUTO_INCREMENT,
-			`name`        VARCHAR(255) NOT NULL COMMENT 'Player vs NonPlayer',
-			`last_update` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			`ID`           INT NOT NULL AUTO_INCREMENT,
+			`corporate_ID` INT NOT NULL,
+			`name`         VARCHAR(10) NOT NULL COMMENT 'Player vs NonPlayer',
+			`last_update`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY (`ID`) 
 		) ENGINE = MyISAM;";
 		if( $newSchema ) {
@@ -453,6 +540,24 @@ class TM_Install {
 		else {
 			$this->log->error_log( dbDelta( $sql ), "$member_table");
 		}
+
+		$external_ref_table = $this->dbTableNames["externalmap"];
+		$sql = "CREATE TABLE `$external_ref_table` (
+		    `subject`         VARCHAR(50) DEFAULT 'registration',
+			`internal_ID`     INT NOT NULL,
+			`external_ID`     VARCHAR(100) NOT NULL,
+			`last_update`     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			INDEX intaccess (`subject`,`internal_ID`),
+			INDEX extaccess (`subject`,`external_ID`)
+		  ) ENGINE=MyISAM DEFAULT CHARSET=utf8;";  
+		if( $newSchema ) {
+			$res = $wpdb->query( $sql );
+			$res = false === $res ? $wpdb->last_error . " when creating $external_ref_table" : "$external_ref_table Created";
+			$this->log->error_log( $res );
+		}
+		else {
+			$this->log->error_log( dbDelta( $sql ), "$external_ref_table");
+		}
 		
 		return $wpdb->last_error;
 
@@ -468,10 +573,12 @@ class TM_Install {
 		//NOTE: The order is important
 		$sql = "DROP TABLE IF EXISTS ";
 		$sql = $sql . $this->dbTableNames["address"];
+		$sql = $sql . "," . $this->dbTableNames["externalmap"];
 		$sql = $sql . "," . $this->dbTableNames["registration"];
 		$sql = $sql . "," . $this->dbTableNames["person"];
 		$sql = $sql . "," . $this->dbTableNames["membershiptype"];
-		$sql = $sql . "," . $this->dbTableNames["membershipsupertype"];
+		$sql = $sql . "," . $this->dbTableNames["membershipcategory"];
+		$sql = $sql . "," . $this->dbTableNames["corporation"];
 
 		return $wpdb->query( $sql );
 	}

@@ -1,0 +1,12 @@
+url: http://ttc.test/
+user: robin
+color: true
+debug: false
+# Aliases to other WordPress installs (e.g. `wp @staging rewrite flush`)
+# An alias can include 'user', 'url', 'path', 'ssh', or 'http'
+@staging:
+    user: robin
+    path: c:\webserver\htdocs\ttc
+@production:
+    user: robin
+    path: c:\webserver\htdocs\ttc

@@ -1,10 +1,10 @@
 <?php
 use datalayer\MembershipSuperType;
-use TennisMembership;
+use TennisClubMembership;
 
 $memberSuperTypeDropDown = "<select name='membersupertype'>";
 foreach(MembershipSuperType::find() as $super) {
-    $selected = $super->getName() == TennisMembership::PIVOT ? "selected='true'" : "";
+    $selected = $super->getName() == TennisClubMembership::PIVOT ? "selected='true'" : "";
     $memberSuperTypeDropDown .= "<option value='{$super->getID()}' {$selected}>{$super->getName()}</option>";
 }
 $memberSuperTypeDropDown .= "</select>";

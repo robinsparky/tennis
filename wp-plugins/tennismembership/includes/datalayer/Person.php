@@ -1,8 +1,11 @@
 <?php
 namespace datalayer;
 use DateTime;
-use TennisMembership;
+use DateTimeZone;
+
+use TennisClubMembership;
 use datalayer\appexceptions\InvalidPersonException;
+
 
 // use commonlib\GW_Support;
 // use utilities\CleanJsonSerializer;
@@ -27,9 +30,10 @@ enum Genders : string {
 class Person extends AbstractMembershipData
 { 
 	//table name
-	public static $tablename = '';
+	public static $tablename = 'person';
 	public const COLUMNS = <<<EOD
 	ID
+	,corporate_ID
 	,sponsor_ID
 	,can_sponsor
 	,first_name
@@ -47,6 +51,7 @@ class Person extends AbstractMembershipData
 	EOD;
 
 	//DB fields
+	private $corporateId;
 	private $canSponsor;
 	private $sponsorId;
 	private $first_name;// varchar(45) 
@@ -70,13 +75,14 @@ class Person extends AbstractMembershipData
 	 */
 	private $sponsored = array();
 	private $sponsoredToBeDeleted=array();
+	private $external_refs = array();
 	
 	/*************** Static methods ******************/
 	/**
-	 * Search for Persons using last name
+	 * Search for Persons using names
 	 * @param string $lname - The last name or first part of the last name to search for
-	 * @param string $lname - The first name or first part of the first name to search for
-	 * @return array Collection of Persons whose last name is 'like' the criteria
+	 * @param string $lname - The first name or first part of the first name to search for defaults to all
+	 * @return array Collection of Persons whose last name is 'like' the criteria and first name is 'like' the criteria
 	 */
 	static public function search(string $lname, string $fname = '%') {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
@@ -87,7 +93,7 @@ class Person extends AbstractMembershipData
 		}
 
 		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
+		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
 		$columns = self::COLUMNS;
 		
 		$lname .= strpos($lname,'%') ? '' : '%';
@@ -109,27 +115,30 @@ class Person extends AbstractMembershipData
 	
 	/**
 	 * Find Persons by Sponsorship
+	 * @param array $fk_criteria (foreign keys). Defaults to finding all Persons in the DB
+	 *              ['sponsoredBy'=> ID]
+	 *              ['mySponsor'=> ID]
 	 */
 	static public function find(...$fk_criteria) {
 		$loc = __CLASS__ . '::'. __FUNCTION__;
 
 		global $wpdb;
 
-		$table = $wpdb->prefix . self::$tablename;
+		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
 		$columns = self::COLUMNS;
 		$col = array();
 
 		if( array_key_exists( 'sponsoredBy', $fk_criteria ) ) {
-			//All Persons who are sponsored by the given Person
+			//All Persons who are sponsored by the given Person's ID
 			$col_value = $fk_criteria["sponsoredBy"];
-			error_log("{$loc}: sponsor_ID=$col_value");
+			error_log("{$loc}: sponsoredBy ID=$col_value");
 			$sql = "SELECT {$columns}
 					FROM $table 
 					WHERE sponsor_ID = %d;";
 		} elseif( array_key_exists('mySponsor',$fk_criteria) ) {
-			//Get the Person who sponsors the given Person
+			//Get the Person who sponsors the given Person's ID
 			$col_value = $fk_criteria["mySponsor"];
-			error_log("{$loc}: ID=$col_value");
+			error_log("{$loc}: mySponsor ID=$col_value");
 			$sql = "SELECT {$columns}
 					FROM $table 
 					WHERE ID = %d;";
@@ -165,7 +174,7 @@ class Person extends AbstractMembershipData
 		$loc = __CLASS__ . '::'. __FUNCTION__;
 
 		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
+		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
 		$columns = self::COLUMNS;
 		$id = $pks[0];
 		$sql = "select {$columns} from $table where ID=%d";
@@ -180,10 +189,82 @@ class Person extends AbstractMembershipData
 		}
 		return $obj;
 	}
+		
+	/**
+	 * Fetches one or more Registrations from the db with the given external reference
+	 * @param $extReference Alphanumeric up to 100 chars
+	 * @return MemberRegistration(s) linked to the external reference.
+	 *         Or an array of registrations matching reference
+	 *         Or Null if not found
+	 */
+	static public function getRegistrationByExtRef( $extReference ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+
+		$iids = ExternalMapping::fetchInternalIds(self::$tablename,$extReference);
+		
+		$result = null;
+		if( count( $iids ) > 1) {
+			$result = array();
+			foreach( $iids as $id ) {
+				$result[] = MemberRegistration::get( $id );
+			}
+		}
+		elseif( count( $iids ) === 1 ) {
+			$result = MemberRegistration::get( $iids[0] );
+		}
+		return $result;
+	}
+	
+	/**
+	 * Fetches one or more Registration ids from the db with the given external reference
+	 * @param $extReference Alphanumeric up to 100 chars
+	 * @return int Registration ID(s) matching external reference.
+	 *         Or an array of event ids matching reference
+	 *         Or 0 if not found
+	 */
+	static public function getRegistrationIdByExtRef( $extReference ) {
+	
+		$refs = ExternalMapping::fetchInternalIds(self::$tablename,$extReference);
+
+		$result = 0;
+		if( count( $refs ) > 1) {
+			$result = array();
+			foreach( $refs as $ref ) {
+				$result[] = $ref;
+			}
+		}
+		elseif( count( $refs ) === 1 ) {
+			$result = $refs[0];
+		}
+		return $result;
+	}
+
+	/**
+	 * Fetches one or more Event external refs from the db with the given an subject id
+	 * @param int $id 
+	 * @return string external reference or array of external refs or '' if not found
+	 */
+	static public function getExtRefByRegistrationId( int $id ) {
+
+		$refs = ExternalMapping::fetchExternalRefs(self::$tablename,$id);
+
+		$result = '';
+		if( count( $refs ) > 1) {
+			$result = array();
+			foreach( $refs as $ref ) {
+				$result[] = $ref;
+			}
+		}
+		elseif( count( $refs ) === 1 ) {
+			$result = $refs[0];
+		}
+		return $result;
+	}
 	
 	//Alternate ctor's
-	public static function fromName(string $fname, $lname) : Person {
+	public static function fromName(int $corporateId, string $fname, string $lname) : Person {
 		$new = new Person;
+		$new->corporateId = $corporateId;
 		$new->setFirstName($fname);
 		$new->setLastName($lname);	
 		
@@ -193,12 +274,19 @@ class Person extends AbstractMembershipData
 	/*************** Instance Methods ****************/
 	private function __construct() {
 		parent::__construct( true );
-		self::$tablename = TennisMembership::getInstaller()->getDBTablenames()['membership_person'];
-
 	}
 
 	public function __destruct() {
 		
+	}
+
+	public function getCorpId() : int {
+		return $this->corporateId;
+	}
+
+	public function setCorpId(int $corpId) : bool {
+		$this->corporateId = $corpId > 0 ? $corpId : 0;
+		return $this->setDirty();
 	}
 
 	public function setFirstName($name) : bool {
@@ -223,13 +311,23 @@ class Person extends AbstractMembershipData
 	}
 	
     /**
-     * Get the name of this object
+     * Get the name of this Person
      */
     public function getName() {
         return $this->getFirstName() . ' ' . $this->getLastName();
 	}
 
-	public function setAddress(Address $addr) : bool {
+	/**
+	 * Set the Address for this Person
+	 * NOTE: if no arg passed  the Address will be deleted
+	 *       otherwise any existing Address will be overwritten by the new one supplied.
+	 * @param Address is the new Address for this person.
+	 */
+	public function setAddress(Address $addr = null) : bool {
+
+		if(is_null($addr) || !is_null($this->address)) {
+			$this->address->delete();
+		}
 		$this->address = $addr;
 		return $this->setDirty();
 	}
@@ -246,7 +344,7 @@ class Person extends AbstractMembershipData
     public function setBirthDate_Str( string $date = '' ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $result = false;
-        $tz = TennisMembership::getTimeZone();
+        $tz = TennisClubMembership::getTimeZone();
         $this->log->error_log("$loc:('{$date}')");
 
         if( empty( $date ) ) {
@@ -314,7 +412,7 @@ class Person extends AbstractMembershipData
         if( empty( $this->birthdate ) ) return null;
         else {
             $temp = clone $this->birthdate;
-            return $temp->setTimezone(TennisMembership::getTimeZone());
+            return $temp->setTimezone(TennisClubMembership::getTimeZone());
         }
     } 
 
@@ -330,7 +428,7 @@ class Person extends AbstractMembershipData
         }
 		else {
             $temp = clone $this->birthdate;
-            return $temp->setTimezone(TennisMembership::getTimeZone())->format( TennisMembership::$outdateformat );
+            return $temp->setTimezone(TennisClubMembership::getTimeZone())->format( TennisClubMembership::$outdateformat );
         }
 	}
 
@@ -344,7 +442,7 @@ class Person extends AbstractMembershipData
 		if( !isset( $this->birthdate ) || is_null( $this->birthdate ) ) {
             return '';
         }
-		else return $this->birthdate->format( TennisMembership::$outdateformat );
+		else return $this->birthdate->format( TennisClubMembership::$outdateformat );
 	}
     
 	/**
@@ -355,21 +453,21 @@ class Person extends AbstractMembershipData
         $this->log->error_log( $this->birthdate, $loc);
 
         $result = '';
-        $format = TennisMembership::$outdatetimeformat1;
+        $format = TennisClubMembership::$outdatetimeformat1;
         switch($formatNum) {
             case 1:
-                $format = TennisMembership::$outdatetimeformat1;
+                $format = TennisClubMembership::$outdatetimeformat1;
                 break;
             case 2:
-                $format = TennisMembership::$outdatetimeformat2;
+                $format = TennisClubMembership::$outdatetimeformat2;
                 break;
             default:
-                $format = TennisMembership::$outdatetimeformat1;
+                $format = TennisClubMembership::$outdatetimeformat1;
         }
         
 		if( isset( $this->birthdate ) ) {
             $temp = clone $this->birthdate;
-            $result = $temp->setTimezone(TennisMembership::getTimeZone())->format($format);
+            $result = $temp->setTimezone(TennisClubMembership::getTimeZone())->format($format);
         }
 		
         $this->log->error_log("$loc: returning {$result}");
@@ -394,7 +492,7 @@ class Person extends AbstractMembershipData
 	}
 
 	/**
-	 * Get the tennis USTA rating
+	 * Get the tennis ATP rating
 	 */
 	public function getSkillLevel() : float {
         $loc = __CLASS__ . ":" . __FUNCTION__;
@@ -402,7 +500,7 @@ class Person extends AbstractMembershipData
 	}
 
 	/**
-	 * Set the tennis USTA ranking
+	 * Set the tennis ATP ranking
 	 */
 	public function setSkillLevel( float $skill ) : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
@@ -602,7 +700,6 @@ class Person extends AbstractMembershipData
 	 */
 	public function isSponsored() : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-		$mysponsor = self::find(array("mySponsor"=>$this->sponsorId));
 		return isset($this->fetchMySponsor()) ? true : false;
 	}
 
@@ -615,7 +712,7 @@ class Person extends AbstractMembershipData
 	}
 
     public function toString() {
-        return sprintf( "Person(%d:%s)", $this->getID(), $this->getName() );
+        return sprintf( "Person(%d) - %s)", $this->getID(), $this->getName() );
     }
 	
 	/**
@@ -633,8 +730,8 @@ class Person extends AbstractMembershipData
 		$result = false;
 		if($this->canSponsor()) {
 			$found = false;
-			foreach($this->getSponsored() as $sp) {
-				if($person->getID() == $sp->getID()) {
+			foreach($this->getSponsored() as $p) {
+				if($person->getID() == $p->getID()) {
 					$found = true;
 					break;
 				}
@@ -654,8 +751,8 @@ class Person extends AbstractMembershipData
 		if( !isset( $person ) ) return false;
 		
 		$i=0;
-		foreach( $this->getSponsored() as $sp ) {
-			if($person->getID() == $sp->getID()) {
+		foreach( $this->getSponsored() as $p ) {
+			if($person->getID() == $p->getID()) {
 				$this->sponsoredToBeDeleted[] = $person->getID();
 				unset( $this->sponsored[$i] );
 				return $this->setDirty();
@@ -664,33 +761,151 @@ class Person extends AbstractMembershipData
 		}
 		return false;
 	}
+		
+	/**
+	 * Delete all Registrations for a given Person in a given season
+	 * @param int personId - the DB id of the affected person
+	 * @param int $seasonId - the id of the season; 
+	 */
+	public function deleteAllForPerson(int $personId, int $seasonId ) : int {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		error_log("{$loc}($personId, $seasonId)");
+
+		$result = 0;
+		if($seasonId < 1) {
+			 return 0; //$seasonId = esc_attr( get_option(TennisClubMembership::OPTION_TENNIS_SEASON, date('Y') ) ); 
+		}
+
+		global $wpdb;
+		$table = TennisClubMembership::getInstaller()->getDBTablenames(self::$tablename);
+		if( $personId > 0 ) {
+				$result = $wpdb->delete($table,array( "person_ID" => $personId, 'season_ID'=>$seasonId ),array('%d','%d'));
+		}
+		$result = $wpdb->rows_affected;
+		if( $wpdb->last_error ) {
+			error_log("$loc: Last error='$wpdb->last_error'");
+		}
+		
+		error_log("$loc: deleted $result rows");
+		return $result;
+	}
+		
+	/**
+	 * A Registration can have zero or more external references associated with it.
+	 * How these are usesd is up to the developer. 
+	 * For example, a custom post type in WordPress
+	 * @param string $extRef the external reference to be added to this event
+	 * @return bool True if successful; false otherwise
+	 */
+	public function addExternalRef( string $extRef ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log( $extRef, "$loc: External Reference Value");
+
+		$result = false;
+		if( !empty( $extRef ) ) {
+			$found = false;
+			foreach( $this->getExternalRefs( true ) as $er ) {
+				if( $extRef === $er ) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) {
+				$this->external_refs[] = $extRef;
+				$result = $this->setDirty();
+			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Remove the external reference
+	 * @param string $extRef The external reference to be removed	 
+	 * @return True if successful; false otherwise
+	 */
+	public function removeExternalRef( string $extRef ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("$loc: extRef='{$extRef}'");
+
+		$result = false;
+		if( !empty( $extRef ) ) {
+			$i=0;
+			foreach( $this->getExternalRefs() as $er ) {
+				if( $extRef === $er ) {
+					unset( $this->external_refs[$i] );
+					$result = $this->setDirty();
+					ExternalMapping::remove(self::$tablename, $this->getID(), $er );
+				}
+				$i++;
+			}
+		}
+		return $result;
+	}
+	
+	/**
+	 * Fetches one or more Event external refs from the db with the given an subject id
+	 * @return string external reference or array of external refs or '' if not found
+	 */
+	public function getExtRefSingle() {
+
+		$this->getExternalRefs();
+
+		$result = '';
+		if( count( $this->external_refs ) > 1) {
+			$result = array();
+			foreach( $this->external_refs as $ref ) {
+				$result[] = $ref;
+			}
+		}
+		elseif( count( $this->external_refs ) === 1 ) {
+			$result = $this->external_refs[0];
+		}
+		return $result;
+	}
+	
+	/**
+	 * Get all external references associated with this Registration
+	 * @param $force When set to true will force loading of related external references
+	 *               This will cause unsaved external refernces to be lost.
+	 */
+	public function getExternalRefs( $force = false ) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log($loc);
+		
+		if( !isset( $this->external_refs ) 
+		   || (0 === count( $this->external_refs))  || $force ) {
+			$this->external_refs = ExternalMapping::fetchExternalRefs(self::$tablename, $this->getID());
+		}
+		return $this->external_refs;
+	}
+	
 
 	public function isValid() {
 		$loc = __CLASS__ ;
 		$isvalid = true;
 		$mess = '';
 		if( !isset( $this->fname ) ) {
-			$mess .= __("{$loc} must have a first name. ", TennisMembership::TEXT_DOMAIN);
+			$mess .= __("{$loc} must have a first name. ", TennisClubMembership::TEXT_DOMAIN);
 		}
 		
 		if( !isset( $this->lname ) ) {
-			$mess .= __("{$loc} must have a last name. ", TennisMembership::TEXT_DOMAIN);
+			$mess .= __("{$loc} must have a last name. ", TennisClubMembership::TEXT_DOMAIN);
 		}
 		
 		if( !isset( $this->gender ) ) {
-			$mess .= __("{$loc} must have a gender. ", TennisMembership::TEXT_DOMAIN);
+			$mess .= __("{$loc} must have a gender. ", TennisClubMembership::TEXT_DOMAIN);
 		}
 
 		if( !isset( $this->birthdate ) ) {
-			$mess .= __("{$loc} must have a date of birth. ", TennisMembership::TEXT_DOMAIN);
+			$mess .= __("{$loc} must have a date of birth. ", TennisClubMembership::TEXT_DOMAIN);
 		}
 		
 		if( !isset( $this->phoneHome ) ) {
-			$mess .= __("{$loc} must have a home phone. ", TennisMembership::TEXT_DOMAIN);
+			$mess .= __("{$loc} must have a home phone. ", TennisClubMembership::TEXT_DOMAIN);
 		}
 		
 		if( !isset( $this->emailHome ) ) {
-			$mess .= __("{$loc} must have a home email. ", TennisMembership::TEXT_DOMAIN);
+			$mess .= __("{$loc} must have a home email. ", TennisClubMembership::TEXT_DOMAIN);
 		}
 
 		if( strlen( $mess ) > 0 ) {
@@ -702,33 +917,42 @@ class Person extends AbstractMembershipData
 
 	/**
 	 * Delete this Person and all related data such as sponsorships, registrations, transactions, entrants, etc.
+	 * @return int the total number of rows deleted in the DB
 	 */
-	public function delete() {
+	public function delete() : int {
 		//TODO: must delete all registrations, addresses, transactions and ?entrants?
-		global $wpdb;
 		$result = 0;
 
-		//Address
+		//Registrations
+		$seasonId =  TM()->getSeason();
+		$regs = MemberRegistration::find(array('seasonId'=>$seasonId, 'personId'=> $this->getID()));
+		foreach($regs as $reg) {
+			$reg->deleteAllForPerson($this->getID(), (int)$seasonId);
+		}
+
+		//Delete Address
 		$this->getAddress()->delete();
 
-		//Sponsorships
+		//Delete Sponsorships
 		foreach($this->getSponsored() as $sp) {
 			$sp->delete();
 		}
 
-		//Program/Tournament entrants
+		//Delete Program/Tournament entrants
 		//TODO: entrants
 
-		//Financial Transactions
+		//Delete Financial Transactions
 		//TODO: financial transactions
 
+		global $wpdb;
 		//Delete the Person
-		$table = $wpdb->prefix . self::$tablename;
+		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
 		$where = array( 'ID'=>$this->getID() );
 		$formats_where = array( '%d' );
 		$wpdb->delete( $table, $where, $formats_where );
-		unset($this);
 		$result += $wpdb->rows_affected;
+		unset($this);
+		return $result;
 	}
 
 	/**
@@ -736,14 +960,14 @@ class Person extends AbstractMembershipData
 	 * @return array of Person(s) who are sponsored by this Person
 	 */
 	private function fetchSponsored() {
-		$this->sponsored = 	self::find(array("sponsoredBy"=>$this->getID()));
+		$this->sponsored = 	self::find(array("sponsoredBy" => $this->getID()));
 	}
 	
 	/**
 	 * Get the Person who sponsors this Person
 	 */
 	private function fetchMySponsor() {
-		$this->sponsor = self::find(array("mySponsor"=>$this->sponsorId))[0];
+		$this->sponsor = self::find(array("mySponsor" => $this->sponsorId))[0];
 		return empty($this->sponsor) ? NULL : $this->sponsor;
 	}
 	
@@ -767,6 +991,7 @@ class Person extends AbstractMembershipData
 
 		$values = array('first_name'=>$this->getFirstName()
 		               ,'last_name'=>$this->getLastName()
+					   ,'corporate_ID'=>$this->getCorpId()
 					   ,'can_sponsor'=>$this->canSponsor() ? 1 : 0
 					   ,'sponsor_id'=> $this->getSponsorId()
 					   ,'gender'=>$this->getGender()->value
@@ -779,8 +1004,9 @@ class Person extends AbstractMembershipData
 					   ,'phoneMobile'=>$this->getMobilePhone()
 					   ,'notes'=>$this->getNotes()
 		);
-		$formats_values = array('%s,%s,%d,%s,%s,%s,%d,%s,%s,%s,%s,%s,%s');
-		$res = $wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+		$formats_values = array('%s','%s','%d','%d','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s');
+		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
+		$res = $wpdb->insert($table, $values, $formats_values);
 		
 		if( $res === false || $res === 0 ) {
 			$mess = "$loc: wpdb->insert returned false or inserted 0 rows.";
@@ -814,6 +1040,7 @@ class Person extends AbstractMembershipData
 
 		$values = array('first_name'=>$this->getFirstName()
 		               ,'last_name'=>$this->getLastName()
+					   ,'corporate_ID' => $this->getCorpId()
 					   ,'can_sponsor'=>$this->canSponsor() ? 1 : 0
 					   ,'sponsor_id'=> $this->getSponsorId()
 					   ,'gender'=>$this->getGender()->value
@@ -826,10 +1053,11 @@ class Person extends AbstractMembershipData
 					   ,'phoneMobile'=>$this->getMobilePhone()
 					   ,'notes'=>$this->getNotes()
 		);
-		$formats_values = array('%s,%s,%d,%s,%s,%s,%d,%s,%s,%s,%s,%s,%s');
+		$formats_values = array('%s','%s','%d','%d','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
-		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
+		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
+		$wpdb->update($table,$values,$where,$formats_values,$formats_where);
 		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 
@@ -838,29 +1066,10 @@ class Person extends AbstractMembershipData
 		$this->log->error_log("{$loc}: $result rows affected.");
 		return $result;
 	}
-	
-    /**
-     * Map incoming data to an instance of Person
-     */
-    protected static function mapData($obj,$row) {
-        parent::mapData($obj,$row);
-		$obj->canSponsor = $row['can_sponsor'] > 0 ? true: false;
-		$obj->sponsorId = $row["sponsor_id"];
-		$obj->first_name = $row["first_name"];
-		$obj->last_name = $row["last_name"];
-		$obj->gender = Genders::tryFrom($row['gender']) ?? Genders::Other;
-		$obj->skill_level = $row['skill_level'];
-		$obj->emailHome = $row['emailHome'];
-		$obj->emailBusiness = $row['emailBusiness'];
-		$obj->phoneHome = $row['phoneHome'];
-		$obj->phoneBusiness = $row['phoneBusiness'];
-		$obj->phoneMobile = $row['phoneMobile'];
-		$obj->notes = $row["notes"];
-	}
-	
-	private function init() {
-	}
 
+	/**
+	 * Maintain the data related to this person such as persons sponsored by this person
+	 */
 	private function manageRelatedData():int {
 		$result = 0;
 		
@@ -877,9 +1086,51 @@ class Person extends AbstractMembershipData
 			}
 		}
 		$this->sponsoredToBeDeleted = array();
+		
+		//Save the External references related to this Registration
+		if( isset( $this->external_refs ) ) {
+			foreach($this->external_refs as $er) {
+				//Create relation between this Registration and its external references
+				$result += ExternalMapping::add(self::$tablename, $this->getID(), $er );
+			}
+		}
 
 		return $result;
 	}
+	
+    /**
+     * Map incoming data to an instance of Person
+     */
+    protected static function mapData($obj,$row) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 
+        parent::mapData($obj,$row);
+
+		$obj->corporateId = $row['corporate_ID'];
+		$obj->canSponsor = $row['can_sponsor'] > 0 ? true: false;
+		$obj->sponsorId = $row["sponsor_id"];
+		$obj->first_name = $row["first_name"];
+		$obj->last_name = $row["last_name"];
+		$obj->gender = Genders::tryFrom($row['gender']) ?? Genders::Other;
+		$obj->skill_level = $row['skill_level'];
+		$obj->emailHome = $row['emailHome'];
+		$obj->emailBusiness = $row['emailBusiness'];
+		$obj->phoneHome = $row['phoneHome'];
+		$obj->phoneBusiness = $row['phoneBusiness'];
+		$obj->phoneMobile = $row['phoneMobile'];
+		$obj->notes = $row["notes"];
+		
+        if( !empty($row["birthdate"]) && $row["birthdate"] !== '0000-00-00 00:00:00') {
+            $st = new DateTime( $row["birthdate"], new DateTimeZone('UTC') );
+            $mess = print_r($st,true);
+            error_log("$loc: DateTime for birthdate ...");
+            error_log($mess);
+            $obj->birthdate = $st;
+        }
+        else {
+            $obj->birthdate = null;
+        }    
+	}
+	
 } //end class
  

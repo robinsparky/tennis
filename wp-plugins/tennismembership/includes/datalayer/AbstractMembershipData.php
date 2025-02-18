@@ -1,5 +1,8 @@
 <?php
 namespace datalayer;
+use TennisClubMembership;
+use \DateTime;
+use \DateTimeZone;
 use \commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -21,9 +24,10 @@ abstract class AbstractMembershipData
     abstract static public function get(int ...$pks);
     abstract public function isValid();
 
+    protected $ID;
+    protected $lastUpdate;
 	protected $isdirty = FALSE;
     protected $isnew   = TRUE;
-    protected $ID;
     protected $log;
     
    //Default constructor
@@ -38,11 +42,24 @@ abstract class AbstractMembershipData
      * implemetation as parent::mapData
      */
     static protected function mapData( $obj, $row ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        
         $obj->ID = NULL;
         if( isset($row["ID"]) ) {
             $obj->ID = $row["ID"];
         }
         $obj->isnew = false;
+        
+        if( !empty($row["last_update"]) && $row["last_update"] !== '0000-00-00 00:00:00') {
+            $st = new DateTime( $row["last_update"], new DateTimeZone('UTC') );
+            $mess = print_r($st,true);
+            error_log("$loc: DateTime for last_update ...");
+            error_log($mess);
+            $obj->lastUpdate = $st;
+        }
+        else {
+            $obj->lastUpdate = null;
+        }    
     }
     
     /**

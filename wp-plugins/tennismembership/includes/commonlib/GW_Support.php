@@ -2,6 +2,8 @@
 namespace commonlib;
 
 use WP_Error;
+use DateTime;
+use DateInterval;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -307,4 +309,76 @@ class GW_Support
 
 		return $info;
 	}
+
+	
+    /**
+    * Determines the interval in days to the end of the month in the given date
+    * @param DateTime $initDate
+    * @return DateInterval
+    */
+    public function getInterval( DateTime $initDate ) : DateInterval {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        
+        $month = +$initDate->format("n");
+        $numDays = 31;
+        switch($month) {
+            case 2:
+                $year = +$initDate->format('Y');
+                $isLeap = ($year % 4 === 0) ? true : false;
+                $numDays = $isLeap ? 29 : 28;
+                break;
+            case 4:
+            case 6:
+            case 9:
+            case 11;
+                $numDays = 30;
+                break;
+            case 1:
+            case 3:
+            case 5:
+            case 7:
+            case 8:
+            case 10:
+            case 12:
+            default:
+                $numDays = 31;
+        }
+        $interval = new DateInterval("P{$numDays}D");
+        return $interval;
+    }
+
+    /**
+     * Get the last day of the month found in the given date
+     * @param DateTime $initDate
+     * @return int The last day of the month
+     */
+    public function lastDayOfMonth( DateTime $initDate ) : int {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        
+        $month = +$initDate->format("n");
+        $lastDay = 31;
+        switch($month) {
+            case 2:
+                $year = +$initDate->format('Y');
+                $isLeap = ($year % 4 === 0) ? true : false;
+                $lastDay = $isLeap ? 29 : 28;
+                break;
+            case 4:
+            case 6:
+            case 9:
+            case 11;
+                $lastDay = 30;
+                break;
+            case 1:
+            case 3:
+            case 5:
+            case 7:
+            case 8:
+            case 10:
+            case 12:
+            default:
+                $lastDay = 31;
+        }
+        return $lastDay;
+    }
 }

@@ -20,14 +20,15 @@ class AutoloaderM
     } 
 
     public static function nameSpaceClassRegister( $class ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
         $class_filename = __DIR__ . "\\includes\\$class" . ".php";
-        $file = str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
+        $file = wp_normalize_path($class_filename); //str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
         if ( file_exists( $file ) ) {
-            error_log( __CLASS__ . '::' . __FUNCTION__ . " Register namespace class - loading: $class_filename}" );
+            error_log( "$loc: loading: '$class' in '$file'}" );
             require $file;
             return true;
         }
-        //error_log(  __CLASS__ . '::' . __FUNCTION__ . " Register namespace class failed: $class_filename" );
+        //error_log(  "$loc: class failed: '$class' in '$file'" );
         return false;
     }
 }
