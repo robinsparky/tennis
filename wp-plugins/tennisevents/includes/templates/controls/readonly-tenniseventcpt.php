@@ -70,7 +70,7 @@ use datalayer\GenderType;
 			<table class='tennis-event-meta'>
 			<tbody>									
 				<tr class="event-meta-detail"><td><strong><?php echo __("Gender", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $genderType; ?></td></tr>
-				<tr class="event-meta-detail"><td><strong><?php echo __("TennisMatch Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
+				<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $matchType; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Categories", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $terms; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Min Age", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $minAge; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Max Age", TennisEvents::TEXT_DOMAIN);?></strong></td><td><?php echo $maxAge; ?></td></tr>

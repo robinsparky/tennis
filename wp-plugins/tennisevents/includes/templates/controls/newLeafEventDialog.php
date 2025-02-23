@@ -51,13 +51,13 @@ $today = (new \DateTime('now'))->format('Y-m-d');
         <input type="date" class="tennis-add-event" value="<?php echo $today?>" name="enddate" required/>
     </fieldset>
 <div>
-    <legend><b>TennisMatch Specifications</b></legend>
+    <legend><b>Tennis Match Specifications</b></legend>
     <fieldset>
         <div>
         <label>Gender:
         <?php echo $genderTypeDropDownNew;?>
         </label>
-        <label>TennisMatch Type:
+        <label>Match Type:
         <?php echo $matchTypeDropDownNew;?>
         </label>
         <label>Format:

@@ -189,7 +189,7 @@ $numChildren = count($event->getChildEvents());
 			<tbody>				
 				<tr class="event-meta-detail"><td><strong><?php echo __("Gender", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td data-gender='<?php echo $genderKey; ?>'><?php echo $genderTypeDisplay; ?></td></tr>
-				<tr class="event-meta-detail"><td><strong><?php echo __("TennisMatch Type", TennisEvents::TEXT_DOMAIN);?></strong></td>
+				<tr class="event-meta-detail"><td><strong><?php echo __("Match Type", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td data-matchtype='<?php echo $matchTypeKey; ?>'><?php echo $matchTypeDisplay; ?></td></tr>
 				<tr class="event-meta-detail"><td><strong><?php echo __("Categories", TennisEvents::TEXT_DOMAIN);?></strong></td>
 					<td><?php echo $terms; ?></td></tr>
