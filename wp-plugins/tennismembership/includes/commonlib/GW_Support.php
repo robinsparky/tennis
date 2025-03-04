@@ -9,6 +9,7 @@ use WP_User_Query;
 use datalayer\Person;
 use cpt\ClubMembershipCpt;
 use cpt\TennisMemberCpt;
+use datalayer\MemberRegistration;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -92,10 +93,12 @@ class GW_Support
 		return $homelink;
 	}
 
+	public static function getPostId(Person | MemberRegistration $thing) : int {
+		$postId = $thing->getExtRefSingle();
+		return (int)$postId;
+	}
 
 	public static function log(mixed $something) {
-		$tp = gettype($something);
-		error_log("Details for: '{$tp}'");
 		error_log(print_r($something,true));
 	}
 
