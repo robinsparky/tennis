@@ -1,3 +1,39 @@
 /**
- *
+ * Styles for Tennis Club Membership
 */
+:root {
+    --tennis-fieldsize: 4;
+    --tennis-level-1: #8dccad;
+    --tennis-level-2: #f5cc7f;
+    --tennis-level-3: #7b9fe0;
+    --tennis-level-4: #f27c8d;
+    --tennis-black: black;
+    --tennis-gridWidth: auto;
+    --tennis-gridAfter: 150px;
+    --tennis-registrationHeight: 100px;
+    --tennis-registrationWidth: 100px;
+    --tennis-registrationMargin: 1em;
+    --tennis-rowGap: 1em;
+  }
+
+#club-registration-upload > label:hover {
+    cursor:pointer;
+}
+
+#club-registration-upload > label {
+    margin-top: var(--tennis-registrationMargin);
+    padding: var(--tennis-registrationMargin);
+    background-color: var(--sydney-global-color-1);
+    color: white;
+}
+
+#club-user-upload > label:hover {
+    cursor:pointer;
+}
+
+#club-user-upload > label {
+    margin-top: var(--tennis-registrationMargin);
+    padding: var(--tennis-registrationMargin);
+    background-color: var(--sydney-global-color-1);
+    color: white;
+}

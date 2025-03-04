@@ -55,6 +55,67 @@ function clubmembership_template_locate( $template_name, $template_path = '', $d
 }
 
 /**
+ * NOT USED
+ * Get template.
+ *
+ * Search for the template and include the file.
+ *
+ * @since 1.0.0
+ *
+ * @see clubmembership_locate_template()
+ *
+ * @param string 	$template_name			Template to load.
+ * @param array 	$args					Args passed for the template file.
+ * @param string 	$string $template_path	Path to templates.
+ * @param string	$default_path			Default path to template files.
+ */
+function clubmembership_get_template( $template_name, $args = null, $template_path = '', $default_path = '' ) {
+	$loc = __FUNCTION__;
+
+	if ( isset( $args ) && is_array( $args ) ) :
+		extract( $args );
+	endif;
+	error_log("$loc: template_name='{$template_name}', template_path='{$template_path}', default_path='{$default_path}'");
+
+	$template_file = clubmembership_template_locate( $template_name, $template_path, $default_path );
+	error_log("$loc: template_file='{$template_file}'");
+
+	if ( ! file_exists( $template_file ) ) :
+		_doing_it_wrong( __FUNCTION__, sprintf( '<code>%s</code> does not exist.', $template_file ), '1.0.0' );
+		return;
+	endif;
+
+	load_template( $template_file, true, $args );
+}
+
+/**
+ * NOT USED
+ * Get template part.
+ *
+ * Search for the template and include the file.
+ *
+ * @since 1.0.0
+ *
+ * @see clubmembership_locate_template()
+ *
+ * @param string 	$slug The slug name for the generic template.
+ * @param string 	$name The name of the specialised template. Defaults to null
+ * @param array     $args array of additional args
+ */
+function clubmembership_get_template_part( $slug, $name = null, $args = null ) {
+	$loc = __FUNCTION__;
+	error_log( "$loc: slug='{$slug}', name='{$name}'" );
+
+	$template_name = "{$slug}.php";
+    $name  = (string) $name;
+    if ( '' !== $name ) {
+        $template_name = "{$name}-{$slug}.php";
+	}
+ 
+	clubmembership_get_template( $template_name, $args );
+}
+
+/**
  * Template loader.
  *
  * The template loader will check if WP is loading a template
@@ -70,11 +131,12 @@ function clubmembership_template_include( $template ) {
 	$loc =  __FUNCTION__;	
 	error_log( "$loc: template='$template'" );
 	//error_log(GW_Debug::get_debug_trace_Str());
+	$forUser = array_key_exists( 'userId',$_REQUEST ) ? $_REQUEST['userId'] : '';
 
-	$myArchiveTemplates = array(ClubMembershipCpt::CUSTOM_POST_TYPE => 'archive-'. ClubMembershipCpt::CUSTOM_POST_TYPE . '.php'
+	$myArchiveTemplates = array(ClubMembershipCpt::CUSTOM_POST_TYPE => 'archive-' . ClubMembershipCpt::CUSTOM_POST_TYPE . '.php'
 						       ,TennisMemberCpt::CUSTOM_POST_TYPE   => 'archive-' . TennisMemberCpt::CUSTOM_POST_TYPE . '.php');
-	$mySingleTemplates = array(ClubMembershipCpt::CUSTOM_POST_TYPE  => 'single-'. ClubMembershipCpt::CUSTOM_POST_TYPE . '.php'
-						      ,TennisMemberCpt::CUSTOM_POST_TYPE    => 'single-' . TennisMemberCpt::CUSTOM_POST_TYPE . '.php');
+	$mySingleTemplates = array(ClubMembershipCpt::CUSTOM_POST_TYPE  => 'single-'  . ClubMembershipCpt::CUSTOM_POST_TYPE . '.php'
+						      ,TennisMemberCpt::CUSTOM_POST_TYPE    => 'single-'  . TennisMemberCpt::CUSTOM_POST_TYPE . '.php');
 
 	$file = '';
 
@@ -120,11 +182,7 @@ function clubmembership_template_include( $template ) {
 
 	error_log("$loc: returning '$template'");
 	return $template;
-
 }
 
 add_filter( 'template_include', 'clubmembership_template_include' );
 
-// define( 'MY_PLUGIN_DIR', plugin_dir_path( __FILE__) );
-// define( 'MY_PLUGIN_TEMPLATE_DIR', MY_PLUGIN_DIR . '/templates/' );
-// add_filter( 'template_include', 'ibenic_include_from_plugin', 99 );

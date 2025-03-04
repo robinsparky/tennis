@@ -50,11 +50,8 @@ abstract class AbstractMembershipData
         }
         $obj->isnew = false;
         
-        if( !empty($row["last_update"]) && $row["last_update"] !== '0000-00-00 00:00:00') {
+        if( !empty($row["last_update"]) && !str_starts_with($row["last_update"],'0000')) {
             $st = new DateTime( $row["last_update"], new DateTimeZone('UTC') );
-            $mess = print_r($st,true);
-            error_log("$loc: DateTime for last_update ...");
-            error_log($mess);
             $obj->lastUpdate = $st;
         }
         else {
@@ -65,14 +62,14 @@ abstract class AbstractMembershipData
     /**
      * Save this Object to the database
      */
-    public function save():int {
+    public function save(): int {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$calledBy = debug_backtrace()[1]['function'];
         error_log("{$loc} ... called by {$calledBy}");
         
         $result = 0;
-		if($this->isNew()) $result = $this->create();
-        elseif ($this->isDirty()) $result = $this->update();
+		if($this->isNew()) $result = (int) $this->create();
+        elseif ($this->isDirty()) $result = (int) $this->update();
         return $result;
     }
 

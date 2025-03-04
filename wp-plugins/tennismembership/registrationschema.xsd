@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<xs:complexType name="registrant">
+    <xs:sequence>
+        <xs:element name="firstname" type="xs:string"/>
+        <xs:element name="lastname" type="xs:string"/>
+        <xs:element name="email" type="xs:string"/>
+        <xs:element name="status" type="xs:string"/>
+        <xs:element name="regtype" type="xs:string"/>
+        <xs:element name="portal" type="xs:string"/>        
+        <xs:element name="staffmodules" type="xs:string"/>
+        <xs:element name="startdate" type="xs:date"/>
+        <xs:element name="expirydate" type="xs:date"/>
+        <xs:element name="gender" type="xs:string"/>
+        <xs:element name="birthdate" type="xs:date"/>
+        <xs:element name="membernumber" type="xs:string"/>
+        <xs:element name="memberlastyear" type="xs:string"/>
+        <xs:element name="fob" type="xs:string"/>
+    </xs:sequence>
+</xs:complexType>
+<xs:complexType name="registrationType">
+    <xs:sequence>
+        <xs:element name="person" maxOccurs="unbounded" type="registrant"/>
+    </xs:sequence>
+</xs:complexType>
+<xs:element name="registrations" type="registrationType"/>
+</xs:schema>

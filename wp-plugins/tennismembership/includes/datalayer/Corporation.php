@@ -150,8 +150,9 @@ EOD;
 	 */
 	public function setAddress(Address $addr = null) : bool {
 
-		if(is_null($addr) || !is_null($this->address)) {
-			$this->address->delete();
+		if(is_null($addr) && !is_null($this->address)) {
+			$id = $this->address->getID();
+            Address::delete($id);
 		}
 		$this->address = $addr;
 		return $this->setDirty();

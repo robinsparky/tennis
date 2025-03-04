@@ -5,8 +5,11 @@ use \DateTime;
 use \DateTimeInterface;
 use \WP_Error;
 use commonlib\BaseLogger;
+use TennisClubMembership;
+use api\ajax\ManagePeople;
+use datalayer\Person;
+use TM_Install;
 
-// use TennisClubMembership;
 // use datalayer\MemberRegistration;
 
 /** 
@@ -22,6 +25,8 @@ class TennisMemberCpt {
 	const CUSTOM_POST_TYPE_TAX = 'tennismembercategory';
 	const CUSTOM_POST_TYPE_TAG = 'tennismembertag';
     const CUSTOM_POST_TYPE_SLUG  = 'clubpeople';
+    public const USER_PERSON_ID = 'user_person_id';
+	public const USER_CORP_ID   = 'user_corp_id';
 	
     //Only emit on this page
 	private $hooks = array('post.php', 'post-new.php');
@@ -41,18 +46,20 @@ class TennisMemberCpt {
 		//$tennisClub->customTaxonomy();
 		add_action( 'admin_enqueue_scripts', array( $tennisClubMember, 'enqueue') );
 			
-		// add_filter( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_columns', array( $tennisMembership, 'addColumns' ), 10 );
-		// add_action( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array( $tennisMembership, 'getColumnValues'), 10, 2 );
-		// add_filter( 'manage_edit-' .self::CUSTOM_POST_TYPE . '_sortable_columns', array( $tennisMembership, 'sortableColumns') );
-		// add_action( 'pre_get_posts', array( $tennisMembership, 'orderby' ) );
+		add_filter( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_columns', array( $tennisClubMember, 'addColumns' ), 10 );
+		add_action( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array( $tennisClubMember, 'getColumnValues'), 10, 2 );
+		add_filter( 'manage_edit-' . self::CUSTOM_POST_TYPE . '_sortable_columns', array( $tennisClubMember, 'sortableColumns') );
+		add_action( 'pre_get_posts', array( $tennisClubMember, 'orderby' ) );
 		
 		//Required actions for meta boxes
 		//add_action( 'add_meta_boxes', array( $tennisMembership, 'metaBoxes' ) );
 
-		// Hook for updating/inserting into Tennis tables
-		//add_action( 'save_post', array( $tennisMembership, 'updateTennisDB'), 12 );
+		//Hook for new user registration - bad idea!
+		//add_action('user_register',array($tennisClubMember,'addNewPersonHook'));
+		//Hook for updating/inserting into Tennis tables
+		add_action( 'save_post', array( $tennisClubMember, 'updatePersonDB'), 12 );
 		//Hook for deleting cpt
-		//add_action( 'delete_post', array( $tennisMembership, 'deleteTennisDB') );
+		add_action( 'delete_post', array( $tennisClubMember, 'deletePersonDB') );
 	}
 	
 	public function __construct() {
@@ -83,23 +90,23 @@ class TennisMemberCpt {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log( $loc );
 
-		$labels = array( 'name' => 'Club Member'
-					   , 'singular_name' => 'Club Member'
-					   //, 'add_new' => 'Add Club Member'
-					   //, 'add_new_item' => 'New Club Member'
-					   //, 'new_item' => 'New Club Member'
-					   //, 'edit_item' => 'Edit Club Member'
-					   , 'view_item' => 'View Club Member'
-					   , 'all_items' => 'All Club Members'
-					   , 'menu_name' => 'Club Member'
-					   , 'search_items'=>'Search Club Members'
-					   , 'not_found' => 'No Club Members found'
-                       , 'not_found_in_trash'=> 'No Club Members found in Trash');
+		$labels = array( 'name' => 'Club People'
+					   , 'singular_name' => 'Club People'
+					   //, 'add_new' => 'Add Club People'
+					   //, 'add_new_item' => 'New Club People'
+					   //, 'new_item' => 'New Club People'
+					   //, 'edit_item' => 'Edit Club People'
+					   , 'view_item' => 'View Club People'
+					   , 'all_items' => 'All Club People'
+					   , 'menu_name' => 'Club People'
+					   , 'search_items'=>'Search Club People'
+					   , 'not_found' => 'No Club People found'
+                       , 'not_found_in_trash'=> 'No Club People found in Trash');
                        
 		$args = array( 'labels' => $labels
 					 //, 'taxonomies' => array( 'category', 'post_tag' )
-					 , 'description' => 'Club Member as a CPT'
-					 , 'menu_position' => 93
+					 , 'description' => 'Club People as a CPT'
+					 , 'menu_position' => 92
 					 , 'menu_icon' => 'dashicons-code-standards'
 					 , 'exclude_from_search' => false
 					 , 'has_archive' => true
@@ -112,8 +119,10 @@ class TennisMemberCpt {
 					 , 'show_in_rest' => true //causes Gutenberg editor to be used
 					 , 'rewrite' => array( 'slug' => self::CUSTOM_POST_TYPE_SLUG, 'with_front' => false )
 					 //, 'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'comments', 'excerpt', 'revisions', 'custom-fields', 'page-attributes' ) 
-					 , 'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'revisions' ) 
-					 , 'public' => true );
+					 , 'supports' => array( 'title', 'editor', 'author' ) 
+					 , 'public' => true 
+					 , 'show_in_nav_menus'=>true
+					 , 'show_in_menu' => true );
 		$res = register_post_type( self::CUSTOM_POST_TYPE, $args );
 		if(is_wp_error($res)) {
 			throw new \Exception($res->get_error_message());
@@ -128,18 +137,17 @@ class TennisMemberCpt {
 		$this->log->error_log( $columns, $loc );
 
 		// column vs displayed title
-        //$newColumns['club_name'] = __( 'Club Name', TennisEvents::TEXT_DOMAIN );
 		$newColumns['cb'] = $columns['cb'];
-		//$newColumns['title'] = __( 'Club Name', TennisClubMembership::TEXT_DOMAIN ); //$columns['title'];
+		$newColumns['title'] = $columns['title'];
+		$newColumns['personid'] = __( 'Person Id', TennisClubMembership::TEXT_DOMAIN );
 		//$newColumns['taxonomy-tennisclubcategory'] = __('Category', TennisClubMembership::TEXT_DOMAIN );
 		// $newColumns['author'] = $columns['author'];
-        // $newColumns['date'] = $columns['date'];
+        $newColumns['date'] = $columns['date'];
 		return $newColumns;
 	}
 
 	public function sortableColumns ( $columns ) {
-		//$columns['start_date'] = 'startDate';
-		//$columns['taxonomy-tenniseventcategory'] = 'categorySort';
+		$columns['personid'] = 'personId';
 		return $columns;
 	}
 
@@ -150,97 +158,28 @@ class TennisMemberCpt {
 		if( ! is_admin() || ! $query->is_main_query() ) {
 			return;
 		}
+		
+		if ('personId' === $query->get('orderby')) {
+			$query->set('orderby', 'meta_value');
+			$query->set('meta_key', self::USER_PERSON_ID);
+		}
 	}
 
 	/**
-     * Populate the TennisClubRegistrationCpt columns with values
+     * Populate the columns with values
      */
 	public function getColumnValues( $column_name, $postID ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log( "$loc --> $column_name, $postID" );
-
-		// if( $column_name === 'event_type') {
-		// 	$eventType = get_post_meta( $postID, self::EVENT_TYPE_META_KEY, TRUE );
-		// 	if( !empty($eventType) ) {
-		// 		echo EventType::AllTypes()[$eventType];
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'parent_event' ) {
-		// 	$eventParentId = get_post_meta( $postID, self::PARENT_EVENT_META_KEY, TRUE );
-		// 	if( !empty($eventParentId) ) {
-		// 		$tecpt = get_post( $eventParentId );
-		// 		$name = "";
-		// 		if( !is_null( $tecpt ) ) {
-		// 			$name = $tecpt->post_title;
-		// 		}
-		// 		echo "$name($eventParentId)";
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'event_format' ) {
-		// 	$eventFormat = get_post_meta( $postID, self::EVENT_FORMAT_META_KEY, TRUE );
-		// 	if( !empty($eventFormat) ) {
-		// 		echo Format::AllFormats()[$eventFormat];
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'match_type') {
-		// 	$matchType = get_post_meta( $postID, self::MATCH_TYPE_META_KEY, TRUE );
-		// 	if( !empty($matchType) ) {
-		// 		echo MatchType::AllTypes()[$matchType];
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'score_type') {
-		// 	$scoreType = get_post_meta( $postID, self::SCORE_TYPE_META_KEY, TRUE );
-		// 	if( !empty($scoreType) ) {
-		// 		if( ScoreType::get_instance()->isValid( $scoreType ) ) {
-		// 			echo $scoreType;
-		// 		}
-		// 		else {
-		// 			echo "";
-		// 		}
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'signup_by_date') {
-		// 	$signupBy = get_post_meta( $postID, self::SIGNUP_BY_DATE_META_KEY, TRUE );
-		// 	if( !empty($signupBy) ) {
-		// 		echo $signupBy;
-		// 	}
-		// 	else {
-		// 		echo __( 'TBA', TennisEvents::TEXT_DOMAIN );
-		// 	}
-		// }
-		// elseif( $column_name === 'start_date' ) {
-		// 	$start = get_post_meta( $postID, self::START_DATE_META_KEY, TRUE );
-		// 	if( !empty($start) ) {
-		// 		echo $start;
-		// 	}
-		// 	else {
-		// 		echo __('TBA', TennisEvents::TEXT_DOMAIN );
-		// 	}
-		// }
-		// elseif( $column_name === 'end_date' ) {
-		// 	$end = get_post_meta( $postID, self::END_DATE_META_KEY, TRUE );
-		// 	if( !empty($end) ) {
-		// 		echo $end;
-		// 	}
-		// 	else {
-		// 		echo __('TBA', TennisEvents::TEXT_DOMAIN );
-		// 	}
-		// }
+		if( $column_name === 'personid') {
+			$personId = get_post_meta( $postID, self::USER_PERSON_ID, TRUE );
+			if( !empty($personId) ) {
+				echo $personId;
+			}
+			else {
+				echo __( '??', TennisClubMembership::TEXT_DOMAIN );
+			}
+		}
 	}
 
 	public function customTaxonomy() {
@@ -248,17 +187,17 @@ class TennisMemberCpt {
 		$this->log->error_log( $loc );
 		
 		//hierarchical
-		$labels = array( 'name' => 'Club Member Categories'
-						, 'singular_name' => 'Club Member Category'
-						, 'search_items' => 'Club Member Search Category'
-						, 'all_items' => 'All Club Member Categories'
-						, 'parent_item' => 'Parent Club Member Category'
-						, 'parent_item_colon' => 'Parent Club Registration Category:'
-						, 'edit_item' => 'Edit Club Member Category'
-						, 'update_item' => 'Update Club Member Category'
-						, 'add_new_item' => 'Add New Club Member Category'
-						, 'new_item_name' => 'New Club Member Category'
-						, 'menu_name' => 'Club Member Categories'
+		$labels = array( 'name' => 'Club People Categories'
+						, 'singular_name' => 'Club People Category'
+						, 'search_items' => 'Club People Search Category'
+						, 'all_items' => 'All Club People Categories'
+						, 'parent_item' => 'Parent Club People Category'
+						, 'parent_item_colon' => 'Parent Club People Category:'
+						, 'edit_item' => 'Edit Club People Category'
+						, 'update_item' => 'Update Club People Category'
+						, 'add_new_item' => 'Add New Club People Category'
+						, 'new_item_name' => 'New Club People Category'
+						, 'menu_name' => 'Club People Categories'
 						);
 
 		$args = array( 'hierarchical' => true
@@ -276,7 +215,7 @@ class TennisMemberCpt {
 		//NOT hierarchical
 		register_taxonomy( self::CUSTOM_POST_TYPE_TAG
 						 , self::CUSTOM_POST_TYPE
-						 , array( 'label' => 'Club Registration Tags'
+						 , array( 'label' => 'Club People Tags'
 								, 'rewrite' => array( 'slug' => self::CUSTOM_POST_TYPE_TAG )
 								, 'hierarchical' => false
 						));
@@ -302,11 +241,66 @@ class TennisMemberCpt {
 		// 		);
 
 	}
+
+	/**
+	 * This hook fires when a new user is registered in WP database
+	 * It adds this user to the Person database if they have a compatible role
+	 * @param int $user_id the id of the user just added
+	 */
+	public function addNewPersonHook($user_id) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc: user_id='{$user_id}'");
+		$user = get_user_by("ID",$user_id);
+		if(false === $user) {
+			$this->log->error_log("$loc: no such user");
+			return;
+		}
+
+		$email = $user->user_email;
+		$firstName = $user->first_name ?? $user->display_name;
+		$lastName = $user->last_name ?? $user->display_name;
+		$corpId = TM()->getCorporationId();
+		$person = Person::find(["email"=>$email])[0] ?? null;
+		if(null === $person) {
+			$this->log->error_log("$loc: no existing Person with email {$email}");
+			$this->log->error_log(print_r($user,true),"$loc: user data...");
+			foreach(TM_Install::$tennisRoles as $slug=>$name) {
+				$this->log->error_log("$loc: testing role {$slug}");
+				if(in_array($slug,$user->roles)) {
+					$currentTime = new DateTime('NOW');
+					$person = Person::fromEmail($corpId,$email,$firstName,$lastName);
+					//Setup the corresponding custom post type
+					$content = $person->getName();
+					$title = $user->user_login;
+					$postData = array(
+								'post_title' => $title,
+								'post_status' => 'publish',
+								'post_date_gmt' => $currentTime->format('Y-m-d G:i:s'),
+								'post_content' => $content,
+								'post_type' => TennisMemberCpt::CUSTOM_POST_TYPE,
+								'post_author' => get_current_user_id(),
+								'post_date'   => $currentTime->format('Y-m-d G:i:s'),
+								'post_modified' => $currentTime->format('Y-m-d G:i:s')
+								);			
+					$newPostId = wp_insert_post($postData, true);//NOTE: This triggers updateDB in TennisEventCpt
+					if(is_wp_error($newPostId)) {
+						$mess = $newPostId->get_error_message();
+						throw new \Exception(__("{$mess}",TennisClubMembership::TEXT_DOMAIN));
+					}
+					$person->addExternalRef($newPostId);
+					$person->save();
+					update_user_meta($user_id,ManagePeople::USER_PERSON_ID,$person->getID());
+					update_post_meta($newPostId, ManagePeople::USER_PERSON_ID, $person->getID());
+					break;
+				}
+			}
+		}
+ 	}
 	
 	/**
-	 * Update the tennis database
+	 * Update the membership database
 	 */
-	public function updateTennisDB( $post_id ) {
+	public function updatePersonDB( $post_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc: post_id='{$post_id}'");
 		
@@ -321,17 +315,36 @@ class TennisMemberCpt {
 		}
 		
         $post = get_post( $post_id );
-        $this->log->error_log($post, "$loc: post...");
+        //$this->log->error_log($post, "$loc: post...");
         if( $post->post_type !== self::CUSTOM_POST_TYPE ) return;
+		$post = get_post($post_id);
+		//$this->log->error_log(print_r($post,true),"$loc: post...");
 
 	}
 
-	public function deleteTennisDB( int $post_id ) {
+	/**
+	 * Delete Person if it's CPT is deleted
+	 */
+	public function deletePersonDB( int $post_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc: post_id='$post_id'");
+		if( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			$this->log->error_log("$loc --> doing autosave");
+			return;
+		}
 
+		if( ! current_user_can( 'edit_post', $post_id ) ) {
+			$this->log->error_log("$loc --> cannot edit post");
+			return;
+		}
+		
+        $post = get_post( $post_id );
+        $this->log->error_log($post, "$loc: post...");
+        if( $post->post_type !== self::CUSTOM_POST_TYPE ) return;
+		
+		$person = Person::find(["external"=>$post_id])[0] ?? null;
+		if(null !== $person) $person->delete();
 	}
-	
 	
 	/**
 	 * Get the date value from date string
@@ -405,9 +418,9 @@ class TennisMemberCpt {
 	}
 	
 	/**
-	 * Detect if we are creating a new Tennis Club
+	 * Detect if we are creating a new club person
 	 */
-	private function isNewClub() {
+	private function isNewClubMember() {
 		global $pagenow;
 		return $pagenow === 'post-new.php';
 	}

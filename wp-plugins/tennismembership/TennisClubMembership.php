@@ -10,6 +10,8 @@
 
 use api\view\RenderRegistrations;
 use api\ajax\ManageRegistrations;
+use api\ajax\ManagePeople;
+use api\view\RenderPeople;
 use commonlib\GW_Support;
 use commonlib\BaseLogger;
 use cpt\ClubMembershipCpt;
@@ -48,7 +50,6 @@ class TennisClubMembership {
 	public const OPTION_NAME_SEEDED  = 'clubmembership_data_seeded';
 	public const OPTION_HOME_CORPORATION = 'clubmembership_home_corp';
 
-    public const USER_PERSON_ID = '_user_person_id';
 	public const QUERY_PARM_CORPORATEID = 'corpid';
 	public const PIVOT = "Player";
 	public static $initialSuperTypes = [self::PIVOT,"NonPlayer"];
@@ -177,9 +178,7 @@ class TennisClubMembership {
 	}
 	
 	/**
-	 * Init Club Membership 
-	 * 1. Instantiate the installer
-	 * 2. Instantiate the Endpoints/routes Controller
+	 * Init Tennis Club Membership 
 	 */
 	public function init() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
@@ -192,6 +191,10 @@ class TennisClubMembership {
 		//Register Membership Registrations
 		RenderRegistrations::register();
 		ManageRegistrations::register();
+
+		//Register People as Users
+		RenderPeople::register();
+		ManagePeople::register();
 
 		flush_rewrite_rules(); //necessary to make permlinks work for clubmembership templates
 		$this->seedData();
@@ -285,19 +288,37 @@ class TennisClubMembership {
 		$loc = __FILE__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc");
 		
-		// if( $query->is_main_query() && !$query->is_feed() && !is_admin() 
-		// && $query->is_post_type_archive( TennisEventCpt::CUSTOM_POST_TYPE ) ) {
-		// 	//$this->log->error_log($query, "Query Object Before");
-		// 	$meta_query = array( 
-		// 						array(
-		// 							'key' => TennisEventCpt::PARENT_EVENT_META_KEY
-		// 							,'compare' => 'NOT EXISTS'
-		// 						)
-		// 				);
+		if( $query->is_main_query() && !$query->is_feed() && !is_admin() ) {
+			if($query->is_post_type_archive( ClubMembershipCpt::CUSTOM_POST_TYPE ) ) {
+				//$this->log->error_log($query, "Registration Query Object Before");
+				$season = get_query_var('season','');
+				if(!empty($season)) {
+					$meta_query = array( 
+										array(
+											'key' => ClubMembershipCpt::MEMBERSHIP_SEASON
+											,'value' => $season
+											,'compare' => '='
+										)
+								);
 
-		// 	$query->set( 'meta_query', $meta_query );
-		// 	//$this->log->error_log($query, "Query Object After");
-		// }
+					$query->set( 'meta_query', $meta_query );
+				}
+				$query->set("meta_key",ClubMembershipCpt::REGISTRATION_ID);  
+				$query->set("orderby",'meta_value_num');
+				$query->set("order","ASC");
+				$query->set("posts_per_page",15);
+				//$this->log->error_log($query, "Registration Query Object After");
+			}
+			elseif($query->is_post_type_archive( TennisMemberCpt::CUSTOM_POST_TYPE ) ) {
+				$this->log->error_log($query, "Member Query Object Before");
+
+				$query->set("meta_key",ManagePeople::USER_PERSON_ID);  
+				$query->set("orderby",'meta_value_num');
+				$query->set("order","ASC");
+				$query->set("posts_per_page",15);
+				//$this->log->error_log($query, "Member Query Object After");
+			}
+		}
 	}
 		
 	private function includes() {

@@ -32,10 +32,10 @@ public const JOINCOLUMNS = <<<EOD
 cat.ID as category_ID
 ,cat.name as category
 ,cat.corporate_ID as corporate_ID
-,mem.ID
-,mem.name
-,mem.description
-,mem.last_update
+,mem.ID as ID
+,mem.name as name
+,mem.description as description
+,mem.last_update as last_update
 EOD;
 
     //DB fields
@@ -58,7 +58,7 @@ EOD;
 
         $categoryFK = 'categoryId';
 
-        $table      = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
+        $table    = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
         $catTable = TennisClubMembership::getInstaller()->getDBTablenames()[MembershipCategory::$tablename];
         $columns = self::COLUMNS;
         $sql = '';
@@ -116,7 +116,7 @@ EOD;
         return $obj;
     }
 
-    public static function fromData(int $catId, string $name, string $desc = '') : self {
+    public static function fromData(int $catId, string $name, string $desc = '') : ?self {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         if(0 === $catId) {
             error_log("$loc($catId, $name, $desc) - categorId cannot be 0");
@@ -145,7 +145,7 @@ EOD;
         return $res;
     }
 
-    public static function isValidTypeId(int $typeId) {
+    public static function isValidTypeId(int $typeId) : bool {
         foreach(self::allTypes() as $tp) {
             if($typeId === $tp->getID()) {
                 return true;
@@ -153,9 +153,37 @@ EOD;
         }
         return false;
     }
+    
+    public static function isValidType(string $type) : bool {
+        foreach(self::allTypes() as $tp) {
+            if($type === $tp->getName()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function getTypeByName(string $name) : null | MembershipType {        
+        foreach(self::allTypes() as $tp) {
+            if($name === $tp->getName()) {
+                return $tp;
+            }
+        }
+        return null;
+    }
+
+    public static function getTypeById(int $id) : null | MembershipType {        
+        foreach(self::allTypes() as $tp) {
+            if($id === $tp->getID()) {
+                return $tp;
+            }
+        }
+        return null;
+    }
 
     public function __construct() {
         parent::__construct( true );
+        // $memtype = self::find();
     }
 
     /**

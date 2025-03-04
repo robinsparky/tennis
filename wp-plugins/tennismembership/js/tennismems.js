@@ -2,8 +2,8 @@
  
     $(document).ready(function() {       
         let sig = '#tennis-member-message';
-        console.log("Manage Club Registrations");
-        console.log(tennis_membership_obj);
+        console.log("Manage People");
+        console.log(tennis_member_obj);
 
         var longtimeout = 60000;
         var shorttimeout = 5000;
@@ -16,16 +16,15 @@
          * Needs the "action" and "security" nonce from the local object emitted from the server
          * @param {} memberData 
          */
-        let ajaxFun = function( regData ) {
-            console.log('Registration Management: ajaxFun');
-            let reqData =  { 'action': tennis_membership_obj.action      
-                           , 'security': tennis_membership_obj.security 
-                           , 'data': regData };    
+        let ajaxFun = function( memberData ) {
+            console.log('Membership Management: ajaxFun');
+            let reqData =  { 'action': tennis_member_obj.action      
+                           , 'security': tennis_member_obj.security 
+                           , 'data': memberData };    
             console.log("Parameters:");
             console.log( reqData );
-
             // Send Ajax request with data 
-            let jqxhr = $.ajax( { url: tennis_membership_obj.ajaxurl    
+            let jqxhr = $.ajax( { url: tennis_member_obj.ajaxurl    
                                 , method: "POST"
                                 , async: true
                                 , data: reqData
@@ -97,84 +96,23 @@
                 return;
             }
             else {
+                console.log("Data is an object");
                 task = data.task;
-                console.log("Data is an object for Task '%s'",data.task);
+                console.log(`---------Task is ${task}----------`)
             }
             switch(task) {
-                case 'convertregistrations':
+                case 'convertusers':
                     reloadWindow( data )
                     break;
-                // case 'addleafevent':
-                //     reloadWindow( data )
-                //     break;
-                // case 'deleteleafevent':
-                //     reloadWindow( data )
-                //     break;
-                // case 'addrootevent':
-                //     reloadWindow( data )
-                //     break;
-                // case 'deleterootevent':
-                //     reloadWindow( data )
-                //     break;
-                // case 'editname':
-                //     updateBracketName( data )
-                //     break;
-                // case 'addbracket':
-                //     addBracket( data )
-                //     break;
-                // case 'removebracket':
-                //     break;
-                // case 'preparenextmonth':
-                //     reloadWindow( data )
-                //     break;
-                // case 'modifyeventtitle':
-                //     updateLeafEventTitle( data )
-                //     break;
-                // case 'modifyrooteventtitle':
-                //     updateRootEventTitle( data )
-                //     break;
-                // case 'modifyrooteventtype':
-                //     break;
-                // case 'modifyrootstartdate':
-                //     updateRootStartDate( data )
-                //     updateRootEndDate( data )
-                //     break;
-                // case 'modifyrootendate':
-                //     updateRootEndDate( data )
-                //     break;
-                // case 'modifygender':
-                //     updateGenderType( data )
-                //     break;
-                // case 'modifyminage':
-                //     updateMinAge( data )
-                //     break;
-                // case 'modifymaxage':
-                //     updateMaxAge( data )
-                //     break;
-                // case 'modifymatchtype':
-                //     updateMatchType( data )
-                //     break;
-                // case 'modifyformat':
-                //     updateEventFormat( data )
-                //     break;
-                // case 'modifyscorerule':
-                //     updateScoreType( data )
-                //     break;
-                // case 'modifysignupby':
-                //     updateSignupBy( data )
-                //     updateStartDate( data )
-                //     updateEndDate( data )
-                //     break;
-                // case 'modifystartdate':
-                //     updateStartDate( data )
-                //     updateSignupBy( data )
-                //     updateEndDate( data )
-                //     break;
-                // case 'modifyenddate':
-                //     updateSignupBy( data )
-                //     updateStartDate( data )
-                //     updateEndDate( data )
-                //     break;
+                case 'adduser':
+                    reloadWindow( data )
+                    break;
+                case 'deleteuser':
+                    reloadWindow( data )
+                    break;
+                case 'modifyuser':
+                    updateuser( data )
+                    break;
                 default:
                     console.log("Unknown task from server: '%s'", task);
                     break;
@@ -678,12 +616,12 @@
                     ,"scoreType": scoreType
                 }
         }
-        
-    /*********** Registrations XML File *************************************************/
-    $("#registration_uploads_file").css("opacity","0")
-    let uploadInput = document.getElementById('registration_uploads_file')
-    if(null !== uploadInput) {
-          uploadInput.addEventListener('change', function (event) {
+                   
+    /*********** Users XML File *************************************************/
+    $("#user_uploads_file").css("opacity","0")
+    let uploadInputUsers = document.getElementById('user_uploads_file')
+    if(null !== uploadInputUsers) {
+        uploadInputUsers.addEventListener('change', function (event) {
           let fr = new FileReader();
           fr.onload = function () {
               let xmlContent = fr.result;
@@ -694,27 +632,30 @@
                 // parsing failed
                 console.log(errorNode.nodeValue)
               } else {
+                let bulkUsers = []
                 // parsing succeeded
-                let bulkRegs = []
-                console.log(xmlDoc)
+                //console.log(xmlDoc)
                 let regs = xmlDoc.getElementsByTagName('registration');
                 console.log("regs.length=%d",regs.length)
                 //console.log(regs)
+                start = localStorage.getItem('lastCount')
+                if(null == start) start=0;
                 upper = Math.min(regs.length,50)
-                let numAddinfo = 0;
+                //localStorage.setItem('lastCount', upper)
+                console.log(`Start=${start}; max=${upper}`)
                 for (i = 0; i < upper; i++) {
                   let registrant = regs[i];
                   //console.log(player)
                   let first = 'unknown'
                   let last = 'unknown'
-                  let birthdate = ''
-                  let regtype = ''
                   let staffmods = ''
+                  let regtype = ''
                   let stat = ''
                   let email = ''
                   let portal = ''
                   let startdate = ''
                   let expirydate = ''
+                  let birthdate = ''
                   let gender = ''
                   let fob = ''
                   let mlyr = ''
@@ -765,12 +706,13 @@
                             break;
                         }
                   }
-                  console.log("%d. %s %s - %s", i, first, last, regtype)
+                  console.log("%d. %s %s - %s",i, first, last, regtype)
                   let newReg = {'firstname': first,'lastname': last, 'email': email,'birthdate': birthdate, 'regtype': regtype,'membernumber': membernum,'memberlastyear': mlyr, 'gender': gender, 'fob': fob, 'portal': portal, 'startdate': startdate, 'expirydate': expirydate, 'status': stat}
-                  bulkRegs.push(newReg)
-                }
-                console.log("bulkRegs.length=%d",bulkRegs.length)
-                regData = {"task": 'convertregistrations', 'name':'bulk', 'registrations': bulkRegs}
+                  bulkUsers.push(newReg)
+                } //regs
+                
+                console.log("bulkUsers.length=%d",bulkUsers.length)
+                regData = {"task": 'convertusers', 'name':'bulk', 'users': bulkUsers}
                 console.log(regData)
                 ajaxFun(regData);
           }
@@ -778,6 +720,7 @@
         fr.readAsText(this.files[0]);
     })
     };
+    
 
     /**************************************************************************/
 

@@ -37,7 +37,7 @@ class RegistrationMgmt {
      * @param string $notes
      * @return MembershipRegistration
      */
-    public function createRegistration(int $seasonId, Person $person, MembershipType $memType,string $startDate, string $endDate, bool $incDir = true, bool $receiveEmails=true, bool $shareEmail=true, string $notes='' ) : MemberRegistration {
+    public function createRegistration(int $seasonId, int $userId , MembershipType $memType, string $startDate, string $endDate, bool $incDir = true, bool $receiveEmails=true, bool $shareEmail=true, string $notes='' ) : MemberRegistration {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $result = false;
         try {
@@ -52,9 +52,15 @@ class RegistrationMgmt {
             if( !isset($corp) ) {				
                 throw new InvalidRegistrationException(__( 'Home corporation is not set.', TennisClubMembership::TEXT_DOMAIN ));
             }
+
+            $user = get_user_by('ID',$userId);
+            if(false === $user ) {
+                throw new InvalidRegistrationException(__( 'No such user id .', TennisClubMembership::TEXT_DOMAIN ));
+            }
             
-            $reg = MemberRegistration::fromIds($seasonId, $memType->getID(),$person->getID());
+            $reg = MemberRegistration::fromIds($seasonId, $memType->getID(),$userId);
             if(is_null($reg)) throw new InvalidRegistrationException(__( 'Failed to create registration object.', TennisClubMembership::TEXT_DOMAIN ));
+
              $result = $reg->setReceiveEmails($receiveEmails)
                         && $reg->setIncludeInDir($incDir)
                         && $reg->setShareEmail($shareEmail)

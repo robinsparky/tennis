@@ -44,9 +44,6 @@ EOD;
     private $country;
     private $postal_code;
 
-    //Private properties
-    private $owner;
-
     /**
      * Find collection of Addresses for a given person
      */
@@ -95,13 +92,26 @@ EOD;
         }
         return $obj;
     }
+    
+    /**
+     * Delete the Address
+     * */	
+    public static function delete(int $addId) : int {
+        
+		global $wpdb;
+		$result = 0;
+	
+        $table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
+		$where = array( 'ID'=>$addId );
+		$formats_where = array( '%d' );
+		$wpdb->delete( $table, $where, $formats_where );
+		$result += $wpdb->rows_affected;
+        return $result;
+    }
 
-    public static function fromData(AbstractMembershipData $owner, string $addr2, string $city) :self {
+    public static function fromData(int $ownerId, string $addr2, string $city) :self {
         $new = new Address;
-        if(!$new->setOwner($owner)) {
-            $mess = __("No such object with this Id", TennisClubMembership::TEXT_DOMAIN);
-            throw new InvalidAddressException($mess);
-        }
+        $new->setOwnerId($ownerId);
         $new->setAddr2($addr2);
         $new->setCity($city);
         return $new;
@@ -115,14 +125,12 @@ EOD;
         return $this->ownerId;
     }
 
-    public function setOwner( AbstractMembershipData $owner ) : bool {
-        $this->owner = $owner;
-        $this->ownerId = $owner->getID();
-        return $this->setDirty();
-    }
-
-    public function getOwner() : AbstractMembershipData {
-        return $this->owner;
+    public function setOwnerId(int $ownerId) : bool {
+        if(0 < $ownerId) {
+            $this->ownerId = $ownerId;
+            return $this->setDirty();
+        }
+        return false;
     }
 
     public function setAddr1(string $addr) : bool {
@@ -179,20 +187,19 @@ EOD;
         return $this->postal_code;
     }
 
-    public function delete() {
+    /**
+     * Delete this Address
+     * */	
+    public function deleteMe() : int {
         
 		global $wpdb;
 		$result = 0;
-
-		//Delete the Address		
-        $table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
-		$where = array( 'ID'=>$this->getID() );
-		$formats_where = array( '%d' );
-		$wpdb->delete( $table, $where, $formats_where );
-		$result += $wpdb->rows_affected;
+	
+        $result = self::delete($this->getID());
+        if(0 < $result) $this->ID = 0;
+        return $result;
     }
     
-
     /**
      * Check to see if this Address has valid data
      */

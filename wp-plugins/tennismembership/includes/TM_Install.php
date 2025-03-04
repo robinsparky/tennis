@@ -1,4 +1,6 @@
 <?php
+
+use api\ajax\ManagePeople;
 use commonlib\BaseLogger;
 use cpt\ClubMembershipCpt;
 use cpt\TennisMemberCpt;
@@ -22,38 +24,48 @@ require_once( ABSPATH . 'wp-admin/includes/upgrade.php');
  * TM_Install Class.
  */
 class TM_Install {
+
+	//Roles
 	const PUBLICMEMBER_ROLENAME = "public_member";
 	const TENNISPLAYER_ROLENAME = "tennis_member";
-	const STAFF_ROLENAME = "staff_member";
-	const INSTRUCTOR_ROLENAME = "instructor_coach";
+	const STAFF_ROLENAME        = "staff_member";
+	const INSTRUCTOR_ROLENAME   = "instructor_coach";
 
-	const SCORE_MATCHES_CAP = 'score_matches';
-	const RESET_MATCHES_CAP = 'reset_matches';
+	//Capabilities
+	const SCORE_MATCHES_CAP        = 'score_matches';
+	const RESET_MATCHES_CAP        = 'reset_matches';
 	const MANAGE_REGISTRATIONS_CAP = 'manage_registrations';
+	const MANAGE_MEMBERS_CAP       = 'manage_members';
 
-	static public $registrationManagerCaps = array(self::SCORE_MATCHES_CAP => 1
-                                                    ,self::RESET_MATCHES_CAP => 1
-                                                    ,self::MANAGE_REGISTRATIONS_CAP => 1 );
 
-	static public $tennisRoles=array(self::TENNISPLAYER_ROLENAME => "Tennis Member"
-								    ,self::PUBLICMEMBER_ROLENAME => "Public Member"
-								    ,self::STAFF_ROLENAME => "Staff Member"
-								    ,self::INSTRUCTOR_ROLENAME => "Instructor or Coach");
+	static public $tennisRoles=array(self::TENNISPLAYER_ROLENAME => "Member"
+								    ,self::PUBLICMEMBER_ROLENAME => "Public"
+								    ,self::STAFF_ROLENAME => "Staff"
+								    ,self::INSTRUCTOR_ROLENAME => "Instructor");
 	
+	static public $registrationManagerCaps = array(self::SCORE_MATCHES_CAP => 1
+												,self::RESET_MATCHES_CAP => 1
+												,self::MANAGE_MEMBERS_CAP => 1
+												,self::MANAGE_REGISTRATIONS_CAP => 1 );
+
 	static private $tennisMemberCaps=array(self::SCORE_MATCHES_CAP => 1
 											,self::RESET_MATCHES_CAP => 0
+											,self::MANAGE_MEMBERS_CAP => 0
 											,self::MANAGE_REGISTRATIONS_CAP => 0 );
 
 	static private $publicMemberCaps=array(self::SCORE_MATCHES_CAP => 0
 											,self::RESET_MATCHES_CAP => 0
+											,self::MANAGE_MEMBERS_CAP => 0
 											,self::MANAGE_REGISTRATIONS_CAP => 0 );
 												
 	static private $staffMemberCaps=array(self::SCORE_MATCHES_CAP => 1
 											,self::RESET_MATCHES_CAP => 0
-											,self::MANAGE_REGISTRATIONS_CAP => 0 );
+											,self::MANAGE_MEMBERS_CAP => 1
+											,self::MANAGE_REGISTRATIONS_CAP => 1 );
 											
 	static private $instructorMemberCaps=array(self::SCORE_MATCHES_CAP => 1
-											,self::RESET_MATCHES_CAP => 0
+											,self::RESET_MATCHES_CAP => 1
+											,self::MANAGE_MEMBERS_CAP => 0
 											,self::MANAGE_REGISTRATIONS_CAP => 0 );
 
 	private $dbTableNames; 
@@ -133,9 +145,6 @@ class TM_Install {
 		unregister_post_type( TennisMemberCpt::CUSTOM_POST_TYPE );
 		// clear the permalinks to remove our post type's rules from the database
 		flush_rewrite_rules();
-
-		//remove roles?
-		//$this->removeCap();
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
 
@@ -147,7 +156,6 @@ class TM_Install {
 		$this->delete_options();
 		$this->delete_customPostTypes();
 		$this->delete_customTaxonomies();
-		//$this->delete_user_meta();
 		$this->delete_users();
 		$this->dropSchema();
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
@@ -186,25 +194,31 @@ class TM_Install {
 
 	/**
 	 * Delete user meta data
+	 * @see delete_users()
 	 */
-	protected function delete_user_meta() {
+	protected function deleteUserData($user_id) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		// $users = get_users();
-		// foreach ($users as $user) {
-		// 	delete_user_meta($user->ID, TennisClubMembership::USER_PERSON_ID);
-		// }
+		foreach( ManagePeople::$allUserMetaKeys as $key) {
+			delete_user_meta($user_id,$key);
+		}
 	}
 	
 	/**
 	 * Delete WP users representing Members/Persons
+	 * @see deleteUserData
 	 */
 	protected function delete_users() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		$users = get_users();
-		foreach ($users as $user) {
-			if(!empty(get_user_meta($user->id, TennisClubMembership::USER_PERSON_ID, true))) {
-				delete_user_meta($user->id, TennisClubMembership::USER_PERSON_ID);
-				wp_delete_user($user->id);
+		foreach (get_users() as $user) {
+			if(in_array('administrator',$user->roles)
+			|| in_array('author',$user->roles)
+			|| in_array('contributor',$user->roles)
+			|| in_array('editor',$user->roles)) continue;
+			
+			if(!empty(get_user_meta($user->id, TennisMemberCpt::USER_PERSON_ID, true)) 
+				&& !user_can($user->ID,'manage_options')) {
+				$this->deleteUserData($user->ID);
+				wp_delete_user($user->ID);
 			}
 		}
 	}
@@ -216,6 +230,7 @@ class TM_Install {
 		delete_option( TennisClubMembership::OPTION_NAME_VERSION );
 		delete_option( TennisClubMembership::OPTION_NAME_SEEDED );
 		delete_option( TennisClubMembership::OPTION_HOME_CORPORATION );
+		delete_option( TennisClubMembership::OPTION_TENNIS_SEASON );
 	}
 
 	/**
@@ -279,7 +294,7 @@ class TM_Install {
 	}
 
 	/**
-	 * TODO: Modify roles for tennis membership plugin
+	 * TODO: Rationalize roles for tennis membership and events plugin
 	 * Add the roles of 'Tennis Player', 'Tournament Director', 'Chair Umpire', etc.
 	 */
 	private function addRoles() {
@@ -388,10 +403,10 @@ class TM_Install {
 			`ID`            INT NOT NULL AUTO_INCREMENT,
 			`name`          VARCHAR(255) NOT NULL,
 			`yearend_date`  DATETIME NOT NULL,
-			`status`        VARCHAR(25) NULL COMMENT 'Open, Closed, Open for Renewal',
+			`corp_status`        VARCHAR(25) NULL COMMENT 'Open, Closed, Open for Renewal',
 			`gst_number`    VARCHAR(50) NULL,
-			`gst_rate1`     DECIMAL(5,3) NULL,
-            `gst_rate2`     DECIMAL(5,3) NULL,			
+			`gst_rate1`     DECIMAL(6,3) NULL,
+            `gst_rate2`     DECIMAL(6,3) NULL,			
 			`last_update`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY (`ID`)
 		) ENGINE = MyISAM;";
@@ -405,20 +420,20 @@ class TM_Install {
 		}
 
 		/**
-		 * Person is someone who interacts with the club
+		 * Person is someone who is associated with the corporation/club: parents, members, staff, etc..
 		 * Information is stored in this table and in the Wordpress users table.
 		 */
 		$person_table = $this->dbTableNames["person"];
 		$sql = "CREATE TABLE `$person_table` ( 
 			`ID`            INT NOT NULL AUTO_INCREMENT,
-			`corporate_ID`   INT NOT NULL,
+			`corporate_ID`  INT NOT NULL,
 			`sponsor_ID`    INT NULL,
 			`first_name`    VARCHAR(45) NULL,
 			`last_name`     VARCHAR(45) NOT NULL,
 			`gender`        VARCHAR(10) NOT NULL,
 			`birthdate`     DATE NULL,
 			`skill_level`   DECIMAL(4,1) DEFAULT 2.0,
-			`emailHome`     VARCHAR(100),
+			`emailHome`     VARCHAR(100) COMMENT 'emailHome is the link between Person in DB and User in WP',
 			`emailBusiness` VARCHAR(100),
 			`phoneHome`     VARCHAR(45),
 			`phoneMobile`   VARCHAR(45),
@@ -428,7 +443,8 @@ class TM_Install {
 			PRIMARY KEY (`ID`),
 			INDEX corpperson (`corporate_ID`),
 			INDEX sponsors (`sponsor_ID`),
-			INDEX fornames (`last_name`,`first_name`)
+			INDEX fornames (`last_name`,`first_name`),
+			UNIQUE emailidx (`emailHome`)
 		) ENGINE = MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
@@ -511,12 +527,12 @@ class TM_Install {
 		}
 
 		/**
-		 * A Person who joins the club is Registered under a specific membership type
+		 * A Person/User who joins the club is Registered under a specific membership type
 		 */
 		$member_table = $this->dbTableNames["registration"];
 		$sql = "CREATE TABLE `$member_table` ( 
 			`ID`                    INT NOT NULL AUTO_INCREMENT,
-			`person_ID` 			INT NOT NULL COMMENT 'References the person table',
+			`person_ID` 			INT NOT NULL COMMENT 'References the Person table',
 			`season_ID` 			INT NOT NULL COMMENT 'References the season table',
 			`membership_type_ID`	INT NOT NULL COMMENT 'References the membership type table',
             `status`                VARCHAR(25) NOT NULL,
@@ -546,6 +562,7 @@ class TM_Install {
 		    `subject`         VARCHAR(50) DEFAULT 'registration',
 			`internal_ID`     INT NOT NULL,
 			`external_ID`     VARCHAR(100) NOT NULL,
+			`purpose`         VARCHAR(100) NULL,
 			`last_update`     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			INDEX intaccess (`subject`,`internal_ID`),
 			INDEX extaccess (`subject`,`external_ID`)
@@ -585,9 +602,8 @@ class TM_Install {
 
 	public function enqueue_style() {
 		$loc = __CLASS__  . "::" . __FUNCTION__;
-		// guess current plugin directory URL
 		$plugin_url = plugin_dir_url(__FILE__);
-		wp_enqueue_style('tennis_css', $plugin_url . '../css/tennismembership.css');
+		wp_enqueue_style('membership_css', $plugin_url . '../css/tennismembership.css');
 	}
 
 	public function enqueue_script() {

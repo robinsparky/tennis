@@ -1,8 +1,8 @@
 <?php
-use datalayer\MembershipSuperType;
+use datalayer\MembershipCategory;
 use datalayer\MembershipType;
 
-$superTypes = MembershipSuperType::find();
+$cats = MembershipCategory::find();
 ?>
 
 <dialog class="tennis-list-membership-dialog root">
@@ -10,18 +10,17 @@ $superTypes = MembershipSuperType::find();
 
 <?php
 foreach(MembershipType::find() as $memType) {
-$memberSuperTypeDropDown = "<select name='membersupertype'>";
-foreach($superTypes as $super) {
-    $selected = $super->getName() == $memType->getSuperTypeId() == $super->getID() ? "selected='true'" : "";
-    $memberSuperTypeDropDown .= "<option value='{$super->getID()}' {$selected}>{$super->getName()}</option>";
+$memberSuperTypeDropDown = "<select name='membertypecategory'>";
+foreach($cats as $cat) {
+    $selected = $cat->getName() == $memType->getCategory() == $cat->getID() ? "selected='true'" : "";
+    $memberSuperTypeDropDown .= "<option value='{$cat->getID()}' {$selected}>{$cat->getName()}</option>";
 }
 $memberSuperTypeDropDown .= "</select>";
 ?>
-
 <fieldset>
-    <label><b>Event Super Type:</b><?php echo $memberSuperTypeDropDown;?></label> 
+    <label><b>Membership Type Category:</b><?php echo $memberSuperTypeDropDown;?></label> 
     <label for="name"><b>Name</b>
-    <input type="hidden" name="supertypeID" value="<?php $memType->getSuperTypeId();?>"/>
+    <input type="hidden" name="category" value="<?php $memType->getCategory();?>"/>
     <input id="<?php $memType->getID();?>" type="text" class="" name="name" required value="<?php $memType->getName();?>"/>
     </label>
 </fieldset>

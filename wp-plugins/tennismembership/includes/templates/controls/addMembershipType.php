@@ -1,20 +1,20 @@
 <?php
-use datalayer\MembershipSuperType;
+use datalayer\MembershipCategory;
 use TennisClubMembership;
 
-$memberSuperTypeDropDown = "<select name='membersupertype'>";
-foreach(MembershipSuperType::find() as $super) {
-    $selected = $super->getName() == TennisClubMembership::PIVOT ? "selected='true'" : "";
-    $memberSuperTypeDropDown .= "<option value='{$super->getID()}' {$selected}>{$super->getName()}</option>";
+$memberCategoryDropDown = "<select name='membersupertype'>";
+foreach(MembershipCategory::find() as $cat) {
+    $selected = $cat->getName() == TennisClubMembership::PIVOT ? "selected='true'" : "";
+    $memberSuperTypeDropDown .= "<option value='{$cat->getID()}' {$selected}>{$cat->getName()}</option>";
 }
-$memberSuperTypeDropDown .= "</select>";
+$memberCategoryDropDown .= "</select>";
 
 $today = (new \DateTime('now'))->format('Y-m-d');
 ?>
 <dialog class="tennis-add-membership-dialog root">
 <form method="dialog" class="">
     <fieldset>
-        <label><b>Event Super Type:</b><?php echo $memberSuperTypeDropDown;?>
+        <label><b>Membership Type Category:</b><?php echo $memberCategoryDropDown;?>
         </label> 
         <label for="name"><b>Name</b>
         <input type="text" class="" name="name" required/>

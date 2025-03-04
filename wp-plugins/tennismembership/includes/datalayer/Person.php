@@ -4,6 +4,10 @@ use DateTime;
 use DateTimeZone;
 
 use TennisClubMembership;
+use datalayer\Genders;
+use cpt\ClubMembershipCpt;
+use cpt\TennisMemberCpt;
+use commonlib\GW_Support;
 use datalayer\appexceptions\InvalidPersonException;
 
 
@@ -14,13 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-enum Genders : string {
-	case Male   = "Male";
-	case Female = "Female";
-	case Other  = "Other";
-}
-
-/** 
+/**
  * Data and functions for Person(s)
  * @class  Person
  * @package Tennis Membership
@@ -35,7 +33,6 @@ class Person extends AbstractMembershipData
 	ID
 	,corporate_ID
 	,sponsor_ID
-	,can_sponsor
 	,first_name
 	,last_name
 	,gender
@@ -56,7 +53,7 @@ class Person extends AbstractMembershipData
 	private $sponsorId;
 	private $first_name;// varchar(45) 
 	private $last_name;// varchar(45) 
-	private $gender;// varchar(1) 
+	private $gender;// varchar(10) 
 	private $birthdate;// date 
 	private $skill_level;// decimal(4,1) 
 	private $emailHome;// varchar(100) 
@@ -118,11 +115,16 @@ class Person extends AbstractMembershipData
 	 * @param array $fk_criteria (foreign keys). Defaults to finding all Persons in the DB
 	 *              ['sponsoredBy'=> ID]
 	 *              ['mySponsor'=> ID]
+	 *              ['email'=> <email address>]
+	 *              ['external'=> <external reference>]
 	 */
-	static public function find(...$fk_criteria) {
+	static public function find(...$fk_criteria) : array {
 		$loc = __CLASS__ . '::'. __FUNCTION__;
+		error_log("{$loc}...");
 
 		global $wpdb;
+
+		if(is_array($fk_criteria[0])) $fk_criteria = $fk_criteria[0];
 
 		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
 		$columns = self::COLUMNS;
@@ -142,12 +144,33 @@ class Person extends AbstractMembershipData
 			$sql = "SELECT {$columns}
 					FROM $table 
 					WHERE ID = %d;";
+		} elseif( array_key_exists('email',$fk_criteria) ) {
+			//Get the Person with given email address
+			$col_value = $fk_criteria["email"];
+			error_log("{$loc}: home email=$col_value");
+			$sql = "SELECT {$columns}
+					FROM $table 
+					WHERE emailHome = '%s';";
+		} elseif( array_key_exists("external",$fk_criteria)) {
+			//Get the person with the given external reference
+			$col_value = $fk_criteria["external"];
+			$mapTable = TennisClubMembership::getInstaller()->getDBTablenames()['externalmap'];
+			$subject = self::$tablename;
+			error_log("{$loc}: external={$col_value}");
+			$sql = "SELECT {$columns}
+					FROM {$table} 
+					INNER JOIN {$mapTable}
+					ON ID = internal_ID
+					WHERE subject = '{$subject}'
+					AND external_ID ='%s'
+					ORDER BY ID;";
 		} elseif( !isset( $fk_criteria ) ) {
 			//All persons
 			error_log( "{$loc}: all persons" );
 			$col_value = 0;
 			$sql = "SELECT {$columns}
-					FROM $table;";
+					FROM $table
+					ORDER BY ID;";
 		}
 		else {
 			return $col;
@@ -164,7 +187,6 @@ class Person extends AbstractMembershipData
 			$col[] = $obj;
 		}
 		return $col;
-
 	}
 
 	/**
@@ -270,6 +292,16 @@ class Person extends AbstractMembershipData
 		
 		return $new;
 	}
+	
+	public static function fromEmail(int $corporateId,string $email, string $fname, string $lname) : Person {
+		$new = new Person;
+		$new->corporateId = $corporateId;
+		$new->setFirstName($fname);
+		$new->setLastName($lname);	
+		$new->setHomeEmail($email);
+		
+		return $new;
+	}
 
 	/*************** Instance Methods ****************/
 	private function __construct() {
@@ -319,17 +351,14 @@ class Person extends AbstractMembershipData
 
 	/**
 	 * Set the Address for this Person
-	 * NOTE: if no arg passed  the Address will be deleted
-	 *       otherwise any existing Address will be overwritten by the new one supplied.
 	 * @param Address is the new Address for this person.
 	 */
-	public function setAddress(Address $addr = null) : bool {
-
-		if(is_null($addr) || !is_null($this->address)) {
-			$this->address->delete();
+	public function setAddress(Address $addr) : bool {
+		if($addr->isValid()) {
+			$this->address = $addr;
+			return $this->setDirty();
 		}
-		$this->address = $addr;
-		return $this->setDirty();
+		return false;
 	}
 
 	public function getAddress() : Address {
@@ -375,6 +404,7 @@ class Person extends AbstractMembershipData
             if(false === $test) $test = \DateTime::createFromFormat("d/m/Y H:i", $date, $tz );
             if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date, $tz );
             if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date, $tz );
+            if(false === $test) $test = \DateTime::createFromFormat("DD-M-yy", $date, $tz );
             
             $last = \DateTIme::getLastErrors();
             if( $last['error_count'] > 0 ) {
@@ -408,7 +438,7 @@ class Person extends AbstractMembershipData
      * Get the localized DateTime object representing the birthdate
      * @return object DateTime or null
      */
-    public function getBirthDateTime() : DateTime {
+    public function getBirthDateTime() : DateTime | null {
         if( empty( $this->birthdate ) ) return null;
         else {
             $temp = clone $this->birthdate;
@@ -426,10 +456,8 @@ class Person extends AbstractMembershipData
 		if( !isset( $this->birthdate ) || is_null( $this->birthdate ) ) {
             return '';
         }
-		else {
-            $temp = clone $this->birthdate;
-            return $temp->setTimezone(TennisClubMembership::getTimeZone())->format( TennisClubMembership::$outdateformat );
-        }
+		$temp = clone $this->birthdate;
+		return $temp->setTimezone(TennisClubMembership::getTimeZone())->format( TennisClubMembership::$outdateformat );
 	}
 
     /**
@@ -475,20 +503,34 @@ class Person extends AbstractMembershipData
 	}
 
 	/**
-	 * Set the Gender
+	 * Get the Gender
 	 */
-	public function getGender() : Genders {
+	public function getGender() : string {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-		return $this->gender;
+		return $this->gender ?? '';
 	}
 
 	/**
-	 * Get the gender
+	 * Set the gender
+	 * @param string $gen
 	 */
-	public function setGender(Genders $gender ) : bool {
+	public function setGender(string $gen ) : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-		$this->gender = $gender;
-		return $this->setDirty();
+		$foundIt = false;
+		foreach(Genders::$genders as $g) {
+			//$this->log->error_log("$loc: comparing '$gen' to '$g'");
+			if($gen == $g) {
+				$foundIt = true;
+				break;
+			}
+		}
+		if($foundIt) {
+			//$this->log->error_log("$loc: setting gender to '$gen'");
+			$this->gender = $gen;
+			//$this->log->error_log("$loc: set gender to '{$this->getGender()}'");
+			return $this->setDirty();
+		}
+		return false;
 	}
 
 	/**
@@ -643,25 +685,38 @@ class Person extends AbstractMembershipData
 	}
 
 	public function setSponsorId(int $sponsorId) : bool {
-		$this->sponsor = Person::get($sponsorId);
-		if(is_null($this->sponsor)) {
-			return false;
+		$test= Person::get($sponsorId);
+		if(null !== $test) {
+			$this->sponsor = $test;
+			$this->sponsorId = $this->sponsor->getID();
 		}
-		$this->sponsorId = $sponsorId;
+		if(is_null($test)) {
+			$this->sponsor = null;
+			$this->sponsorId = 0;
+		}
 		return $this->setDirty();
 	}
 
 	public function getSponsorId() : int {
-		return $this->sponsorId;
+		return $this->sponsorId ?? 0;
 	}
 
 	public function setSponsor(Person $sponsor) {
 		$this->sponsor = $sponsor;
-		$this->sponsorId = $sponsor->getID();
+		$this->sponsorId = null !== $sponsor ? $sponsor->getID() : 0;
 		return $this->setDirty();
 	}
 
-	public function getSponsor() : Person {
+	public function getSponsor() : Person | null {
+		if(isset($this->sponsor)) {
+			return $this->sponsor;
+		}
+		elseif(isset($this->sponsorId)) {
+			$this->sponsor = Person::get($this->sponsorId);
+		}
+		else {
+			$this->sponsor = null;
+		}
 		return $this->sponsor;
 	}
 
@@ -678,7 +733,7 @@ class Person extends AbstractMembershipData
 		if(count($this->getSponsored()) > 0) {
 			$this->canSponsor = true;
 		}
-		elseif(isset($this->fetchMySponsor())) {
+		elseif(null === $this->fetchMySponsor()) {
 			$this->canSponsor = false;
 		}
 		else {
@@ -692,7 +747,7 @@ class Person extends AbstractMembershipData
 	 * Can this Person sponsor another?
 	 */
 	public function canSponsor() : bool {
-		return $this->canSponsor;
+		return $this->canSponsor ?? __return_false();
 	}
 
 	/**
@@ -700,7 +755,7 @@ class Person extends AbstractMembershipData
 	 */
 	public function isSponsored() : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-		return isset($this->fetchMySponsor()) ? true : false;
+		return null === $this->fetchMySponsor() ? true : false;
 	}
 
 	/**
@@ -880,32 +935,28 @@ class Person extends AbstractMembershipData
 	}
 	
 
-	public function isValid() {
+	public function isValid() : bool {
 		$loc = __CLASS__ ;
 		$isvalid = true;
 		$mess = '';
-		if( !isset( $this->fname ) ) {
+		if( !isset( $this->first_name ) ) {
 			$mess .= __("{$loc} must have a first name. ", TennisClubMembership::TEXT_DOMAIN);
+			$isvalid = false;
 		}
 		
-		if( !isset( $this->lname ) ) {
+		if( !isset( $this->last_name ) ) {
 			$mess .= __("{$loc} must have a last name. ", TennisClubMembership::TEXT_DOMAIN);
-		}
-		
-		if( !isset( $this->gender ) ) {
-			$mess .= __("{$loc} must have a gender. ", TennisClubMembership::TEXT_DOMAIN);
-		}
-
-		if( !isset( $this->birthdate ) ) {
-			$mess .= __("{$loc} must have a date of birth. ", TennisClubMembership::TEXT_DOMAIN);
-		}
-		
-		if( !isset( $this->phoneHome ) ) {
-			$mess .= __("{$loc} must have a home phone. ", TennisClubMembership::TEXT_DOMAIN);
+			$isvalid = false;
 		}
 		
 		if( !isset( $this->emailHome ) ) {
 			$mess .= __("{$loc} must have a home email. ", TennisClubMembership::TEXT_DOMAIN);
+			$isvalid = false;
+		}
+
+		if(!isset( $this->gender )) {
+			$mess .= __("{$loc} must have a gender. ", TennisClubMembership::TEXT_DOMAIN);
+			$isvalid = false;
 		}
 
 		if( strlen( $mess ) > 0 ) {
@@ -921,6 +972,7 @@ class Person extends AbstractMembershipData
 	 */
 	public function delete() : int {
 		//TODO: must delete all registrations, addresses, transactions and ?entrants?
+		//TODO: What about sponsors??
 		$result = 0;
 
 		//Registrations
@@ -931,7 +983,7 @@ class Person extends AbstractMembershipData
 		}
 
 		//Delete Address
-		$this->getAddress()->delete();
+		Address::delete($this->getAddress()->getID());
 
 		//Delete Sponsorships
 		foreach($this->getSponsored() as $sp) {
@@ -951,7 +1003,6 @@ class Person extends AbstractMembershipData
 		$formats_where = array( '%d' );
 		$wpdb->delete( $table, $where, $formats_where );
 		$result += $wpdb->rows_affected;
-		unset($this);
 		return $result;
 	}
 
@@ -992,9 +1043,8 @@ class Person extends AbstractMembershipData
 		$values = array('first_name'=>$this->getFirstName()
 		               ,'last_name'=>$this->getLastName()
 					   ,'corporate_ID'=>$this->getCorpId()
-					   ,'can_sponsor'=>$this->canSponsor() ? 1 : 0
 					   ,'sponsor_id'=> $this->getSponsorId()
-					   ,'gender'=>$this->getGender()->value
+					   ,'gender'=>$this->getGender()
 					   ,'birthdate'=>$this->getBirthDate_Str()
 					   ,'skill_level'=>$this->getSkillLevel()
 					   ,'emailHome'=>$this->getHomeEmail()
@@ -1004,7 +1054,7 @@ class Person extends AbstractMembershipData
 					   ,'phoneMobile'=>$this->getMobilePhone()
 					   ,'notes'=>$this->getNotes()
 		);
-		$formats_values = array('%s','%s','%d','%d','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s');
+		$formats_values = array('%s','%s','%d','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s');
 		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
 		$res = $wpdb->insert($table, $values, $formats_values);
 		
@@ -1041,9 +1091,8 @@ class Person extends AbstractMembershipData
 		$values = array('first_name'=>$this->getFirstName()
 		               ,'last_name'=>$this->getLastName()
 					   ,'corporate_ID' => $this->getCorpId()
-					   ,'can_sponsor'=>$this->canSponsor() ? 1 : 0
 					   ,'sponsor_id'=> $this->getSponsorId()
-					   ,'gender'=>$this->getGender()->value
+					   ,'gender'=>$this->getGender()
 					   ,'birthdate'=>$this->getBirthDate_Str()
 					   ,'skill_level'=>$this->getSkillLevel()
 					   ,'emailHome'=>$this->getHomeEmail()
@@ -1053,7 +1102,7 @@ class Person extends AbstractMembershipData
 					   ,'phoneMobile'=>$this->getMobilePhone()
 					   ,'notes'=>$this->getNotes()
 		);
-		$formats_values = array('%s','%s','%d','%d','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s');
+		$formats_values = array('%s','%s','%d','%d','%s','%s','%d','%s','%s','%s','%s','%s','%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
 		$table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
@@ -1070,7 +1119,7 @@ class Person extends AbstractMembershipData
 	/**
 	 * Maintain the data related to this person such as persons sponsored by this person
 	 */
-	private function manageRelatedData():int {
+	private function manageRelatedData() : int {
 		$result = 0;
 		
 		//Remove this person's sponsorship of those identified to be deleted
@@ -1107,11 +1156,10 @@ class Person extends AbstractMembershipData
         parent::mapData($obj,$row);
 
 		$obj->corporateId = $row['corporate_ID'];
-		$obj->canSponsor = $row['can_sponsor'] > 0 ? true: false;
-		$obj->sponsorId = $row["sponsor_id"];
+		$obj->sponsorId = $row["sponsor_ID"];
 		$obj->first_name = $row["first_name"];
 		$obj->last_name = $row["last_name"];
-		$obj->gender = Genders::tryFrom($row['gender']) ?? Genders::Other;
+		$obj->gender = $row['gender'];
 		$obj->skill_level = $row['skill_level'];
 		$obj->emailHome = $row['emailHome'];
 		$obj->emailBusiness = $row['emailBusiness'];
@@ -1120,11 +1168,10 @@ class Person extends AbstractMembershipData
 		$obj->phoneMobile = $row['phoneMobile'];
 		$obj->notes = $row["notes"];
 		
-        if( !empty($row["birthdate"]) && $row["birthdate"] !== '0000-00-00 00:00:00') {
-            $st = new DateTime( $row["birthdate"], new DateTimeZone('UTC') );
-            $mess = print_r($st,true);
+        if( !empty($row["birthdate"]) && !str_starts_with($row["birthdate"],'0000')) {
+            $st = DateTime::createFromFormat('Y-m-d', $row["birthdate"], new DateTimeZone('UTC'));
             error_log("$loc: DateTime for birthdate ...");
-            error_log($mess);
+            error_log(print_r($st,true));
             $obj->birthdate = $st;
         }
         else {

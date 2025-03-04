@@ -11,10 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-global $jsMemberData;
+global $jsRegistrationData;
 /** 
- * Renders Club Member Registrations using shortcode
- * Is is also invoked by the Tennis Club Member templates
+ * Renders Club Registrations using shortcode
+ * Registrations are the link between People and Membership
+ * Is is also invoked by the Tennis Club Registration templates
  * @class  RenderRegistrations
  * @package Tennis Members
  * @version 1.0.0
@@ -54,10 +55,10 @@ class RenderRegistrations
         wp_register_script( 'digital_clock', $cturl, array('jquery'), TennisClubMembership::VERSION, true );
 
         $jsurl =  TM()->getPluginUrl() . 'js/tennisregs.js';
-        wp_register_script( 'manage_member', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisClubMembership::VERSION, true );
+        wp_register_script( 'manage_registrations', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisClubMembership::VERSION, true );
         
-        // $cssurl = TM()->getPluginUrl() . 'css/tennismembership.css';
-        // wp_enqueue_style( 'tennis_css', $cssurl );
+        $cssurl = TM()->getPluginUrl() . 'css/tennismembership.css';
+        wp_enqueue_style( 'membership_css', $cssurl );
     }
     
     public function registerHandlers() {
@@ -116,6 +117,7 @@ class RenderRegistrations
     private function renderRegistrations( $args ) {        
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
+		$startFuncTime = microtime( true );
         GW_Debug::gw_print_mem();
 
         $title = "Membership Management";
@@ -126,12 +128,11 @@ class RenderRegistrations
             $portal = $args['portal'];
         }
 
-        global $jsMemberData;
-        $jsMemberData = $this->get_ajax_data();
+        global $jsRegistrationData;
         wp_enqueue_script( 'digital_clock' );  
-        wp_enqueue_script( 'manage_member' );         
-        wp_localize_script( 'manage_member', 'tennis_membership_obj', $jsMemberData );  
-        //wp_add_inline_script('tennis_membership_obj',$jsMemberData);      
+        wp_enqueue_script( 'manage_registrations' );  
+        $jsRegistrationData = $this->get_ajax_data();       
+        wp_localize_script( 'manage_registrations', 'tennis_membership_obj', $jsRegistrationData );  
         
 	    // Start output buffering we don't output to the page
         ob_start();
@@ -160,6 +161,8 @@ class RenderRegistrations
              'ajaxurl' => admin_url( 'admin-ajax.php' )
             ,'action' => self::ACTION
             ,'security' => wp_create_nonce( self::NONCE )
+            ,'season'   => TM()->getSeason()
+            ,'corporateId' => TM()->getCorporationId()
             ,'message' => $mess
         );
     }

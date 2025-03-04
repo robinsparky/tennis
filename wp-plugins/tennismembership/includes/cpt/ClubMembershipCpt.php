@@ -1,12 +1,13 @@
 <?php
 namespace cpt;
 
+use api\ajax\ManageRegistrations;
 use \DateTime;
 use \DateTimeInterface;
 use \WP_Error;
 use commonlib\BaseLogger;
-
-// use TennisClubMembership;
+use datalayer\MemberRegistration;
+use TennisClubMembership;
 // use datalayer\MemberRegistration;
 
 /** 
@@ -25,6 +26,7 @@ class ClubMembershipCpt
     const CLUBMEMBERSHIP_SLUG  = 'clubmemberships';
 	
 	const MEMBERSHIP_SEASON    = '_membership_season';
+	const REGISTRATION_ID        = '_registration_id';
 	
     //Only emit on this page
 	private $hooks = array('post.php', 'post-new.php');
@@ -44,18 +46,18 @@ class ClubMembershipCpt
 		//$tennisClubRegistration->customTaxonomy();
 		//add_action( 'admin_enqueue_scripts', array( $tennisClubRegistration, 'enqueue') );
 			
-		// add_filter( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_columns', array( $tennisMembership, 'addColumns' ), 10 );
-		// add_action( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array( $tennisMembership, 'getColumnValues'), 10, 2 );
-		// add_filter( 'manage_edit-' .self::CUSTOM_POST_TYPE . '_sortable_columns', array( $tennisMembership, 'sortableColumns') );
-		// add_action( 'pre_get_posts', array( $tennisMembership, 'orderby' ) );
+		add_filter( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_columns', array( $tennisClubRegistration, 'addColumns' ), 10 );
+		add_action( 'manage_' . self::CUSTOM_POST_TYPE . '_posts_custom_column', array( $tennisClubRegistration, 'getColumnValues'), 10, 2 );
+		add_filter( 'manage_edit-' .self::CUSTOM_POST_TYPE . '_sortable_columns', array( $tennisClubRegistration, 'sortableColumns') );
+		add_action( 'pre_get_posts', array( $tennisClubRegistration, 'orderby' ) );
 		
 		//Required actions for meta boxes
 		//add_action( 'add_meta_boxes', array( $tennisMembership, 'metaBoxes' ) );
 
 		// Hook for updating/inserting into custom tables
-		//add_action( 'save_post', array( $tennisMembership, 'updateTennisDB'), 12 );
+		add_action( 'save_post', array( $tennisClubRegistration, 'updateRegistrationDB'), 12 );
 		//Hook for deleting cpt
-		//add_action( 'delete_post', array( $tennisMembership, 'deleteTennisDB') );
+		add_action( 'delete_post', array( $tennisClubRegistration, 'deleteRegistrationDB') );
 	}
 	
 	public function __construct() {
@@ -115,8 +117,10 @@ class ClubMembershipCpt
 					 , 'show_in_rest' => true //causes Gutenberg editor to be used
 					 , 'rewrite' => array( 'slug' => self::CLUBMEMBERSHIP_SLUG, 'with_front' => false )
 					 //, 'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'comments', 'excerpt', 'revisions', 'custom-fields', 'page-attributes' ) 
-					 //, 'supports' => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'revisions' ) 
-					 , 'public' => true );
+					 , 'supports' => array( 'title', 'editor', 'author' ) 
+					 , 'public' => true
+					 , 'show_in_nav_menus'=>true
+					 , 'show_in_menu' => true );
 		$res = register_post_type( self::CUSTOM_POST_TYPE, $args );
 
 		if(is_wp_error($res)) {
@@ -132,18 +136,18 @@ class ClubMembershipCpt
 		$this->log->error_log( $columns, $loc );
 
 		// column vs displayed title
-        //$newColumns['club_name'] = __( 'Club Name', TennisEvents::TEXT_DOMAIN );
 		$newColumns['cb'] = $columns['cb'];
-		//$newColumns['title'] = __( 'Club Name', TennisClubMembership::TEXT_DOMAIN ); //$columns['title'];
-		//$newColumns['taxonomy-tennisclubcategory'] = __('Category', TennisClubMembership::TEXT_DOMAIN );
+		$newColumns['title'] = $columns['title'];
+		$newColumns['registrationid'] = __( 'Registration Id', TennisClubMembership::TEXT_DOMAIN ); 
+		$newColumns['season'] = __('Season', TennisClubMembership::TEXT_DOMAIN );
 		// $newColumns['author'] = $columns['author'];
-        // $newColumns['date'] = $columns['date'];
+        $newColumns['date'] = $columns['date'];
 		return $newColumns;
 	}
 
 	public function sortableColumns ( $columns ) {
-		//$columns['start_date'] = 'startDate';
-		//$columns['taxonomy-tenniseventcategory'] = 'categorySort';
+		$columns['registrationid'] = 'registrationId';
+		$columns['season'] = 'season';
 		return $columns;
 	}
 
@@ -154,6 +158,14 @@ class ClubMembershipCpt
 		if( ! is_admin() || ! $query->is_main_query() ) {
 			return;
 		}
+		
+		if ('registrationId' === $query->get('orderby')) {
+			$query->set('orderby', 'meta_value');
+			$query->set('meta_key', self::REGISTRATION_ID);
+		} elseif ('season' === $query->get('orderby')) {
+			$query->set('orderby', 'meta_value');
+			$query->set('meta_key', self::MEMBERSHIP_SEASON);
+		}
 	}
 
 	/**
@@ -163,88 +175,24 @@ class ClubMembershipCpt
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log( "$loc --> $column_name, $postID" );
 
-		// if( $column_name === 'event_type') {
-		// 	$eventType = get_post_meta( $postID, self::EVENT_TYPE_META_KEY, TRUE );
-		// 	if( !empty($eventType) ) {
-		// 		echo EventType::AllTypes()[$eventType];
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'parent_event' ) {
-		// 	$eventParentId = get_post_meta( $postID, self::PARENT_EVENT_META_KEY, TRUE );
-		// 	if( !empty($eventParentId) ) {
-		// 		$tecpt = get_post( $eventParentId );
-		// 		$name = "";
-		// 		if( !is_null( $tecpt ) ) {
-		// 			$name = $tecpt->post_title;
-		// 		}
-		// 		echo "$name($eventParentId)";
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'event_format' ) {
-		// 	$eventFormat = get_post_meta( $postID, self::EVENT_FORMAT_META_KEY, TRUE );
-		// 	if( !empty($eventFormat) ) {
-		// 		echo Format::AllFormats()[$eventFormat];
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'match_type') {
-		// 	$matchType = get_post_meta( $postID, self::MATCH_TYPE_META_KEY, TRUE );
-		// 	if( !empty($matchType) ) {
-		// 		echo MatchType::AllTypes()[$matchType];
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'score_type') {
-		// 	$scoreType = get_post_meta( $postID, self::SCORE_TYPE_META_KEY, TRUE );
-		// 	if( !empty($scoreType) ) {
-		// 		if( ScoreType::get_instance()->isValid( $scoreType ) ) {
-		// 			echo $scoreType;
-		// 		}
-		// 		else {
-		// 			echo "";
-		// 		}
-		// 	}
-		// 	else {
-		// 		echo "";
-		// 	}
-		// }
-		// elseif( $column_name === 'signup_by_date') {
-		// 	$signupBy = get_post_meta( $postID, self::SIGNUP_BY_DATE_META_KEY, TRUE );
-		// 	if( !empty($signupBy) ) {
-		// 		echo $signupBy;
-		// 	}
-		// 	else {
-		// 		echo __( 'TBA', TennisEvents::TEXT_DOMAIN );
-		// 	}
-		// }
-		// elseif( $column_name === 'start_date' ) {
-		// 	$start = get_post_meta( $postID, self::START_DATE_META_KEY, TRUE );
-		// 	if( !empty($start) ) {
-		// 		echo $start;
-		// 	}
-		// 	else {
-		// 		echo __('TBA', TennisEvents::TEXT_DOMAIN );
-		// 	}
-		// }
-		// elseif( $column_name === 'end_date' ) {
-		// 	$end = get_post_meta( $postID, self::END_DATE_META_KEY, TRUE );
-		// 	if( !empty($end) ) {
-		// 		echo $end;
-		// 	}
-		// 	else {
-		// 		echo __('TBA', TennisEvents::TEXT_DOMAIN );
-		// 	}
-		// }
+		if( $column_name === 'registrationid') {
+			$regId = get_post_meta( $postID, self::REGISTRATION_ID, TRUE );
+			if( !empty($regId) ) {
+				echo $regId;
+			}
+			else {
+				echo __( '??', TennisClubMembership::TEXT_DOMAIN );
+			}
+		}
+		elseif( $column_name === 'season') {
+			$season = get_post_meta( $postID, self::MEMBERSHIP_SEASON, TRUE );
+			if( !empty($season) ) {
+				echo $season;
+			}
+			else {
+				echo __( '??', TennisClubMembership::TEXT_DOMAIN );
+			}
+		}
 	}
 
 	public function customTaxonomy() {
@@ -310,7 +258,7 @@ class ClubMembershipCpt
 	/**
 	 * Update the tennis database
 	 */
-	public function updateTennisDB( $post_id ) {
+	public function updateRegistrationDB( $post_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc: post_id='{$post_id}'");
 		
@@ -325,14 +273,32 @@ class ClubMembershipCpt
 		}
 		
         $post = get_post( $post_id );
-        $this->log->error_log($post, "$loc: post...");
+        //$this->log->error_log($post, "$loc: post...");
         if( $post->post_type !== self::CUSTOM_POST_TYPE ) return;
 
 	}
 
-	public function deleteTennisDB( int $post_id ) {
+	public function deleteRegistrationDB( int $post_id ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log->error_log("$loc: post_id='$post_id'");
+
+		if( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			$this->log->error_log("$loc --> doing autosave");
+			return;
+		}
+
+		if( ! current_user_can( 'edit_post', $post_id ) ) {
+			$this->log->error_log("$loc --> cannot edit post");
+			return;
+		}
+		
+        $post = get_post( $post_id );
+        //$this->log->error_log($post, "$loc: post...");
+        if( $post->post_type !== self::CUSTOM_POST_TYPE ) return;
+		$season = get_post_meta($post_id,ClubMembershipCpt::MEMBERSHIP_SEASON,true);
+		$regId = (int)get_post_meta($post_id,ClubMembershipCpt::REGISTRATION_ID,true);
+		$reg = MemberRegistration::get($regId);
+		if(null !== $reg) $reg->delete();
 
 	}
 	
@@ -411,7 +377,7 @@ class ClubMembershipCpt
 	/**
 	 * Detect if we are creating a new Tennis Club
 	 */
-	private function isNewClub() {
+	private function isNewRegistration() {
 		global $pagenow;
 		return $pagenow === 'post-new.php';
 	}

@@ -4,6 +4,11 @@ namespace commonlib;
 use WP_Error;
 use DateTime;
 use DateInterval;
+use WP_User;
+use WP_User_Query;
+use datalayer\Person;
+use cpt\ClubMembershipCpt;
+use cpt\TennisMemberCpt;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -59,6 +64,41 @@ class GW_Support
         return $exponent;
     }
 
+	public static function getUserByEmail(string $email = '') : ?WP_User {
+
+		$ret_user = null;
+		$args = ["user_email"=>$email];
+		$user_query = new WP_User_Query($args);
+		if( ! empty($user_query->get_results())) {
+			foreach( $user_query->get_results() as $user) {
+				if($email === $user->user_email) {
+					$ret_user = $user;
+					break;
+				}
+			}
+		}
+		return $ret_user;
+	}
+	
+	public static function getRegLink(Person $person) : string {
+		$user = GW_Support::getUserByEmail($person->getHomeEmail());
+		$reglink = get_bloginfo('url') . '/' . ClubMembershipCpt::CLUBMEMBERSHIP_SLUG . '/?user_id=' . $user->ID;
+		return $reglink;
+	}
+
+	public static function getHomeLink(Person $person) : string {
+		$user = GW_Support::getUserByEmail($person->getHomeEmail());
+		$homelink = get_bloginfo('url') . '/' . TennisMemberCpt::CUSTOM_POST_TYPE_SLUG . '/'  . $user->user_login;
+		return $homelink;
+	}
+
+
+	public static function log(mixed $something) {
+		$tp = gettype($something);
+		error_log("Details for: '{$tp}'");
+		error_log(print_r($something,true));
+	}
+
 	/**
 	 * GW_Support Singleton
 	 *
@@ -101,8 +141,7 @@ class GW_Support
 	/**
 	 * Quick function to retrieve the name of the browser (user_agent)
 	**/
-	public function get_browser_name($user_agent)
-	{
+	public function get_browser_name($user_agent) {
 		if (strpos($user_agent, 'Opera') || strpos($user_agent, 'OPR/')) return 'Opera';
 		elseif (strpos($user_agent, 'Edge')) return 'Edge';
 		elseif (strpos($user_agent, 'Chrome')) return 'Chrome';
@@ -111,28 +150,6 @@ class GW_Support
 		elseif (strpos($user_agent, 'MSIE') || strpos($user_agent, 'Trident/7')) return 'Internet Explorer';
 
 		return 'Other';
-	}
-
-
-	/**
-	 * What type of request is this?
-	 *
-	 * @param  string $type admin, ajax, cron or frontend.
-	 * @return bool
-	 * @verison	1.0.0
-	 * @since	1.0.0
-	 */
-	public function is_request( $type ) {
-		switch ( $type ) {
-			case 'admin' :
-				return is_admin();
-			case 'ajax' :
-				return defined( 'DOING_AJAX' );
-			case 'cron' :
-				return defined( 'DOING_CRON' );
-			case 'frontend' :
-				return ( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' );
-		}
 	}
 
 	/**

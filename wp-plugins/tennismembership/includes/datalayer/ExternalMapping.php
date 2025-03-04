@@ -15,18 +15,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class ExternalMapping {
 
-	private const ExternalMapTable = 'externalmap';
+	public const ExternalMapTable = 'externalmap';
 	
 	/**
 	 * Remove a relationship between and Club and an external reference
 	 */
-	static function remove(string $subject, int $Id, string $extRef = "" ):int {
+	static function remove(string $subject, int $Id, string $extRef = "" ) : int {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log("{$loc}($subject, $Id, $extRef)");
 
 		$subject = strtolower($subject);
 		$result = 0;
-		$table = TM()->getInstaller()->getDBTablenames[self::ExternalMapTable];
+		$table = TM()->getInstaller()->getDBTablenames()[ExternalMapping::ExternalMapTable];
 
 		global $wpdb;
 		if( !empty( $extRef ) ) {
@@ -50,18 +50,18 @@ class ExternalMapping {
 	/**
 	 * Create a relationship between a subject and external reference
 	 */
-	static function add(string $subject, int $Id, string $extRef ):int {
+	static function add(string $subject, int $Id, string $extRef ) : int {
 		$loc = __CLASS__ . '::' .  __FUNCTION__;
-		error_log("{$loc}($subject, $Id, $extRef)");
+		$table = TM()->getInstaller()->getDBTablenames()[ExternalMapping::ExternalMapTable];
+		error_log("{$loc}($subject, $Id, $extRef) uses table {$table}");
 
-		$table = TM()->getInstaller()->getDBTablenames[self::ExternalMapTable];
 
 		$subject = strtolower($subject);
 		$result = 0;
 
 		global $wpdb;
 		
-		$query = "SELECT IFNULL(count(*),0) FROM $table
+		$query = "SELECT IFNULL(count(*),0) FROM {$table}
 				  WHERE internal_ID=%d and external_ID='%s' and subject='%s';";
 		$safe = $wpdb->prepare( $query, $Id, $extRef, $subject );
 		$num = $wpdb->get_var( $safe );
@@ -88,7 +88,7 @@ class ExternalMapping {
 		$loc = __CLASS__ .'::' .  __FUNCTION__;
 		error_log("{$loc}($subject, $Id)");
 
-		$table = TM()->getInstaller()->getDBTablenames[self::ExternalMapTable];
+		$table = TM()->getInstaller()->getDBTablenames()[ExternalMapping::ExternalMapTable];
 
 		$subject = strtolower($subject);
 		$result = array();
@@ -113,7 +113,7 @@ class ExternalMapping {
 		$loc = __CLASS__ .'::' .  __FUNCTION__;
 		error_log("{$loc}($subject, $ref)");
 
-		$table = TM()->getInstaller()->getDBTablenames[self::ExternalMapTable];
+		$table = TM()->getInstaller()->getDBTablenames()[ExternalMapping::ExternalMapTable];
 
 		$subject = strtolower($subject);
 		global $wpdb;

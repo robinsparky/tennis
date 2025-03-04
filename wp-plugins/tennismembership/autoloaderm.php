@@ -24,11 +24,11 @@ class AutoloaderM
         $class_filename = __DIR__ . "\\includes\\$class" . ".php";
         $file = wp_normalize_path($class_filename); //str_replace('\\', DIRECTORY_SEPARATOR, $class_filename);
         if ( file_exists( $file ) ) {
-            error_log( "$loc: loading: '$class' in '$file'}" );
+            //error_log( "$loc: loading: '$class' in '$file'}" );
             require $file;
             return true;
         }
-        //error_log(  "$loc: class failed: '$class' in '$file'" );
+        // error_log(  "$loc: class failed: '$class' in '$file'" );
         return false;
     }
 }
