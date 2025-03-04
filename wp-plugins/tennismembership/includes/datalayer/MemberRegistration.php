@@ -451,7 +451,7 @@ EOD;
 	 * @param DateTime $date the expiry date
 	 * @return bool true if successful; false otherwise
 	 */
-	public function setStartDate(DateTime $date = null) : bool {
+	public function setStartDate(?DateTime $date) : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
 
 		$this->startDate = $date;
@@ -545,7 +545,7 @@ EOD;
 	 * @param DateTime $date the expiry date
 	 * @return bool true if successful; false otherwise
 	 */
-	public function setEndDate(DateTime $date = null) : bool {
+	public function setEndDate(?DateTime $date) : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
 
 		$this->endDate = $date;
