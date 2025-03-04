@@ -353,8 +353,8 @@ class ManageRegistrations
                 }
 
                 if(empty($season)) {
-                    $this->log->error_log("$loc: Invalid season because expiry date was blank.");
-                    throw new InvalidRegistrationException(__( 'Invalid season because expiry date was blank.', TennisClubMembership::TEXT_DOMAIN ));
+                    $this->log->error_log("$loc: Invalid season because {$firstName} {$lastName}  had no expiry date.");
+                    continue;
                 }
 
                 $reg = MemberRegistration::fromIds($season, $memTypeId, $person->getID());
@@ -398,8 +398,6 @@ class ManageRegistrations
                     $mess = $res->get_error_message();
                     throw new InvalidRegistrationException(__("{$mess}",TennisClubMembership::TEXT_DOMAIN));
                 }
-                
-                //update_user_meta($targetUser->ID,ManagePeople::USER_PERSON_ID,$person->getID());//Not really necessary??
                 
                 $reg->addExternalRef((string)$newPostId);
                 $reg->save();
