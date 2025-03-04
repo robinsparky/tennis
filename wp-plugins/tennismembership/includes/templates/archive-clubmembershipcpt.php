@@ -103,12 +103,12 @@ if( $current_user->exists() &&  current_user_can( TM_Install::MANAGE_REGISTRATIO
 			// GW_Support::log($postUser);
 			if($postUser->ID != $queryUserId &&  0 !== $queryUserId) continue;
 			$homelink = GW_Support::getHomeLink($registrant);
-
+			$assocPost = GW_Support::getPost($registrant);
 		?>	
 	<tr id="<?php $reg->getID()?>" class="">
 		<th scope="row"><?php echo $reg->getID(); ?></th>
 		<td><a href='mailto:<?php echo $registrant->getHomeEmail() ?>'><?php echo $registrant->getHomeEmail();?></a></th>
-		<td><a href='<?php echo $homelink; ?>'><?php echo $registrant->getName();?></a></th>
+		<td><a href='<?php echo $assocPost->guid; ?>'><?php echo $registrant->getName();?></a></th>
 		<td><?php echo $reg->getMembershipType()->getName()?></td>
 		<td><?php echo $reg->getStartDate_Str()?></td>
 		<td><?php echo $reg->getEndDate_Str()?></td>

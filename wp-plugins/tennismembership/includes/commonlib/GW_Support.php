@@ -7,9 +7,9 @@ use DateInterval;
 use WP_User;
 use WP_User_Query;
 use datalayer\Person;
+use datalayer\MemberRegistration;
 use cpt\ClubMembershipCpt;
 use cpt\TennisMemberCpt;
-use datalayer\MemberRegistration;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -96,6 +96,14 @@ class GW_Support
 	public static function getPostId(Person | MemberRegistration $thing) : int {
 		$postId = $thing->getExtRefSingle();
 		return (int)$postId;
+	}
+
+	public static function getPost($thing)  {
+		if(method_exists($thing,'getExtRefSingle')) {
+			$postId = (int)$thing->getExtRefSingle();
+			return get_post($postId);
+		}
+		return null;
 	}
 
 	public static function log(mixed $something) {
