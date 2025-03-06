@@ -10,6 +10,7 @@ use datalayer\Person;
 use datalayer\MemberRegistration;
 use cpt\ClubMembershipCpt;
 use cpt\TennisMemberCpt;
+use DateError;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

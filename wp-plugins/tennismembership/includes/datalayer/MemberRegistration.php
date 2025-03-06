@@ -394,52 +394,11 @@ EOD;
     public function setStartDate_Str( string $date = '' ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $result = false;
-        $tz = TennisClubMembership::getTimeZone();
         $this->log->error_log("$loc:('{$date}')");
 
-        if( empty( $date ) ) {
-            $this->startDate = null;
+        if( !empty( $date ) ) {
+            $this->startDate = new DateTime($date);
 			$result = $this->setDirty();
-        }
-        else {
-            try {
-                $dt_local = new DateTime( $date, $tz );
-                $this->startDate = $dt_local;
-                $this->startDate->setTimezone(new \DateTimeZone('UTC'));
-                $result = $this->setDirty();
-                return $result; //early return
-            }
-            catch( \Exception $ex ) {
-                $this->log->error_log("$loc: failed to construct using '{$date}'");
-            }
-
-            $test = DateTime::createFromFormat("Y-m-d G:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d h:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d G:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d h:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y G:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date, $tz );
-            
-            $last = DateTIme::getLastErrors();
-            if( $last['error_count'] > 0 ) {
-                $arr = $last['errors'];
-                $mess = '';
-                foreach( $arr as $err ) {
-                    $mess .= $err.':';
-                }
-                throw new InvalidRegistrationException( $mess );
-            }
-            elseif( $test instanceof \DateTime ) {
-                $this->startDate = $test;
-                $this->startDate->setTimezone( new \DateTimeZone('UTC'));
-                $result = $this->setDirty();
-            }
         }
 
         return $result;
@@ -455,7 +414,6 @@ EOD;
         $loc = __CLASS__ . ":" . __FUNCTION__;
 
 		$this->startDate = $date;
-		if(null != $this->startDate) $this->startDate->setTimezone( new \DateTimeZone('UTC'));
 
 		return $this->setDirty();
 	}
@@ -464,7 +422,7 @@ EOD;
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
-        if( !isset( $this->startDate ) ) $this->startDate = new DateTime('now', new \DateTimeZone('UTC'));
+        if( !isset( $this->startDate ) ) $this->startDate = new DateTime('now');
         $this->startDate->setTimeStamp( $timestamp );
 		$this->setDirty();
     }
@@ -474,10 +432,10 @@ EOD;
      * @return object DateTime or null
      */
     public function getStartDateTime() : ?DateTime {
-        if( empty( $this->startDate ) ) return null;
+        if( empty( $this->startDate ) || !($this->startDate instanceof DateTime)) return null;
         else {
             $temp = clone $this->startDate;
-            return $temp->setTimezone(TennisClubMembership::getTimeZone());
+            return $temp;
         }
     } 
 
@@ -488,12 +446,11 @@ EOD;
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log( $this->startDate, $loc);
 
-		if( !isset( $this->startDate ) || is_null( $this->startDate ) ) {
+		if( empty($this->startDate) || !($this->startDate instanceof DateTime)) {
             return '';
         }
 		else {
-            $temp = clone $this->startDate;
-            return $temp->setTimezone(TennisClubMembership::getTimeZone())->format( TennisClubMembership::$outdateformat );
+            return $this->startDate->format( TennisClubMembership::$outdateformat );
         }
 	}
 
@@ -504,10 +461,13 @@ EOD;
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log( $this->startDate, $loc);
 
-		if( !isset( $this->startDate ) || is_null( $this->startDate ) ) {
+		if( empty($this->startDate) || !($this->startDate instanceof DateTime)) {
             return '';
         }
-		else return $this->startDate->format( TennisClubMembership::$outdateformat );
+		else {
+            $temp = clone $this->startDate;
+			return $temp->setTimezone(new DateTimeZone('UTC'))->format( TennisClubMembership::$outdateformat );
+		}
 	}
     
 	/**
@@ -530,12 +490,11 @@ EOD;
                 $format = TennisClubMembership::$outdatetimeformat1;
         }
         
-		if( isset( $this->startDate ) ) {
-            $temp = clone $this->startDate;
-            $result = $temp->setTimezone(TennisClubMembership::getTimeZone())->format($format);
+		if( $this->startDate instanceof DateTime) {
+			$result = $this->startDate->format($format);
         }
 		
-        $this->log->error_log("$loc: returning {$result}");
+        $this->log->error_log("$loc: returning '{$result}'");
         return $result;
 	}
 		
@@ -545,11 +504,10 @@ EOD;
 	 * @param DateTime $date the expiry date
 	 * @return bool true if successful; false otherwise
 	 */
-	public function setEndDate(?DateTime $date) : bool {
+	public function setEndDate(DateTime $date) : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
 
 		$this->endDate = $date;
-		if(null != $this->endDate) $this->endDate->setTimezone( new \DateTimeZone('UTC'));
 
 		return $this->setDirty();
 	}
@@ -562,53 +520,12 @@ EOD;
     public function setEndDate_Str( string $date = '' ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $result = false;
-        $tz = TennisClubMembership::getTimeZone();
         $this->log->error_log("$loc:('{$date}')");
 
-        if( empty( $date ) ) {
-            $this->endDate = null;
+		if(!empty($date)) {
+			$this->endDate = new DateTime($date);
 			$result = $this->setDirty();
-        }
-        else {
-            try {
-                $dt_local = new DateTime( $date, $tz );
-                $this->endDate = $dt_local;
-                $this->endDate->setTimezone(new \DateTimeZone('UTC'));
-                $result = $this->setDirty();
-                return $result; //early return
-            }
-            catch( \Exception $ex ) {
-                $this->log->error_log("$loc: failed to construct using '{$date}'");
-            }
-
-            $test = DateTime::createFromFormat("Y-m-d G:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d h:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d G:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d h:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y G:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date, $tz );
-            
-            $last = DateTIme::getLastErrors();
-            if( $last['error_count'] > 0 ) {
-                $arr = $last['errors'];
-                $mess = '';
-                foreach( $arr as $err ) {
-                    $mess .= $err.':';
-                }
-                throw new InvalidRegistrationException( $mess );
-            }
-            elseif( $test instanceof DateTime ) {
-                $this->endDate = $test;
-                $this->endDate->setTimezone( new \DateTimeZone('UTC'));
-                $result = $this->setDirty();
-            }
-        }
+		}
 
         return $result;
     }
@@ -622,7 +539,7 @@ EOD;
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
-        if( !isset( $this->endDate ) ) $this->endDate = new \DateTime('now', new \DateTimeZone('UTC'));
+        if( !isset( $this->endDate ) ) $this->endDate = new \DateTime('now');
         $this->startDate->setTimeStamp( $timestamp );
 		$this->setDirty();
     }
@@ -635,7 +552,7 @@ EOD;
         if( !isset( $this->endDate ) ) return null;
         else {
             $temp = clone $this->endDate;
-            return $temp->setTimezone(TennisClubMembership::getTimeZone());
+            return $temp;
         }
     } 
 
@@ -650,8 +567,7 @@ EOD;
             return '';
         }
 		else {
-            $temp = clone $this->endDate;
-            return $temp->setTimezone(TennisClubMembership::getTimeZone())->format( TennisClubMembership::$outdateformat );
+			return $this->endDate->format( TennisClubMembership::$outdateformat );
         }
 	}
 
@@ -665,7 +581,10 @@ EOD;
 		if( !isset( $this->endDate ) || is_null( $this->endDate ) ) {
             return '';
         }
-		else return $this->endDate->format( TennisClubMembership::$outdateformat );
+		else {
+			$temp = clone $this->endDate;
+            return $temp->setTimezone(new DateTimeZone('UTC'))->format( TennisClubMembership::$outdateformat );
+		}
 	}
     
 	/**
@@ -689,8 +608,7 @@ EOD;
         }
         
 		if( isset( $this->endDate ) ) {
-            $temp = clone $this->endDate;
-            $result = $temp->setTimezone(TennisClubMembership::getTimeZone())->format($format);
+			$result = $this->endDate->format($format);
         }
 		
         $this->log->error_log("$loc: returning {$result}");
@@ -922,36 +840,37 @@ EOD;
 					   ,'season_ID'=>$this->seasonId
 					   ,'membership_type_ID'=>$this->getMembershipTypeId()
 					   ,'status'=>$this->getStatus()->value
-					   ,'start_date'=>$this->getStartDate_Str() 
-					   ,'expiry_date'=>$this->getEndDate_Str() 
+					   ,'start_date'=>$this->getStartDateUTC_Str() 
+					   ,'expiry_date'=>$this->getEndDateUTC_Str() 
 					   ,'receive_emails'=>$this->getReceiveEmails() ? 1 : 0 
 					   ,'include_in_directory'=>$this->getIncludeInDir() ? 1 : 0
 					   ,'share_email'=>$this->getShareEmail() ? 1 : 0 
 					   ,'notes'=>$this->getNotes()
 		);
-		foreach($values as $field=>$value) {
-			$colres = $wpdb->get_col_length($table,$field);
-			if(is_wp_error($colres)) {
-				$mess = "$loc: $table($field) with value has improper length '{$value}'.";
-				$this->log->error_log($mess);
-				$mess .= " : Err='$mess'";
-				throw new InvalidRegistrationException($mess);
-			}
-			// elseif(false == $colres) {
-			// 	$this->log->error_log("$loc: $table($field) has has no size (it is numeric) '{$value}'.");
+		
+		// foreach($values as $field=>$value) {
+		// 	$colres = $wpdb->get_col_length($table,$field);
+		// 	if(is_wp_error($colres)) {
+		// 		$mess = "$loc: $table($field) with value has improper length '{$value}'.";
+		// 		$this->log->error_log($mess);
+		// 		$mess .= " : Err='$mess'";
+		// 		throw new InvalidRegistrationException($mess);
+		// 	}
+		// 	// elseif(false == $colres) {
+		// 	// 	$this->log->error_log("$loc: $table($field) has has no size (it is numeric) '{$value}'.");
 
-			// }
-			// else {
-			// 	$this->log->error_log($colres,"$loc: $table($field) with value '{$value}' has size ...");
-			// }
-			$charst = $wpdb->get_col_charset($table,$field);
-			if(is_wp_error($charst)) {				
-				$mess = "$loc: $table($field) with value '{$value}' has improper char set.";
-				$this->log->error_log($mess);
-				$mess .= " : Err='$mess'";
-				throw new InvalidRegistrationException($mess);
-			}
-		}
+		// 	// }
+		// 	// else {
+		// 	// 	$this->log->error_log($colres,"$loc: $table($field) with value '{$value}' has size ...");
+		// 	// }
+		// 	$charst = $wpdb->get_col_charset($table,$field);
+		// 	if(is_wp_error($charst)) {				
+		// 		$mess = "$loc: $table($field) with value '{$value}' has improper char set.";
+		// 		$this->log->error_log($mess);
+		// 		$mess .= " : Err='$mess'";
+		// 		throw new InvalidRegistrationException($mess);
+		// 	}
+		// }
 
 		$formats_values = array('%d','%d','%d','%s','%s','%s','%d','%d','%d','%s');
 		$res = $wpdb->insert($table, $values, $formats_values);
@@ -998,8 +917,8 @@ EOD;
 					   ,'season_ID'=>$this->seasonId
 					   ,'membership_type_ID'=>$this->getMembershipTypeId()
 					   ,'status'=>$this->getStatus()->value
-					   ,'start_date'=>$this->getStartDate_Str() 
-					   ,'expiry_date'=>$this->getEndDate_Str() 
+					   ,'start_date'=>$this->getStartDateUTC_Str() 
+					   ,'expiry_date'=>$this->getEndDateUTC_Str() 
 					   ,'receive_emails'=>$this->getReceiveEmails() ? 1 : 0 
 					   ,'include_in_directory'=>$this->getIncludeInDir() ? 1 : 0
 					   ,'share_email'=>$this->getShareEmail() ? 1 : 0 
@@ -1053,24 +972,21 @@ EOD;
 		$obj->notes = $row["notes"];
 		$obj->corporateId = array_key_exists("corporate_ID",$row) ? $row['corporate_ID'] : 1;
 
+		$tz = TennisClubMembership::getTimeZone();
+		$obj->startDate = null;
         if( !empty($row["start_date"]) && !str_starts_with($row["start_date"],'0000')) {
-            $st = DateTime::createFromFormat('Y-m-d', $row["start_date"], new DateTimeZone('UTC'));
+            $st = new DateTime($row['start_date'], $tz);
             error_log("$loc: DateTime for start_date ...");
-            error_log(print_r($st,true));
-            $obj->startDate = $st;
-        }
-        else {
-            $obj->startDate = null;
-        }
+			error_log(print_r($st,true));
+			$obj->startDate = $st;
 
-        if( !empty($row["expiry_date"]) && !str_starts_with($row["expiry_date"],'0000')) {
-            $et = DateTime::createFromFormat('Y-m-d', $row["expiry_date"], new DateTimeZone('UTC'));
-            error_log("$loc: DateTime for expiry_date ...");
-            error_log(print_r($st,true));
-            $obj->endDate = $et;
         }
-        else {
-            $obj->endDate = null;
-        }     
+		$obj->endDate = null;
+        if( !empty($row["expiry_date"]) && !str_starts_with($row["expiry_date"],'0000')) {
+            $et = new DateTime($row['expiry_date'], $tz);
+            error_log("$loc: DateTime for expiry_date ...");
+			error_log(print_r($et,true));
+			$obj->endDate = $et;
+        }  
 	}
 } //end of class

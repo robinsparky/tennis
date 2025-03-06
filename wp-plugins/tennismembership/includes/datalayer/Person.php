@@ -370,107 +370,64 @@ class Person extends AbstractMembershipData
      * This date will be stored in the db as a UTC date.
      * @param $date is local date in string in Y-m-d format
      */
-    public function setBirthDate_Str( string $date = '' ) {
+    public function setBirthDate_Str( string $date = '' ) : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $result = false;
-        $tz = TennisClubMembership::getTimeZone();
         $this->log->error_log("$loc:('{$date}')");
-
-        if( empty( $date ) ) {
-            $this->birthdate = null;
+		if(!empty($date)) {
+			$this->birthdate = new DateTime($date);
 			$result = $this->setDirty();
-        }
-        else {
-            try {
-                $dt_local = new \DateTime( $date, $tz );
-                $this->birthdate = $dt_local;
-                $this->birthdate->setTimezone(new \DateTimeZone('UTC'));
-                $result = $this->setDirty();
-                return $result; //early return
-            }
-            catch( \Exception $ex ) {
-                $this->log->error_log("$loc: failed to construct using '{$date}'");
-            }
+		}
+		return $result;
+	}
 
-            $test = \DateTime::createFromFormat("Y-m-d G:i", $date );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y-m-d h:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d G:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("Y/m/d h:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y G:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y H:i", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y g:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("d/m/Y h:i a", $date, $tz );
-            if(false === $test) $test = \DateTime::createFromFormat("DD-M-yy", $date, $tz );
-            
-            $last = \DateTIme::getLastErrors();
-            if( $last['error_count'] > 0 ) {
-                $arr = $last['errors'];
-                $mess = '';
-                foreach( $arr as $err ) {
-                    $mess .= $err.':';
-                }
-                throw new InvalidMatchException( $mess );
-            }
-            elseif( $test instanceof \DateTime ) {
-                $this->birthdate = $test;
-                $this->birthdate->setTimezone( new \DateTimeZone('UTC'));
-                $result = $this->setDirty();
-            }
-        }
-
-        return $result;
-    }
-
-    public function setBirthDate_TS( int $timestamp ) {
+    public function setBirthDate_TS( int $timestamp ) : bool {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
-        if( !isset( $this->birthdate ) ) $this->birthdate = new \DateTime('now', new \DateTimeZone('UTC'));
+        if( empty( $this->birthdate ) ) $this->birthdate = new DateTime('now', new DateTimeZone('UTC'));
         $this->birthdate->setTimeStamp( $timestamp );
-		$this->setDirty();
+		return $this->setDirty();
     }
     
     /**
      * Get the localized DateTime object representing the birthdate
      * @return object DateTime or null
      */
-    public function getBirthDateTime() : DateTime | null {
-        if( empty( $this->birthdate ) ) return null;
+    public function getBirthDateTime() : ?DateTime {
+        if( empty( $this->birthdate ) || !($this->birthdate instanceof DateTime)) return null;
         else {
             $temp = clone $this->birthdate;
-            return $temp->setTimezone(TennisClubMembership::getTimeZone());
+            return $temp;
         }
     } 
 
 	/**
-	 * Get the birthdate in string format
+	 * Get the birthdate as string
 	 */
 	public function getBirthDate_Str() : string {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log( $this->birthdate, $loc);
+        $this->log->error_log( $this->birthdate, "$loc: birthdate...");
 
-		if( !isset( $this->birthdate ) || is_null( $this->birthdate ) ) {
+		if( empty($this->birthdate) || !($this->birthdate instanceof DateTime)) {
             return '';
         }
-		$temp = clone $this->birthdate;
-		return $temp->setTimezone(TennisClubMembership::getTimeZone())->format( TennisClubMembership::$outdateformat );
+		// $temp = clone $this->birthdate;
+		// return $temp->setTimezone(TennisClubMembership::getTimeZone())->format( TennisClubMembership::$outdateformat );
+		return $this->birthdate->format( TennisClubMembership::$outdateformat );
 	}
 
     /**
-	 * Get the UTC birthdate in string format
+	 * Get the birthdate in string format converted to UTC time zone
 	 */
-	public function getBirthDateUTC_Str() : string {
+	protected function getBirthDateUTC_Str() : string {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $this->log->error_log( $this->birthdate, $loc);
 
-		if( !isset( $this->birthdate ) || is_null( $this->birthdate ) ) {
+		if( empty($this->birthdate) || !($this->birthdate instanceof DateTime)) {
             return '';
         }
-		else return $this->birthdate->format( TennisClubMembership::$outdateformat );
+		else return $this->birthdate->setTimezone(new DateTimeZone('UTC'))->format( TennisClubMembership::$outdateformat );
 	}
     
 	/**
@@ -493,12 +450,13 @@ class Person extends AbstractMembershipData
                 $format = TennisClubMembership::$outdatetimeformat1;
         }
         
-		if( isset( $this->birthdate ) ) {
-            $temp = clone $this->birthdate;
-            $result = $temp->setTimezone(TennisClubMembership::getTimeZone())->format($format);
+		if( !empty($this->birthdate) && ($this->birthdate instanceof DateTime) ) {
+            // $temp = clone $this->birthdate;
+            // $result = $temp->setTimezone(TennisClubMembership::getTimeZone())->format($format);
+			return $this->birthdate->format($format);
         }
 		
-        $this->log->error_log("$loc: returning {$result}");
+        $this->log->error_log("$loc: returning '{$result}'");
         return $result;
 	}
 
@@ -1045,7 +1003,7 @@ class Person extends AbstractMembershipData
 					   ,'corporate_ID'=>$this->getCorpId()
 					   ,'sponsor_id'=> $this->getSponsorId()
 					   ,'gender'=>$this->getGender()
-					   ,'birthdate'=>$this->getBirthDate_Str()
+					   ,'birthdate'=>$this->getBirthDateUTC_Str()
 					   ,'skill_level'=>$this->getSkillLevel()
 					   ,'emailHome'=>$this->getHomeEmail()
 					   ,'emailBusiness'=>$this->getBusinessEmail()
@@ -1093,7 +1051,7 @@ class Person extends AbstractMembershipData
 					   ,'corporate_ID' => $this->getCorpId()
 					   ,'sponsor_id'=> $this->getSponsorId()
 					   ,'gender'=>$this->getGender()
-					   ,'birthdate'=>$this->getBirthDate_Str()
+					   ,'birthdate'=>$this->getBirthDateUTC_Str()
 					   ,'skill_level'=>$this->getSkillLevel()
 					   ,'emailHome'=>$this->getHomeEmail()
 					   ,'emailBusiness'=>$this->getBusinessEmail()
@@ -1168,15 +1126,14 @@ class Person extends AbstractMembershipData
 		$obj->phoneMobile = $row['phoneMobile'];
 		$obj->notes = $row["notes"];
 		
+		$tz = TennisClubMembership::getTimeZone();
+		$obj->birthdate = null;
         if( !empty($row["birthdate"]) && !str_starts_with($row["birthdate"],'0000')) {
-            $st = DateTime::createFromFormat('Y-m-d', $row["birthdate"], new DateTimeZone('UTC'));
-            error_log("$loc: DateTime for birthdate ...");
-            error_log(print_r($st,true));
-            $obj->birthdate = $st;
-        }
-        else {
-            $obj->birthdate = null;
-        }    
+			$st = new DateTime($row['birthdate'],$tz);
+			error_log("$loc: DateTime for birthdate ...");
+			error_log(print_r($st,true));
+			$obj->birthdate = $st;
+		}
 	}
 	
 } //end class

@@ -8,7 +8,6 @@ use TM_Install;
 use \DateTime;
 use \InvalidArgumentException;
 use \RuntimeException;
-use datalayer\Genders;
 use cpt\ClubMembershipCpt;
 use datalayer\Corporation;
 use datalayer\Person;
@@ -16,9 +15,8 @@ use datalayer\MemberRegistration;
 use datalayer\RegStatus;
 use datalayer\MembershipType;
 use datalayer\appexceptions\InvalidRegistrationException;
-use api\model\RegistrationMgmt;
-use datalayer\appexceptions\InvalidPersonException;
-use WpOrg\Requests\Exception\InvalidArgument;
+use commonlib\GW_Support;
+use \DateMalformedStringException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -348,6 +346,7 @@ class ManageRegistrations
                 $expire = $upload['expirydate'] ?? '';
                 $season = '';
                 if(!empty($expire)) {
+                    $this->log->error_log("$loc: expiry date='$expire'");
                     $expire = new DateTime($expire);
                     $season = $expire->format('Y');
                 }
@@ -406,7 +405,7 @@ class ManageRegistrations
                 $this->log->error_log("Created new registration '{$reg->toString()}' for '{$firstName} {$lastName}'.");
                 ++$numSuccess;
             }
-            catch (RuntimeException | InvalidRegistrationException | InvalidArgumentException $ex ) {
+            catch (RuntimeException | InvalidRegistrationException | InvalidArgumentException | DateMalformedStringException  $ex ) {
                 ++$numFailed;
                 $this->errobj->add( $this->errcode++, $ex->getMessage() );
                 $this->log->error_log("$loc: Error - " . $ex->getMessage());

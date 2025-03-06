@@ -100,7 +100,7 @@ if( $current_user->exists() &&  current_user_can( TM_Install::MANAGE_REGISTRATIO
 			//$postUser = get_users(['user_email'=>$registrant->getHomeEmail()])[0];//This does not work?
 			$postUser = GW_Support::getUserByEmail($registrant->getHomeEmail());
 			// $logger->error_log("Comparing {$postUser->ID} with {$queryUserId}");
-			// GW_Support::log($postUser);
+			//GW_Support::log($postUser);
 			if($postUser->ID != $queryUserId &&  0 !== $queryUserId) continue;
 			$homelink = GW_Support::getHomeLink($registrant);
 			$assocPost = GW_Support::getPost($registrant);
