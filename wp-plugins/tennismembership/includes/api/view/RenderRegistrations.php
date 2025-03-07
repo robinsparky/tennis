@@ -27,9 +27,8 @@ class RenderRegistrations
 
     const ACTION    = 'manageTennisRegistrations';
     const NONCE     = 'manageTennisRegistrations';
-    const SHORTCODE = 'manage_registrations';
+    const SHORTCODE  = 'manage_registrations';
 
-    private $eventId = 0;
     private $errobj = null;
     private $errcode = 0;
     private $log;
@@ -81,53 +80,32 @@ class RenderRegistrations
             $this->log->error_log($_GET, "$loc: GET:");
         }
 
-        $short_atts = shortcode_atts( array(
-            'title'=>'Member Registrations',
-            'status' => '',
-            'regtype' => 0,
-            'portal' => ''
+        $short_atts = shortcode_atts( 
+            array(
+                'title'=>'All Registrations',
+                'status' => '*',
+                'regtype' => '*',
+                'season' => '*',
+                'user' => '*'
         ), $atts, 'render_reg' );
 
-        $this->log->error_log( $short_atts, "$loc: My Atts" );
-        $title = $short_atts['title'];
-        $status = $short_atts['status'];
-        $regType = $short_atts['regtype'];
-        $portal = $short_atts['portal'];
-
-        //Get the Club from attributes
-        // $club = null;
-        // if(!empty( $my_atts['clubname'] ) ) {
-        //     $cname = filter_var($my_atts['clubname'], FILTER_SANITIZE_STRING);
-        //     $arrClubs = Club::search( $cname );
-        //     if( count( $arrClubs) > 0 ) {
-        //         $club = $arrClubs[0];
-        //     }
-        // }
-        // else {
-        //     $homeClubId = esc_attr( get_option(self::HOME_CLUBID_OPTION_NAME, 0) );
-        //     $club = Club::get( $homeClubId );
-        // }
-        // if( is_null( $club ) ) return __('Please set home club id or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
-        //Go
+        $this->log->error_log( $short_atts, "$loc: Shortcode Atts" );
 
         return $this->renderRegistrations($short_atts);
-
     }
 
-    private function renderRegistrations( $args ) {        
+    private function renderRegistrations(array $args ) {        
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log( $loc );
 		$startFuncTime = microtime( true );
         GW_Debug::gw_print_mem();
-
-        $title = "Membership Management";
-        if(is_array($args)) {
-            $title = urldecode($args['title']);
-            $status = $args['status'];
-            $regType = $args['regtype'];
-            $portal = $args['portal'];
-        }
-
+  
+        $title = $args['title'];
+        $status = $args['status'];
+        $regType = $args['regtype'];
+        $season = $args['season'];
+        $targetUserId = $args['user'];
+   
         global $jsRegistrationData;
         wp_enqueue_script( 'digital_clock' );  
         wp_enqueue_script( 'manage_registrations' );  
@@ -137,7 +115,7 @@ class RenderRegistrations
 	    // Start output buffering we don't output to the page
         ob_start();
         
-        // Get template file to render the registrations
+        // Get template file to render the registration home page or workflow
         $path = wp_normalize_path( TM()->getPluginPath() . 'includes\templates\archive_clubmembershipcpt.php');
         require $path;
 

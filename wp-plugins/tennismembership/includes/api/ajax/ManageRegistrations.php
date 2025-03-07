@@ -12,7 +12,7 @@ use cpt\ClubMembershipCpt;
 use datalayer\Corporation;
 use datalayer\Person;
 use datalayer\MemberRegistration;
-use datalayer\RegStatus;
+use datalayer\RegistrationStatus;
 use datalayer\MembershipType;
 use datalayer\appexceptions\InvalidRegistrationException;
 use commonlib\GW_Support;
@@ -341,8 +341,8 @@ class ManageRegistrations
                 }
                 // $memType = MemberShipType::getTypeByName($regType);
                 // $this->log->error_log($memType,"$loc: Membership Type ...");
-                $status = $upload['status'] ?? '';
-                $regStatus = RegStatus::tryFrom($status) ?? RegStatus::Inactive;
+                $status = $upload['status'] ?? "";
+                $regStatus = RegistrationStatus::tryFrom($status) ?? RegistrationStatus::Inactive;
                 $expire = $upload['expirydate'] ?? '';
                 $season = '';
                 if(!empty($expire)) {

@@ -6,7 +6,7 @@ use datalayer\ExternalMaping;
 use DateTime;
 use DateTimeZone;
 use datalayer\appexceptions\InvalidRegistrationException;
-use TM_Install;
+use datalayer\RegistrationStatus;
 use datalayer\RegStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -63,7 +63,7 @@ EOD;
 	private $seasonId;
 	private $regTypeId;
 	private $regType;
-	private $regStatus;
+	private $regStatus; //RegistrationStatus
 	private $startDate;
 	private $endDate;
 	private $receiveEmails;
@@ -225,7 +225,6 @@ EOD;
         }
 		$new->setSeasonId($seasonId);
 		$new->setMembershipTypeId($membershipTypeId);
-		$new->setStatus();
 		return $new;
 	}
 
@@ -334,12 +333,19 @@ EOD;
 		return $this->corporateId;
 	}
 
-	public function setStatus( RegStatus $regStatus = RegStatus::Active ) {
-		$this->regStatus = $regStatus;
+	public function setStatus( RegistrationStatus $newStatus, bool $force=false ) : bool {
+		if($force || empty($this->regStatus)) {
+			$this->regStatus = $newStatus;
+		}
+        elseif(!$this->regStatus->isValidTransition($newStatus)) {
+            throw new InvalidRegistrationException("Unable to transition from {$this->regStatus->value} to {$newStatus->value}");
+        }
+        $this->regStatus = $newStatus;
+		return $this->setDirty();
 	}
 
-	public function getStatus() : RegStatus {
-		return $this->regStatus ?? RegStatus::Active;
+	public function getStatus() : ?RegistrationStatus {
+		return $this->regStatus;
 	}
 
 	public function setReceiveEmails( bool $recEmails) : bool {
@@ -611,7 +617,7 @@ EOD;
 			$result = $this->endDate->format($format);
         }
 		
-        $this->log->error_log("$loc: returning {$result}");
+        $this->log->error_log("$loc: returning '{$result}'");
         return $result;
 	}
 
@@ -963,9 +969,9 @@ EOD;
         parent::mapData($obj,$row);
 
 		$obj->personId = $row['person_ID'];
-		$obj->seasonId = $row["season_ID"]; 
+		$obj->seasonId = $row["season_ID"]; //TODO: this must be compatible with expiryDate
 		$obj->regTypeId = $row['membership_type_ID'];
-		$obj->regStatus = RegStatus::tryFrom($row['status']) ?? RegStatus::Active;
+		$obj->regStatus = RegistrationStatus::tryFrom($row['status']);
 		$obj->receiveEmails = $row['receive_emails'] > 0 ? true : false;
 		$obj->shareEmail =  $row['share_email'] > 0 ? true : false;
 		$obj->incInDir = $row['include_in_directory'] > 0 ? true : false;

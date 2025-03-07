@@ -18,24 +18,25 @@ $corporateId = TM()->getCorporationId();
 $season = TM()->getSeason();
 $current_user = wp_get_current_user();
 
-$queryUserId = array_key_exists('user_id',$_REQUEST) ? (int)$_REQUEST['user_id'] : 0;
-$title = !empty($title) ? $title : ($queryUserId > 0 ? "My Registration" : "Registrations");
-$targetUser = get_user_by('ID',$queryUserId);
-$caption = "Registrations Archive";
+if(!isset($targetUserId)) {
+	$targetUserId = array_key_exists('user_id',$_REQUEST) ? (int)$_REQUEST['user_id'] : 0;
+}
 
+$title = !empty($title) ? $title : ($targetUserId > 0 ? "My Registration" : "Registrations");
+
+$targetUser = get_user_by('ID',$targetUserId);
+$caption = "Registrations";
 if($targetUser instanceof WP_User) {
-	$caption = __("Archive for {$targetUser->first_name} {$targetUser->last_name}",TennisClubMembership::TEXT_DOMAIN);
+	$caption = __("Registrations for {$targetUser->first_name} {$targetUser->last_name}",TennisClubMembership::TEXT_DOMAIN);
 }
 else {
-	$queryUserId = 0;
+	$targetUserId = 0;
 }
 
 $heading = "$title&nbsp;Season&nbsp;{$season}";
-if(!$current_user->exists()) $heading = "Fuck Off!";
+if(!is_user_logged_in()) $heading = "Piss Off!";
 $status = !empty($status) ? $status : '*';
 $regType = !empty($regType) ? $regType : '*';
-$portal = !empty($portal) ? $portal : '*';
-
 ?>
 
 <!-- Page Content ---->
@@ -47,7 +48,7 @@ wp_enqueue_script( 'digital_clock' );
 wp_enqueue_script( 'manage_registrations' );  
 wp_localize_script( 'manage_registrations', 'tennis_membership_obj', $jsRegistrationData );  
 
-if( $current_user->exists() &&  current_user_can( TM_Install::MANAGE_REGISTRATIONS_CAP ) ) {
+if( current_user_can( TM_Install::MANAGE_REGISTRATIONS_CAP ) ) {
 	echo "<button class='tennis-add-registration'>" . __("Create New Registration",TennisClubMembership::TEXT_DOMAIN) . "</button>";
 	include(wp_normalize_path(TM()->getPluginPath() . 'includes\templates\controls\newRegistrationDialog.php'));
 
@@ -65,7 +66,7 @@ if( $current_user->exists() &&  current_user_can( TM_Install::MANAGE_REGISTRATIO
 </div>
 </form>	
 <?php } ?>
-<?php if($current_user->exists()) { ?>
+<?php if(is_user_logged_in()) { ?>
 <div class="tennis-registrations-container">
 	<!-- tennis registrations -->
 	<section class="tennis-registrations">
@@ -76,7 +77,7 @@ if( $current_user->exists() &&  current_user_can( TM_Install::MANAGE_REGISTRATIO
 </caption>
 <thead>
 	<tr>
-	<th scope="col">ID</th><th scope="col">Email</th><th scope='col'>Name</th><th scope="col">Membership Type</th><th scope="col">Start</th><th scope="col">Expiry</th><th>Actions</th>
+	<th scope="col">ID</th><th scope="col">Email</th><th scope='col'>Name</th><th scope="col">Membership Type</th><th scope="col">Status</th><th scope="col">Start</th><th scope="col">Expiry</th><th>Actions</th>
 	</tr>
 </thead>
 <tbody>
@@ -95,13 +96,16 @@ if( $current_user->exists() &&  current_user_can( TM_Install::MANAGE_REGISTRATIO
 				echo "<h3 class='tennis-error'>{$errmess}</h3>";
 				break;
 			}
+			//Apply filters
+			if($regType != '*' && ($reg->getMembershipType()->getName() !== $regType)) continue;
+			if($status !== '*' && ($reg->getStatus()->value ) !== $status) continue;
+
 			$id = $reg->getPersonId();
 			$registrant = Person::get($id);
-			//$postUser = get_users(['user_email'=>$registrant->getHomeEmail()])[0];//This does not work?
 			$postUser = GW_Support::getUserByEmail($registrant->getHomeEmail());
-			// $logger->error_log("Comparing {$postUser->ID} with {$queryUserId}");
+			// $logger->error_log("Comparing {$postUser->ID} with {$targetUserId}");
 			//GW_Support::log($postUser);
-			if($postUser->ID != $queryUserId &&  0 !== $queryUserId) continue;
+			if($postUser->ID != $targetUserId &&  0 !== $targetUserId) continue;
 			$homelink = GW_Support::getHomeLink($registrant);
 			$assocPost = GW_Support::getPost($registrant);
 		?>	
@@ -110,6 +114,7 @@ if( $current_user->exists() &&  current_user_can( TM_Install::MANAGE_REGISTRATIO
 		<td><a href='mailto:<?php echo $registrant->getHomeEmail() ?>'><?php echo $registrant->getHomeEmail();?></a></th>
 		<td><a href='<?php echo $assocPost->guid; ?>'><?php echo $registrant->getName();?></a></th>
 		<td><?php echo $reg->getMembershipType()->getName()?></td>
+		<td><?php echo $reg->getStatus()->value?></td>
 		<td><?php echo $reg->getStartDate_Str()?></td>
 		<td><?php echo $reg->getEndDate_Str()?></td>
 		<td><a href="#">...</a></td>
