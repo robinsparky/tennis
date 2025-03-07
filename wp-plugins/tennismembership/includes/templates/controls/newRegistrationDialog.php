@@ -5,7 +5,7 @@ use datalayer\MembershipType;
 $memshpTypeDropDown = "<select class='tennis-add-registration membership-type' name='registrationtype'>";
 $ctr = 0;
 foreach(Membershiptype::allTypes() as $tp) {
-    $selected = ($ctr++ === 0) ? "selected='true'" : "";
+    $selected = ($ctr++ === 0) ? "selected='selected'" : "";
     $memshpTypeDropDown .= "<option value='{$tp->getID()}' {$selected}>{$tp->getName()}</option>";
 }
 $memshpTypeDropDown .= "</select>";

@@ -10,15 +10,15 @@ $cats = MembershipCategory::find();
 
 <?php
 foreach(MembershipType::find() as $memType) {
-$memberSuperTypeDropDown = "<select name='membertypecategory'>";
+$categoryDropDown = "<select name='membertypecategory'>";
 foreach($cats as $cat) {
     $selected = $cat->getName() == $memType->getCategory() == $cat->getID() ? "selected='true'" : "";
-    $memberSuperTypeDropDown .= "<option value='{$cat->getID()}' {$selected}>{$cat->getName()}</option>";
+    $categoryDropDown .= "<option value='{$cat->getID()}' {$selected}>{$cat->getName()}</option>";
 }
-$memberSuperTypeDropDown .= "</select>";
+$categoryDropDown .= "</select>";
 ?>
 <fieldset>
-    <label><b>Membership Type Category:</b><?php echo $memberSuperTypeDropDown;?></label> 
+    <label><b>Membership Type Category:</b><?php echo $categoryDropDown;?></label> 
     <label for="name"><b>Name</b>
     <input type="hidden" name="category" value="<?php $memType->getCategory();?>"/>
     <input id="<?php $memType->getID();?>" type="text" class="" name="name" required value="<?php $memType->getName();?>"/>
@@ -33,7 +33,12 @@ $memberSuperTypeDropDown .= "</select>";
 </form>
 </dialog>
 
-<button class="tennis-add-membershipype root" formmethod="dialog" value="submitted">Add Membership Type</button> 
+<button class="tennis-edit-membershiptype root" formmethod="dialog" value="submitted">Edit Membership Type</button> 
+<?php
+   $path = wp_normalize_path(TM()->getPluginPath() . "includes/templates/controls/editMembershipType.php");
+   include($path);
+?>
+<button class="tennis-add-membershiptype root" formmethod="dialog" value="submitted">Add Membership Type</button> 
 <?php
    $path = wp_normalize_path(TM()->getPluginPath() . "includes/templates/controls/addMembershipType.php");
    include($path);
