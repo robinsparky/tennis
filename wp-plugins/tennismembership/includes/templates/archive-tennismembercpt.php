@@ -46,10 +46,10 @@ if( in_array('administrator',$current_user->roles) || current_user_can( TM_Insta
 	include(wp_normalize_path(TM()->getPluginPath() . 'includes\templates\controls\newPersonDialog.php'));
 
 // Sidebar Alt 
-//get_template_part( 'templates/sidebars/sidebar', 'alt' ); 
+get_template_part( 'templates/sidebars/sidebar', 'alt' ); 
 
 // Sidebar Left
-//get_template_part( 'templates/sidebars/sidebar', 'left' );
+get_template_part( 'templates/sidebars/sidebar', 'left' );
 
 ?>	
 <form method="post" enctype="multipart/form-data">

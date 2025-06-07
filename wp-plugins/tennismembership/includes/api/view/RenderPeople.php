@@ -1,17 +1,24 @@
 <?php
 namespace api\view;
+use DateTime;
+use DateInterval;
 use commonlib\BaseLogger;
 use commonlib\GW_Debug;
 use \WP_User;
 use datalayer\Person;
+use datalayer\Address;
 use TennisClubMembership;
 use datalayer\MemberRegistration;
+use datalayer\RegistrationStatus;
 use datalayer\Genders;
 use api\ajax\ManagePeople;
 use commonlib\GW_Support;
 use cpt\TennisMemberCpt;
+use datalayer\Club;
 use TM_Install;
 use WP_User_Query;
+use WP_Admin_Bar;
+use WP_Error;
 
 global $jsMemberData;
 
@@ -24,9 +31,16 @@ global $jsMemberData;
 */
 class RenderPeople
 { 
-    const ACTION    = 'manageusermembers';
-    const NONCE     = 'manageusermembers';
-    const SHORTCODE = 'manage_user_members';
+    const ACTION         = 'manageusermembers';
+    const NONCE          = 'manageusermembers';
+
+    const SHORTSPONSOR      = 'render_member_sponsor';
+    const SHORTREGISTRATION = 'render_member_registration';
+    const SHORTSPONSORED    = 'render_member_sponsored';
+    const SHORTHISTORY      = 'render_reg_history';
+    const SHORTMENU         = 'render_member_menu';
+    const SHORTADDRESS      = 'render_member_address';
+    const SHORTEMERGENCY    = 'render_member_emergency';
 
     private $log;
 
@@ -59,8 +73,19 @@ class RenderPeople
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
         
-        //Shortcode for rendering on front facing pages
-        add_shortcode( self::SHORTCODE, array( $this, 'renderShortcode' ) );
+        //Shortcode for rendering on front facing pages and components
+        add_shortcode( self::SHORTSPONSOR, array( $this, 'renderSponsor' ) );
+        add_shortcode( self::SHORTREGISTRATION, array( $this, 'renderCurrentRegistration' ) );
+        add_shortcode( self::SHORTSPONSORED, array( $this, 'renderSponsored' ) );
+        add_shortcode( self::SHORTHISTORY, array( $this, 'renderHistory' ) );
+        add_shortcode( self::SHORTMENU, array( $this, 'renderMenu' ) );
+        add_shortcode( self::SHORTADDRESS, array( $this, 'renderAddress' ) );
+        add_shortcode( self::SHORTEMERGENCY, array( $this, 'renderEmergency' ) );
+
+        //Redirect members to their homepage
+		add_filter('login_redirect',array($this, 'goHomePost'),10,3);
+        add_action('admin_bar_menu', array($this,'adjustMenuBarUserActions'), 500 );
+        add_filter('wp_nav_menu_items', array($this,'add_extra_item_to_nav_menu'), 10, 2 );
 
         /** User admin filters & actions for rendering on user admin pages */
         //User column data
@@ -88,73 +113,815 @@ class RenderPeople
         /** End user admin */
     }
 
-    public function renderShortcode( $atts = [], $content = null ) {
+    public function add_extra_item_to_nav_menu( $items, $args ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc:");
+        // $this->log->error_log(print_r($items,true));
+        // $this->log->error_log(print_r($args,true));
+        $this->log->error_log(print_r($args->menu,true));
+
+        if (is_user_logged_in() && $args->menu->slug === 'main-menu') {
+            $user = wp_get_current_user();
+            $col = Person::find(['email'=>$user->user_email]);
+            $person = count($col) === 1 ? $col[0] : null;
+            if(!empty($person)) {                
+                $this->log->error_log("$loc: found person '{$person->getName()}'");
+                $postId = (int)$person->getExtRefSingle();
+                $link = get_permalink($postId);
+                $items .= "<li class='wt_menu_item_user_avatar'><a href='{$link}'>" . get_avatar( $user->ID, 32 ) . '</a></li>';
+            }
+        }
+        return $items;
+    }
+
+    public function adjustMenuBarUserActions( WP_Admin_Bar $wp_admin_bar ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+
+        $parent_slug = 'adminbar-date-time';
+        $local_time  = date( 'Y-m-d, g:i a', current_time( 'timestamp', 0 ) );
+
+        $wp_admin_bar->add_menu( array(
+            'id'     => $parent_slug,
+            'parent' => 'top-secondary',
+            'group'  => null,
+            'title'  => $local_time,
+            'href'   => site_url(), //admin_url( '/options-general.php' ),
+        ) );
+
+        // $nodes = $wp_admin_bar->get_nodes();
+        // $this->log->error_log("$loc: all nodes");
+        // if(empty($nodes)) $this->log->error_log(".... is empty");
+        // else $this->log->error_log(print_r($nodes,true));
+
+        $user = wp_get_current_user();
+        $col = Person::find(['email'=>$user->user_email]);
+        $person = count($col) === 1 ? $col[0] : null;
+        $link = get_site_url();
+        if(!empty($person)) {                
+            $this->log->error_log("$loc: found person '{$person->getName()}'");
+            $postId = (int)$person->getExtRefSingle();
+            $link = get_permalink($postId);
+            $wp_admin_bar->add_node([
+              'id'        => 'link-id',
+              'title' => __('Membership Details',TennisClubMembership::TEXT_DOMAIN),
+              'href' => $link, //get_site_url(null, 'site-path'),
+              'parent' => 'user-actions',
+              'group' => null,
+            ]);
+        }
+
+     
+        // $wp_admin_bar->add_node([
+        //   'id'        => 'logout',
+        //   'title' => 'Log Out',
+        //   'href' => wp_logout_url(),
+        //   'parent' => 'user-actions'
+        // ]);
+    }
+    
+    public function kickoff($userId) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc({$userId})");
+
+    }
+
+    public function registrationData($user_login, $user_email, WP_Error $errors) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc({$user_login},{$user_email})");
+        if($errors->get_error_code()) {
+            $this->log->error_log("$loc: errors: {$errors->get_error_message()}");
+            return;
+        }   
+        else {
+            $this->log->error_log("$loc: no errors");
+        }
+    }
+
+    /**
+     * Redirect to the member's associated post
+     * Only redirects users who are also Person's
+     * TODO: detect workflow re membership registration, et al
+     */
+	public function goHomePost($to_url, $request_url, $user) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc({$to_url},{$request_url})");
+
+        if( $user && is_object( $user ) && is_a( $user, 'WP_User' ) ) {
+        $this->log->error_log("$loc: user_email: {$user->user_email}");
+            $col = Person::find(['email'=>$user->user_email]);
+            $person = count($col) === 1 ? $col[0] : null;
+            if(!empty($person)) {
+                $this->log->error_log("$loc: found person '{$person->getName()}'");
+                $postId = (int)$person->getExtRefSingle();
+                $link = get_permalink($postId);
+                if(false !== $link) return $link;
+            }
+        }
+        return $to_url;
+	}
+
+    public function renderSponsor(  $atts = [], $content = null  ) {        
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $atts = array_change_key_case((array)$atts, CASE_LOWER);
         $this->log->error_log( $atts, $loc );
 
-        if( $_POST ) {
-            $this->log->error_log($_POST, "$loc: POST:");
-        }
-
-        if( $_GET ) {
-            $this->log->error_log($_GET, "$loc: GET:");
-        }
-
-        $short_atts = shortcode_atts( array(
-            'title'=>'People',
-            'status' => '',
-            'role' => '',
-            'portal' => ''
-        ), $atts, self::SHORTCODE );
-
-        $this->log->error_log( $short_atts, "$loc: My Atts" );
-        $title = $short_atts['title'];
-        $status = $short_atts['status'];
-        $regType = $short_atts['regtype'];
-        $portal = $short_atts['portal'];
-
-        //Get the Club from attributes
-        // $club = null;
-        // if(!empty( $my_atts['clubname'] ) ) {
-        //     $cname = filter_var($my_atts['clubname'], FILTER_SANITIZE_STRING);
-        //     $arrClubs = Club::search( $cname );
-        //     if( count( $arrClubs) > 0 ) {
-        //         $club = $arrClubs[0];
-        //     }
-        // }
-        // else {
-        //     $homeClubId = esc_attr( get_option(self::HOME_CLUBID_OPTION_NAME, 0) );
-        //     $club = Club::get( $homeClubId );
-        // }
-        // if( is_null( $club ) ) return __('Please set home club id or specify name in shortcode', TennisEvents::TEXT_DOMAIN );
-        //Go
-
-        return $this->renderPersons($short_atts);
-
-    }
-
-    private function renderPersons( $args ) {        
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log( $loc );
 		$startFuncTime = microtime( true );
         GW_Debug::gw_print_mem();
 
-        $title = "People Management";
-        if(is_array($args)) {
-            $title = urldecode($args['title']);
-            $status = $args['status'];
-            $role = $args['role'];
-            $portal = $args['portal'];
+        if(!is_user_logged_in()) return '';
+        
+        // if( $_POST ) {
+        //     $this->log->error_log($_POST, "$loc: POST:");
+        // }
+
+        // if( $_GET ) {
+        //     $this->log->error_log($_GET, "$loc: GET:");
+        // }
+
+        $args= shortcode_atts( array(
+            'title'=>'Sponsor',
+            'post_id'=>0,
+        ), $atts, self::SHORTSPONSOR );
+        $this->log->error_log( $args, "$loc: My Atts" );
+
+        $title = urldecode($args['title']);
+        $postId = $args['post_id'];
+        if(0 == $postId) return 'NO POST';
+        
+        $personId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
+        if(empty($personId)) {
+            return 'NO PERSON';
+        }
+
+        $person = Person::get($personId);
+        $reglink = GW_Support::getRegLink($person);
+        $name = $person->getName();
+        $firstName = $person->getFirstName();
+        $lastName = $person->getLastName();
+        $gender = $person->getGender();
+        $birthdate = $person->getBirthDate_Str();
+        $email = $person->getHomeEmail();
+        $homePhone = $person->getHomePhone();
+        $userOwner = GW_Support::getUserByEmail($email);
+        if(empty($userOwner)) return 'NO USER';
+        if(!current_user_Can('manage_options') && ($userOwner->ID !== get_current_user_id()) ) return '';
+  
+        $season = TM()->getSeason();    
+        $currentReg = MemberRegistration::find(['seasonId'=>$season,'personId'=>$personId]);
+        if(empty($currentReg)) {
+            $status =  RegistrationStatus::Inactive->value;
+        }
+        else {
+            $currentReg = $currentReg[0];
+            $membershipType = $currentReg->getMembershipType()->getName();
+            $startDate = $currentReg->getStartDate_Str();
+            $expiryDate = $currentReg->getEndDate_Str();
+            $status = $currentReg->getStatus()->value;
+        }
+        $role = TM_Install::$tennisRoles[$userOwner->roles[0]];  
+        $role .= "/{$status}";
+
+        $age = 0;
+        $now = new Datetime('now');
+        $bd = $person->getBirthDateTime();
+        if(!empty($bd)) {
+            $df = $now->diff($bd);
+            $age = $df->y + $df->m/12.0 + $df->d/365.0;
+            $age = round($age,2);
         }
 
         global $jsMemberData;
         wp_enqueue_script( 'digital_clock' );  
         wp_enqueue_script( 'managepeople' );  
-        $jsMemberData = $this->get_ajax_data();       
-        wp_localize_script( 'managepeople', 'tennis_member_obj', $jsMemberData );  
+        $jsMemberData = $this->get_ajax_data();  
+        wp_localize_script( 'managepeople', 'tennis_member_obj', $jsMemberData );
+ 
+        $genderdd = Genders::getGendersDropDown($gender);
+        $readonly = <<< EOD
+<article class="membership sponsor" id="$personId" data-person-id="$personId">
+<h5>$title</h5>
+<ul class='membership sponsor'>
+	<li>First Name:&nbsp;$firstName</li>
+	<li>Last Name:&nbsp;$lastName</li>
+    <li>Role:&nbsp;{$role}</li>
+	<li>Gender:&nbsp;$gender</li>
+    <li>Home Phone:&nbsp;$homePhone</li>
+	<li>Email:&nbsp;<a href='mailto:$email'>$email</a></li>
+	<li>Birthdate:&nbsp;$birthdate&nbsp;($age years old)</li>
+</ul>
+</article>
+EOD;
+
+    $readwrite = <<< EOD
+<article class="membership sponsor" id="$personId" data-person-id="$personId" >
+<h5>$title</h5>
+<table class='membership sponsor'>
+<tbody>
+<tr><td>Last Name</td><td><input type='text' name='last-name' class='membership last-name' value='$lastName'></td></tr>
+<tr><td>First Name</td><td><input type='text' name='first-name' class='membership first-name' value='$firstName'></td></tr>
+<tr><td>Role</td><td>{$role}</td></tr>
+<tr><td>Gender</td><td>$genderdd</td></tr>
+<tr><td>Home Phone</td><td><input name='homephone' type='tel' class='membership home-phone' value='$homePhone'></td></tr>
+<tr><td><a href="mailto:$email">Email</a></td><td><input type='email' name='home-email' class='membership home-email' value='$email'></td></tr>
+<tr><td>Birthdate</td><td><input name='birthdate' type='date' class='membership birth-date' value='$birthdate'>&nbsp;($age)</td></tr>
+</tbody>
+</table>
+</article>
+EOD;
+
+        $template = $readonly;
+        if($userOwner->ID === get_current_user_id()) $template = $readwrite;
+        if(current_user_can('manage_options')) $template = $readwrite;
+
+	    // Start output buffering we don't output to the page
+        ob_start();
+        echo $template;
+        // Save output and stop output buffering
+        $output = ob_get_clean();
+
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
+    }
+    
+    public function renderSponsored( $atts = [], $content = null ) {        
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $atts = array_change_key_case((array)$atts, CASE_LOWER);
+        $this->log->error_log( $atts, $loc );
+
+		$startFuncTime = microtime( true );
+        GW_Debug::gw_print_mem();
+        // if( $_POST ) {
+        //     $this->log->error_log($_POST, "$loc: POST:");
+        // }
+
+        // if( $_GET ) {
+        //     $this->log->error_log($_GET, "$loc: GET:");
+        // }
+
+        $args= shortcode_atts( array(
+            'title'=>'Sponsored',
+            'post_id'=>0,
+        ), $atts, self::SHORTSPONSOR );
+        $this->log->error_log( $args, "$loc: My Atts" );
+
+        $title = urldecode($args['title']);
+        $postId = $args['post_id'];
+        if(0 == $postId) return '';
         
-        $title = "Members";
+        $personId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
+        if(empty($personId)) {
+            return '';
+        }
+
+        $person = Person::get($personId);
+        $email = $person->getHomeEmail();
+        $userOwner = GW_Support::getUserByEmail($email);
+        if(empty($userOwner)) return '';
+        if(!current_user_Can('manage_options') && ($userOwner->ID !== get_current_user_id()) ) return '';
+
+        $sponsored = $person->getSponsored();
+        $firstName = $person->getFirstName();
+        $lastName = $person->getLastName();
+        $gender = $person->getGender();
+        $birthdate = $person->getBirthDate_Str();
+
+        global $jsMemberData;
+        wp_enqueue_script( 'digital_clock' );  
+        wp_enqueue_script( 'managepeople' );  
+        $jsMemberData = $this->get_ajax_data();  
+        wp_localize_script( 'managepeople', 'tennis_member_obj', $jsMemberData );
+        
+        $genderdd = Genders::getGendersDropDown($gender);
+
+        $numSponsored = count($sponsored);
+        $title2 = "{$numSponsored} " . $title;
+        $table = <<<EOD
+<article class="membership sponsored" id="$personId" data-person-id="$personId">
+<table class="membership sponsored">
+<caption>$title2</caption>
+<thead>
+<tr><th scope='col'>First Name</th><th scope='col'>Last Name</th><th scope='col'>Gender</th><th scope='col'>Birthdate</th><th scope='col'>Age</th></tr>
+</thead>
+<tbody>
+EOD;
+
+        $readonly = <<<EOD
+<tr class="membership sponsored" id="%d" data-sponsor-id="%d">
+<td class='membership first-name'>%s</td>
+<td class='membership last-name'>%s</td>
+<td class='membership gender'>%s</td>
+<td class='membership birth-date'>%s</td>
+<td class='membership age'>%f</td>
+</tr>
+EOD;
+
+$readwrite = <<<EOD
+<tr class="membership sponsored" id="%d" data-sponored-id="%d">
+<td class='membership first-name'><input type='text' class='membership first-name' name='first-name' value='%s'></td>
+<td class='membership last-name'><input type='text' class='membership last-name' name='last-name' value='%s'></td>
+<td class='membership gender'>%s</td>
+<td class='membership birth-date'><input type='date' class='membership birth-date' name='birth-date' value='%s'></td>
+<td class='membership age'>%f</td>
+</tr>
+EOD;
+
+    $tail = <<<EOD
+</tbody>
+</table>
+<button id='add-sponsored' type='submit' class='button membership add-sponsored'>Add</button>
+</article>
+EOD;
+
+        $template = $readonly;
+        if($userOwner->ID === get_current_user_id()) $template = $readwrite;
+        if(current_user_can('manage_options')) $template = $readwrite;
+        
+        $now = new Datetime('now');
+	    // Start output buffering we don't output to the page
+        ob_start();
+        if(0 < $numSponsored) {
+            echo $table;
+            foreach($sponsored as $sp) {
+                $id = $sp->getID();
+                $firstName = $sp->getFirstName();
+                $lastName = $sp->getLastName();
+                $gender = $sp->getGender();
+                $birthdate = $sp->getBirthDate_Str();
+                $bd = $sp->getBirthDateTime();
+                $age = 0;
+                if(!empty($bd)) {
+                    $df = $now->diff($bd);
+                    $age = $df->y + $df->m/12.0 + $df->d/365.0;
+                }
+                printf($template
+                            ,$id,$id
+                            ,$id
+                            ,$firstName
+                            ,$lastName
+                            ,$template === $readonly ? $gender : $genderdd
+                            ,$birthdate
+                            ,$age
+                        );
+            }
+            echo $tail;
+        }
+        else {
+            echo "<article class='membership sponsored'><h5>$title</h5>";
+            echo "<button id='add-sponsored' type='submit' class='button membership add-sponsored'>Add</button>";
+            echo "</article>";
+        }
+        // Save output and stop output buffering
+        $output = ob_get_clean();
+
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
+    }
+        
+    public function renderMenu(  $atts = [], $content = null  ) {        
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $atts = array_change_key_case((array)$atts, CASE_LOWER);
+        $this->log->error_log( $atts, $loc );
+
+		$startFuncTime = microtime( true );
+        GW_Debug::gw_print_mem();
+
+        $args= shortcode_atts( array(
+            'title'=>'Menu',
+            'post_id'=>0,
+        ), $atts, self::SHORTSPONSOR );
+        $this->log->error_log( $args, "$loc: My Atts" );
+
+        $title = urldecode($args['title']);
+        $postId = $args['post_id'];
+        if(0 == $postId) return '';
+        
+        $personId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
+        if(empty($personId)) {
+            return '';
+        }
+
+        $person = Person::get($personId);
+        $reglink = GW_Support::getRegLink($person);
+        $email = $person->getHomeEmail();
+        $userOwner = GW_Support::getUserByEmail($email);
+        if(!current_user_Can('manage_options') && ($userOwner->ID !== get_current_user_id()) ) return '';
+        
+        $readonly = <<< EOD
+<article class="membership nav" id="$personId" data-personid="$personId">
+<nav class="menu">
+    <span class="menu item address"><a href='#'>Address</a></span>
+    <span class="menu item emergency"><a href='#'>Emergency Contact</a></span>
+    <span class="menu item agreement"><a href='#'>Registration Agreement</a></span>
+    <span class="menu item history"><a href='#'>Registration History</a></span>
+</nav>
+</article>
+EOD;
+	    // Start output buffering we don't output to the page
+        ob_start();
+        echo $readonly;
+        // Save output and stop output buffering
+        $output = ob_get_clean();
+
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
+    }
+
+    public function renderCurrentRegistration( $atts = [], $content = null ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $atts = array_change_key_case((array)$atts, CASE_LOWER);
+        $this->log->error_log( $atts, $loc );
+
+		$startFuncTime = microtime( true );
+        GW_Debug::gw_print_mem();
+
+        if(!is_user_logged_in()) return '';
+        
+        // if( $_POST ) {
+        //     $this->log->error_log($_POST, "$loc: POST:");
+        // }
+
+        // if( $_GET ) {
+        //     $this->log->error_log($_GET, "$loc: GET:");
+        // }
+
+        $args= shortcode_atts( array(
+            'title'=>'Current Membership',
+            'post_id'=>0,
+        ), $atts, self::SHORTSPONSOR );
+        $this->log->error_log( $args, "$loc: My Atts" );
+
+        $title = urldecode($args['title']);
+        $postId = $args['post_id'];
+        if(0 == $postId) return '';
+        
+        $personId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
+        if(empty($personId)) {
+            return '';
+        }
+
+        $person = Person::get($personId);
+        $reglink = GW_Support::getRegLink($person);
+        $email = $person->getHomeEmail();
+        $userOwner = GW_Support::getUserByEmail($email);
+        if(!current_user_Can('manage_options') && ($userOwner->ID !== get_current_user_id()) ) return '';
+
+        $season = TM()->getSeason();
+        $currentReg = MemberRegistration::find(['seasonId'=>$season,'personId'=>$personId]);
+        $membershipType = '';
+        $startDate = '';
+        $expiryDate = '';
+        $status = RegistrationStatus::Inactive->value;
+        $inclDir = false;
+        $shareEmail = false;
+        $receiveEmails = false;
+        $fee = 500;
+        if(empty($currentReg)) {
+            $title .= " - {$status}";
+        }
+        else {
+            $currentReg = $currentReg[0];
+            $membershipType = $currentReg->getMembershipType()->getName();
+            $startDate = $currentReg->getStartDate_Str();
+            $expiryDate = $currentReg->getEndDate_Str();
+            $status = $currentReg->getStatus()->value;
+            $inclDir = $currentReg->getIncludeInDir() ? "Yes" : "No";
+            $receiveEmails = $currentReg->getReceiveEmails() ? "Yes" : "No";
+            $shareEmail = $currentReg->getShareEmail() ? "Yes" : "No";
+        }
+
+        global $jsMemberData;
+        wp_enqueue_script( 'digital_clock' );  
+        wp_enqueue_script( 'managepeople' );  
+        $jsMemberData = $this->get_ajax_data();  
+        wp_localize_script( 'managepeople', 'tennis_member_obj', $jsMemberData );
+
+        $not_registered = <<<EOD
+<article class='membership not-registered'  id="$personId" data-personid="$personId">
+<h5>$title</h5>
+<button id='add-sponsored' type='submit' class='button membership apply-registration'>Register</button>
+</article>
+EOD;
+        $readonly = <<<EOD
+<article class='membership current-registration' id="$personId" data-personid="$personId">
+<h5>$title</h5>
+<table class='membership current-registration'>
+<tbody>
+<tr><td>Season</td><td>$season</td></tr>
+<tr><td>Membership</td><td>$membershipType</td></tr>
+<tr><td>Status</td><td>$status</td></tr>
+<tr><td>Start</td><td>$startDate</td></tr>
+<tr><td>Expires</td><td>$expiryDate</td></tr>
+<tr><td>Include in Directory</td><td>$inclDir</td></tr>
+<tr><td>Receive Emails</td><td>$receiveEmails</td></tr>
+<tr><td>Share Email</td><td>$shareEmail</td></tr>
+<tr><td>Payment</td><td>&dollar;$fee</td></tr>
+</tbody>
+</table>
+<button id='add-sponsored' type='submit' class='button membership modify-registration'>Modify</button>
+</article>
+EOD;
+
+        if(empty($currentReg)) $template = $not_registered;
+        else $template = $readonly;
+
+	    // Start output buffering we don't output to the page
+        ob_start();
+        echo $template;
+        // Save output and stop output buffering
+        $output = ob_get_clean();
+
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
+    }
+        
+    public function renderHistory(  $atts = [], $content = null  ) {        
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $atts = array_change_key_case((array)$atts, CASE_LOWER);
+        $this->log->error_log( $atts, $loc );
+
+		$startFuncTime = microtime( true );
+        GW_Debug::gw_print_mem();
+        
+        if(!is_user_logged_in()) return '';
+        
+        // if( $_POST ) {
+        //     $this->log->error_log($_POST, "$loc: POST:");
+        // }
+
+        // if( $_GET ) {
+        //     $this->log->error_log($_GET, "$loc: GET:");
+        // }
+
+        $args= shortcode_atts( array(
+            'title'=>'Registration History',
+            'post_id'=>0,
+        ), $atts, self::SHORTSPONSOR );
+        $this->log->error_log( $args, "$loc: My Atts" );
+
+        $title = urldecode($args['title']);
+        $postId = $args['post_id'];
+        if(0 == $postId) return '';
+        
+        $personId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
+        if(empty($personId)) {
+            return '';
+        }
+
+        $person = Person::get($personId);
+        $reglink = GW_Support::getRegLink($person);
+        $email = $person->getHomeEmail();
+        $userOwner = GW_Support::getUserByEmail($email);
+        if(!current_user_Can('manage_options') && ($userOwner->ID !== get_current_user_id()) ) return '';
+        
+        $season = TM()->getSeason();
+        $allRegs = MemberRegistration::find(['personId'=>$personId]);
+        // $membershipType = '';
+        // $startDate = '';
+        // $expiryDate = '';
+        // $status = '';
+        if(empty($allRegs)) {
+            $title .= " - No Registrations";
+        }
+
+        global $jsMemberData;
+        wp_enqueue_script( 'digital_clock' );  
+        wp_enqueue_script( 'managepeople' );  
+        $jsMemberData = $this->get_ajax_data();  
+        wp_localize_script( 'managepeople', 'tennis_member_obj', $jsMemberData );
+
+        $header = <<<EOD
+<article class="membership history" id="$personId" data-person-id="$personId">
+<h5>$title</h5>
+<table class="membership history">
+<thead>
+<tr><th scope='col'>Season</th><th scope='col'>Type</th><th scope='col'>Status</th><th scope='col'>Start Date</th><th scope='col'>Expiry Date</th><th scope='col'>Directory</th><th scope='col'>Receive Emails</th><th scope='col'>Share Email</th></tr>
+</thead>
+<tbody>
+EOD;
+        $readonly = <<<EOD
+<tr class="membership history" id="%d" data-registration-id="%d">
+    <td scope='row' class='membership season'>%s</td>
+    <td scope='row' class='membership registration-type'>%s</td>
+    <td scope='row' class='membership status'>%s</td>
+    <td scope='row' class='membership start-date'>%s</td>
+    <td scope='row' class='membership expiry-date'>%s</td>
+    <td scope='row' class='membership include-directory'>%s</td>
+    <td scope='row' class='membership receive-emails'>%s</td>
+    <td scope='row' class='membership share-email'>%s</td>
+</tr>
+EOD;
+        $tail = <<<EOD
+</tbody>
+</table>
+</article>
+EOD;
+	    // Start output buffering
+        ob_start();
+        echo $header;
+        foreach($allRegs as $reg) {
+            $id = $reg->getID();
+            $season = $reg->getSeasonId();
+            $membershipType = $reg->getMembershipType()->getName();
+            $status = $reg->getStatus()->value;
+            $startDate = $reg->getStartDate_Str();
+            $expiryDate = $reg->getEndDate_Str();
+            $inclDir = $reg->getIncludeInDir() ? "Yes" : "No";
+            $receiveEmails = $reg->getReceiveEmails() ? "Yes" : "No";
+            $shareEmail = $reg->getShareEmail() ? "Yes" : "No";
+            printf($readonly,$id,$id
+                            ,$season
+                            ,$membershipType
+                            ,$status
+                            ,$startDate
+                            ,$expiryDate
+                            ,$inclDir
+                            ,$receiveEmails
+                            ,$shareEmail);
+        }
+        echo $tail;
+        // Save output and stop output buffering
+        $output = ob_get_clean();
+
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
+    }
+        
+    public function renderAddress(  $atts = [], $content = null  ) {        
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $atts = array_change_key_case((array)$atts, CASE_LOWER);
+        $this->log->error_log( $atts, $loc );
+
+		$startFuncTime = microtime( true );
+        GW_Debug::gw_print_mem();
+        
+        if(!is_user_logged_in()) return '';
+        
+        // if( $_POST ) {
+        //     $this->log->error_log($_POST, "$loc: POST:");
+        // }
+
+        // if( $_GET ) {
+        //     $this->log->error_log($_GET, "$loc: GET:");
+        // }
+
+        $args= shortcode_atts( array(
+            'title'=>'Address',
+            'post_id'=>0,
+        ), $atts, self::SHORTSPONSOR );
+        $this->log->error_log( $args, "$loc: My Atts" );
+
+        $title = urldecode($args['title']);
+        $postId = $args['post_id'];
+        if(0 == $postId) return '';
+        
+        $personId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
+        if(empty($personId)) {
+            return '';
+        }
+
+        $person = Person::get($personId);
+        $email = $person->getHomeEmail();
+        $userOwner = GW_Support::getUserByEmail($email);
+        if(!current_user_Can('manage_options') && ($userOwner->ID !== get_current_user_id()) ) return '';
+
+        $addr1 = '';
+        $addr2 = '';
+        $city  = '';
+        $country = '';
+        $postal = '';
+        $prov = '';
+        $address = Address::find($personId);
+        if(!empty($address)) {
+            $address = $address[0];
+            $addr1 = $address->getAddr1();
+            $addr2 = $address->getAddr2();
+            $city = $address->getCity();
+            $postal = $address->getPostalCode();
+            $prov = $address->getProvince();
+        }
+
+        $template = <<<EOD
+<article id="$personId" class="membership address" data-person-id="$personId">
+<h5>$title></h5>
+<table class="membership address">
+<tbody>
+<tr><td>Street</td><td>$addr1</td></tr>
+<tr><td>Apt/Box</td><td>$addr2</td></tr>
+<tr><td>City</td><td>$city</td></tr>
+<tr><td>Province</td>$prov</td></tr>
+<tr><td>Postal</td><td>$postal</td></tr>
+</tbody>
+</table>
+</article>
+EOD;
+
+        $noaddress = <<<EOD
+<article id="$personId" class="membership address" data-person-id="$personId">
+<h5>$title</h5>
+<button id='add-address' type='submit' class='button membership add-address'>Add</button>
+</article>
+EOD;
+        
+
+	    // Start output buffering we don't output to the page
+        ob_start();
+        if(empty($address)) {
+            echo $noaddress;
+        }
+        else {
+            echo $template;
+        }
+        // Save output and stop output buffering
+        $output = ob_get_clean();
+
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
+    }
+
+    public function renderEmergency($atts,$content) {     
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $atts = array_change_key_case((array)$atts, CASE_LOWER);
+        $this->log->error_log( $atts, $loc );
+
+		$startFuncTime = microtime( true );
+        GW_Debug::gw_print_mem();
+        
+        if(!is_user_logged_in()) return '';
+        
+        // if( $_POST ) {
+        //     $this->log->error_log($_POST, "$loc: POST:");
+        // }
+
+        // if( $_GET ) {
+        //     $this->log->error_log($_GET, "$loc: GET:");
+        // }
+
+        $args= shortcode_atts( array(
+            'title'=>'Emergency Contact',
+            'post_id'=>0,
+        ), $atts, self::SHORTEMERGENCY );
+        $this->log->error_log( $args, "$loc: My Atts" );
+
+        $title = urldecode($args['title']);
+        $postId = $args['post_id'];
+        if(0 == $postId) return '';
+        
+        $personId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
+        if(empty($personId)) {
+            return '';
+        }
+
+        $person = Person::get($personId);
+        $email = $person->getHomeEmail();
+        $userOwner = GW_Support::getUserByEmail($email);
+        if(!current_user_Can('manage_options') && ($userOwner->ID !== get_current_user_id()) ) return '';
+
+        $emergencyContact = [];
+        if(!empty($emergencyContact)) {
+
+        }
+
+        $template = <<<EOD
+<article id="$personId" class="membership emergency" data-person-id="$personId">
+<h5>$title></h5>
+<table class="membership emergency">
+<tbody>
+</tbody>
+</table>
+</article>
+EOD;
+
+        $nocontact = <<<EOD
+<article id="$personId" class="membership emergency" data-person-id="$personId">
+<h5>$title</h5>
+<button id='add-emergency' type='submit' class='button membership add-emergency'>Add</button>
+</article>
+EOD;
+        
+
+	    // Start output buffering we don't output to the page
+        ob_start();
+        if(empty($emergencyContact)) {
+            echo $nocontact;
+        }
+        else {
+            echo $template;
+        }
+        // Save output and stop output buffering
+        $output = ob_get_clean();
+
+        GW_Debug::gw_print_mem();
+        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
+        return $output;
+
+    }
+    public function showPeople($title, $users ) {       
         $args = array(
             'meta_query' => array(
                 'relation' => 'OR',
@@ -173,24 +940,6 @@ class RenderPeople
          );
         $user_query = new WP_User_Query( $args );
         $allUsers = $user_query->get_results();
-
-	    // Start output buffering we don't output to the page
-        ob_start();
-        
-        // Get template file to render the registrations
-        // $path = wp_normalize_path( TM()->getPluginPath() . 'includes\templates\archive_clubmembershipcpt.php');
-        // require $path;
-        $this->showPeople($title,$allUsers);
-
-        // Save output and stop output buffering
-        $output = ob_get_clean();
-
-        GW_Debug::gw_print_mem();
-        $this->log->error_log( sprintf("%0.6f",GW_Debug::micro_time_elapsed( $startFuncTime ) ), $loc . ": Elapsed Micro Elapsed Time");
-        return $output;
-    }
-
-    public function showPeople($title, $users ) {
         ?>
     <table id='userqueryresults'>
         <caption></caption>
@@ -492,7 +1241,7 @@ class RenderPeople
     //     }
     //     update_user_meta($userId, TennisMemberCpt::USER_PERSON_ID, $_REQUEST['user_personid']);
     // }
-    
+
     /**
      * Get the AJAX data that WordPress needs to send.
      *

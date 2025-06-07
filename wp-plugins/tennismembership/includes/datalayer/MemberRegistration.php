@@ -2,12 +2,11 @@
 namespace datalayer;
 
 use TennisClubMembership;
-use datalayer\ExternalMaping;
 use DateTime;
 use DateTimeZone;
 use datalayer\appexceptions\InvalidRegistrationException;
 use datalayer\RegistrationStatus;
-use datalayer\RegStatus;
+use datalayer\ExternalMapping;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -120,23 +119,28 @@ EOD;
 		if( array_key_exists( 'seasonId', $fk_criteria ) ) {
 			$seasonId = $fk_criteria['seasonId'];
 		}
-		if( $seasonId === 0 ) {
-			return $col; // Early return
-		}
 
-		if( array_key_exists( 'personId', $fk_criteria ) ) {
+		if( array_key_exists( 'personId', $fk_criteria ) && array_key_exists('seasonId', $fk_criteria)) {
 		//All Registrations for a given Person in a given Season
 			$col_value = $fk_criteria["personId"];
 			error_log("{$loc}: seasonId={$seasonId} person_Id={$col_value}");
 			$sql = "SELECT {$columns}
 					FROM $table 
 					WHERE person_ID = %d and season_ID = %d;";
-					
-		} 
+		}
+		elseif(array_key_exists( 'personId', $fk_criteria )) {
+			//All Registrations for a given Person
+				$col_value = $fk_criteria["personId"];
+				$seasonId = 0;
+				error_log("{$loc}: person_Id={$col_value}");
+				$sql = "SELECT {$columns}
+						FROM $table 
+						WHERE person_ID = %d and season_ID > %d;";
+		}
 		elseif( array_key_exists('membershiptype',$fk_criteria) ) {
 		//All Registrations of a given MembershipType by name in a specified season
 			$col_value = $fk_criteria["membershiptype"];
-			error_log("{$loc}: seasonID={$seasonId} registration type=$col_value");
+			error_log("{$loc}: seasonId={$seasonId} membershiptype=$col_value");
 			$columns = self::JOINCOLUMNS;
 			$sql = "SELECT {$columns}
 					FROM $table reg
@@ -157,11 +161,12 @@ EOD;
 		} elseif( array_key_exists('registrationId',$fk_criteria) ) {
 		//A given Registration in a given season
 			$col_value = $fk_criteria["registrationId"];
-			error_log("{$loc}: seasonId={$seasonId} registrationId=$col_value");
+			$seasonId = 0;
+			error_log("{$loc}: registrationId=$col_value");
 			$sql = "SELECT {$columns}
 					FROM $table
 					ON reg.
-					WHERE ID = %d and season_ID = %d;";
+					WHERE ID = %d and season_ID > %d;";
 		} elseif( !isset( $fk_criteria ) ) {
 		//All Registrations for a given season
 			error_log( "{$loc}: seasonID={$seasonId} all registrations" );

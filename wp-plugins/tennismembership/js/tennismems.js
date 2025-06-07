@@ -873,6 +873,78 @@
             }
         });
 
+        $('.membership.nav').on('click','.menu.item',function(event){
+            console.log('menu item')
+            console.log(event.target)
+            console.log($(event.target).parent('.menu.item'));
+            targets = ['article.membership.history','article.membership.address','article.membership.agreement','article.membership.emergency']
+
+            if($(event.target).parent().hasClass('history')) {
+                let disp = $('article.membership.history').css('display')
+                //console.log("article.membership.history has display=%s",disp)
+                switch(disp) {
+                    case 'block':
+                        disp = 'none'
+                        break;
+                    case 'none':
+                        disp = 'block'
+                        break;
+                    default:
+                        disp = 'none'
+                }
+                //console.log("new display is %s",disp)
+                $('article.membership.history').css('display',disp);
+                targets.forEach(element => {if(!element.endsWith('history')) $(element).css('display','none')});
+            }
+            else if($(event.target).parent().hasClass('address')) {
+                let disp = $('article.membership.address').css('display')
+                //console.log("article.membership.address has display=%s",disp)
+                switch(disp) {
+                    case 'block':
+                        disp = 'none'
+                        break;
+                    case 'none':
+                        disp = 'block'
+                        break;
+                    default:
+                        disp = 'none'
+                }
+                $('article.membership.address').css('display',disp);
+                targets.forEach(element => {if(!element.endsWith('address')) $(element).css('display','none')});
+            }
+            else if($(event.target).parent().hasClass('agreement')) {
+                let disp = $('article.membership.agreement').css('display')
+                //console.log("article.membership.agreement has display=%s",disp)
+                switch(disp) {
+                    case 'block':
+                        disp = 'none'
+                        break;
+                    case 'none':
+                        disp = 'block'
+                        break;
+                    default:
+                        disp = 'none'
+                }
+                $('article.membership.agreement').css('display',disp);
+                targets.forEach(element => {if(!element.endsWith('agreement')) $(element).css('display','none')});
+            }
+            else if($(event.target).parent().hasClass('emergency')) {
+                let disp = $('article.membership.emergency').css('display')
+                switch(disp) {
+                    case 'block':
+                        disp = 'none'
+                        break;
+                    case 'none':
+                        disp = 'block'
+                        break;
+                    default:
+                        disp = 'none'
+                }
+                $('article.membership.emergency').css('display',disp);
+                targets.forEach(element => {if(!element.endsWith('emergency')) $(element).css('display','none')});
+            }
+        });
+
         /**
          * ------------------------------One time set up actions----------------------------------------------------
          */

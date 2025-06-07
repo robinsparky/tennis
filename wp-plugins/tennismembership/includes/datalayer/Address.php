@@ -51,10 +51,11 @@ EOD;
         $loc = __CLASS__ . '::' . __FUNCTION__;
 
         global $wpdb;
+        if(is_array($fk_criteria[0])) $fk_criteria = $fk_criteria[0];
         $table = TennisClubMembership::getInstaller()->getDBTablenames()[self::$tablename];
         $columns = self::COLUMNS;
         $col = array();
-        $sql = "select {$columns} from $table where person_ID = %d";
+        $sql = "select {$columns} from $table where owner_ID = %d";
 
         $safe = $wpdb->prepare($sql,$fk_criteria);
         $rows = $wpdb->get_results($safe, ARRAY_A);

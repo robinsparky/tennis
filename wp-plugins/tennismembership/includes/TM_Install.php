@@ -134,6 +134,11 @@ class TM_Install {
 		$this->create_options();
 		$this->createSchema();
 		add_filter( 'wp_nav_menu_items', array( $this,'add_todaysdate_in_menu' ), 10, 2 );
+		//TODO: add rel=”noopener noreferrer” to every <a href where target='_blank'
+		// or in javascript var myNewWindow = window.open(url, name, ‘noopener,noreferrer’)
+		//                  myNewWindow.opener = null
+		// and/or put "Cross-origin-opener-policy: same-origin" in response header
+		// and/or in iframes use: <iframe sandbox=”allow-scripts allow-same-origin” src=”https://www.example.com”></iframe>
 		$this->log->error_log("+++++++++++++++++++++++++++++++++++$loc End+++++++++++++++++++++++++++++++");
 	}
 

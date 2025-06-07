@@ -19,6 +19,9 @@ use cpt\TennisMemberCpt;
 use datalayer\Corporation;
 use datalayer\MembershipType;
 use datalayer\MembershipCategory;
+use datalayer\Person;
+use datalayer\appexceptions\InvalidPersonException;
+use datalayer\Genders;
 
 // use \WP_CLI;
 // use \WP_CLI_Command;
@@ -49,6 +52,8 @@ class TennisClubMembership {
 	public const OPTION_TENNIS_SEASON = 'gw_tennis_event_season';
 	public const OPTION_NAME_SEEDED  = 'clubmembership_data_seeded';
 	public const OPTION_HOME_CORPORATION = 'clubmembership_home_corp';
+	
+    const SHORTCUSTOMREGFORM = 'member_registration_form';
 
 	public const QUERY_PARM_CORPORATEID = 'corpid';
 	public const PIVOT = "Player";
@@ -195,6 +200,8 @@ class TennisClubMembership {
 		//Register People as Users
 		RenderPeople::register();
 		ManagePeople::register();
+		
+        add_shortcode( self::SHORTCUSTOMREGFORM, array($this,'registrationForm'));
 
 		flush_rewrite_rules(); //necessary to make permlinks work for clubmembership templates
 		$this->seedData();
@@ -238,7 +245,7 @@ class TennisClubMembership {
 	/**
 	 * Retrieve the season
 	 * If not in the URL then retrieved from options
-	 * @return season
+	 * @return int season
 	 */
 	 public function getSeason() {
 		 $loc = __CLASS__. "::" .__FUNCTION__;
@@ -356,7 +363,8 @@ class TennisClubMembership {
 	private function setup() {
 
         // Add actions
-		add_action( 'init', array( $this, 'init') );
+		add_action( 'init', array($this, 'init'));
+		//add_action( 'init', array($this, 'addNewUser'));
 		// add_action( 'rest_api_init', array( self::getControllerManager(), 'register_tennis_rest_routes' ) );
 		add_action( 'admin_enqueue_scripts', array( $this,'enqueue_admin') );
 		add_action( 'pre_get_posts', array( $this, 'archive_tennismembership_query' ) );
@@ -372,7 +380,7 @@ include_once( 'autoloaderm.php' );
 
 $tennisClubMembership = TennisClubMembership::get_instance();
 $GLOBALS['tennisClubMembership'] = $tennisClubMembership;
-function TM() {
+function TM() : TennisClubMembership {
 	global $tennisClubMembership;
 	return $tennisClubMembership;
 }

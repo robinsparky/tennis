@@ -37,3 +37,139 @@
     background-color: var(--sydney-global-color-1);
     color: white;
 }
+
+.person-sponsor {
+    list-style: none;
+}
+
+.person-sponsored {
+    list-style: none;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.wrapper {
+    width: 100%;
+    margin: 0 auto 10px auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* grid-template-columns: minmax(100px,auto) 1fr 1fr;  */
+    gap: 10px;
+    grid-auto-rows: minmax(100px, auto);
+}
+
+.wrapper > article {
+    border: 2px solid rgb(233 171 88);
+    border-radius: 5px;
+    background-color: rgb(233 171 88 / 50%);
+    padding: 1em;
+    color: #d9480f;
+}
+
+article.membership.sponsor {
+    grid-column: 1 / 2;
+    grid-row: 1;
+}
+article.membership.current-registration {
+    grid-column: 2 / 3;
+    grid-row: 1;
+}
+article.membership.sponsored {
+    grid-column: 3 / 4;
+    grid-row: 1;
+}
+article.membership.nav {
+    grid-column: 1 / 4;
+    grid-row: 2;
+}
+article.membership.history {
+    grid-column: 1 / 4;
+    grid-row: 3 / 5;
+    display:none;
+}
+article.membership.address {
+    grid-column: 1 / 4;
+    grid-row: 3 / 5;
+    display:none;
+}
+article.membership.agreement {
+    grid-column: 1 / 4;
+    grid-row: 3 / 5;
+    display:none;
+}
+article.membership.emergency {
+    grid-column: 1 / 4;
+    grid-row: 3 / 5;
+    display:none;
+}
+
+
+article.membership > ul.membership > li > input, table.membership tbody > tr > td > input {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border: dotted 1px black;
+    height: 2em;
+    width: 12em;
+    padding: 0px 0px 0px 5px;
+    margin: 3px 0px 0px 0px;
+}
+
+.membership.gender-selector {
+  height: 2em;
+  width: 5em;
+  background-color: white;
+  border: dotted 1px black;
+  padding: 0px 0px 0px 5px;
+  margin: 0px 0px 0px 0px;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+article.membership > nav.menu {
+    margin: 0px auto 0px auto;
+}
+
+.membership.nav span.menu.item {
+    display: inline-block;
+    width: 23%;
+    
+}
+.membership.nav span.menu.item > a {    
+    color: rgba(183, 0, 255, 0.788);
+}
+.membership.nav .menu.item a:hover {
+    cursor:pointer;
+    color: red;
+    font-style: italic;
+    text-decoration: underline;
+  }
+
+article>h5 {
+    color: #d9480f;
+}
+
+button.button.membership{
+    width: 20%;
+    background-color: #d9480f;
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-size: small;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-transform:none;
+    padding: 0 0 0 0;
+}
+
+.membership.error {
+    color:red;
+}
+  

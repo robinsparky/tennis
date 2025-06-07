@@ -28,5 +28,6 @@ $homeLink = GW_Support::getHomeLink($person);
 	<div><?php echo $registration->getEndDate_Str()?></div>
 </section>
 <div><?php get_footer()?></div>
-<?php
+
+
 

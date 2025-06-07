@@ -73,6 +73,7 @@ class ManageRegistrations
 
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
         add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
+
     }
     
     public function noPrivilegesHandler() {
@@ -415,6 +416,9 @@ class ManageRegistrations
         $this->log->error_log("$loc: $mess");
         return $mess;
     }
+
+    
+    
 
     /**
      * Get the AJAX data that WordPress needs to output.

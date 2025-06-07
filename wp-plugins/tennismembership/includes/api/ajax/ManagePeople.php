@@ -93,6 +93,12 @@ class ManagePeople
         add_action('delete_user', array($this,'deleteUserData'));
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
         add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
+        
+        /**Workflow support */
+        add_action('register_form', array($this,'registrationForm' ));
+        add_filter('registration_errors',array($this,'registrationErrors'),10,3);
+        add_action('user_register',array($this,'registerNewUser'),10,2);
+        add_action('register_post',array($this,'registrationData'),10,3);
     }
     
     public function noPrivilegesHandler() {
@@ -267,7 +273,7 @@ class ManagePeople
                             'last_name'  => $lastName, 
                             'user_email' => $email,
                             'user_registered' => $currentTime->format('Y-m-d H:i:s'),
-                            'show_admin_bar_front' => true,
+                            'show_admin_bar_front' => 'true',
                             'role' => $role,
                             'meta_input' => $userMeta
                 );
@@ -610,6 +616,229 @@ class ManagePeople
         foreach(self::$allUserMetaKeys as $key) {
             delete_user_meta($user_id, $key);
         }
+    }
+        
+    public function registrationForm() {
+        if(!is_user_logged_in()) {
+            if(get_option('users_can_register')) {
+                $output = $this->getRegistrationForm();
+            }
+            else {
+                $output= __('User registration is not enabled',TennisClubMembership::TEXT_DOMAIN);
+            }
+            return $output;
+        }
+    }
+
+    private function getRegistrationForm() {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		static $ctr = 0;
+        //ob_start(); 
+        ?>
+		<h3 class="membership_header"><?php _e('New Account Data',TennisClubMembership::TEXT_DOMAIN); ?></h3>
+        <?php
+			++$ctr;
+			$genderSelect = Genders::getGendersDropDown();
+			$this->log->error_log("$loc: ctr=$ctr");
+        ?>
+<p>
+    <label for="membership_user_first"><?php _e('First Name',TennisClubMembership::TEXT_DOMAIN); ?></label>
+    <input name="membership_user_first" id="membership_user_first" type="text" class="membership user_first" />
+</p>
+<p>
+    <label for="membership_user_last"><?php _e('Last Name',TennisClubMembership::TEXT_DOMAIN); ?></label>
+    <input name="membership_user_last" id="membership_user_last" type="text" class="membership user_last"/>
+</p>
+<p>
+    <label>Gender: 
+    <?php echo $genderSelect;?>
+    </label>
+</p>
+    <label for="membership_user_birthdate"><?php _e('Birthdate',TennisClubMembership::TEXT_DOMAIN); ?></label>
+    <input name="membership_user_birthdate" id="membership_user_birthdate" class="membership birthdate" type="date"/>
+</p>
+<p>
+    <label for="password"><?php _e('Password',TennisClubMembership::TEXT_DOMAIN); ?></label>
+    <input name="membership_user_pass" id="password" class="membership password" type="password"/>
+</p>
+<p>
+    <label for="password_again"><?php _e('Password Again',TennisClubMembership::TEXT_DOMAIN); ?></label>
+    <input name="membership_user_pass_confirm" id="password_again" class="membership password_again" type="password"/>
+</p>
+<p>
+    <input type="hidden" name="membership_csrf" value="<?php echo wp_create_nonce('membership'); ?>"/>
+</p>
+        <?php
+		$this->log->error_log("$loc: form was rendered!");
+    }
+
+    // register a new user
+    public function registerNewUser( $user_id, $user_data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc($user_id)");
+        $this->log->error_log($user_data,"$loc: user_data");
+		$this->log->error_log($_POST,"$loc: _POST");
+
+		$nonce = $_POST['membership_csrf'] ?? '';
+		if(wp_verify_nonce($nonce, 'membership')) {
+			$this->log->error_log("$loc: nonce was verified!!!!");
+		}
+		else {
+			$this->log->error_log("$loc: nonce was NOT verified!!!!");
+			return;
+		}
+
+        $user_first 	= $_POST["membership_user_first"];
+        $user_last	 	= $_POST["membership_user_last"];
+        $user_gender 	= $_POST["user_gender"][0];
+        $user_birthdate	= $_POST["membership_user_birthdate"];
+        $user_pass		= $_POST["membership_user_pass"];
+        
+        //Setup Person
+        $homeCorpId=TM()->getCorporationId();
+        $person = Person::fromName($homeCorpId,$user_first,$user_last);
+        $person->setBirthDate_Str($user_birthdate);
+        $person->setHomeEmail($user_data['user_email']);
+        $person->setGender($user_gender);
+        $person->setFirstName($user_first);
+        $person->setLastName($user_last);
+        $person->isValid();
+        
+        //Setup the corresponding wp_user
+        $currentTime = new DateTime('NOW');
+        $userMeta = array(ManagePeople::USER_CORP_ID=>$homeCorpId
+                        ,ManagePeople::USER_GENDER=>$user_gender
+                        ,'first_name'=>$user_first
+                        ,'last_name'=>$user_last);
+
+        //$random_password = wp_generate_password( 12, true, false );
+        $role = TM_Install::PUBLICMEMBER_ROLENAME;
+        $userData = array(
+                    'ID'         => $user_id,
+                    'user_pass'  => $user_pass, //$random_password,
+                    'user_login' => $user_data['user_login'],
+                    'user_email' => $user_data['user_email'],
+                    'user_nicename' => $user_data->user_nicename,
+                    'user_registered' => $currentTime->format('Y-m-d H:i:s'),
+                    'show_admin_bar_front' => 'true',
+                    'role' => $role,
+                    'meta_input' => $userMeta
+        );
+
+        $up_user_id = wp_update_user( $userData );
+        if(is_wp_error($up_user_id)) {
+            $mess = $up_user_id->get_error_message();
+            throw new InvalidPersonException(__("{$mess}",TennisClubMembership::TEXT_DOMAIN));
+        }
+
+        //Setup the corresponding custom post type
+        $content = $person->getName();
+        $postData = array(
+                    'post_title' => $user_data['user_login'],
+                    'post_name' => $user_data['user_login'],
+                    'post_author'=> $user_id,
+                    'post_status' => 'publish',
+                    'post_date_gmt' => $currentTime->format('Y-m-d G:i:s'),
+                    'post_content' => $content,
+                    'post_type' => TennisMemberCpt::CUSTOM_POST_TYPE,
+                    'post_date'   => $currentTime->format('Y-m-d G:i:s'),
+                    'post_modified' => $currentTime->format('Y-m-d G:i:s')
+                    );
+
+        $newPostId = wp_insert_post($postData, true);//NOTE: This triggers updatePersonDB in TennisMemberCpt
+        if(is_wp_error($newPostId)) {
+            $mess = $newPostId->get_error_message();
+            throw new InvalidPersonException(__("{$mess}",TennisClubMembership::TEXT_DOMAIN));
+        }
+        $person->addExternalRef($newPostId);
+        $person->save();
+        update_user_meta($user_id,ManagePeople::USER_PERSON_ID,$person->getID());
+        update_post_meta($newPostId, ManagePeople::USER_PERSON_ID, $person->getID());
+        $this->log->error_log("Created new user '{$person->getID()}/{$user_id}: {$user_first} {$user_last}'.");
+
+        if($user_id) {
+            // send an email to the admin
+            wp_new_user_notification($user_id);
+            
+            // log the new user in
+            wp_set_auth_cookie($user_id,true);
+            wp_set_current_user($user_id, $user_data['user_login']);	
+            do_action('wp_login', $user_data['user_login'], $user_pass);
+            
+            // send the newly created user to the home page after logging them in
+            //wp_redirect(home_url()); exit;
+        }
+        
+    }
+
+    // Add validation errors to the registration form
+    // this is called when the form is submitted
+    public function registrationErrors( $errors, $sanitized_user_login, $user_email ){
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc($sanitized_user_login, $user_email)");
+        $this->log->error_log($_POST,"$loc: _POST");
+
+        $user_first 	= $_POST["membership_user_first"] ?? '';
+        $user_last	 	= $_POST["membership_user_last"] ?? '';
+        $user_gender 	= $_POST["user_gender"][0] ?? '';
+        $user_birthdate	= $_POST["membership_user_birthdate"] ?? '';
+        $user_pass		= $_POST["membership_user_pass"] ?? '';
+        $pass_confirm 	= $_POST["membership_user_pass_confirm"] ?? '';
+        
+        // this is required for username checks
+        //require_once(ABSPATH . WPINC . '/registration.php');
+        
+        if(username_exists($sanitized_user_login)) {
+            // Username already registered
+            $this->log->error_log("$loc: Username already taken");
+            $errors->add('username_unavailable', __('Username already taken',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if(!validate_username($sanitized_user_login)) {
+            // invalid username
+            $this->log->error_log("$loc: Invalid user login");
+            $errors->add('username_invalid', __('Invalid user login',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if(!is_email($user_email)) {
+            //invalid email
+            $this->log->error_log("$loc: Invalid email");
+            $errors->add('email_invalid', __('Invalid email',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if(email_exists($user_email)) {
+            //Email address already registered
+            $this->log->error_log("$loc: Email already registered");
+            $errors->add('email_used', __('Email already registered',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if($user_pass == '') {
+            // missing password
+            $this->log->error_log("$loc: Please enter a password");
+            $errors->add('password_empty', __('Please enter a password',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if($user_pass != $pass_confirm) {
+            // passwords do not match
+            $this->log->error_log("$loc: Passwords do not match");
+            $errors->add('password_mismatch', __('Passwords do not match',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if($user_first == '') {
+            // missing first name
+            $this->log->error_log("$loc: Missing first name");
+            $errors->add('first_name_empty', __('Please enter a first name',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if($user_last == '') {
+            // missing last name
+            $this->log->error_log("$loc: Missing last name");
+            $errors->add('last_name_empty', __('Please enter a last name',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if($user_gender == '') {
+            $this->log->error_log("$loc: Missing gender");
+            $errors->add('last_name_empty', __('Please enter a valid gender',TennisClubMembership::TEXT_DOMAIN));
+        }
+        if($user_birthdate == '') {
+            $this->log->error_log("$loc: Missing birthdate");
+            $errors->add('birthdate_empty', __('Please enter a valid birthdate',TennisClubMembership::TEXT_DOMAIN));
+        }
+            
+        //$errors = $this->registrationErrors()->get_error_messages();
+        return $errors;
     }
 
     /**
