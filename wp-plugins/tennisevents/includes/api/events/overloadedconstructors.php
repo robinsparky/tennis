@@ -2,6 +2,9 @@
 namespace api\events;
 use \ReflectionClass;
 use \ReflectionMethod;
+use \ReflectionParameter;
+use \ReflectionUnionType;
+use \ReflectionNamedType;
 
 abstract class OverloadedConstructors {
     public final function __construct() {
@@ -24,13 +27,13 @@ abstract class OverloadedConstructors {
              reset($parameters);
              foreach($arguments as $arg) {
                 $parameter = current($parameters);
-                if($parameter->isArray()) {
+                if($this->declaresArray($parameter)) {
                    if(!is_array($arg)) {
                       continue 2;
                    }
                 } 
-                elseif(($expectedClass = $parameter->getClass()) !== null) {
-                   if(!(is_object($arg) && $expectedClass->isInstance($arg))) {
+                elseif(($expectedClass = $parameter->getType()) !== null) {
+                   if(!(is_object($arg) && ($arg instanceof $expectedClass))) {
                       continue 2;
                    }
                 }
@@ -42,5 +45,17 @@ abstract class OverloadedConstructors {
        }
        trigger_error('The required constructor for the class ' . get_called_class() . ' did not exist.', E_USER_ERROR);
     }
+
+    private function declaresArray(ReflectionParameter $reflectionParameter): bool {
+      $reflectionType = $reflectionParameter->getType();
+
+      if (!$reflectionType) return false;
+
+      $types = $reflectionType instanceof ReflectionUnionType
+         ? $reflectionType->getTypes()
+         : [$reflectionType];
+
+      return in_array('array', array_map(fn(ReflectionNamedType $t) => $t->getName(), $types));
+   }
  }
  
