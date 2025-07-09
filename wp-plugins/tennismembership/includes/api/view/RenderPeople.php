@@ -678,7 +678,7 @@ EOD;
 <tr><td>Payment</td><td>&dollar;$fee</td></tr>
 </tbody>
 </table>
-<button id='add-sponsored' type='submit' class='button membership modify-registration'>Modify</button>
+<button id='modify-registration' type='submit' class='button membership modify-registration' data-personid="$personId">Modify</button>
 </article>
 EOD;
 

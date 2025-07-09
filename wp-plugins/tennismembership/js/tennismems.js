@@ -562,7 +562,8 @@
         //Add a new sponsored person
         $('#add-sponsored').on('click', (event) => {
             console.log("Add sponsored person");
-            const sponsorId = event.target.dataset.sponsorid;
+            console.log(event.target);
+            const sponsorId = $(event.target).attr('data-sponsorid') || $(event.target).parents('article.membership.sponsor').attr('data-sponsorid');
             console.log(`sponsorId=${sponsorId}`);
             const selector = `dialog.membership.add-sponsored[data-sponsorid='${sponsorId}']`
             console.log(selector)
