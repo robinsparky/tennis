@@ -43,7 +43,6 @@ wp_enqueue_script( 'managepeople' );
 wp_localize_script( 'managepeople', 'tennis_member_obj', $jsMemberData ); 
 if( in_array('administrator',$current_user->roles) || current_user_can( TM_Install::MANAGE_REGISTRATIONS_CAP ) ) {
 	echo "<button class='tennis-add-person'>" . __("Create New Person",TennisClubMembership::TEXT_DOMAIN) . "</button>";
-	include(wp_normalize_path(TM()->getPluginPath() . 'includes\templates\controls\newPersonDialog.php'));
 
 // Sidebar Alt 
 get_template_part( 'templates/sidebars/sidebar', 'alt' ); 
@@ -95,6 +94,10 @@ if($current_user->exists()) { ?>
 				$errmess = "Found person from post with id={$personPostId} and post meta value={$personId}";
                 $logger->error_log($errmess);
             }
+			if($person->getSponsorId() > 0) {
+				//Include only sponsors
+				continue;
+			}
             if($queryPersonId !== $personId && $queryPersonId > 0) {
                 $logger->error_log("query Person different from loop Person");
                 continue;

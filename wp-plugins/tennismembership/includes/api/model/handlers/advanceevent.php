@@ -1,5 +1,9 @@
 <?php
-namespace api\events;
+namespace api\model\handlers;
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class AdvanceEvent extends AbstractEvent
 {

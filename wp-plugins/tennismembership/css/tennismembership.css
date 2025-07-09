@@ -8,6 +8,9 @@
     --tennis-level-3: #7b9fe0;
     --tennis-level-4: #f27c8d;
     --tennis-black: black;
+    --tennis-registrationColor: #d9480f;
+    --tennis-registrationBackground: rgba(233, 171, 88, 0.5);
+    --tennis-registrationBorder: 2px solid rgb(233 171 88);
     --tennis-gridWidth: auto;
     --tennis-gridAfter: 150px;
     --tennis-registrationHeight: 100px;
@@ -38,13 +41,13 @@
     color: white;
 }
 
-.person-sponsor {
+/* .person-sponsor {
     list-style: none;
 }
 
 .person-sponsored {
     list-style: none;
-}
+} */
 
 * {
     box-sizing: border-box;
@@ -61,11 +64,11 @@
 }
 
 .wrapper > article {
-    border: 2px solid rgb(233 171 88);
+    border: 2px solid var(--tennis-registrationBorder);
     border-radius: 5px;
-    background-color: rgb(233 171 88 / 50%);
+    background-color:  var(--tennis-registrationBackground);
     padding: 1em;
-    color: #d9480f;
+    color: var(--tennis-registrationColor)
 }
 
 article.membership.sponsor {
@@ -86,22 +89,22 @@ article.membership.nav {
 }
 article.membership.history {
     grid-column: 1 / 4;
-    grid-row: 3 / 5;
+    grid-row: 3 / 4;
     display:none;
 }
 article.membership.address {
     grid-column: 1 / 4;
-    grid-row: 3 / 5;
+    grid-row: 4 / 5;
     display:none;
 }
 article.membership.agreement {
     grid-column: 1 / 4;
-    grid-row: 3 / 5;
+    grid-row: 5 / 6;
     display:none;
 }
 article.membership.emergency {
-    grid-column: 1 / 4;
-    grid-row: 3 / 5;
+    grid-column: 1 / 3;
+    grid-row: 4 / 6;
     display:none;
 }
 
@@ -154,8 +157,51 @@ article>h5 {
     color: #d9480f;
 }
 
-button.button.membership{
-    width: 20%;
+ul.membership {
+    list-style: none;
+    padding: 0px;
+    margin: 0px;
+}
+
+form.membership.sponsor{
+    display: none
+}
+
+ul.membership.sponsored.details {
+    display:none;
+}
+form.membership.sponsored {
+    display: none
+}
+
+article.membership input[type="text"],input[type="email"], input[type="tel"], input[type="number"],input[type="date"] {
+    display: inline-block;
+    width: 60%;
+    height: 2em;
+    padding: 0px 0px 0px 3px;
+    border: dotted 1px black;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+article.membership input[type="tel"] {
+    display: inline-block;
+    width: 50%;
+    height: 2em;
+    padding: 0px 0px 0px 5px;
+}
+article.membership input[type="date"] {
+    display: inline-block;
+    width: 10em;
+    height: 2em;
+    padding: 0px 0px 0px 5px;
+}
+
+button.membership {
+    display:inline-block;
+    width: 5em;
     background-color: #d9480f;
     border: none;
     color: white;
@@ -167,9 +213,88 @@ button.button.membership{
     border-radius: 8px;
     text-transform:none;
     padding: 0 0 0 0;
+    margin: 0 0 0 1em;
+}
+button.membership:hover {
+    background-color: #f27c8d;
+    color: white;
+    cursor: pointer;
+}
+
+#cancel-sponsor {
+    display:block;
+}
+
+#cancel-sponsored {
+    display:block;
 }
 
 .membership.error {
     color:red;
 }
+
+li.membership:nth-child(-n+3) {
+    display:inline-block;
+    margin: 0 1em 0 0;
+}
+
+li.membership > span{
+    color:black;
+}
+li.membership > a{
+    color:black;
+}
+
+
+input[type="text"].membership.add-sponsored  {
+  width: 20em;
+}
+input[type="email"].membership.add-sponsored  {
+  width: 15em;
+}
+
+input[type="date"].membership.add-sponsored  {
+  width: 15em;
+}
+
+form.membership.sponsor > label {
+    display: block;
+    margin: 0 0 3px 0;
+    padding: 0 0 0 0;
+}
+
+dialog.membership.add-sponsored {
+  background-color: white; /*var(--tennis-registrationBackground);*/
+  color: var(--tennis-registrationColor);
+  border: 2px solid var(--tennis-registrationBorder);
+}    
+
+dialog.membership.add-sponsored > h3 {
+  color: var(--tennis-registrationColor);
+}
+
+dialog.membership.add-sponsored::backdrop {
+  background-image:
+    radial-gradient(
+      circle,
+      #fff 0 5vw,
+      transparent 5vw 20vw,
+      #fff 20vw 22.5vw,
+      #eee 22.5vw
+    ),
+    conic-gradient(
+      #272b66 0 50grad,
+      #2d559f 50grad 100grad,
+      #9ac147 100grad 150grad,
+      #639b47 150grad 200grad,
+      #e1e23b 200grad 250grad,
+      #f7941e 250grad 300grad,
+      #662a6c 300grad 350grad,
+      #9a1d34 350grad 400grad,
+      #43a1cd 100grad 150grad,
+      #ba3e2e
+    );
+}
+
+
   

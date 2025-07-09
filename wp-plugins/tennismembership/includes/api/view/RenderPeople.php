@@ -91,7 +91,7 @@ class RenderPeople
         //User column data
         add_filter('manage_users_columns', array($this,'add_member_columns'));
         add_action('manage_users_custom_column',array($this,'show_member_column_content'), 10, 3);
-        add_filter('manage_users_sortable_columns', array($this,'sortable_meta_columns'));
+        //add_filter('manage_users_sortable_columns', array($this,'sortable_meta_columns'));
         add_action('restrict_manage_users', array($this,'add_user_gender_filter'));
         add_filter('pre_get_users', array($this,'filter_users_by_gender' ));
         // add_action( 'restrict_manage_users', array($this,'add_user_role_filter' ));
@@ -279,7 +279,7 @@ class RenderPeople
             $status = $currentReg->getStatus()->value;
         }
         $role = TM_Install::$tennisRoles[$userOwner->roles[0]];  
-        $role .= "/{$status}";
+        //$role .= "/{$status}";
 
         $age = 0;
         $now = new Datetime('now');
@@ -297,13 +297,13 @@ class RenderPeople
         wp_localize_script( 'managepeople', 'tennis_member_obj', $jsMemberData );
  
         $genderdd = Genders::getGendersDropDown($gender);
+
         $readonly = <<< EOD
-<article class="membership sponsor" id="$personId" data-person-id="$personId">
-<h5>$title</h5>
+<article class="membership person sponsor" id="$personId" data-person-id="$personId">
+<h5>$title - $role</h5>
 <ul class='membership sponsor'>
 	<li>First Name:&nbsp;$firstName</li>
 	<li>Last Name:&nbsp;$lastName</li>
-    <li>Role:&nbsp;{$role}</li>
 	<li>Gender:&nbsp;$gender</li>
     <li>Home Phone:&nbsp;$homePhone</li>
 	<li>Email:&nbsp;<a href='mailto:$email'>$email</a></li>
@@ -314,18 +314,26 @@ EOD;
 
     $readwrite = <<< EOD
 <article class="membership sponsor" id="$personId" data-person-id="$personId" >
-<h5>$title</h5>
-<table class='membership sponsor'>
-<tbody>
-<tr><td>Last Name</td><td><input type='text' name='last-name' class='membership last-name' value='$lastName'></td></tr>
-<tr><td>First Name</td><td><input type='text' name='first-name' class='membership first-name' value='$firstName'></td></tr>
-<tr><td>Role</td><td>{$role}</td></tr>
-<tr><td>Gender</td><td>$genderdd</td></tr>
-<tr><td>Home Phone</td><td><input name='homephone' type='tel' class='membership home-phone' value='$homePhone'></td></tr>
-<tr><td><a href="mailto:$email">Email</a></td><td><input type='email' name='home-email' class='membership home-email' value='$email'></td></tr>
-<tr><td>Birthdate</td><td><input name='birthdate' type='date' class='membership birth-date' value='$birthdate'>&nbsp;($age)</td></tr>
-</tbody>
-</table>
+<h5>$title - $role</h5>
+<ul class='membership sponsor details'>
+	<li class='membership sponsor first-name'><span>$firstName</span></li>
+	<li class='membership sponsor last-name'><span>$lastName</span></li>
+    <li class='membership sponsor'><button id='edit-sponsor' type='submit' class='button membership edit-sponsor'>Edit</button></li>
+	<li class='membership sponsor home-email'>Email:&nbsp;<a href='mailto:$email'>$email</a></li>
+	<li class='membership sponsor gender'>Gender:&nbsp;<span>$gender</span></li>
+	<li class='membership sponsor birth-date'>Birthdate:&nbsp;<span>$birthdate</span>&nbsp;($age years old)</li>
+    <li class='membership sponsor home-phone'>Home Phone:&nbsp;<span>$homePhone</span></li>
+</ul>
+<form action="" method="post" class="membership sponsor">
+<label>First Name:&nbsp;<input type='text' name='firstname' class='membership first-name' value='$firstName'></label>
+<label>Last Name:&nbsp;<input type='text' name='lastname' class='membership last-name' value='$lastName'></label>
+<label><a href="mailto:$email">Email:</a>&nbsp;<input type='email' name='homeemail' class='membership home-email' value='$email' data-orig-value='$email'></label>
+<label>Gender:&nbsp;$genderdd</label>
+<label>Birthdate:&nbsp;<input name='birthdate' type='date' class='membership birth-date' value='$birthdate'>&nbsp;($age)</label>
+<label>Home Phone:&nbsp;<input name='homephone' type='tel' class='membership home-phone' value='$homePhone'></label>
+<button id='cancel-sponsor' type='submit' class='button membership cancel-sponsor'>Cancel</button>
+<button id='save-sponsor' type='submit' class='button membership save-sponsor'>Save</button>
+</form>
 </article>
 EOD;
 
@@ -369,108 +377,158 @@ EOD;
         $postId = $args['post_id'];
         if(0 == $postId) return '';
         
-        $personId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
-        if(empty($personId)) {
+        $sponsorId = get_post_meta($postId,TennisMemberCpt::USER_PERSON_ID,true);
+        if(empty($sponsorId)) {
             return '';
         }
 
-        $person = Person::get($personId);
-        $email = $person->getHomeEmail();
+        $sponsor = Person::get($sponsorId);
+        $email = $sponsor->getHomeEmail();
         $userOwner = GW_Support::getUserByEmail($email);
         if(empty($userOwner)) return '';
         if(!current_user_Can('manage_options') && ($userOwner->ID !== get_current_user_id()) ) return '';
 
-        $sponsored = $person->getSponsored();
-        $firstName = $person->getFirstName();
-        $lastName = $person->getLastName();
-        $gender = $person->getGender();
-        $birthdate = $person->getBirthDate_Str();
+        $sponsored = $sponsor->getSponsored();
+        $firstName = $sponsor->getFirstName();
+        $lastName = $sponsor->getLastName();
+        $sponsorName = $sponsor->getName();
+        $gender = $sponsor->getGender();
+        $birthdate = $sponsor->getBirthDate_Str();
+        $homePhone = $sponsor->getHomePhone();
+
+        $age = 0;
+        $now = new Datetime('now');
+        $bd = $sponsor->getBirthDateTime();
+        if(!empty($bd)) {
+            $df = $now->diff($bd);
+            $age = $df->y + $df->m/12.0 + $df->d/365.0;
+            $age = round($age,2);
+        }
 
         global $jsMemberData;
         wp_enqueue_script( 'digital_clock' );  
         wp_enqueue_script( 'managepeople' );  
         $jsMemberData = $this->get_ajax_data();  
         wp_localize_script( 'managepeople', 'tennis_member_obj', $jsMemberData );
-        
-        $genderdd = Genders::getGendersDropDown($gender);
 
         $numSponsored = count($sponsored);
         $title2 = "{$numSponsored} " . $title;
-        $table = <<<EOD
-<article class="membership sponsored" id="$personId" data-person-id="$personId">
-<table class="membership sponsored">
-<caption>$title2</caption>
-<thead>
-<tr><th scope='col'>First Name</th><th scope='col'>Last Name</th><th scope='col'>Gender</th><th scope='col'>Birthdate</th><th scope='col'>Age</th></tr>
-</thead>
-<tbody>
+
+        $beginTemplate = <<< EOD
+<article class="membership sponsored" id="$sponsorId" data-sponsorid="$sponsorId">
+<h5>$title2</h5>
+EOD;
+        $readonly = <<< EOD
+<ul class='membership sponsored' data-sponsoredid='%d'>
+	<li>First Name:&nbsp;%s</li>
+	<li>Last Name:&nbsp;%s</li>
+	<li>Gender:&nbsp;%s</li>
+	<li>Birthdate:&nbsp;%s&nbsp;(%f years old)</li>
+	<li>Email:&nbsp;<a href='mailto:%s'>%s</a></li>
+    <li>Home Phone:&nbsp;%s</li>
+</ul>
 EOD;
 
-        $readonly = <<<EOD
-<tr class="membership sponsored" id="%d" data-sponsor-id="%d">
-<td class='membership first-name'>%s</td>
-<td class='membership last-name'>%s</td>
-<td class='membership gender'>%s</td>
-<td class='membership birth-date'>%s</td>
-<td class='membership age'>%f</td>
-</tr>
+    $readwrite = <<< EOD
+<section class="membership sponsored" data-sponsoredid="%d">
+<ul class='membership sponsored full-name'>
+<li class='membership sponsored full-name'>%s</li>
+<li class='membership sponsored'><button type='submit' class='button membership show-sponsored'>Show</button></li>
+<li class='membership sponsored'><button type='submit' class='button membership edit-sponsored'>Edit</button></li>
+<li class='membership sponsored'><button type='submit' class='button membership delete-sponsored'>Delete</button></li>
+</ul>
+<ul class='membership sponsored details' data-sponsoredid='%d'>
+<li class='membership sponsored home-email'>Email:&nbsp;<a href='mailto:%s'>%s</a></li>
+<li class='membership sponsored gender'>Gender:&nbsp;<span>%s</span></li>
+<li class='membership sponsored birth-date'>Birthdate:&nbsp;<span>%s</span> (%.2f years old)</li>
+<li class='membership sponsored home-phone'>Home Phone:&nbsp;<span>%s</span></li>
+</ul>
+<form action="" method="post" class="membership sponsored" data-sponsoredid='%d'>
+<label>First Name:&nbsp;<input type='text' name='firstname' class='membership first-name' value='%s'></label>
+<label>Last Name:&nbsp;<input type='text' name='lastname' class='membership last-name' value='%s'></label>
+<label><a href="mailto:%s">Email:</a>&nbsp;<input type='email' name='homeemail' class='membership home-email' value='%s' data-orig-value='%s'></label>
+<label>Gender:&nbsp;%s</label>
+<label>Birthdate:&nbsp;<input name='birthdate' type='date' class='membership birth-date' value='%s'>&nbsp;(%.2f years old)</label>
+<label>Home Phone:&nbsp;<input name='homephone' type='tel' class='membership home-phone' value='%s'></label>
+<button id='cancel-sponsored' type='submit' class='button membership cancel-sponsored'>Cancel</button>
+<button id='save-sponsored' type='submit' class='button membership save-sponsored'>Save</button>
+</form>
+</section>
 EOD;
 
-$readwrite = <<<EOD
-<tr class="membership sponsored" id="%d" data-sponored-id="%d">
-<td class='membership first-name'><input type='text' class='membership first-name' name='first-name' value='%s'></td>
-<td class='membership last-name'><input type='text' class='membership last-name' name='last-name' value='%s'></td>
-<td class='membership gender'>%s</td>
-<td class='membership birth-date'><input type='date' class='membership birth-date' name='birth-date' value='%s'></td>
-<td class='membership age'>%f</td>
-</tr>
-EOD;
-
-    $tail = <<<EOD
-</tbody>
-</table>
-<button id='add-sponsored' type='submit' class='button membership add-sponsored'>Add</button>
+        $endTemplate = <<< EOD
 </article>
 EOD;
 
         $template = $readonly;
         if($userOwner->ID === get_current_user_id()) $template = $readwrite;
-        if(current_user_can('manage_options')) $template = $readwrite;
+        if(current_user_can('manage_options')) {
+            $template = $readwrite;
+        }
         
         $now = new Datetime('now');
 	    // Start output buffering we don't output to the page
         ob_start();
-        if(0 < $numSponsored) {
-            echo $table;
-            foreach($sponsored as $sp) {
-                $id = $sp->getID();
-                $firstName = $sp->getFirstName();
-                $lastName = $sp->getLastName();
-                $gender = $sp->getGender();
-                $birthdate = $sp->getBirthDate_Str();
-                $bd = $sp->getBirthDateTime();
-                $age = 0;
-                if(!empty($bd)) {
-                    $df = $now->diff($bd);
-                    $age = $df->y + $df->m/12.0 + $df->d/365.0;
-                }
-                printf($template
-                            ,$id,$id
-                            ,$id
-                            ,$firstName
-                            ,$lastName
-                            ,$template === $readonly ? $gender : $genderdd
-                            ,$birthdate
-                            ,$age
-                        );
+        echo $beginTemplate;
+        if($template === $readwrite) {
+            require TM()->getPluginPath() . 'includes/templates/controls/newSponsoredDialog.php';
+            echo "<button id='add-sponsored' type='submit' class='button membership add-sponsored' data-sponsorid='$sponsorId'>Add</button>";
+            echo "<hr class='membership sponsored'/>";
+        }
+
+        foreach($sponsored as $sp) {
+            $id = $sp->getID();
+            $firstName = $sp->getFirstName();
+            $lastName = $sp->getLastName();
+            $gender = $sp->getGender();
+            $genderdd = Genders::getGendersDropDown($gender);
+            $birthdate = $sp->getBirthDate_Str();
+            $bd = $sp->getBirthDateTime();
+            $homePhone = $sp->getHomePhone();
+            if(empty($homePhone)) $homePhone = 'N/A';
+            $email = $sp->getHomeEmail();
+            if(empty($email)) $email = 'N/A';
+            $age = 0;
+            if(!empty($bd)) {
+                $df = $now->diff($bd);
+                $age = round($df->y + $df->m/12.0 + $df->d/365.0,2);
             }
-            echo $tail;
-        }
-        else {
-            echo "<article class='membership sponsored'><h5>$title</h5>";
-            echo "<button id='add-sponsored' type='submit' class='button membership add-sponsored'>Add</button>";
-            echo "</article>";
-        }
+            if($template === $readwrite) {
+                printf($template
+                    // for the section
+                    ,$id
+                    ,$firstName . ' ' . $lastName
+                    // for the list
+                    ,$id
+                    ,$email,$email
+                    ,$gender
+                    ,$birthdate,$age
+                    ,$homePhone
+                    // for the form
+                    ,$id
+                    ,$firstName
+                    ,$lastName
+                    ,$email,$email,$email
+                    ,$genderdd
+                    ,$birthdate,$age
+                    ,$homePhone
+                );
+            } else {
+                printf($template
+                    ,$id
+                    ,$firstName
+                    ,$lastName
+                    ,$email,$email
+                    ,$gender
+                    ,$birthdate,$age
+                    ,$homePhone
+                );
+            }
+            echo "<hr class='membership sponsored'/>";
+        } //loop through sponsored
+
+        echo $endTemplate;
+    
         // Save output and stop output buffering
         $output = ob_get_clean();
 
@@ -601,7 +659,7 @@ EOD;
         $not_registered = <<<EOD
 <article class='membership not-registered'  id="$personId" data-personid="$personId">
 <h5>$title</h5>
-<button id='add-sponsored' type='submit' class='button membership apply-registration'>Register</button>
+<button id='register-membership' type='submit' class='button membership apply-registration'>Register</button>
 </article>
 EOD;
         $readonly = <<<EOD
@@ -624,8 +682,7 @@ EOD;
 </article>
 EOD;
 
-        if(empty($currentReg)) $template = $not_registered;
-        else $template = $readonly;
+        $template = empty($currentReg) ? $not_registered : $readonly;
 
 	    // Start output buffering we don't output to the page
         ob_start();
@@ -921,6 +978,7 @@ EOD;
         return $output;
 
     }
+
     public function showPeople($title, $users ) {       
         $args = array(
             'meta_query' => array(
@@ -984,10 +1042,16 @@ EOD;
             if(in_array($slug, $user->roles)) $clubPerson = true;
         }
         $personId=0;
+        $sponsorId = 0;
         if(null !== $person) {
             update_user_meta($user->ID,ManagePeople::USER_PERSON_ID,$person->getID());
             $personId = $person->getID();
+            $sponsorId = $person->getSponsorId();
         } 
+        $sponsor = null;
+        if($sponsorId > 0 ) {
+            $sponsor = Person::get($sponsorId);
+        }
 
         $seasonId = TM()->getSeason();
         switch($column_name) {
@@ -1004,7 +1068,6 @@ EOD;
                 $value = MemberRegistration::IsMember($seasonId,$user_id) ? 'Yes' : 'No';
                 break;        
             case 'sponsoredby':
-                $sponsor = null === $person ? null : $person->getSponsor();
                 $sponsorName = null === $sponsor ? 'Self' : $sponsor->getName();
                 $value = $sponsorName;
                 break;    
@@ -1013,9 +1076,9 @@ EOD;
                     $link = get_bloginfo('url') . '/' . TennisMemberCpt::CUSTOM_POST_TYPE_SLUG . '/' . $user->user_login;
                 }
                 else {
-                    $link = GW_Support::getHomeLink($person);
+                    $link = null === $sponsor ? GW_Support::getHomeLink($person) : GW_Support::getHomeLink($sponsor);
                 }
-                $value = "<a href='$link'>Info</a>"; 
+                $value = "<a href='$link'>More...</a>"; 
                 break;
         }
         return $value;
@@ -1023,9 +1086,11 @@ EOD;
 
     //make the new column sortable
     function sortable_meta_columns( $columns ) {
-        $columns['ismember'] = 'Is Member';
+        $columns['ismember'] = 'ismember';
+        $columns['sponsoredby'] = 'sponsoredby';
         return $columns;
     }
+
     function add_user_role_filter( $which ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 

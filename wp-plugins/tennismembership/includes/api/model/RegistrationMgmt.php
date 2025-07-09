@@ -3,18 +3,17 @@ namespace api\model;
 
 use TennisClubMembership;
 use commonlib\BaseLogger;
-use \WP_Error;
-use TM_Install;
-use \DateTime;
 use \InvalidArgumentException;
 use \RuntimeException;
-use cpt\ClubMembershipCpt;
-//use cpt\TennisClubMembershipCpt;
 use datalayer\Corporation;
 use datalayer\Person;
 use datalayer\MemberRegistration;
 use datalayer\MembershipType;
 use datalayer\appexceptions\InvalidRegistrationException;
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly
+}
 /** 
  * Member Registration API
  * @class  RegistrationMgmt
@@ -39,6 +38,7 @@ class RegistrationMgmt {
      */
     public function createRegistration(int $seasonId, int $userId , MembershipType $memType, string $startDate, string $endDate, bool $incDir = true, bool $receiveEmails=true, bool $shareEmail=true, string $notes='' ) : MemberRegistration {
         $loc = __CLASS__. "::" .__FUNCTION__;
+  
         $result = false;
         try {
             	

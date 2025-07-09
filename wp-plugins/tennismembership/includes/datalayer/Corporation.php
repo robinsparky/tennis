@@ -27,7 +27,7 @@ class Corporation  extends AbstractMembershipData
 ID 
 name
 ,yearend_date
-,status
+,corp_status
 ,gst_number
 ,gst_rate1
 ,gst_rate2			

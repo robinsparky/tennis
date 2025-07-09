@@ -1,5 +1,6 @@
 <?php
-namespace datalayer\handlers\StartRegistrationHandler;
+namespace datalayer\handlers\GatherInformation;
+
 use datalayer\interfaces\iRegistrationHandler;
 use TennisClubMembership;
 use datalayer\RegistrationStatus;

@@ -1,7 +1,15 @@
 <?php
-namespace api\events;
-//use api\events\AbstractEvent;
+namespace api\model\handlers;
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+/**
+ * EventManager class to handle event registration and triggering.
+ *
+ * This class allows you to register event listeners and trigger events with parameters.
+ * It is a simple implementation of the observer pattern.
+ */
 class EventManager
 {
     private static $events = array();

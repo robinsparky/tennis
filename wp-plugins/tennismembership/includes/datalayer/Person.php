@@ -28,6 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Person extends AbstractMembershipData
 { 
 	//table name
+	public static $regtablename = 'registration';
 	public static $tablename = 'person';
 	public const COLUMNS = <<<EOD
 	ID
@@ -361,7 +362,7 @@ class Person extends AbstractMembershipData
 		return false;
 	}
 
-	public function getAddress() : Address {
+	public function getAddress() : ?Address {
 		return $this->address;
 	}
 	
@@ -565,10 +566,12 @@ class Person extends AbstractMembershipData
         $loc = __CLASS__ . ":" . __FUNCTION__;
 
 		$result = false;
-		if($this->validatePhoneNumberWithFilter($phone)) {
-			$this->phoneHome = $phone;
-			$result = $this->setDirty();
-		}
+		$this->phoneHome = $phone;
+		$result = $this->setDirty();
+		// if($this->validatePhoneNumberWithFilter($phone)) {
+		// 	$this->phoneHome = $phone;
+		// 	$result = $this->setDirty();
+		// }
 		return $result;
 	}
 
@@ -588,10 +591,8 @@ class Person extends AbstractMembershipData
         $loc = __CLASS__ . ":" . __FUNCTION__;
 
 		$result = false;
-		if($this->validatePhoneNumberWithFilter($phone)) {
-			$this->phoneBusiness = $phone;
-			$result = $this->setDirty();
-		}
+		$this->phoneBusiness = $phone;
+		$result = $this->setDirty();
 		return $result;
 	}
 
@@ -611,10 +612,12 @@ class Person extends AbstractMembershipData
         $loc = __CLASS__ . ":" . __FUNCTION__;
 
 		$result = false;
-		if($this->validatePhoneNumberWithFilter($phone)) {
-			$this->phoneMobile = $phone;
-			$result = $this->setDirty();
-		}
+		$this->phoneMobile = $phone;
+		$result = $this->setDirty();
+		// if($this->validatePhoneNumberWithFilter($phone)) {
+		// 	$this->phoneMobile = $phone;
+		// 	$result = $this->setDirty();
+		// }
 		return $result;
 	}
 
@@ -760,13 +763,13 @@ class Person extends AbstractMembershipData
 	/**
 	 * Remove sponsorship from this Person
 	 */
-	public function removeSponsorship(Person $person) : bool {
-		if( !isset( $person ) ) return false;
-		
+	public function removeSponsorship(int $idOfSponsored) : bool {
+		if( !isset( $idOfSponsored ) ) return false;
+
 		$i=0;
 		foreach( $this->getSponsored() as $p ) {
-			if($person->getID() == $p->getID()) {
-				$this->sponsoredToBeDeleted[] = $person->getID();
+			if($idOfSponsored == $p->getID()) {
+				$this->sponsoredToBeDeleted[] = $p->getID();
 				unset( $this->sponsored[$i] );
 				return $this->setDirty();
 			}
@@ -780,7 +783,7 @@ class Person extends AbstractMembershipData
 	 * @param int personId - the DB id of the affected person
 	 * @param int $seasonId - the id of the season; 
 	 */
-	public function deleteAllForPerson(int $personId, int $seasonId ) : int {
+	static public function deleteAllRegistrationsForPerson(int $personId, int $seasonId ) : int {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		error_log("{$loc}($personId, $seasonId)");
 
@@ -790,16 +793,16 @@ class Person extends AbstractMembershipData
 		}
 
 		global $wpdb;
-		$table = TennisClubMembership::getInstaller()->getDBTablenames(self::$tablename);
+		$table = TennisClubMembership::getInstaller()->getDBTablenames(self::$regtablename);
 		if( $personId > 0 ) {
-				$result = $wpdb->delete($table,array( "person_ID" => $personId, 'season_ID'=>$seasonId ),array('%d','%d'));
+			$result = $wpdb->delete($table,array( "person_ID" => $personId, 'season_ID'=>$seasonId ),array('%d','%d'));
 		}
 		$result = $wpdb->rows_affected;
 		if( $wpdb->last_error ) {
 			error_log("$loc: Last error='$wpdb->last_error'");
 		}
-		
-		error_log("$loc: deleted $result rows");
+
+		error_log("$loc: deleted $result rows from $table for person ID=$personId and season ID=$seasonId");
 		return $result;
 	}
 		
@@ -929,6 +932,8 @@ class Person extends AbstractMembershipData
 	 * @return int the total number of rows deleted in the DB
 	 */
 	public function delete() : int {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$this->log->error_log("$loc: Deleting Person ID={$this->getID()} - {$this->getName()}");
 		//TODO: must delete all registrations, addresses, transactions and ?entrants?
 		//TODO: What about sponsors??
 		$result = 0;
@@ -937,16 +942,21 @@ class Person extends AbstractMembershipData
 		$seasonId =  TM()->getSeason();
 		$regs = MemberRegistration::find(array('seasonId'=>$seasonId, 'personId'=> $this->getID()));
 		foreach($regs as $reg) {
-			$reg->deleteAllForPerson($this->getID(), (int)$seasonId);
+			//$result += $reg->deleteAllForPerson($this->getID(), (int)$seasonId);
+			$result += Person::deleteAllRegistrationsForPerson($this->getID(), (int)$seasonId);
 		}
 
 		//Delete Address
-		Address::delete($this->getAddress()->getID());
+		$address = $this->getAddress();
+		if($address instanceof Address) Address::delete($address->getID());
 
 		//Delete Sponsorships
 		foreach($this->getSponsored() as $sp) {
-			$sp->delete();
+			$result += $sp->delete();
 		}
+
+		//Remove exteral references
+		ExternalMapping::remove(self::$tablename, $this->getID());
 
 		//Delete Program/Tournament entrants
 		//TODO: entrants
@@ -963,6 +973,7 @@ class Person extends AbstractMembershipData
 		$result += $wpdb->rows_affected;
 		return $result;
 	}
+	
 
 	/**
 	 * Get all Persons sponsored by this Person.
@@ -1097,7 +1108,7 @@ class Person extends AbstractMembershipData
 		//Save the External references related to this Registration
 		if( isset( $this->external_refs ) ) {
 			foreach($this->external_refs as $er) {
-				//Create relation between this Registration and its external references
+				//Create relation between this Person and its external references
 				$result += ExternalMapping::add(self::$tablename, $this->getID(), $er );
 			}
 		}

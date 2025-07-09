@@ -3,9 +3,11 @@ namespace api\ajax;
 
 use TennisClubMembership;
 use commonlib\BaseLogger;
+use commonlib\GW_Support;
 use cpt\TennisMemberCpt;
 use \WP_Error;
 use \WP_User;
+use \WP_Post;
 use TM_Install;
 use \DateTime;
 use \InvalidArgumentException;
@@ -16,6 +18,7 @@ use datalayer\MemberRegistration;
 use datalayer\Person;
 use datalayer\Address;
 use datalayer\appexceptions\InvalidPersonException;
+use datalayer\ExternalMapping;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -29,8 +32,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class ManagePeople
 { 
-    const ACTION    = 'managepeople';
-    const NONCE     = 'managepeople';
+    const ACTION    = 'manageusermembers';
+    const NONCE     = 'manageusermembers';
 
     //User Meta Keys
     public const USER_CORP_ID      = 'user_corp_id';
@@ -90,7 +93,8 @@ class ManagePeople
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log($loc);
 
-        add_action('delete_user', array($this,'deleteUserData'));
+        add_action('deleted_user', array($this,'deletedUser'));
+
         add_action( 'wp_ajax_' . self::ACTION, array( $this, 'performTask' ));
         add_action( 'wp_ajax_nopriv_' . self::ACTION, array( $this, 'noPrivilegesHandler' ));
         
@@ -158,8 +162,12 @@ class ManagePeople
                 $mess = $this->addPerson( $data );
                 $returnData = $data;
                 break;
-            case 'modifyPerson':
-                $mess = $this->modifyPerson( $data );
+            case 'updatePerson':
+                $mess = $this->updatePerson( $data );
+                $returnData = $data;
+                break;
+            case 'updateAddress':
+                $mess = $this->updateAddress( $data );
                 $returnData = $data;
                 break;
             case 'deletePerson':
@@ -344,11 +352,7 @@ class ManagePeople
                 throw new InvalidArgumentException(__( "Home corporation is not found({$homeCorpId}).", TennisClubMembership::TEXT_DOMAIN ));
             }
 
-            $firstName = $data['firstname']  ?? '';
-            $lastName = $data['lastname'] ?? '';
-            $gender = $data['gender'] ?? Genders::Other;
-            $birthday = $data['birthday'] ?? '';
-            $homeEmail = $data['email'] ?? '';
+            $homeEmail = $data['homeEmail'] ?? '';
             if(empty($homeEmail)) {
                 throw new InvalidArgumentException(__( 'Email cannot be blank.', TennisClubMembership::TEXT_DOMAIN ));
             }
@@ -356,22 +360,24 @@ class ManagePeople
                 throw new InvalidArgumentException(__( 'Email already exists.', TennisClubMembership::TEXT_DOMAIN ));
             }
 
-            $phone = $data['phone'] ?? '';
-            $emergPhone = $data['emergencyphone'] ?? '';
+            //Check if this is a sponsored person
+            $sponsor = null;
+            $sponsorId = $data['personId'] ?? 0;
+            if(!empty($sponsorId)) {
+                $sponsor = Person::get($sponsorId);
+                if(!isset($sponsor)) {
+                    throw new InvalidArgumentException(__( "Sponsor person is not found({$sponsorId}).", TennisClubMembership::TEXT_DOMAIN ));
+                }
+            }
+            $firstName = $data['firstName']  ?? '';
+            $lastName = $data['lastName'] ?? '';
+            $gender = $data['gender'] ?? Genders::Other;
+            $genderdd = Genders::getGendersDropDown($gender);
+            $data['genderdd'] = $genderdd;
+            $birthday = $data['birthDate'] ?? '';
+            $homePhone = $data['homePhone'] ?? '';
+            $emergPhone = $data['emergencyPhone'] ?? '';
             $notes = $data['notes'] ?? '';
-            //Get Address data
-            $street1 = $data['street1'] ?? '';
-            $street2 = $data['street2'] ?? '';
-            $city    = $data['city'] ?? '';
-            $prov    = $data['province'] ?? 'Ontario';
-            $postal  = $data['postal'] ?? '';
-
-            $address = new Address();
-            $address->setAddr1($street1);
-            $address->setAddr2($street2);
-            $address->setCity($city);
-            $address->setProvince($prov);
-            $address->setPostalCode($postal);
 
             $role = $data['role'] ?? TM_Install::PUBLICMEMBER_ROLENAME;
             $goodRole = false;
@@ -385,11 +391,21 @@ class ManagePeople
 
             //Setup Person
             $person = Person::fromName($homeCorpId,$firstName,$lastName);
+            if($sponsorId > 0) $person->setSponsorId($sponsorId);
             $person->setBirthDate_Str($birthday);
+            $age = 0;
+            $now = new Datetime('now');
+            $bd = $person->getBirthDateTime();
+            if(!empty($bd)) {
+                $df = $now->diff($bd);
+                $age = $df->y + $df->m/12.0 + $df->d/365.0;
+                $age = round($age,2);
+            }
+            $data['age'] = $age;
             $person->setHomeEmail($homeEmail);
-            $person->setHomePhone($phone);
+            $person->setHomePhone($homePhone);
+            $person->setBusinessPhone($emergPhone);
             $person->setGender($gender);
-            //$person->setEmergencyPhone($emergPhone);
             $person->setNotes(strip_tags($notes));
             $person->isValid();//throws InvalidPersonException if not valid
 
@@ -426,7 +442,7 @@ class ManagePeople
             $user_id = wp_insert_user( $userData );
             if(is_wp_error($user_id)) {
                 $mess = $user_id->get_error_message();
-                throw new InvalidPersonException(__("{$mess}",TennisClubMembership::TEXT_DOMAIN));
+                throw new InvalidPersonException(__("$mess",TennisClubMembership::TEXT_DOMAIN));
             }
             
             //Setup the corresponding custom post type
@@ -452,8 +468,7 @@ class ManagePeople
             $person->save();
             update_user_meta($user_id,ManagePeople::USER_PERSON_ID,$person->getID());
             update_post_meta($newPostId, ManagePeople::USER_PERSON_ID, $person->getID());
-            $address->setOwnerId($person->getID());
-            $address->save();
+            if($sponsorId > 0) $data['sponsoredId'] = $person->getID();
             $mess = __("Created new user {$person->getID()}/{$user_id}: '{$firstName} {$lastName}'.",TennisClubMembership::TEXT_DOMAIN);
         }
         catch (RuntimeException | InvalidPersonException | InvalidArgumentException $ex ) {
@@ -468,7 +483,7 @@ class ManagePeople
      * @param array $data A reference to a dictionary containing registration data
      * @return string A message describing success or failure
      */
-    private function modifyPerson( &$data ) {
+    private function updatePerson( &$data ) {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log($data,"$loc: data...");
         
@@ -483,55 +498,67 @@ class ManagePeople
             $this->log->error_log("$loc: Corporation Id={$homeCorpId}");
             $corp = Corporation::get($homeCorpId);
             if( !isset($corp) ) {				
-                throw new InvalidArgumentException(__( "Home corporation is not found ({$homeCorpId}).", TennisClubMembership::TEXT_DOMAIN ));
+                throw new InvalidArgumentException(__( "Home corporation ({$homeCorpId}) is not found.", TennisClubMembership::TEXT_DOMAIN ));
             }
 
             $personId = (int)$data['personId'] ?? 0;
             $person = Person::get($personId);
             if(null == $person) {
-                throw new InvalidArgumentException(__( "Person is not found ({$personId}).", TennisClubMembership::TEXT_DOMAIN ));
+                throw new InvalidArgumentException(__( "Person ({$personId}) is not found.", TennisClubMembership::TEXT_DOMAIN ));
             }
 
-            $firstName = $data['firstname'] ?? $person->getFirstName();
-            $lastName = $data['lastname'] ?? $person->getLastName();
-            $homeEmail = $data['email'] ?? $person->getHomeEmail();
-            if(empty($homeEmail)) {
+            $homeEmail = $data['homeEmail'] ?? $person->getHomeEmail();
+            $oldHomeEmail = $data['oldHomeEmail'] ?? '';
+            if(empty($homeEmail) && empty($oldHomeEmail)) {
                 throw new InvalidArgumentException(__( 'Email cannot be blank.', TennisClubMembership::TEXT_DOMAIN ));
             }
-            $user = get_user_by('user_email',$homeEmail);
-            if(!$user instanceof WP_User) {
-                $mess = __("No such user with email '{$homeEmail}'",TennisClubMembership::TEXT_DOMAIN);
+
+            if(email_exists($homeEmail)) {
+                $mess = __("New Email '{$homeEmail}' exists ",TennisClubMembership::TEXT_DOMAIN);
+                $this->log->error_log("$loc: $mess");
+            }
+            if(email_exists($oldHomeEmail)) {
+                $mess = __("Old Email '{$oldHomeEmail}' exists ",TennisClubMembership::TEXT_DOMAIN);
+                $this->log->error_log("$loc: $mess");
+            }
+
+            $user = GW_Support::getUserByEmail($homeEmail);
+            if(!$user) {
+                $user = GW_Support::getUserByEmail($oldHomeEmail);
+            }
+            else {
+                $mess = __("New Email '{$homeEmail}' exists ",TennisClubMembership::TEXT_DOMAIN);
+                $this->log->error_log("$loc: $mess");
+            }
+
+            if(!$user) {
+                $mess = __("No such user with new email '{$homeEmail}' or old email '{$oldHomeEmail}'",TennisClubMembership::TEXT_DOMAIN);
                 throw new InvalidArgumentException($mess);
             }
+
+            $isSponsored = $person->getSponsorId() > 0;
+            $data['sponsored'] = $isSponsored;
+
+            $firstName = $data['firstName'] ?? $person->getFirstName();
+            $lastName = $data['lastName'] ?? $person->getLastName();
+            $gender = $data['gender'] ?? $person->getGender();
+            $birthday = $data['birthDate'] ?? $person->getBirthDate_Str();
+            $phone = $data['homePhone'] ?? $person->getHomePhone();
+            $notes = $data['notes'] ?? $person->getNotes();
  
             //Modify person data
-            $gender = $data['gender'] ?? $person->getGender();
-            $birthday = $data['birthday'] ?? $person->getBirthDate_Str();
-            $phone = $data['phone'] ?? $person->getHomePhone();
-            $notes = $data['notes'] ?? $person->getNotes();
+            $person->setFirstName($firstName);
+            $person->setLastName($lastName);
             $person->setHomeEmail($homeEmail);
             $person->setGender($gender);
             $person->setBirthDate_Str($birthday);
             $person->setHomePhone($phone);
             $person->setNotes(strip_tags($notes));
 
-            //Modify Address data
-            $addressId = (int)$data['addressId'] ?? $person->getAddress()->getID();
-            $street1 = $data['street1'] ?? '';
-            $street2 = $data['street2'] ?? '';
-            $city    = $data['city'] ?? '';
-            $prov    = $data['province'] ?? 'Ontario';
-            $postal  = $data['postal'] ?? '';
-            $address = Address::get($addressId) ?? new Address();
-            if(!empty($street1)) $address->setAddr1($street1);
-            if(!empty($street2)) $address->setAddr2($street2);
-            if(!empty($city)) $address->setCity($city);
-            if(!empty($prov)) $address->setProvince($prov);
-            if(!empty($postal)) $address->setPostalCode($postal);
-
             //Update the wp user
             $userData = array(
                         'ID'         => $user->ID,
+                        'user_email' => $homeEmail,
                         'first_name' => $firstName,
                         'last_name'  => $lastName 
             );
@@ -552,12 +579,48 @@ class ManagePeople
                 throw new InvalidPersonException(__("{$mess}",TennisClubMembership::TEXT_DOMAIN));                
             }
             $person->save();
-            $address->setOwnerId($person->getID());
-            $address->save();
             update_user_meta($user_id, ManagePeople::USER_PERSON_ID,$person->getID());
             update_user_meta($user_id, ManagePeople::USER_GENDER,$person->getGender());
             update_post_meta($postId, ManagePeople::USER_PERSON_ID,$person->getID());
             $mess = __("Modified user {$person->getID()}/{$user_id}: '{$firstName} {$lastName}'.",TennisClubMembership::TEXT_DOMAIN);
+        }
+        catch (RuntimeException | InvalidPersonException | InvalidArgumentException $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+        return $mess;
+    }
+
+    private function updateAddress( &$data ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log($data,"$loc: data...");
+        
+        $task = $data["task"];
+        $mess = "";
+        try {
+            $personId = (int)$data['personId'] ?? 0;
+            $person = Person::get($personId);
+            if(null == $person) {
+                throw new InvalidArgumentException(__( "Person is not found ({$personId}).", TennisClubMembership::TEXT_DOMAIN ));
+            }
+            
+            //Modify Address data
+            $addressId = (int)$data['addressId'] ?? $person->getAddress()->getID();
+            $street1 = $data['street1'] ?? '';
+            $street2 = $data['street2'] ?? '';
+            $city    = $data['city'] ?? '';
+            $prov    = $data['province'] ?? 'Ontario';
+            $postal  = $data['postal'] ?? '';
+            $address = Address::get($addressId) ?? new Address();
+            if(!empty($street1)) $address->setAddr1($street1);
+            if(!empty($street2)) $address->setAddr2($street2);
+            if(!empty($city)) $address->setCity($city);
+            if(!empty($prov)) $address->setProvince($prov);
+            if(!empty($postal)) $address->setPostalCode($postal);
+            $address->setOwnerId($person->getID());
+            $address->isValid(); //throws InvalidPersonException if not valid
+            $person->save();
+            $mess = __("Modified address for person {$person->getID()}.",TennisClubMembership::TEXT_DOMAIN);
         }
         catch (RuntimeException | InvalidPersonException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -571,7 +634,7 @@ class ManagePeople
      * @param array $data A reference to a dictionary containing registration data
      * @return string A message describing success or failure
      */
-    private function deletePerson( &$data ) {
+    public function deletePerson( &$data ) {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log($data,"$loc: data...");
         
@@ -583,20 +646,24 @@ class ManagePeople
             
             $personId = $data['personId'] ?? 0;
             $person = Person::get($personId);
+            if(null == $person) {
+                throw new InvalidArgumentException(__( "Person is not found ({$personId}).", TennisClubMembership::TEXT_DOMAIN ));
+            }
+            $email = $person->getHomeEmail();
+            $user = GW_Support::getUserByEmail($email);
+            $this->deleteMemberCPT($person);//delete the custom post type
+            $person->delete();
             $userId = 0;
-            if(null != $person) {
-                $email = $person->getHomeEmail();
-                $user = get_user_by('email',$email);
+            if($user instanceof WP_User) {
                 $userId = $user->ID;
-                if($user instanceof WP_User) {
-                    wp_delete_user($user->ID); //see deleteUserData
+                //delete the meta data for the user
+                foreach(self::$allUserMetaKeys as $key) {
+                    delete_user_meta($userId, $key);
                 }
-                $person->delete();
-                $mess = __("Deleted '{$personId}/{$userId}'.",TennisClubMembership::TEXT_DOMAIN);
+                wp_delete_user($userId);
             }
-            else {
-                $mess = __("Failed to Delete '{$personId}/{$userId}'.",TennisClubMembership::TEXT_DOMAIN);
-            }
+            $mess = __("Deleted '{$personId}/{$userId}'.",TennisClubMembership::TEXT_DOMAIN);
+   
         }
         catch (RuntimeException | InvalidPersonException | InvalidArgumentException $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );
@@ -606,18 +673,69 @@ class ManagePeople
     }
       
     /**
-     * Action fires just before a user is deleted
+     * Action fires just after a user is deleted
+     * This function deletes the custom post type and the person
      * @param int $user_id The id of the WP user
      */
-    public function deleteUserData( $user_id) {
+    public function deletedUser( $user_id) {
         $loc = __CLASS__. "::" .__FUNCTION__;
         $this->log->error_log("$loc({$user_id})");
 
+        $personID = (int)ExternalMapping::fetchInternalIds(Person::$tablename,$user_id);
+        if(empty($personID)) {
+            $this->log->error_log("$loc: No person ID found for user '{$user_id}'.");
+            return;
+        }   
+        $person = Person::get($personID);
+        if($person instanceof Person) {
+            //delete the custom post type
+            $this->deleteMemberCPT($person);
+            //delete the person
+            $person->delete();
+            $this->log->error_log("$loc: Deleted person '{$personID}' for user '{$user_id}'.");
+        }
+        else {
+            $this->log->error_log("$loc: No person found for user '{$user_id}'.");
+        }
+
+        //delete the meta data for the user
         foreach(self::$allUserMetaKeys as $key) {
             delete_user_meta($user_id, $key);
         }
     }
-        
+
+    /**
+     * Delete the custom post type
+     * @param Person $person The person whose custom post type is to be deleted
+     * @return bool True if the post was deleted, false otherwise
+     */
+    public function deleteMemberCPT( Person $person ) {
+        $loc = __CLASS__. "::" .__FUNCTION__;
+        $this->log->error_log("$loc({$person->getID()})");
+        $result = false;
+        $externalRef = (int)$person->getExtRefSingle();
+        if(!empty($externalRef)) {
+            $post = get_post($externalRef);
+            if($post instanceof WP_Post) {
+                if($post->post_type === TennisMemberCpt::CUSTOM_POST_TYPE) {
+                    $this->log->error_log("$loc: Deleting post {$externalRef} for person {$person->getID()}");
+                    wp_delete_post($externalRef,true);
+                    $result = true;
+                }
+                else {
+                    $this->log->error_log("$loc: Post {$externalRef} is not a TennisMemberCpt post type.");
+                }
+            }
+        }
+        return $result;
+    }
+
+
+    /**
+     * This section is used to register a new user via the registration form.
+     */
+
+    //Invoke the registration form
     public function registrationForm() {
         if(!is_user_logged_in()) {
             if(get_option('users_can_register')) {

@@ -30,10 +30,9 @@ enum RegistrationStatus : string implements iWorkflow {
      */
     public function nextPossible() : array {
         return match($this) {
-            self::Inactive    => [RegistrationStatus::Started],
-            self::Started     => [RegistrationStatus::Information,RegistrationStatus::Inactive],
-            self::Information => [RegistrationStatus::Emergency,RegistrationStatus::Started],
-            self::Emergency   => [RegistrationStatus::AcceptTerms,RegistrationStatus::Information],
+            self::Inactive    => [RegistrationStatus::Information],
+            self::Information => [RegistrationStatus::Emergency],
+            self::Emergency   => [RegistrationStatus::AcceptTerms],
             self::AcceptTerms => [RegistrationStatus::Payment,RegistrationStatus::Information],
             self::Payment     => [RegistrationStatus::Active],
             self::Active      => [RegistrationStatus::Inactive],
