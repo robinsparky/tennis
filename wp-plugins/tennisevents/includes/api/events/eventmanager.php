@@ -7,7 +7,7 @@ class EventManager
     private static $events = array();
 
     public static function listen($name, $callback) {
-        self::$eventevents[$name][] = $callback;
+        self::$events[$name][] = $callback;
     }
 
     public static function trigger($name, $params = array()) {
