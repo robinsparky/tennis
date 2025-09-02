@@ -756,7 +756,7 @@ class Bracket extends AbstractData
 		
         //Create temporary table for match data
         $sql = "CREATE TEMPORARY TABLE {$tempMatchTable} ( event_ID int, bracket_num int, round_num int, match_num int
-                                                    , match_type decimal(3,1), match_date datetime, is_bye tinyint(4), next_round_num int, next_match_num int
+                                                    , match_date datetime, is_bye tinyint(4), next_round_num int, next_match_num int
                                                     , comments varchar(255), new_match_num int default 0
                                                     ) ENGINE=MyISAM;";
 		$affected = $wpdb->query( $sql );
@@ -846,7 +846,7 @@ class Bracket extends AbstractData
         
         //Insert match rows into the temp match table
         $sql = "select event_ID, bracket_num, round_num, match_num
-                , match_type, match_date, is_bye, next_round_num, next_match_num, comments
+                , match_date, is_bye, next_round_num, next_match_num, comments
         from $matchTable       
         where event_ID = %d
         and bracket_num = %d
@@ -965,7 +965,7 @@ class Bracket extends AbstractData
 
         //Finally update the real tables with the new match numbers
         $sql = "select event_ID, bracket_num, round_num, new_match_num as match_num
-                , match_type, match_date, is_bye, next_round_num, next_match_num, comments 
+                , match_date, is_bye, next_round_num, next_match_num, comments 
                 from {$tempMatchTable}";
         $trows = $wpdb->get_results($sql, ARRAY_A);
         $affected = $this->insert_multiple_rows($matchTable, $trows);
