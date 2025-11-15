@@ -7,12 +7,17 @@ use datalayer\Format;
 use datalayer\MatchType;
 use datalayer\ScoreType;
 use datalayer\GenderType;
+
+$addendum = "";
+if($event->isClosed() && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+	$addendum = " (" . __("Locked", TennisEvents::TEXT_DOMAIN) . ")";
+}
 ?>
 
 <!-- Root event -->
 <div id="<?php echo get_the_ID()?>" class="tennis-parent-event" data-event-id="<?php echo $event->getID();?>">
 <ul class='tennis-event-meta tennis-event-meta-detail'>		
-	<li class="tennis-parent-event-title"><?php echo __("Title: ", TennisEvents::TEXT_DOMAIN);?><span><?php the_title();?></span></li>		
+	<li class="tennis-parent-event-title"><?php echo __("Title: ", TennisEvents::TEXT_DOMAIN);?><span><?php the_title(); echo $addendum;?></span></li>		
 	<li class='tennis-root-event-type'><?php echo __("Event Type: ", TennisEvents::TEXT_DOMAIN);?><span><?php echo $eventType;?></span></li>
 	<li class='tennis-root-event-date start'><?php echo __("Start Date: ", TennisEvents::TEXT_DOMAIN);?><span><?php echo $startDate;?><span></li>
 	<li class='tennis-root-event-date start'><?php echo __("End Date: ", TennisEvents::TEXT_DOMAIN);?><span><?php  echo $endDate;?></span></li>

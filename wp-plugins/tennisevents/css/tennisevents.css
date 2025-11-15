@@ -657,6 +657,43 @@ section.roundrobin-round {
   text-align: center;
 }
 
+/**
+  * Team Tennis specific styling
+  */
+
+section.roundrobin-round.ttc-team-tennis {
+  border: 3px solid green;
+  background-color: yellow;
+  border-radius: 10px;
+  padding: 5px 5px 5px 5px;
+}
+
+section.roundrobin-round > .item-player > .homeentrant {
+  font-size: larger;
+  font-weight: bold;
+}
+section.roundrobin-round > .item-player > .visitorentrant {
+  font-size: larger;
+  font-weight: bold;
+}
+
+section.roundrobin-round.ttc-team-tennis > .item-player {
+  background-color: white;
+}
+section.roundrobin-round.ttc-team-tennis > span {
+  font-size: larger;
+  font-weight: bold;
+}
+
+.team-standings-summary-table {
+  border: 3px solid black;
+  margin: 0 auto;
+  width: 50%;
+}
+/**  
+  * End Team Tennis specific styling
+  */  
+
 article.item-player {
   margin-top: 3px;
   border: 1px solid black;

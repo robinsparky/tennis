@@ -1,5 +1,8 @@
 <?php
 namespace datalayer;
+
+use TennisEvents;
+
 //use \TennisEvents;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -43,6 +46,7 @@ class ScoreType {
     public const POINTS1         = "1set1point"; //Based on points per win and total games won
     public const POINTS2         = "1set2points"; //Based on points per win and total games won    
     public const POINTS3         = "2sets2points"; //Based on points per win and total games won
+    public const TEAMTENNIS      = "ttc-teamtennis"; //Team Tennis Scoring at Tyandaga Tennis Club
 
     /*
     * Score Type Descriptions
@@ -57,6 +61,7 @@ class ScoreType {
             self::POINTS1    => "One Set One Point Per Win",
             self::POINTS2    => "One Set Two Points Per Win",    
             self::POINTS3    => "Two Sets Two Points Per Win",
+            self::TEAMTENNIS => "Total games Two Points Per Win One Point Per Tie",
     ];
     
     /**
@@ -73,13 +78,16 @@ class ScoreType {
                     self::POINTS1    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>1),
                     self::POINTS2    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>2),
                     self::POINTS3    => array("MaxSets"=>2,"GamesPerSet"=>4,"MustWinBy"=>2,"PointsPerWin"=>2),
+                    self::TEAMTENNIS => array("MaxSets"=>1,"GamesPerSet"=>99,"MustWinBy"=>1,"PointsPerWin"=>2),
                 );
                 
 
     //Used to separate Elimination rules from Round Robin rules
     private $RoundRobinOnly = [self::POINTS1 =>''
                               ,self::POINTS2 =>''
-                              ,self::POINTS3 =>''];
+                              ,self::POINTS3 =>''
+                              ,self::TEAMTENNIS =>''
+                            ];
    
 	//This class's singleton
 	private static $_instance;
@@ -104,7 +112,7 @@ class ScoreType {
 	public function __construct() {
 		// Don't allow more than one instance of the class
 		if ( isset( self::$_instance ) ) {
-			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', 'ten' ),get_class( $this ) ) );
+			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', TennisEvents::TEXT_DOMAIN ),get_class( $this ) ) );
 		}
     }
 

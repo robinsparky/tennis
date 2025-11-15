@@ -35,7 +35,7 @@ class PointsMatchUmpire extends ChairUmpire
 	 * @static
 	 * @return $_instance The Singleton instance.
 	 */
-	public static function getInstance() {
+	public static function getInstance() : self {
 		if ( is_null( self::$_instance ) ) {
 			self::$_instance = new self();
 		}
@@ -194,7 +194,7 @@ class PointsMatchUmpire extends ChairUmpire
                 $this->log->error_log( sprintf( "%s(%s): home W=%d, visitor W=%d"
                                         , $loc, $set->toString(), $homeW, $visitorW ) );
                 
-                if( $homeW < $this->getGamesPerSet() &&  $visitorW < $this->getGamesPerSet() ) {
+                if( $homeW < $this->getGamesPerSet() &&  $visitorW < $this->getGamesPerSet() && 99 !== $this->getGamesPerSet()) {
                     $setInProgress = $set->getSetNumber();
                     break; //not done yet so don't even consider other sets
                 }

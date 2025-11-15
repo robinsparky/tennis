@@ -86,6 +86,9 @@ if(!empty($prevSeason)) {
 					$startDate = get_post_meta( get_the_ID(), TennisEventCpt::START_DATE_META_KEY, true );
 					$endDate   = get_post_meta( get_the_ID(), TennisEventCpt::END_DATE_META_KEY, true );
 					$eventTitle = $event->getName();
+					if($event->isClosed()) {
+						$eventTitle .= " (" . __("Closed", TennisEvents::TEXT_DOMAIN) . ")";
+					}
 					$eventId = $event->getID();
 					$postId = get_the_ID();
 					//$editTitle = __("Edit Event '{$event->getName()}'",TennisEvents::TEXT_DOMAIN);
@@ -93,10 +96,11 @@ if(!empty($prevSeason)) {
 					if(empty($endDate)) $endDate = '';
 
 					//The content is produced here
-					$path = wp_normalize_path( TE()->getPluginPath() . 'includes\templates\controls\readonly-tenniseventcpt.php');
+					$path = TE()->getPluginPath() . 'includes\templates\controls\readonly-tenniseventcpt.php';
 					if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$event->isClosed() ) {
-						$path = wp_normalize_path(TE()->getPluginPath() . 'includes\templates\controls\editor-tenniseventcpt.php');
+						$path = TE()->getPluginPath() . 'includes\templates\controls\editor-tenniseventcpt.php';
 					}
+					$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
 					require($path);
 				?>	
 

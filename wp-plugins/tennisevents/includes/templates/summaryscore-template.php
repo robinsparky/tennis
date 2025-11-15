@@ -1,4 +1,4 @@
-<table class="tennis-score-summary">
+<table id="tennis-score-summary-id" class="tennis-score-summary">
 <caption>Summary of <?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?></caption>
 <thead><tr><th>&#x23;</th><th>Entrant</th>
 <?php 

@@ -157,11 +157,11 @@ class ManageSignup
                 break;
             case "createPrelimNoRandom":
                 $mess = $this->createPreliminary( $data, false );
-                $numPreliminary = $data["numPreliminary"];
+                $numPreliminary = $data["numPreliminary"] || 0;
                 break;
             case "createPrelimRandom":
                 $mess = $this->createPreliminary( $data, true );
-                $numPreliminary = $data["numPreliminary"];
+                $numPreliminary = $data["numPreliminary"] || 0;
                 break;
             case "reseqSignup":
                 $mess = $this->reseqSignup( $data );

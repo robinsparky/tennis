@@ -79,7 +79,7 @@
  data-matchnum="<?php echo $matchNum?>" 
  data-majorstatus="<?php echo $majorStatus?>" 
  data-minorstatus="<?php echo $minorStatus?>" >
-<div class="matchinfo matchtitle"><span><?php echo $title;?></span></div>
+<!--<div class="matchinfo matchtitle"><span><?php //echo $title;?></span></div>-->
 <div class="matchinfo matchstatus"><span><?php echo $status; ?></span></div>
 <div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $startDate;?>&nbsp;<?php echo $startTime; ?></div>
 <div class="matchinfo matchcomments"><?php echo $cmts; ?></div>

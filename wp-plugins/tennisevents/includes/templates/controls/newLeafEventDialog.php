@@ -15,15 +15,27 @@ $genderTypeDropDownNew .= "</select>";
 
 //TennisMatch type drop down
 $matchTypeDropDownNew = "<select name='MatchTypesNew' class='tennis-add-event match_type_selector_new'>";
-foreach( MatchType::AllTypes() as $key=>$value ) {
-    $matchTypeDropDownNew .= "<option value='{$key}'>{$value}</option>";
+//Restrict match type for Team Tennis events to Doubles only (for now)
+if($eventTypeRaw === EventType::TEAMTENNIS) {
+    $matchTypeDropDownNew .= "<option selected value='" . MatchType::DOUBLES . "'>" . MatchType::AllTypes()[MatchType::DOUBLES] . "</option>";
+}
+else {
+    foreach( MatchType::AllTypes() as $key=>$value ) {
+        $matchTypeDropDownNew .= "<option value='{$key}'>{$value}</option>";
+    }
 }
 $matchTypeDropDownNew .= "</select>";
 
 //Format Drop Down
 $formatDropDownNew = "<select name='AllFormatsNew' class='tennis-add-event format_selector_new'>";
-foreach( Format::AllFormats() as $key=>$value ) {
-    $formatDropDownNew .= "<option value='{$key}'>{$value}</option>";
+//Restrict format for Team Tennis events to Round Robin only
+if($eventTypeRaw === EventType::TEAMTENNIS) {
+    $formatDropDownNew .= "<option selected value='" . Format::ROUNDROBIN . "'>" . Format::AllFormats()[Format::ROUNDROBIN] . "</option>";
+}
+else {
+    foreach( Format::AllFormats() as $key=>$value ) {
+        $formatDropDownNew .= "<option value='{$key}'>{$value}</option>";
+    }
 }
 $formatDropDownNew .= "</select>";
 

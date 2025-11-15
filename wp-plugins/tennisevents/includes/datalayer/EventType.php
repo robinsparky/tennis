@@ -13,11 +13,13 @@ class EventType {
 	const TOURNAMENT  = 'tournament';
 	const LEAGUE      = 'league';
 	const LADDER      = 'ladder';
+	const TEAMTENNIS  = 'teamtennis';
 	
 	public static function AllTypes() {
 		return array( self::LADDER      => __('Ladder', TennisEvents::TEXT_DOMAIN )
 					, self::LEAGUE      => __('League', TennisEvents::TEXT_DOMAIN )
-					, self::TOURNAMENT  => __('Tournament', TennisEvents::TEXT_DOMAIN ) );
+					, self::TOURNAMENT  => __('Tournament', TennisEvents::TEXT_DOMAIN ) 
+					, self::TEAMTENNIS  => __('Team Tennis', TennisEvents::TEXT_DOMAIN ));
 	}
 
 	public static function isValid( $possible ) {

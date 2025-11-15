@@ -381,7 +381,7 @@ class TennisMatch extends AbstractData
         $loc = __CLASS__ . ":" . __FUNCTION__;
         $result = false;
         $tz = TennisEvents::getTimeZone();
-        $this->log->error_log("$loc:({$date})");
+        // $this->log->error_log("$loc:({$date})");
 
         if( empty( $date ) ) {
             $this->match_datetime = null;
@@ -433,7 +433,7 @@ class TennisMatch extends AbstractData
 
     public function setMatchDate_TS( int $timestamp ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log("$loc:{$this->toString()}($timestamp)");
+        // $this->log->error_log("$loc:{$this->toString()}($timestamp)");
 
         if( !isset( $this->match_datetime ) ) $this->match_datetime = new \DateTime('now', new \DateTimeZone('UTC'));
         $this->match_datetime->setTimeStamp( $timestamp );
@@ -465,7 +465,7 @@ class TennisMatch extends AbstractData
 	 */
 	public function getMatchDate_Str() {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log( $this->match_datetime, $loc);
+        // $this->log->error_log( $this->match_datetime, $loc);
 
 		if( !isset( $this->match_datetime ) || is_null( $this->match_datetime ) ) {
             return '';
@@ -481,7 +481,7 @@ class TennisMatch extends AbstractData
 	 */
 	public function getMatchUTCDate_Str() {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log( $this->match_datetime, $loc);
+        // $this->log->error_log( $this->match_datetime, $loc);
 
 		if( !isset( $this->match_datetime ) || is_null( $this->match_datetime ) ) {
             return '';
@@ -494,7 +494,7 @@ class TennisMatch extends AbstractData
 	 */
 	public function getMatchDateTime_Str( int $formatNum=1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log( $this->match_datetime, $loc);
+        // $this->log->error_log( $this->match_datetime, $loc);
 
         $result = '';
         $format = self::$outdatetimeformat1;
@@ -523,7 +523,7 @@ class TennisMatch extends AbstractData
 	 */
 	public function getMatchUTCDateTime_Str( int $formatNum=1) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log( $this->match_datetime, $loc);
+        // $this->log->error_log( $this->match_datetime, $loc);
 
         $result = '';
         $format = self::$outdatetimeformat1;
@@ -572,11 +572,11 @@ class TennisMatch extends AbstractData
      */
     public function setMatchTime_Str( string $time ) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
-        $this->log->error_log("{$loc}('{$time}')");
+        // $this->log->error_log("{$loc}('{$time}')");
         $tz = TennisEvents::getTimeZone();
         $tzs = wp_timezone_string();
-        $this->log->error_log("$loc: tz name={$tz->getName()}");
-        $this->log->error_log($tz, "$loc: tz...");
+        // $this->log->error_log("$loc: tz name={$tz->getName()}");
+        // $this->log->error_log($tz, "$loc: tz...");
 
 
 		$result = false;
@@ -591,7 +591,7 @@ class TennisMatch extends AbstractData
         if(false === $test) $test = \DateTime::createFromFormat( "h:i a", $time, $tz );
 
 		$last = \DateTime::getLastErrors();
-		if($last['error_count'] > 0) {
+		if($last !== false && $last['error_count'] > 0) {
 			$arr = $last['errors'];
 			$mess = $this->toString() . ':';
 			foreach($arr as $err) {
@@ -1385,8 +1385,8 @@ class TennisMatch extends AbstractData
     private function fetchEntrants() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         // $this->log->error_log("$loc({$this->toString()})");
-        $tr = GW_Debug::get_debug_trace_Str();$this->toString();
-        $this->log->error_log("$loc({$this->toString()}) trace: $tr" );
+        // $tr = GW_Debug::get_debug_trace_Str();$this->toString();
+        // $this->log->error_log("$loc({$this->toString()}) trace: $tr" );
 
         $contestants = Entrant::find( $this->event_ID, $this->bracket_num, $this->round_num, $this->match_num );
         switch( count( $contestants ) ) {

@@ -313,11 +313,21 @@ class RenderRoundRobin
 
         // Get template file to render the round robin matches
         $path = TE()->getPluginPath() . 'includes\templates\render-roundrobin-grid.php';
+        if( $td->getEvent()->isClosed() ) {
+            $path = TE()->getPluginPath() . 'includes\templates\render-roundrobinreadonly-grid.php';
+        }   
+        $pathn = wp_normalize_path($path); //this fails to open on HostPapa
+        $this->log->error_log("Requiring round robin template from normalized path: $pathn");
         $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
         require $path;
         
         //Render the score summary
         $path = TE()->getPluginPath() . 'includes\templates\summaryscore-template.php';
+        if($td->getEvent()->getParent()->getEventType() === EventType::TEAMTENNIS) {
+            $path = TE()->getPluginPath() . 'includes\templates\summarystandings-template.php';
+        }
+        $pathn = wp_normalize_path($path);
+        $this->log->error_log("Requiring summary template from normalized path: $pathn");
         $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
         require $path;
 

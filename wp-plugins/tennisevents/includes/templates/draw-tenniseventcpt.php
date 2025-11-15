@@ -58,14 +58,13 @@ use datalayer\Format;
 				<div class="tennis-event-schedule">
 				<?php
 				$titlePrefix = 'Session';
-				if($event->getParent()->getEventType() === EventType::LEAGUE ) {
+				if($event->getParent()->getEventType() === EventType::TEAMTENNIS ) {
 					$titlePrefix = 'Week';
 				}
 				$bn = urlencode( $bracketName );
 				if( $mode === "signup" ) {
 					//Include the search button to find entrants
 					$buttonTitle="Find an Entrant"; $container="ul.eventSignup";$target=".entrantName";require( $path );
-
 					echo do_shortcode("[manage_signup eventid={$event->getID()} bracketname={$bn}]");
 					$drawUrl = get_permalink() . "?mode=draw&bracket=" . $bn . "&season={$season}";
 					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
@@ -76,6 +75,7 @@ use datalayer\Format;
 				elseif( $mode === "draw" ) {
 					//Include the search button to find players
 					$buttonTitle="Find a Player"; $container="#{$bn}";$target=".homeentrant,.visitorentrant";require( $path );
+
 					switch( $event->getFormat() ) {
 						case Format::ELIMINATION:
 							echo do_shortcode("[manage_draw by=match eventid={$event->getID()} bracketname={$bn}]");

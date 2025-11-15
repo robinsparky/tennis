@@ -34,10 +34,15 @@ $numChildren = count($event->getChildEvents());
 	?>
 	<ul class = 'tennis-event-linkbased-menu root'>
 	<?php if( $eventTypeRaw === EventType::LADDER && $numChildren > 0) { ?>
-		<li><a class="tennis-ladder-next-month" data-eventid='<?php echo $eventId?>'>Prepare Next Month</a></li>
+		<li><a class="tennis-ladder-next-month" data-eventid='<?php echo $eventId?>'><?php echo __("Prepare Next Month", TennisEvents::TEXT_DOMAIN);?></a></li>
 	<?php } elseif($eventTypeRaw === EventType::LADDER && $numChildren === 0) { ?>
 		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo __("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
 		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
+	<?php } elseif($eventTypeRaw === EventType::TEAMTENNIS && $numChildren === 0) { ?>
+		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo __("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
+		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add Team Tennis League",TennisEvents::TEXT_DOMAIN);?></a></li>
+	<?php } elseif($eventTypeRaw === EventType::TEAMTENNIS && $numChildren > 0) { ?>
+		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add Team Tennis League",TennisEvents::TEXT_DOMAIN);?></a></li>
 	<?php } elseif($numChildren === 0) { ?>
 		<li><a class='tennis-delete-event root' data-eventid='<?php echo $eventId?>'><?php echo __("Delete '{$event->getName()}'",TennisEvents::TEXT_DOMAIN)?></a></li>
 		<li><a class="tennis-add-event leaf" data-parentId="<?php echo $eventId;?>"><?php echo __("Add A Tournament",TennisEvents::TEXT_DOMAIN);?></a></li>
@@ -143,7 +148,7 @@ $numChildren = count($event->getChildEvents());
 				}
 				$matchTypeDropDown .= "</select>";
 
-				if($restrictChanges) {
+				if($restrictChanges || $eventTypeRaw === EventType::TEAMTENNIS) {
 					//No drop down
 					$matchTypeDisplay = $matchType;
 				}
@@ -159,7 +164,7 @@ $numChildren = count($event->getChildEvents());
 					$formatDropDown .= "<option value='{$key}' {$selected}>{$value}</option>";
 				}
 				$formatDropDown .= "</select>";
-				if($restrictChanges) {
+				if($restrictChanges || $eventTypeRaw === EventType::TEAMTENNIS) {
 					//No drop down
 					$formatDisplay = $eventFormat;
 				}

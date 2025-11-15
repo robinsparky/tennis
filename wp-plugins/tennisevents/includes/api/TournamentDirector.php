@@ -238,7 +238,7 @@ class TournamentDirector
      * @see ScoreType class
      * @return object ChairUmpire subclass
      */
-    public function getChairUmpire( ) : ChairUmpire {
+    public function getChairUmpire( ) : ChairUmpire | null {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         
         $chairUmpire = null;
@@ -904,6 +904,8 @@ class TournamentDirector
 
         if( $this->getEvent()->getParent()->getEventType() === EventType::LEAGUE ) {
             return $this->initializeLeague( $bracketName, false );
+        } elseif( $this->getEvent()->getParent()->getEventType() === EventType::TEAMTENNIS ) {
+            return $this->initializeTeamTennis( $bracketName, $randomizeDraw );
         } else {
             switch( $this->getEvent()->getFormat() ) {
                 case Format::ELIMINATION:
@@ -1303,7 +1305,8 @@ class TournamentDirector
 
         return $matchesCreated;
     }
-        /**
+
+    /**
      * Initalize matches for League play (extends Round Robin format)
      * @param string $bracketName
      * @param bool $randomizeDraw boolean to indicate if the signup should be randomized
@@ -1335,7 +1338,7 @@ class TournamentDirector
         $this->log->error_log("$loc: start='{$startDate->format('Y-m-d')}'; end='{$endDate->format('Y-m-d')}'");
         if( $endDate <= $startDate ) {
             $mess = "Start date '{$startDate->format('Y-m-d')}' is greater or equal to end date '{$endDate->format('Y-m-d')}'.";
-            throw new \RuntimeException($mess);
+            throw new InvalidTournamentException($mess);
         }
 
         $matchesCreated = 0;
@@ -1357,9 +1360,9 @@ class TournamentDirector
 
         
         //Heavy lifting done here!
-        //1. Get contestants
+        //1. Get contestants i.e. the Team names
         $contestants = array_map( function( $e ) { return $e->getName(); }, $entrants);
-        
+
         //2. Shuffle the matches
         if( $randomizeDraw ) shuffle( $contestants );
 
@@ -1369,6 +1372,7 @@ class TournamentDirector
         // NOTE: (n choose k) = n!/k!(n-k)! where in this case k=2
         // which represents the team vs team
         $matches = $this->getCombinations( $contestants );
+
         $matchesCreated = count( $matches );
         $this->log->error_log( $matches, "$loc: Combinatorics created {$matchesCreated} player pairs");
 
@@ -1474,14 +1478,319 @@ class TournamentDirector
 
         return $matchesCreated;
     }
+        
+    /**
+     * Initalize matches for Team Tennis play (extends Round Robin format)
+     * @param string $bracketName
+     * @param bool $randomizeDraw boolean to indicate if the signup should be randomized
+     * @return int Number of matches created
+     */
+    private function initializeTeamTennis( string $bracketName, $randomizeDraw = false ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log( ">>>>>>>>>>>>>>>>>>>>>>>>>$loc called with bracket='$bracketName', randomize=$randomizeDraw" ); 
 
+        //Get or create the requested bracket
+        // $mainbracket = null;
+        // $loserbracket = null;
+        $minplayers =  self::MINIMUM_RR_ENTRANTS;
+        $event = $this->getEvent();
+        $bracket = $this->getBracket( $bracketName );
+        
+        //Bracket must not be approved already
+        if( $bracket->isApproved() ) {
+            throw new InvalidBracketException( __("Bracket already approved. Please reset first.", TennisEvents::TEXT_DOMAIN ) );
+        }
+
+        //Cannot schedule preliminary rounds if matches have already started
+        if( 0 < $this->hasStarted( $bracket->getName() ) ) {
+            throw new BracketHasStartedException( __('Cannot schedule preliminary matches for bracket because play as already started.') );
+        }
+
+        $startDate = clone $event->getStartDate();
+        $endDate   = clone $event->getEndDate();
+        $this->log->error_log("$loc: start='{$startDate->format('Y-m-d')}'; end='{$endDate->format('Y-m-d')}'");
+        if( $endDate <= $startDate ) {
+            $mess = "Start date '{$startDate->format('Y-m-d')}' is greater or equal to end date '{$endDate->format('Y-m-d')}'.";
+            throw new InvalidTournamentException($mess);
+        }
+
+        $matchesCreated = 0;
+        $entrants = $bracket->getSignup();
+        $bracketSignupSize = count( $entrants );
+        //Check minimum entrants constraint
+        if( $bracketSignupSize < $minplayers ) {
+            $mess = __( "Bracket must have at least $minplayers entrants for an elimination event. $bracketSignupSize entrants found.", TennisEvents::TEXT_DOMAIN );
+            throw new InvalidBracketException( $mess );
+        }
+        $this->log->error_log( "$loc: signup size=$bracketSignupSize" );
+
+        //Remove any existing matches ... we know they have not started yet
+        $this->removeMatches( $bracketName );
+        $this->save();
+
+        //$this->numRounds = $bracketSignupSize * ( $bracketSignupSize - 1 ) / 2;
+        $this->numToEliminate = 0;
+
+        
+        //Heavy lifting done here!
+        //1. Get contestants i.e. the Team names
+        $contestants = array_map( function( $e ) { return $e->getName(); }, $entrants);
+        //1a. Sort contestents by name
+        sort( $contestants, SORT_STRING );
+
+        $bracketSignupSize = count( $contestants );
+        $numMatches = $bracketSignupSize * ( $bracketSignupSize - 1 ) / 2;
+        $this->log->error_log( "$loc: Calculated number of matches={$numMatches} per cycle" );
+       
+        //3. Get combinations in groups of 2
+        // NOTE: (n choose k) = n!/k!(n-k)! where in this case k=2
+        // which represents the team vs team
+        $matches = $this->getCombinations( $contestants );//array of player pairs (i.e. array of arrays)
+        $matchesCreated = count( $matches );
+        //$this->log->error_log( $matches, "$loc: Combinatorics created " . count( $matches ) . " player pairs");
+        if( $matchesCreated !== $numMatches ) {
+            $this->log->error_log($matches, "$loc: Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.");
+            throw new InvalidTournamentException(__("Calculated number of matches={$numMatches} differs from faux matches created={$matchesCreated}.",TennisEvents::TEXT_DOMAIN ));
+        }
+        
+        //4. Remove pairs which pitt A against B players
+        $matches = array_filter( $matches, function( $pair ) use ( $contestants ) {
+            $first = current( $pair );
+            $second = next( $pair );
+            return strstr( $first, 'A' ) && strstr( $second, 'B' ) || strstr( $first, 'B' ) && strstr( $second, 'A' ) ? false : true;
+        });
+        $this->log->error_log( $matches, "$loc: After removing A vs B contains " . count( $matches ) . " player pairs");
+
+        //4b. Reset indices
+        $matches = array_values($matches);
+        foreach( $matches as &$pair ) {
+            $pair = array_values( $pair );
+        }
+        // usort( $matches, function( $a, $b ) {
+        //     $teamA = current( $a );
+        //     $teamB = next( $b );
+        //     return strcmp( $teamA, $teamB );
+        // });
+        $this->log->error_log( $matches, "$loc: After reseting indices " . count( $matches ) . " player pairs");
+
+        //5. Call function to generate matches (i.e. array of player pairs) for Team vs Team, Squad A vs Squad A, Squad B vs Squad B
+        $matchesCreated = $this->generateMatches($bracket, $matches, $startDate, $endDate, $randomizeDraw );
+
+
+        $matchesGenerated = $bracket->numMatches();
+        $this->log->error_log( "$loc: Bracket now has {$matchesGenerated} matches.");
+        if( $matchesCreated !== $matchesGenerated ) {
+            $mess = "Actual number of matches created '{$matchesCreated}' differs from what was stored in the bracket '{$matchesGenerated}'.";
+            $this->log->error_log( $mess );
+            throw new InvalidTournamentException( __($mess, TennisEvents::TEXT_DOMAIN ));
+        }
+
+        //6. Save the bracket's team tennis matches
+        $this->save();
+        $this->log->error_log("<<<<<<<<<<<<<<<<<<<<<<< End $loc<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+        return $matchesCreated;
+    }
+
+    /**
+     * Generate the actual tennis matches for Team Tennis play.
+     * This is where the heavy lifting is done.
+     * @param Bracket $bracket The bracket whose draw is being generated.
+     * @param array $matches is the array of player pairs. NOTE: passed by value results in resetting the numeric keys correctly.
+     * @param \DateTime $startDate The starting date for scheduling matches
+     * @param \DateTime $endDate The ending date for scheduling matches
+     * @return int Number of matches created
+     */
+    private function generateMatches(Bracket $bracket, array $matches, \DateTime $startDate, \DateTime $endDate) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("{$loc}: Bracket={$bracket->getName()}" );
+
+        $squadA = array_filter( $matches, function( $pair ) {
+            $first = current( $pair );
+            $second = next( $pair );
+            return strstr( $first, 'A' ) && strstr( $second, 'A' ) ? true : false;
+        });
+        $squadB = array_filter( $matches, function( $pair ) {
+            $first = current( $pair );
+            $second = next( $pair );
+            return strstr( $first, 'B' ) && strstr( $second, 'B' ) ? true : false;
+        });
+
+        $playerPairs = $matches;
+        $curDate = clone $startDate;
+        $matchCycle = count($matches);
+        //$squadCycle = $matchCycle / 2;
+        $numTeams = 4; //Hardcoded for now ... later can be derived from entrants
+
+        $numWeeks = 0;
+        $totalRounds = 0;
+        $matchesByRound = array();
+        $datesByRound = array();
+        while( $curDate <= $endDate ) {
+            //1. Fill out the matches by round array 
+            //   ensuring that players do not play more than once in a round
+            $r=++$totalRounds;
+            $datesByRound[$r] = clone $curDate;
+            $matchesByRound[$r] = array();
+            $m=1;
+            ++$numWeeks;
+            $this->log->error_log("$loc: while curDate={$curDate->format('Y-m-d')}; week#{$numWeeks}");
+            $ctr = 0;
+            while( 0 < count( $matches ) ) {
+                $ct = count( $matches );
+                ++$ctr;
+                $this->log->error_log("$loc: {$ctr}. while count of matches={$ct} for round={$r}");
+
+                $match = $this->nextRRMatch( $matchesByRound[$r], $matches );
+
+                if( !empty( $match ) ) {
+                    $matchesByRound[$r][$m++] = $match;
+                }
+                elseif( !empty( $matches ) ) {
+                    ++$r;
+                    ++$totalRounds;
+                    $m=1;
+                    $matchesByRound[$r] = array();
+                    $curDate->add(new \DateInterval('P7D')); //weekly interval
+                    $datesByRound[$r] = clone $curDate;
+                }
+                //$this->log->error_log($matchesByRound[$r], "$loc - Matches for round {$r}");
+                //$this->log->error_log($datesByRound[$r], "$loc - Dates for round {$r}");
+            }         
+            $this->log->error_log("$loc: r={$r}; totalRounds={$totalRounds}");    
+            // $this->log->error_log($matchesByRound, "$loc - Matches by round");
+            // $this->log->error_log($datesByRound, "$loc - Dates by round");
+            $matches = $playerPairs; //reset matches for next week
+            $curDate->add(new \DateInterval('P7D')); //weekly interval
+        } //while curDate
+
+        $genRounds = $r;
+        $this->numRounds = $r;
+        $this->log->error_log( "Generated {$genRounds} rounds i.e. {$numWeeks} weeks with start date '{$startDate->format('Y-m-d')}' and end date '{$endDate->format('Y-m-d')}'" );
+        //$this->log->error_log( $matchesByRound, "Matches By Round" );
+
+        $courts = ["12"=>"Courts 1 & 2", "34"=>"Courts 3 & 4"];
+        $numCourts = 4;
+        $courtAssignment = $courts["34"];
+        $favour = 'A';
+        $startHour = 19; //7pm
+        $startMinutes = 0;
+        $totalMatches = 0;
+        //Rounds
+        for( $r = 1; $r <= $genRounds; $r++ ) {
+            $matches = $matchesByRound[$r];
+            $matchDate = clone $datesByRound[$r];
+            $m = 1;
+            $courtNum = 0;
+
+            if($r % 2 === 0 && $totalMatches > 0) {
+                if($courtAssignment === $courts["12"]) {
+                    $courtAssignment = $courts["34"];
+                }
+                else {
+                    $courtAssignment = $courts["12"];
+                }
+            }
+            $res = $totalMatches % $matchCycle; //Beginning of new cycle of pairs when res=0
+            $test = $r % ($numTeams - 1);
+            $this->log->error_log("$loc:round={$r}; test={$test}; favour='{$favour}'");
+
+            if($test === 1 && $r > 1) { //Change favour every (numTeams -1) rounds
+                if($favour === 'A') {
+                    $favour = 'B';
+                }
+                else {
+                    $favour = 'A';
+                }   
+            }
+            $this->swapAB($favour,$matches);
+
+            //Matches within a round
+            foreach( $matches as $mtch ) { //at this point matches are pairs of players
+                ++$totalMatches;
+                $players = array_values( $mtch );
+                $this->log->error_log($players,"$loc:Players for round={$r}, match={$m}");
+                $home = $bracket->getNamedEntrant( $players[0] );
+                $visitor = $bracket->getNamedEntrant( $players[1] );
+                $match = new TennisMatch( $this->getEvent()->getID(), $bracket->getBracketNumber(), $r, $m++ );
+                $match->setHomeEntrant( $home );
+                $match->setVisitorEntrant( $visitor );
+                $match->setMatchDate_Str($matchDate->format('Y-m-d'));
+                $matchDate->setTime($startHour,$startMinutes);
+                $match->setMatchTime_Str($matchDate->format('G:i'));
+                // $courtAssignment = ($totalMatches % 2 !== 0) ? $courts["12"] : $courts["34"];//odd number use courts 1 & 2 else courts 3 & 4
+                // if(($totalMatches % 2 !== 0)) {       
+                    // if($courtAssignment === $courts["12"]) {
+                    //     $courtAssignment = $courts["34"];
+                    // }
+                    // else {
+                    //     $courtAssignment = $courts["12"];
+                    // }
+                // }
+                //$match->setComments( $courtAssignment );
+                $courtNum += 2;
+                if($courtNum >= $numCourts) {
+                    if($startHour === 19) {
+                        $startHour = 20; $startMinutes=30;
+                    }
+                    else {
+                        $startHour=19; $startMinutes=0;
+                    }
+                    $courtNum = 0;
+                }
+                $bracket->addMatch( $match );
+            }//Matches within a round
+        }//Rounds
+
+        return $totalMatches;
+    }
+
+    /**
+     * Swap A or B to favour one squad over the other
+     * Favour means that squad first in the order of play so they are assigned a 7pm start time
+     * @param string $favour 'A' or 'B' to indicate which squad to favour
+     * @param array $matches array of player pairs passed by reference
+     */
+    private function swapAB($favour,array &$matches ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log($matches,"$loc: Swapping A & B with favour='{$favour}' before swap");
+
+        $squadA = array_filter( $matches, function( $pair ) {
+            $first = current( $pair );
+            $second = next( $pair );
+            return strstr( $first, 'A' ) && strstr( $second, 'A' ) ? true : false;
+        });
+        $squadB = array_filter( $matches, function( $pair ) {
+            $first = current( $pair );
+            $second = next( $pair );
+            return strstr( $first, 'B' ) && strstr( $second, 'B' ) ? true : false;
+        });
+
+        // $this->log->error_log($squadA,"$loc: Squad A pairs");
+        // $this->log->error_log($squadB,"$loc: Squad B pairs");
+
+        if($favour == 'B') {
+            $matches = array_merge( $squadB, $squadA );
+        }
+        else {
+            $matches = array_merge( $squadA, $squadB );
+        }
+        $this->log->error_log($matches,"$loc: Swapping A & B with favour='{$favour}' after swap");
+    }
+
+    /**
+     * Get the next match from the remaining matches that does not involve any players
+     * already scheduled in the given scheduled matches
+     * @param array $scheduled array of already scheduled matches for the round
+     * @param array $remainingMatches array of remaining matches to choose from
+     * @return array The next match found; empty array if none found
+     */
     private function nextRRMatch( array $scheduled, array &$remainingMatches ) : array {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
-        $result = array();
-        
         // $this->log->error_log($scheduled, "$loc - Scheduled");
         // $this->log->error_log($remainingMatches,"$loc - Remaining at Start");
+
+        $result = array();
 
         $offset = 0;
         foreach($remainingMatches as $remain ) {
@@ -1497,7 +1806,7 @@ class TournamentDirector
                 break;
             }                
             ++$offset;
-        }
+        } //foreach remainingMatches
 
         if( !empty( $result ) ) {
             $extracted = array_splice( $remainingMatches, $offset, 1 );

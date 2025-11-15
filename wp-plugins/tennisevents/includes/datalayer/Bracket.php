@@ -445,13 +445,32 @@ class Bracket extends AbstractData
 	 */
 	public function getNamedEntrant( string $name ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		$calledBy = debug_backtrace()[1]['function'];
-        $this->log->error_log("$loc({$name}) ... called by {$calledBy}");
+		// $calledBy = debug_backtrace()[1]['function'];
+        // $this->log->error_log("$loc({$name}) ... called by {$calledBy}");
         
 		$result = null;
 
 		foreach( $this->getSignup() as $entrant ) {
 			if( $name === str_replace(array("\'"),"'",$entrant->getName()) ) {
+				$result = $entrant;
+				break;
+			}
+		}
+		return $result;
+	}
+    
+	/**
+	 * Get an entrant by pattern matching the name from the this bracket
+	 */
+	public function getNamedEntrantRegex( string $name ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+		// $calledBy = debug_backtrace()[1]['function'];
+        // $this->log->error_log("$loc({$name}) ... called by {$calledBy}");
+        
+		$result = null;
+
+		foreach( $this->getSignup() as $entrant ) {
+			if( preg_match("/{$name}/i", str_replace(array("\'"),"'",$entrant->getName()) ) ) {
 				$result = $entrant;
 				break;
 			}

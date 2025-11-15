@@ -35,7 +35,7 @@ class MatchTieBreakerUmpire extends ChairUmpire
 	 * @static
 	 * @return $_instance The Singleton instance.
 	 */
-	public static function getInstance() {
+	public static function getInstance() : self {
 		if ( is_null( self::$_instance ) ) {
 			self::$_instance = new self();
 		}

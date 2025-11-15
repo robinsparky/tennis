@@ -99,6 +99,7 @@ abstract class ChairUmpire
             case ScoreType::POINTS1:
             case ScoreType::POINTS2:
             case ScoreType::POINTS3:
+            case ScoreType::TEAMTENNIS:
                 //Points such as Round Robins where games are played up to a time limit
                 $chairUmpire = PointsMatchUmpire::getInstance();
                 break;

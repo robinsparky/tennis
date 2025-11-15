@@ -1,13 +1,20 @@
 <?php 
 use datalayer\MatchStatus; 
+use datalayer\EventType;
 ?>
 <?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
     $eventType = $td->getEvent()->getParent()->getEventType();
     $isClosed = $td->getEvent()->isClosed();
+    $teamTennisClass = '';
+    if($eventType === EventType::TEAMTENNIS) {
+        $teamTennisClass = 'ttc-team-tennis';
+    }
 ?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php echo $tournamentName;?>&colon;&nbsp;<?php echo $bracketName; ?>(<?php echo $scoreRuleDesc; ?>)</h3>
 <h5 class='tennis-draw-caption-dates'><span>Starts</span>&colon;&nbsp;<span><?php echo $strEventStartDate;?></span>&nbsp;<span>Ends</span>&colon;&nbsp;<span><?php echo $strEventEndDate;?></span>&nbsp;<span id='digiclock'></span></h5>
+
+<h5><a class="tennis-summary-link" href="#tennis-score-summary-id">Go to Team Standings</a></h5>
 <main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 <?php 
     $winnerClass = "matchwinner";
@@ -15,10 +22,15 @@ use datalayer\MatchStatus;
     $endDate = clone $td->getEvent()->getEndDate();
     foreach( $loadedMatches as $roundnum => $matches ) {
         $roundTitle = "{$titlePrefix} {$roundnum}";
-        // $roundTitle = "Week {$roundnum}. {$beginDate->format("M d, Y")} ";
-        // $beginDate->add(new \DateInterval('P7D')); //weekly interval
+
+        //Let's sort matches by start date/time
+        usort( $matches, function( $a, $b ) {
+            $keyA = $a->getMatchDate_Str() . ' ' . $a->getMatchTime_Str();
+            $keyB = $b->getMatchDate_Str() . ' ' . $b->getMatchTime_Str();
+            return strcmp( $keyA, $keyB );
+        });
 ?>
-<section class="roundrobin-round"><span><?php echo $roundTitle; ?></span>
+<section class="roundrobin-round <?php echo $teamTennisClass;?>"><span><?php echo $roundTitle; ?></span>
 <?php //$roundTitle = "Week {$roundnum}. {$beginDate->format("M d, Y")} "; ?>
 <?php foreach( $matches as $match ) { 
     $begin = microtime( true );
@@ -101,7 +113,7 @@ use datalayer\MatchStatus;
  data-majorstatus="<?php echo $majorStatus;?>" 
  data-minorstatus="<?php echo $minorStatus;?>">
 <?php if(!empty($menupath)) require $menupath; ?>
-<div class="matchinfo matchtitle"><?php echo $title; ?></div>
+<!--<div class="matchinfo matchtitle"><?php //echo $title; ?></div>-->
 <div class="matchinfo matchstatus"><?php echo $status; ?></div>
 <div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $startDate;?>&nbsp;<?php echo $startTime; ?></div>
 <div class="changematchstart">
@@ -128,7 +140,8 @@ use datalayer\MatchStatus;
         $this->log->error_log("render-RoundRobin: Current user is not PRIVILEGED!");
     }
     if($isClosed) {
-        $this->log->error_log("render-RoundRobin: Event is closed!");
+        $this->log->error_log("render-RoundRobin: Event is closed!"); ?>
+<?php
     }
 ?>
 <?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$isClosed ) {
