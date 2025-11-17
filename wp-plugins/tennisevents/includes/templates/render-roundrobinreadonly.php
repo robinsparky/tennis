@@ -1,3 +1,4 @@
+<h1>NO LONGER USED .... WHY IS THIS FILE STILL HERE??</h1>
 <table id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 <caption><?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?> Bracket</caption>
 <thead>

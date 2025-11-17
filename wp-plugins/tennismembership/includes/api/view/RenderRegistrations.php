@@ -116,7 +116,8 @@ class RenderRegistrations
         ob_start();
         
         // Get template file to render the registration home page or workflow
-        $path = wp_normalize_path( TM()->getPluginPath() . 'includes\templates\archive_clubmembershipcpt.php');
+        $path = TM()->getPluginPath() . 'includes\templates\archive_clubmembershipcpt.php';
+        $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
         require $path;
 
         // Save output and stop output buffering

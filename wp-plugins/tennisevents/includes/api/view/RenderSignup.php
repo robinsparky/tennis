@@ -2,6 +2,7 @@
 namespace api\view;
 use commonlib\BaseLogger;
 use datalayer\Event;
+use datalayer\EventType;
 use \WP_Error;
 use \TennisEvents;
 use \TE_Install;
@@ -158,6 +159,8 @@ class RenderSignup
         $td = new TournamentDirector( $target );
         $eventName = str_replace("\'", "&apos;", $td->getName());
         $parentName = str_replace("\'", "&apos;", $td->getParentEventName());
+        $eventType = $td->getEvent()->getParent()->getEventType();
+        $this->log->error_log("$loc: EventType={$eventType}");
         $clubName = $club->getName();
         $isApproved = $bracket->isApproved();
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
@@ -224,13 +227,13 @@ EOT;
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
             if( $numPrelimMatches > 0 ) 
-                if( current_user_can( 'manage_options' ) && !$target->isClosed() ) {
+                if( current_user_can( 'manage_options' ) && !$target->isClosed() && $eventType !== EventType::TEAMTENNIS ) {
                     $htm = sprintf( $templu, $nameId, $pos, $pos, $name, $name );
                 }
                 else {
                     $htm = sprintf( $templr, $nameId, $pos, $rname );
                 }
-            else if($target->isClosed() ) {
+            else if($target->isClosed() || $eventType === EventType::TEAMTENNIS ) {
                 $htm = sprintf( $templr, $nameId, $pos, $rname );
             }
             else {
@@ -240,13 +243,18 @@ EOT;
         }
         $out .= '</ul>' . PHP_EOL;
         $link = get_bloginfo('url');
-        if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() ) {
+        if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() && $eventType !== EventType::TEAMTENNIS ) {
             $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button> <label class="button addentrant" for="entrant_uploads_file">Upload Entrants</label>' . PHP_EOL;
             $out .= '&nbsp;<a class="download" id="downloadtennisfile" href="' . $link . '?moniker=signupschema">(Download schema)</a><br>' . PHP_EOL;
             $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button randomize" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
             $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
             $out .= $templfile . PHP_EOL;
+        }
+        else if( $numPrelimMatches < 1 && $eventType === EventType::TEAMTENNIS && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() ) {            
+            $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
+            $out .= '<button class="button randomize" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
+            $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
         }
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';

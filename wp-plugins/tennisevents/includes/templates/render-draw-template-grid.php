@@ -94,7 +94,7 @@ data-bracketname="<?php echo $bracketName ?>" data-champion="<?php echo $champio
                 $minorStatus = $statusObj->getMinorStatus();
                 $generalstatus = "";
                 
-                $startDate = $match->getMatchDate_Str();
+                $startDate = $match->getMatchDate_Str(3);
                 $startTime = $match->getMatchTime_Str(2);
                 $startTimeVal = $match->getMatchTime_Str();
                 $startLabel = "Started:";

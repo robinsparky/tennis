@@ -657,6 +657,24 @@ section.roundrobin-round {
   text-align: center;
 }
 
+section.roundrobin-round > .item-player > .homeentrant {
+  font-size: larger;
+  font-weight: bold;
+}
+section.roundrobin-round > .item-player > .visitorentrant {
+  font-size: larger;
+  font-weight: bold;
+}
+
+td.item-player > .homeentrant {
+  font-size: larger;
+  font-weight: bold;
+}
+td.item-player > .visitorentrant {
+  font-size: larger;
+  font-weight: bold;
+}
+
 /**
   * Team Tennis specific styling
   */
@@ -666,15 +684,6 @@ section.roundrobin-round.ttc-team-tennis {
   background-color: yellow;
   border-radius: 10px;
   padding: 5px 5px 5px 5px;
-}
-
-section.roundrobin-round > .item-player > .homeentrant {
-  font-size: larger;
-  font-weight: bold;
-}
-section.roundrobin-round > .item-player > .visitorentrant {
-  font-size: larger;
-  font-weight: bold;
 }
 
 section.roundrobin-round.ttc-team-tennis > .item-player {
@@ -925,8 +934,15 @@ div.modifymatchscores.save-cancel-buttons {
   font-weight: bold;
 }
 
+/*
 .matchstatus {
   font-size: 100%;
+  font-weight: bold;
+}
+  */
+
+.matchstart {
+  font-size: large;
   font-weight: bold;
 }
 
@@ -1116,10 +1132,6 @@ button.cancelmatchscores {
   border-radius: 8px;
   text-transform: none;
   padding: 0 0 0 0;
-}
-
-.matchstart {
-  font-size: smaller;
 }
 
 .changematchstart {

@@ -78,7 +78,7 @@
                 $minorStatus = $statusObj->getMinorStatus();
                 $generalstatus = $statusObj->toString();
 
-                $startDate = $match->getMatchDate_Str();
+                $startDate = $match->getMatchDate_Str(3);
                 $startTime = $match->getMatchTime_Str(2);
                 $startTimeVal = $match->getMatchTime_Str();
 

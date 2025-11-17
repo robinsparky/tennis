@@ -828,6 +828,14 @@ class ManageEvents
                 $eventFormat =  Format::ROUNDROBIN;
                 $event->setFormat(Format::ROUNDROBIN);
             }
+            elseif($parentEvent->getEventType() === EventType::TEAMTENNIS ) {
+                $data['format'] = Format::ROUNDROBIN;
+                $eventFormat =  Format::ROUNDROBIN;
+                $event->setFormat(Format::ROUNDROBIN);
+                $data['matchType'] = MatchType::DOUBLES;
+                $event->setMatchType(MatchType::DOUBLES);
+                $matchType = MatchType::DOUBLES;
+            }
 
             $current_user = wp_get_current_user();
             if ( $current_user->exists() ) {
@@ -1257,6 +1265,22 @@ class ManageEvents
             $bracket = $td->addBracket( $newBracketName ); //automatically saves
             if( is_null( $bracket ) ) {
                 throw new InvalidBracketException(__("Bracket not created or found", TennisEvents::TEXT_DOMAIN) );
+            }
+
+            $club = $event->getClubs()[0];
+            $numCourts = is_null($club) ? 0 : $club->getNumCourts();
+            $numCourts = $numCourts < 1 ? 4 : $numCourts;
+            $numNewEntrants = 0;
+            if($event->getParent()->getEventType() === EventType::TEAMTENNIS) {
+                foreach( range(1,$numCourts) as $teamNum) {
+                    $td->addEntrant( "Team {$teamNum}A",0,$newBracketName );
+                    $numNewEntrants++;
+                }
+                foreach( range(1,$numCourts) as $teamNum) {
+                    $td->addEntrant( "Team {$teamNum}B",0,$newBracketName );
+                    $numNewEntrants++;
+                }
+                $td->save();
             }
             $data["bracketNum"] = $bracket->getBracketNumber();
             $data["bracketName"] = $bracket->getName();
