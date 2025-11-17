@@ -29,9 +29,11 @@ class TennisMatch extends AbstractData
     //Date and time output formats
     private static $outdatetimeformat1 = "Y-m-d G:i"; 
     private static $outdatetimeformat2 = "Y-m-d g:i a"; 
+    private static $outdatetimeformat3 = "M d G:i";
 
     //Date only output formats
     private static $outdateformat = "Y-m-d";
+    private static $outdateformat3 = "M d ";
 
     //Time only output formats
     private static $outtimeformat1 = "G:i"; 
@@ -463,7 +465,7 @@ class TennisMatch extends AbstractData
 	/**
 	 * Get the local TennisMatch date in string format
 	 */
-	public function getMatchDate_Str() {
+	public function getMatchDate_Str(int $formatNum=0) {
         $loc = __CLASS__ . ":" . __FUNCTION__;
         // $this->log->error_log( $this->match_datetime, $loc);
 
@@ -472,7 +474,13 @@ class TennisMatch extends AbstractData
         }
 		else {
             $temp = clone $this->match_datetime;
-            return $temp->setTimezone(TennisEvents::getTimeZone())->format( self::$outdateformat );
+            switch( $formatNum ) {
+                case 3:
+                    return $temp->setTimezone(TennisEvents::getTimeZone())->format( self::$outdateformat3 );
+                    break;
+                default:
+                    return $temp->setTimezone(TennisEvents::getTimeZone())->format( self::$outdateformat );
+            }
         }
 	}
 
@@ -504,6 +512,9 @@ class TennisMatch extends AbstractData
                 break;
             case 2:
                 $format = self::$outdatetimeformat2;
+                break;
+            case 3:
+                $format = self::$outdatetimeformat3;
                 break;
             default:
                 $format = self::$outdatetimeformat1;
