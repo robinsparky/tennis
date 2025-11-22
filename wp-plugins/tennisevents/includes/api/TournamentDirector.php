@@ -1604,16 +1604,16 @@ class TournamentDirector
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log("{$loc}: Bracket={$bracket->getName()}" );
 
-        $squadA = array_filter( $matches, function( $pair ) {
-            $first = current( $pair );
-            $second = next( $pair );
-            return strstr( $first, 'A' ) && strstr( $second, 'A' ) ? true : false;
-        });
-        $squadB = array_filter( $matches, function( $pair ) {
-            $first = current( $pair );
-            $second = next( $pair );
-            return strstr( $first, 'B' ) && strstr( $second, 'B' ) ? true : false;
-        });
+        // $squadA = array_filter( $matches, function( $pair ) {
+        //     $first = current( $pair );
+        //     $second = next( $pair );
+        //     return strstr( $first, 'A' ) && strstr( $second, 'A' ) ? true : false;
+        // });
+        // $squadB = array_filter( $matches, function( $pair ) {
+        //     $first = current( $pair );
+        //     $second = next( $pair );
+        //     return strstr( $first, 'B' ) && strstr( $second, 'B' ) ? true : false;
+        // });
 
         $playerPairs = $matches;
         $curDate = clone $startDate;
@@ -1675,26 +1675,34 @@ class TournamentDirector
         $startHour = 19; //7pm
         $startMinutes = 0;
         $totalMatches = 0;
+        $anchorTeam = 1;
+        $startingLevel = 'A';
+        $anchorTeamCourts = [1,2];
+        $availableCourts = [3,4];
         //Rounds
         for( $r = 1; $r <= $genRounds; $r++ ) {
             $matches = $matchesByRound[$r];
             $matchDate = clone $datesByRound[$r];
             $m = 1;
             $courtNum = 0;
-
-            if($r % 2 === 0 && $totalMatches > 0) {
-                if($courtAssignment === $courts["12"]) {
-                    $courtAssignment = $courts["34"];
+            //Rotate anchor team courts every round
+            if(count($anchorTeamCourts) > 0 & $r > 1) {
+                $curCourtNum = $anchorTeamCourts[1]; //the second court (i.e. highest court number) used by anchor team
+                ++$curCourtNum;
+                if($curCourtNum > $numCourts) {
+                    $curCourtNum = 1;
                 }
-                else {
-                    $courtAssignment = $courts["12"];
-                }
+                $anchorTeamCourts[0] = $curCourtNum;
+                ++$curCourtNum;
+                $anchorTeamCourts[1] = $curCourtNum;
+                $this->resetAvailableCourts($numCourts, $anchorTeamCourts, $availableCourts );
+                $this->log->error_log("{$loc}: Updated anchor team courts to " . implode(',', $anchorTeamCourts) );
             }
-            $res = $totalMatches % $matchCycle; //Beginning of new cycle of pairs when res=0
+
+            //Change favour every (numTeams -1) rounds
             $test = $r % ($numTeams - 1);
             $this->log->error_log("$loc:round={$r}; test={$test}; favour='{$favour}'");
-
-            if($test === 1 && $r > 1) { //Change favour every (numTeams -1) rounds
+            if($test === 1 && $r > 1) { 
                 if($favour === 'A') {
                     $favour = 'B';
                 }
@@ -1717,16 +1725,20 @@ class TournamentDirector
                 $match->setMatchDate_Str($matchDate->format('Y-m-d'));
                 $matchDate->setTime($startHour,$startMinutes);
                 $match->setMatchTime_Str($matchDate->format('G:i'));
-                // $courtAssignment = ($totalMatches % 2 !== 0) ? $courts["12"] : $courts["34"];//odd number use courts 1 & 2 else courts 3 & 4
-                // if(($totalMatches % 2 !== 0)) {       
-                    // if($courtAssignment === $courts["12"]) {
-                    //     $courtAssignment = $courts["34"];
-                    // }
-                    // else {
-                    //     $courtAssignment = $courts["12"];
-                    // }
-                // }
-                //$match->setComments( $courtAssignment );
+
+                // Assign courts
+                if( str_contains($players[0], "Team {$anchorTeam}") || str_contains($players[1], "Team {$anchorTeam}") ) {
+                    //Anchor team involved ... assign from anchor team courts
+                    $assignedCourt = "Courts {$anchorTeamCourts[0]} & {$anchorTeamCourts[1]}";
+                    $this->log->error_log("{$loc}: Anchor team {$anchorTeam} involved in match. Assigned court {$assignedCourt} from anchor team courts " . implode(',', $anchorTeamCourts) );
+                }
+                else {
+                    //Non-anchor team match ... assign from available courts
+                    $assignedCourt = "Courts {$availableCourts[0]} & {$availableCourts[1]}";
+                    $this->log->error_log("{$loc}: Non-anchor team {$anchorTeam} match. Assigned court {$assignedCourt} from available courts " . implode(',', $availableCourts) );
+                }
+                $match->setComments( $assignedCourt );
+
                 $courtNum += 2;
                 if($courtNum >= $numCourts) {
                     if($startHour === 19) {
@@ -1743,6 +1755,18 @@ class TournamentDirector
 
         return $totalMatches;
     }
+
+    private function resetAvailableCourts(int $totalCourts, array $anchorTeamCourts, array &$availableCourts ) {
+        $loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->log->error_log("{$loc} Resetting available courts excluding anchor team courts: " . implode(',', $anchorTeamCourts));
+
+        $availableCourts = array();
+        for( $i = 1; $i <= $totalCourts; $i++ ) {
+            if( !in_array( $i, $anchorTeamCourts ) ) {
+                $availableCourts[] = $i;
+            }
+        }
+    }   
 
     /**
      * Swap A or B to favour one squad over the other
