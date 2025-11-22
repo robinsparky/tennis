@@ -95,7 +95,8 @@ use datalayer\EventType;
     $minorStatus = $statusObj->getMinorStatus();
     $status = $statusObj->toString();
 
-    $startDate = $match->getMatchDate_Str(3);
+    $strStartDate = $match->getMatchDate_Str(3);
+    $startDate = $match->getMatchDate_Str();
     $startTime = $match->getMatchTime_Str(2);
     $startTimeVal = $match->getMatchTime_Str();
     $startedMess = '';
@@ -115,7 +116,7 @@ use datalayer\EventType;
 <?php if(!empty($menupath)) require $menupath; ?>
 <!--<div class="matchinfo matchtitle"><?php //echo $title; ?></div>-->
 <div class="matchinfo matchstatus"><?php echo $status; ?></div>
-<div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $startDate;?>&nbsp;<?php echo $startTime; ?></div>
+<div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $strStartDate;?>&nbsp;<?php echo $startTime; ?></div>
 <div class="changematchstart">
 <input type='date' class='changematchstart' name='matchStartDate' value='<?php echo $startDate;?>'>
 <input type='time' class='changematchstart' name='matchStartTime' value='<?php echo $startTimeVal;?>'>
