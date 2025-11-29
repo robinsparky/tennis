@@ -14,6 +14,7 @@ use datalayer\MatchType;
 use datalayer\Format;
 use datalayer\Bracket;
 use datalayer\Club;
+use datalayer\TennisTeam;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidEventException;
 use cpt\TennisEventCpt;
@@ -1267,20 +1268,27 @@ class ManageEvents
                 throw new InvalidBracketException(__("Bracket not created or found", TennisEvents::TEXT_DOMAIN) );
             }
 
-            $club = $event->getClubs()[0];
+            $club = empty($event->getClubs()) ? null : $event->getClubs()[0];
             $numCourts = is_null($club) ? 0 : $club->getNumCourts();
             $numCourts = $numCourts < 1 ? 4 : $numCourts;
             $numNewEntrants = 0;
+            //Special handling for team tennis; add teams as entrants
             if($event->getParent()->getEventType() === EventType::TEAMTENNIS) {
-                foreach( range(1,$numCourts) as $teamNum) {
-                    $td->addEntrant( "Team {$teamNum}A",0,$newBracketName );
-                    $numNewEntrants++;
+                try {
+                    foreach( range(1,$numCourts) as $teamNum) {
+                        $td->addEntrant( "Team {$teamNum}A",0,$newBracketName );
+                        $numNewEntrants++;
+                        $tname = "Team {$teamNum}";
+                        $team = new TennisTeam( $tname, $event->getID(), $bracket->getBracketNumber(), $teamNum );
+                        $team->save();
+                    }
+                    foreach( range(1,$numCourts) as $teamNum) {
+                        $td->addEntrant( "Team {$teamNum}B",0,$newBracketName );
+                        $numNewEntrants++;
+                    }
+                } catch (Exception $e) {
+                    $this->log->error_log($e->getMessage(), "{$loc}: Exception caught");
                 }
-                foreach( range(1,$numCourts) as $teamNum) {
-                    $td->addEntrant( "Team {$teamNum}B",0,$newBracketName );
-                    $numNewEntrants++;
-                }
-                $td->save();
             }
             $data["bracketNum"] = $bracket->getBracketNumber();
             $data["bracketName"] = $bracket->getName();

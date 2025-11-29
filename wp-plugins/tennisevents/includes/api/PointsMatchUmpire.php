@@ -68,6 +68,10 @@ class PointsMatchUmpire extends ChairUmpire
         $numVars = extract( $rules );
         $this->PointsPerWin = $PointsPerWin ?? 1;
     }
+    
+    public function getPointsPerWin() {
+        return $this->PointsPerWin;
+    }   
 
     /**
      * Determine the winner of the given TennisMatch
@@ -194,7 +198,7 @@ class PointsMatchUmpire extends ChairUmpire
                 $this->log->error_log( sprintf( "%s(%s): home W=%d, visitor W=%d"
                                         , $loc, $set->toString(), $homeW, $visitorW ) );
                 
-                if( $homeW < $this->getGamesPerSet() &&  $visitorW < $this->getGamesPerSet() && 99 !== $this->getGamesPerSet()) {
+                if( $homeW < $this->getGamesPerSet() &&  $visitorW < $this->getGamesPerSet() ) {
                     $setInProgress = $set->getSetNumber();
                     break; //not done yet so don't even consider other sets
                 }
@@ -215,6 +219,12 @@ class PointsMatchUmpire extends ChairUmpire
                 }
 
                 $setInProgress = $set->getSetNumber();
+                if($scoreType === ScoreType::TEAMTENNIS) {
+                    //In Team Tennis, all 4 sets are played regardless of outcome
+                    if($setNum >= $this->getMaxSets()) {
+                        $setInProgress = 0; //No set in progress
+                    }
+                }   
 
                 if( $setInProgress === $this->getMaxSets() ) {
                     

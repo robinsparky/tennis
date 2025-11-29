@@ -9,6 +9,7 @@ use \TE_Install;
 use api\TournamentDirector;
 use datalayer\Bracket;
 use datalayer\Club;
+use datalayer\Player;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -251,11 +252,22 @@ EOT;
             $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
             $out .= $templfile . PHP_EOL;
         }
-        else if( $numPrelimMatches < 1 && $eventType === EventType::TEAMTENNIS && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() ) {            
+        else if( $numPrelimMatches < 1 && $eventType === EventType::TEAMTENNIS && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() ) { 
+            $out .= '<label class="button addentrant" for="entrant_uploads_file">Upload Registrants</label>' . PHP_EOL;
+            $out .= '&nbsp;<a class="download" id="downloadtennisfile" href="' . $link . '?moniker=signupschema">(Download schema)</a><br>' . PHP_EOL;            
+            $out .= '<button class="button resequence" type="button" id="defineTeams">Define Teams</button><br/>' . PHP_EOL;          
             $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
-            $out .= '<button class="button randomize" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
             $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
+            $out .= $templfile . PHP_EOL;
+            $players = Player::find( array( "event_ID" => $this->eventId, "bracket_num" => $bracket->getBracketNumber() ) );
+            $out .= '<div class="teamRegistrationInfo">';
+            $out .= '<h4>Registered Players:</h4><ul>';
+            foreach( $players as $player ) {
+                $out .= '<li>' . $player->getName() . '</li>';
+            }
+            $out .= '</ul></div>';
         }
+
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';
 

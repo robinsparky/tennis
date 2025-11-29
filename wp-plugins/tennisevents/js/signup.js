@@ -502,6 +502,10 @@
                   let last = 'unknown'
                   let id = 'unknown'
                   let addinfo = ''
+                  let gender = ''
+                  let birthdate = ''
+                  let email = ''
+                  let cellphone = ''
                   for (j = 0; j < player.children.length; j++) {
                     switch(player.children[j].nodeName) {
                       case 'firstname':
@@ -509,6 +513,18 @@
                         break;
                       case 'lastname':
                         last = player.children[j].textContent;
+                        break;
+                      case 'email':
+                        email = player.children[j].textContent;
+                        break;
+                      case 'gender':
+                        gender = player.children[j].textContent;
+                        break;
+                      case 'birthdate':
+                        birthdate = player.children[j].textContent;
+                        break;
+                        case 'cellphone':
+                        cellphone = player.children[j].textContent;
                         break;
                       case 'id':
                         id = player.children[j].textContent;
@@ -521,7 +537,7 @@
                   }
                   // console.log("%d. %s %s - %s", id, first, last, addinfo)
                   let playerName = `${first} ${last}`
-                  let newEntrant = {'position': id,'name': playerName, 'fname': first, 'lname': last, 'seed':0, 'partner': addinfo}
+                  let newEntrant = {'position': id,'name': playerName, 'fname': first, 'lname': last, 'seed':0, 'partner': addinfo, 'email': email, 'gender': gender, 'birthDate': birthdate, 'cellPhone': cellphone  }
                   bulkEntrants.push(newEntrant)
                 }
                 let slimEntrants = [];

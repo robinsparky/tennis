@@ -15,7 +15,7 @@ use datalayer\EventType;
 <h5 class='tennis-draw-caption-dates'><span>Starts</span>&colon;&nbsp;<span><?php echo $strEventStartDate;?></span>&nbsp;<span>Ends</span>&colon;&nbsp;<span><?php echo $strEventEndDate;?></span>&nbsp;<span id='digiclock'></span></h5>
 
 <h5><a class="tennis-summary-link" href="#tennis-score-summary-id">Go to Team Standings</a></h5>
-<main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
+<main id="<?php echo $bracketName;?>" class="bracketrobin <?php echo $teamTennisClass;?>" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 <?php 
     $winnerClass = "matchwinner";
     $beginDate = clone $td->getEvent()->getStartDate();

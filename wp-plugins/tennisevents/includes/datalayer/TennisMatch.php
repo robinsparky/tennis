@@ -1103,7 +1103,7 @@ class TennisMatch extends AbstractData
      * @param Entrant $h The home entrant
      * @return True if home entrant is set, False otherwise
      */
-    public function setHomeEntrant( Entrant $h = null ) {
+    public function setHomeEntrant( ?Entrant $h ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         // $tr = GW_Debug::get_debug_trace_Str(2);
         // $this->log->error_log("$loc:{$this->title()} $tr");
@@ -1157,7 +1157,7 @@ class TennisMatch extends AbstractData
      * @param $v The visitor entrant
      * @return True if visitor is set, False otherwise
      */
-    public function setVisitorEntrant( Entrant $v = null ) {
+    public function setVisitorEntrant( ?Entrant $v ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         // $tr = GW_Debug::get_debug_trace_Str(2);
         // $this->log->error_log("$loc:{$this->title()} $tr");
@@ -1435,7 +1435,7 @@ class TennisMatch extends AbstractData
                 throw new InvalidMatchException( sprintf( "TennisMatch %s has %d entrants.", $this->toString(), count( $contestants ) ) );
             break;
         }
-        $this->log->error_log( sprintf( "%s(%s) has %d entrants.", $loc, $this->toString(), count( $contestants ) ) );
+        //$this->log->error_log( sprintf( "%s(%s) has %d entrants.", $loc, $this->toString(), count( $contestants ) ) );
     }
 
 	/**
@@ -1568,9 +1568,9 @@ class TennisMatch extends AbstractData
         
         if( !empty($row["match_date"]) && $row["match_date"] !== '0000-00-00 00:00:00') {
             $st = new \DateTime( $row["match_date"], new \DateTimeZone('UTC') );
-            $mess = print_r($st,true);
-            error_log("$loc: DateTime using match_date ...");
-            error_log($mess);
+            // $mess = print_r($st,true);
+            // error_log("$loc: DateTime using match_date ...");
+            // error_log($mess);
             $obj->match_datetime = $st;
         }
         else {
@@ -1579,9 +1579,9 @@ class TennisMatch extends AbstractData
                
         if( !empty($row["expected_end"]) && $row["expected_end"] !== '0000-00-00 00:00:00') {
             $st = new \DateTime( $row["expected_end"], new \DateTimeZone('UTC') );
-            $mess = print_r($st,true);
-            error_log("$loc: DateTime using expected_end ...");
-            error_log($mess);
+            // $mess = print_r($st,true);
+            // error_log("$loc: DateTime using expected_end ...");
+            // error_log($mess);
             $obj->expected_end = $st;
         }
         else {

@@ -358,6 +358,10 @@ class ManageRoundRobin
                 //$this->log->error_log($summaryTable, "$loc - entrant summary");
                 $data["entrantSummary"] = $summaryTable;
                 $data["bracketSummary"] = $chairUmpire->getBracketSummary( $bracket );
+                if( $eventType === EventType::TEAMTENNIS ) {
+                    $teamStandings = $chairUmpire->getTeamStandings( $summaryTable );
+                    $data["teamStandings"] = $teamStandings;
+                }
 
                 $numVars = extract( $chairUmpire->getMatchSummary( $match ) );
                 $data['winner'] = $andTheWinnerIs;

@@ -563,6 +563,9 @@
       if(data.eventType === 'ladder') {
         updateLadderSummary(data)
       }
+      else if(data.eventType === 'teamtennis') {
+        updateTeamTennisSummary(data);
+      }
       else {
         updateEntrantSummary(data);
       }
@@ -622,6 +625,40 @@
         mycontent = `${data.bracketSummary["completedMatches"]} of ${data.bracketSummary["totalMatches"]} Matches Completed`;
         $summaryFooter.find("#bracket-summary").text(mycontent);
       }
+    }
+
+    /**
+     * Update the team standings table for team tennis events
+     * @param {*} data 
+     */
+    function updateTeamTennisSummary(data) {        
+      console.log(`updateTeamTennisSummary: ${data.eventType}`);
+      if(data.eventType !== 'teamtennis') return;
+
+      updateEntrantSummary(data);
+      
+      let standingsSelector = "table.team-standings-summary-table";
+      //console.log(`Standings table selector is '${standingsSelector}'`)
+      let $standingsTable = $(standingsSelector);
+      if ($standingsTable.length == 0) return;
+
+      if (data.teamStandings) {
+        console.log("teamStandings is present");
+        console.log(data.teamStandings);
+        $standingsTable.find("tbody tr").each(function(i,el) {
+            // console.log("Element from standings table:");
+            // console.log(el);
+            // console.log("Children:");
+            // console.log($(el).children());
+            let objdata = data.teamStandings[i];
+            // console.log(`teamStandings[${i}]`);
+            // console.log(objdata);
+            $(el).children('td.team-name').empty();
+            $(el).children('td.team-name').text(objdata.teamName);
+            $(el).children('td.points').text(objdata.points);
+            $(el).children('td.games').text(objdata.games);
+        });
+      } 
     }
 
     /**

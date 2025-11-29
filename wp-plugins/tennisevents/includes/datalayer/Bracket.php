@@ -5,6 +5,7 @@ use commonlib\GW_Debug;
 use commonlib\GW_Support;
 use DateInterval;
 use \TennisEvents;
+use Team;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -110,7 +111,7 @@ class Bracket extends AbstractData
 	}
     
 	/**
-	 * Delete this Bracket and all Entrants in the signup
+	 * Delete this Bracket and all Entrants, Matches and Teams in the signup
      *  and all Matches associated with this Bracket
      * @param int $eventId The ID of the event
      * @param int $bracketNum The bracket number 
@@ -130,6 +131,9 @@ class Bracket extends AbstractData
 
         //Delete the entrants
         $result += self::deleteAllEntrants( $eventId, $bracketNum );
+
+        //Delete all teams
+        $result += TennisTeam::deleteAllTeams( $eventId, $bracketNum );
 
         //Delete the bracket
         $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum );
@@ -206,6 +210,24 @@ class Bracket extends AbstractData
 
         return $result;
     }
+
+    public static function deleteAllTeams( int $eventId = 0, int $bracketNum = 0 ) : int {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        error_log("$loc($eventId,$bracketNum)");
+
+        TennisTeam::deleteTeam($eventId, $bracketNum);
+        $result = 0;
+        if( 0 === $eventId || 0 === $bracketNum ) return $result;
+        global $wpdb;
+        $table = TennisEvents::getInstaller()->getDBTablenames( TennisTeam::$tablename );
+        $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum );
+        $formats_where = array( '%d', '%d' );
+        $wpdb->delete( $table, $where, $formats_where );
+        $result = $wpdb->rows_affected;
+
+        error_log("$loc: $result rows affected.");
+        return $result;
+    }   
     
     /**
      * Delete the given entrant for the identified Bracket
@@ -347,7 +369,7 @@ class Bracket extends AbstractData
 	 * @param $seed The seeding of this player
 	 * @return true if succeeds false otherwise
 	 */
-	public function addToSignup ( string $name, int $seed = null ) {
+	public function addToSignup ( string $name, int $seed = 0 ) {
 		$result = false;
 		if( isset( $name ) ) {
             $found = false;
@@ -1455,7 +1477,7 @@ class Bracket extends AbstractData
             $sourceMatch->setVisitorEntrant( $targetVisitor );
             $sourceMatch->setIsBye( false );
             $targetMatch->setHomeEntrant( $sourceHome );
-            $targetMatch->setVisitorEntrant();
+            $targetMatch->setVisitorEntrant(null);
             $targetMatch->setIsBye( true );
 
             $result["source"] = ["roundNum" => 1, "matchNum" => $sourceMatchNum, "home" => ["name" => $targetHome->getName(), "seed" => $targetHome->getSeed()], "visitor"=> ["name"=>$targetVisitor->getName(), "seed" => $targetVisitor->getSeed()]];
@@ -1468,7 +1490,7 @@ class Bracket extends AbstractData
             $targetVisitor = null;
 
             $sourceMatch->setHomeEntrant( $targetHome );
-            $sourceMatch->setVisitorEntrant();
+            $sourceMatch->setVisitorEntrant(null);
             $sourceMatch->setIsBye( true );
 
             $targetMatch->setHomeEntrant( $sourceHome );

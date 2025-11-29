@@ -1,6 +1,8 @@
 <?php
 namespace datalayer;
 
+use TennisEvents;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -15,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Club extends AbstractData
 { 
 	//table name
-	private static $tablename = 'tennis_club';
+	public static $tablename = 'club';
 
 	//Attributes
 	private $name;
@@ -45,8 +47,9 @@ class Club extends AbstractData
 	 * Search for Clubs using club name
 	 */
 	static public function search($criteria) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
 		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
+		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
 		$sql = "select ID,name from $table where name like '%s'";
 
 		$criteria .= strpos($criteria,'%') ? '' : '%';
@@ -57,7 +60,7 @@ class Club extends AbstractData
 
 		$col = array();
 		foreach($rows as $row) {
-			$obj = new Club;
+			$obj = new Club(null);
 			self::mapData($obj,$row);
 			$col[] = $obj;
 		}
@@ -69,11 +72,12 @@ class Club extends AbstractData
 	 * NOTE: This is neded for inter-club events
 	 */
 	static public function find(...$fk_criteria) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
 		global $wpdb;
 
-		$table = $wpdb->prefix . self::$tablename;
-		$joinTable = "{$wpdb->prefix}tennis_club_event";
-		$eventTable = "{$wpdb->prefix}tennis_event";
+		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
+		$joinTable = TennisEvents::getInstaller()->getDBTablenames()['club_event'];
+		$eventTable = TennisEvents::getInstaller()->getDBTablenames()['event'];
 		$col = array();
 
 		if(is_array($fk_criteria) && count($fk_criteria) === 1) {
@@ -98,7 +102,7 @@ class Club extends AbstractData
 		error_log("Club::find $wpdb->num_rows rows returned.");
 
 		foreach($rows as $row) {
-            $obj = new Club;
+            $obj = new Club(null);
             self::mapData($obj,$row);
 			$col[] = $obj;
 		}
@@ -110,8 +114,10 @@ class Club extends AbstractData
 	 * Get instance of a Club using it's primary key: ID
 	 */
     static public function get(int ...$pks) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
 		global $wpdb;
-		$table = $wpdb->prefix . self::$tablename;
+		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
+		
 		$sql = "select ID,name from $table where ID=%d";
 		$safe = $wpdb->prepare($sql,$pks);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
@@ -120,7 +126,7 @@ class Club extends AbstractData
 		error_log("Club::get($id) $wpdb->num_rows rows returned.");
 		$obj = NULL;
 		if( count($rows) === 1 ) {
-			$obj = new Club;
+			$obj = new Club(null);
 			self::mapData($obj,$rows[0]);
 		}
 		return $obj;
@@ -138,7 +144,7 @@ class Club extends AbstractData
 		$result = 0;
 
 		global $wpdb;
-		$table = $wpdb->prefix . 'tennis_external_club';		
+		$table = TennisEvents::getInstaller()->getDBTablenames()['external_club'];		
 		$sql = "SELECT `club_ID`
 				FROM $table WHERE `external_ID`='%s'";
 		$safe = $wpdb->prepare( $sql, $extReference );
@@ -164,7 +170,7 @@ class Club extends AbstractData
 
 		if( 0 < $clubId ) {
 			global $wpdb;
-			$table = $wpdb->prefix . 'tennis_external_club';	
+			$table = TennisEvents::getInstaller()->getDBTablenames()['external_club'];		
 			$where = array( 'club_ID'=>$clubId );
 			$formats_where = array( '%d' );
 			$wpdb->delete( $table, $where, $formats_where );
@@ -193,12 +199,13 @@ class Club extends AbstractData
 			$result += ClubEventRelations::removeAllForClub( $clubId );
 
 			//Delete the club's courts
-			$courtTable = $wpdb->prefix . Court::$tablename;
+			$courtTable = TennisEvents::getInstaller()->getDBTablenames()[Court::$tablename];
+			
 			$wpdb->delete( $courtTable, array( 'club_ID'=>$clubId ), array( '%d' ) );
 			$result += $wpdb->rows_affected;
 
 			//Delete the club
-			$table = $wpdb->prefix . self::$tablename;
+			$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
 			$where = array( 'ID'=>$clubId );
 			$formats_where = array( '%d' );
 			$wpdb->delete( $table, $where, $formats_where );
@@ -209,10 +216,12 @@ class Club extends AbstractData
 	}
 
 	/*************** Instance Methods ****************/
-	public function __construct(string $cname=null) {
+	public function __construct( ?string $cname ) {
 		$this->isnew = TRUE;
 		$this->init();
-		if(isset($cname)) $this->name = $cname;
+		if(!empty($cname)) {
+			$this->name = $cname;
+		}
 		
 		parent::__construct( true );
 	}
@@ -234,8 +243,8 @@ class Club extends AbstractData
 		}
 	}
 
-	public function setName($name) {
-		if(!is_string($name) || strlen($name) < 1) return;
+	public function setName(string $name) {
+		if(strlen($name) < 1) return;
 		$this->name = $name;
 		return $this->setDirty();
 	}
@@ -480,9 +489,10 @@ class Club extends AbstractData
 
 		parent::create();
 
+		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
 		$values         = array('name'=>$this->name);
 		$formats_values = array('%s');
-		$res = $wpdb->insert($wpdb->prefix . self::$tablename, $values, $formats_values);
+		$res = $wpdb->insert($table, $values, $formats_values);
 		
 		if( $res === false || $res === 0 ) {
 			$mess = "$loc: wpdb->insert returned false or inserted 0 rows.";
@@ -512,11 +522,12 @@ class Club extends AbstractData
 
 		parent::update();
 
+		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
 		$values         = array('name'=>$this->name);
 		$formats_values = array('%s');
 		$where          = array('ID' => $this->ID);
 		$formats_where  = array('%d');
-		$wpdb->update($wpdb->prefix . self::$tablename,$values,$where,$formats_values,$formats_where);
+		$wpdb->update($table,$values,$where,$formats_values,$formats_where);
 		$this->isdirty = FALSE;
 		$result = $wpdb->rows_affected;
 

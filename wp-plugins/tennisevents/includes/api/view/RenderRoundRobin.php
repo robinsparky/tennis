@@ -269,11 +269,13 @@ class RenderRoundRobin
         //     return __("'$tournamentName ($bracketName bracket)' has not been approved", TennisEvents::TEXT_DOMAIN );
         // }
 
-        $umpire = $td->getChairUmpire();
+
         $scoreType = $td->getEvent()->getScoreType();
         $scoreRuleDesc = $td->getEvent()->getScoreRuleDescription();
         $strEventStartDate = $td->getEvent()->getStartDate()->format('Y-m-d');
         $strEventEndDate = $td->getEvent()->getEndDate()->format('Y-m-d');
+        $umpire = $td->getChairUmpire();
+        $this->log->error_log($umpire, "$loc: Chair Umpire...");
 
         $loadedMatches = $bracket->getMatchHierarchy();
         $numRounds = 0;
@@ -285,8 +287,6 @@ class RenderRoundRobin
             }
         }
 
-        $pointsPerWin = 1;
-        ///if( $td->getEvent()->getFormat() === Format::POINTS2 ) $pointsPerWin = 2;
         $summaryTable = $umpire->getEntrantSummary( $bracket );
         $bracketSummary = $umpire->getBracketSummary( $bracket ); //NOTE: calls $bracket->getMatchHierarchy();
 
@@ -324,6 +324,7 @@ class RenderRoundRobin
         //Render the score summary
         $path = TE()->getPluginPath() . 'includes\templates\summaryscore-template.php';
         if($td->getEvent()->getParent()->getEventType() === EventType::TEAMTENNIS) {
+            $teamStandings = $umpire->getTeamStandings( $summaryTable );
             $path = TE()->getPluginPath() . 'includes\templates\summarystandings-template.php';
         }
         $pathn = wp_normalize_path($path);

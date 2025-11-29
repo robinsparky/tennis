@@ -651,6 +651,14 @@ main.bracketrobin {
   grid-row-gap: 10px;
 }
 
+main.bracketrobin.ttc-team-tennis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 200px));
+  /*grid-template-rows: 1fr 1fr;*/
+  grid-column-gap: 10px;
+  grid-row-gap: 10px;
+}
+
 section.roundrobin-round {
   justify-self: center;
   align-self: center;
@@ -678,7 +686,6 @@ td.item-player > .visitorentrant {
 /**
   * Team Tennis specific styling
   */
-
 section.roundrobin-round.ttc-team-tennis {
   border: 3px solid green;
   background-color: yellow;

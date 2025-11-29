@@ -107,6 +107,10 @@ class TE_Install {
 
 	}
 
+	public function getDBTablenames() {
+		return $this->dbTableNames;
+	}
+
 	/**
 	 * Activate Tennis Events.
 	 */
@@ -787,10 +791,10 @@ class TE_Install {
 		 */
 		$sql = "CREATE TABLE `$team_table` (
 				`event_ID` INT NOT NULL,
+				`bracket_num` INT NOT NULL,
 				`team_num` INT NOT NULL,
-				`club_ID` INT NULL,
 				`name` VARCHAR(100) NOT NULL,
-			PRIMARY KEY (`event_ID`,`team_num`)
+			PRIMARY KEY (`event_ID`,`bracket_num`,`team_num`)
 			) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
@@ -806,16 +810,17 @@ class TE_Install {
 		 * This supports things like Team 1 with 'a' and 'b' divisions for example.
 		 * OR Team "Adrie and Robin"
 		 * CONSTRAINT `fk_squad_team`
-		 *	  FOREIGN KEY (`event_ID`,`team_num`)
-		 *		REFERENCES `$team_table` (`event_ID`,`team_num`)
+		 *	  FOREIGN KEY (`event_ID`,`bracket_num`,`team_num`)
+		 *		REFERENCES `$team_table` (`event_ID`,`bracket_num`,`team_num`)
 		 *		ON DELETE CASCADE
 		 *		ON UPDATE CASCADE
 		 */
 		$sql = "CREATE TABLE `$squad_table` (
 				`event_ID` INT NOT NULL,
+				`bracket_num` INT NOT NULL,
 			  	`team_num` INT NOT NULL,
 			  	`division` VARCHAR(25) NOT NULL,
-			  PRIMARY KEY (`event_ID`,`team_num`,`division`)
+			  PRIMARY KEY (`event_ID`,`bracket_num`,`team_num`,`division`)
 			) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
@@ -831,6 +836,8 @@ class TE_Install {
 		 */
 		$sql = "CREATE TABLE `$player_table` (
 			  `ID`            INT NOT NULL AUTO_INCREMENT,
+			  `event_ID`      INT NOT NULL,
+			  `bracket_num`   INT NOT NULL,
 			  `first_name`    VARCHAR(45) NULL,
 			  `last_name`     VARCHAR(45) NOT NULL,
 			  `gender`        VARCHAR(1) NOT NULL DEFAULT 'M',
@@ -841,7 +848,8 @@ class TE_Install {
 			  `phoneHome`     VARCHAR(45),
 			  `phoneMobile`   VARCHAR(45),
 			  `phoneBusiness` VARCHAR(45),
-			  PRIMARY KEY (`ID`)) ENGINE=MyISAM;";
+			  PRIMARY KEY (`ID`)) ENGINE=MyISAM,
+			  INDEX event_bracket_idx (`event_ID`,`bracket_num`);";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
 			$res = false === $res ? $wpdb->last_error . " when creating $player_table" : "Created table '$player_table'";
@@ -866,10 +874,13 @@ class TE_Install {
 					ON UPDATE CASCADE
 		 */
 		$sql = "CREATE TABLE `$team_squad_player_table` ( 
-				`player_ID` INT NOT NULL,
 				`event_ID`  INT NOT NULL,
+				`bracket_num` INT NOT NULL,
 				`team_num`  INT NOT NULL,
-				`division`  VARCHAR(2) NOT NULL
+				`division`  VARCHAR(2) NOT NULL,
+				`player_ID` INT NOT NULL,
+				INDEX event_team_idx (event_ID, bracket_num, team_num, division),
+    			INDEX player_idx (player_ID)
 				) ENGINE=MyISAM;";	
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );

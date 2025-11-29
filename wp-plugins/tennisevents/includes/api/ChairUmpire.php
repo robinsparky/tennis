@@ -99,9 +99,12 @@ abstract class ChairUmpire
             case ScoreType::POINTS1:
             case ScoreType::POINTS2:
             case ScoreType::POINTS3:
-            case ScoreType::TEAMTENNIS:
                 //Points such as Round Robins where games are played up to a time limit
                 $chairUmpire = PointsMatchUmpire::getInstance();
+                break;
+            case ScoreType::TEAMTENNIS:
+                //TTC Team Tennis scoring
+                $chairUmpire = TTCTeamTennisUmpire::getInstance();
                 break;
             default:
                 $mess = __( 'Invalid Score Type: ', TennisEvents::TEXT_DOMAIN ) . $strScoreType;
@@ -175,7 +178,7 @@ abstract class ChairUmpire
         if( !in_array($this->MustWinBy, array(1,2) ) ) $this->MustWinBy = 2;
         //if( $this->MustWinBy === 1 ) $this->NoTieBreakerFinalSet = true;
         
-        $this->log->error_log($this, "{$loc}: initialized this ...");
+        //$this->log->error_log($this, "{$loc}: initialized this ...");
     }
 
     /**
@@ -816,7 +819,7 @@ EOT;
 
     }
         
-       /**
+    /**
      * This function produces an array of statistics for the given bracket
      * @param Bracket The bracket for which summary is required
      * @return array matches completed and total matches played by round
@@ -902,7 +905,7 @@ EOT;
     }
        
     public function getPointsPerWin() {
-        return $this->PointsPerWin ?? 0;
+        return 0;
     }
     
     /**
@@ -922,7 +925,10 @@ EOT;
         }
 
         $summary = [];
-        $pointsForWin = $this->getPointsPerWin() ?? 1;
+        $pointsForWin = $this->getPointsPerWin();
+        $pointsForTie = $pointsForWin / 2;
+        $this->log->error_log("$loc: pointsForWin={$pointsForWin}; pointsForTie={$pointsForTie}");
+    
         $matchesByEntrant = $bracket->matchesByEntrant();
         $numRounds = $bracket->getNumberOfRounds();
         foreach( $matchesByEntrant as $matchInfo) {
@@ -952,7 +958,7 @@ EOT;
                         }
                         elseif( $andTheWinnerIs === 'tie') {
                             ++$totalMatchesTied;
-                            $totalPoints += $totalMatchesTied * $pointsForWin/2;
+                            $totalPoints += $totalMatchesTied * $pointsForTie;
                         }
                     }
                     elseif( $entrant->getName() === $this->getVisitorPlayer( $match ) ) {

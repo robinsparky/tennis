@@ -7,9 +7,11 @@ use \TennisEvents;
 use commonlib\BaseLogger;
 use api\TournamentDirector;
 use datalayer\Event;
+use datalayer\EventType;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\InvalidEntrantException;
+use datalayer\Player;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -167,7 +169,7 @@ class ManageSignup
                 $mess = $this->reseqSignup( $data );
                 break;
             case 'addBulk':
-                $mess = $this->addBulk( $data );
+                $mess = $this->bulkAdd( $data );
                 break;
             default:
                 wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
@@ -374,18 +376,34 @@ class ManageSignup
         return $mess;
     }
     
+    private function bulkAdd( array &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+        
+        $this->eventId = $data["eventId"];
+        $event   = Event::get( $this->eventId );
+        $eventType = $event->getParent()->getEventType();
+        switch( $eventType ) {
+            case EventType::TEAMTENNIS:
+                return $this->addPlayersBulk( $data );
+            default:
+                return $this->addEntrantBulk( $data );
+        }   
+    }
+
     /**
      * Add array of new entrants to the signup for an event
      * @param array $data Associative array containing the entrant's data
      * @return string message describing result of the operation
      */
-    private function addBulk( array &$data ) {
+    private function addEntrantBulk( array &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("{$loc}");
 
         $this->eventId = $data["eventId"];
         $this->bracketName = $data["bracketName"];
         $event   = Event::get( $this->eventId );
+
         $bracket = $event->getBracket( $this->bracketName );
         $numFailed = 0;
         $numTotal = 0;
@@ -424,6 +442,62 @@ class ManageSignup
         }
         $event->save();
         $this->signup = $bracket->getSignup( true );
+        return $mess;
+    }    
+    
+    /**
+     * Add array of new players available for a team tennis event
+     * @param array $data Associative array containing the player's data
+     * @return string message describing result of the operation
+     */
+    private function addPlayersBulk( array &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}");
+
+        $this->eventId = $data["eventId"];
+        $this->bracketName = $data["bracketName"];
+        $event   = Event::get( $this->eventId );
+        $bracket = $event->getBracket( $this->bracketName );
+        $numFailed = 0;
+        $numTotal = 0;
+        foreach($data['entrants'] as $entrant) {
+            ++$numTotal;
+
+            $fname = $entrant["fname"]; 
+            $lname = $entrant["lname"]; 
+            $name  = $fname . ' ' . $lname;
+            $entrant["name"] = $name;
+            try {            
+                $homeEmail = $entrant["email"];
+                if( empty($homeEmail) ) {
+                    throw new InvalidEntrantException(__( "Player '{$name}' must have a home email address.", TennisEvents::TEXT_DOMAIN) );
+                }
+                $birthDate = $entrant["birthDate"] ?? '';
+                $gender = $entrant["gender"] ?? 'o';
+                $cellPhone = $entrant["cellPhone"] ?? '';
+                $player = new Player($event->getID(), $bracket->getBracketNumber());
+                $player->setFirstName( $fname );
+                $player->setLastName( $lname );
+                $player->setHomeEmail( $homeEmail );
+                $player->setSkillLevel( Player::MINSKILL ); // default skill level
+                $player->setBirthDateStr( $birthDate );
+                $player->setGender( $gender );
+                $player->setHomePhone( $cellPhone );
+                $player->save();
+            }
+            catch( Exception $ex ) {
+                ++$numFailed;
+                $this->errobj->add( $this->errcode++, $ex->getMessage() );
+                $mess = $ex->getMessage();
+                $this->log->error_log($mess);
+            }
+        }
+        if($numFailed > 0) {
+            $mess = __("{$loc}: {$numFailed} failed out of {$numTotal}.",TennisEvents::TEXT_DOMAIN);
+        }
+        else {
+            $mess = __("{$loc}: added {$numTotal} players.",TennisEvents::TEXT_DOMAIN); 
+        }
         return $mess;
     }
 

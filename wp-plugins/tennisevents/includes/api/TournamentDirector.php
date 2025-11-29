@@ -1646,11 +1646,14 @@ class TournamentDirector
                     $matchesByRound[$r][$m++] = $match;
                 }
                 elseif( !empty( $matches ) ) {
+                    $curDate->add(new \DateInterval('P7D')); //weekly interval
+                    if($curDate > $endDate) {
+                        break 2; //exit both while loops
+                    }
                     ++$r;
                     ++$totalRounds;
                     $m=1;
                     $matchesByRound[$r] = array();
-                    $curDate->add(new \DateInterval('P7D')); //weekly interval
                     $datesByRound[$r] = clone $curDate;
                 }
                 //$this->log->error_log($matchesByRound[$r], "$loc - Matches for round {$r}");
@@ -1676,7 +1679,6 @@ class TournamentDirector
         $startMinutes = 0;
         $totalMatches = 0;
         $anchorTeam = 1;
-        $startingLevel = 'A';
         $anchorTeamCourts = [1,2];
         $availableCourts = [3,4];
         //Rounds
@@ -1699,7 +1701,7 @@ class TournamentDirector
                 $this->log->error_log("{$loc}: Updated anchor team courts to " . implode(',', $anchorTeamCourts) );
             }
 
-            //Change favour every (numTeams -1) rounds
+            //Rotate favour every (numTeams -1) rounds
             $test = $r % ($numTeams - 1);
             $this->log->error_log("$loc:round={$r}; test={$test}; favour='{$favour}'");
             if($test === 1 && $r > 1) { 
@@ -1726,7 +1728,7 @@ class TournamentDirector
                 $matchDate->setTime($startHour,$startMinutes);
                 $match->setMatchTime_Str($matchDate->format('G:i'));
 
-                // Assign courts
+                //Assign courts
                 if( str_contains($players[0], "Team {$anchorTeam}") || str_contains($players[1], "Team {$anchorTeam}") ) {
                     //Anchor team involved ... assign from anchor team courts
                     $assignedCourt = "Courts {$anchorTeamCourts[0]} & {$anchorTeamCourts[1]}";
@@ -1739,6 +1741,7 @@ class TournamentDirector
                 }
                 $match->setComments( $assignedCourt );
 
+                //Assign times
                 $courtNum += 2;
                 if($courtNum >= $numCourts) {
                     if($startHour === 19) {
@@ -1756,6 +1759,12 @@ class TournamentDirector
         return $totalMatches;
     }
 
+    /**
+     * Reset the available courts excluding those assigned to the anchor team
+     * @param int $totalCourts Total number of courts   
+     * @param array $anchorTeamCourts Courts assigned to the anchor team
+     * @param array &$availableCourts Available courts for other teams (passed by reference)
+     */
     private function resetAvailableCourts(int $totalCourts, array $anchorTeamCourts, array &$availableCourts ) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
         $this->log->error_log("{$loc} Resetting available courts excluding anchor team courts: " . implode(',', $anchorTeamCourts));

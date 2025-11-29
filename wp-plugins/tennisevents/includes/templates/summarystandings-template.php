@@ -38,42 +38,18 @@ for($r = 1; $r<=$numRounds; $r++) : ?>
 <?php endfor; ?>
 <td colspan="2"><span class="tennis-champion"><?php if( !empty($bracketSummary["champion"]) ) echo $bracketSummary["champion"];?></span></td>
 </tfoot></table>
+<table class="team-standings-summary-table">
+    <caption>Team Standings for <?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?></caption>
+    <thead><tr><th>Team</th><th>Total Points</th><th>Total Games</th></tr></thead>
+    <tbody>
 <?php 
-//Produce Team Standings table
-    $numTeams = count( $summaryTable ) / 2;
-    $standings = array();
-    foreach( range( 1, $numTeams ) as $teamNum ) {
-        $standings[$teamNum] = array(
-            'teamName' => '',
-            'points' => 0,
-            'games' => 0
-        );
-    }
-    foreach($summaryTable as $entrantSummary ) {
-        foreach( range( 1, $numTeams ) as $teamNum ) {
-            if( strpos( $entrantSummary["name"], $teamNum ) !== false ) {
-                $standings[$teamNum]['teamName'] = 'Team ' . $teamNum;
-                $standings[$teamNum]['points'] += $entrantSummary['totalPoints'];
-                $standings[$teamNum]['games'] += $entrantSummary['totalGames'];
-                break;
-            }
-        }
-    }
-    usort( $standings, function( $a, $b ) {
-        return $b['points'] - $a['points'];
-    });
-    ?>
-    <table class="team-standings-summary-table">
-        <caption>Team Standings for <?php echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?></caption>
-        <thead><tr><th>Team</th><th>Total Points</th><th>Total Games</th></tr></thead>
-        <tbody>
-    <?php 
-    foreach($standings as $teamNum => $teamStats ) : ?>
-        <tr>
-            <td><?php echo $teamStats['teamName'];?></td>
-            <td><?php echo $teamStats['points'];?></td>
-            <td><?php echo $teamStats['games'];?></td>
-        </tr>
-    <?php endforeach; ?>
-    </tbody>
-    </table>
+$ctr = 0;
+foreach($teamStandings as $teamNum => $teamStats ) : ++$ctr?>
+    <tr id='<?php echo "{$ctr}_place";?>'>
+        <td class="team-name"><?php echo $teamStats['teamName'];?></td>
+        <td class="points"><?php echo $teamStats['points'];?></td>
+        <td class="games"><?php echo $teamStats['games'];?></td>
+    </tr>
+<?php endforeach; ?>
+</tbody>
+</table>
