@@ -722,7 +722,7 @@
             console.log('menu item')
             console.log(event.target)
             console.log($(event.target).parent('.menu.item'));
-            targets = ['article.membership.history','article.membership.address','article.membership.agreement','article.membership.emergency']
+            let targets = ['article.membership.history','article.membership.address','article.membership.agreement','article.membership.emergency']
 
             if($(event.target).parent().hasClass('history')) {
                 let disp = $('article.membership.history').css('display')
