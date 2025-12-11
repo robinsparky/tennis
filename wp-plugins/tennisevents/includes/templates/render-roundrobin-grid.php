@@ -1,8 +1,8 @@
 <?php 
 use datalayer\MatchStatus; 
 use datalayer\EventType;
-?>
-<?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
+
+$now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
     $eventType = $td->getEvent()->getParent()->getEventType();
     $isClosed = $td->getEvent()->isClosed();
     $teamTennisClass = '';
@@ -13,8 +13,19 @@ use datalayer\EventType;
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php echo $tournamentName;?>&colon;&nbsp;<?php echo $bracketName; ?>(<?php echo $scoreRuleDesc; ?>)</h3>
 <h5 class='tennis-draw-caption-dates'><span>Starts</span>&colon;&nbsp;<span><?php echo $strEventStartDate;?></span>&nbsp;<span>Ends</span>&colon;&nbsp;<span><?php echo $strEventEndDate;?></span>&nbsp;<span id='digiclock'></span></h5>
-
-<h5><a class="tennis-summary-link" href="#tennis-score-summary-id">Go to Team Standings</a></h5>
+<h5><a class="tennis-summary-link" href="#tennis-score-summary-id">Team Standings</a><br/>
+<?php if($eventType === EventType::TEAMTENNIS) { 
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    $mode = $_GET["mode"];
+    $seasonArg = $_GET["season"];
+    $bracketArg = $_GET['bracket'];
+    $requestUri = $_SERVER['REQUEST_URI'];
+    $requestUriSignup = str_replace('mode=draw','mode=signup',$requestUri) . '&showteams=true';
+    $signupUrl = $protocol . $host . $requestUriSignup;
+    ?>
+    <a id='teams-members-link' class="tennis-members-link" href='<?php echo $signupUrl;?>'>Teams and Members</a><?php }?>
+</h5>
 <main id="<?php echo $bracketName;?>" class="bracketrobin <?php echo $teamTennisClass;?>" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 <?php 
     $winnerClass = "matchwinner";
@@ -141,13 +152,11 @@ use datalayer\EventType;
         $this->log->error_log("render-RoundRobin: Current user is not PRIVILEGED!");
     }
     if($isClosed) {
-        $this->log->error_log("render-RoundRobin: Event is closed!"); ?>
-<?php
+        $this->log->error_log("render-RoundRobin: Event is closed!"); 
     }
-?>
-<?php if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$isClosed ) {
+    if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$isClosed ) {
     if( count( $loadedMatches ) >= 1 ) {
-    if( !$bracket->isApproved() ) { ?>
+        if( !$bracket->isApproved() ) { ?>
         <button class="button" type="button" id="approveDraw">Approve</button>
     <?php } ?>
     <button class="button" type="button" id="removePrelim">Reset</button><br/>

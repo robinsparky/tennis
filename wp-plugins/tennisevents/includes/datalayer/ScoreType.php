@@ -78,7 +78,7 @@ class ScoreType {
                     self::POINTS1    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>1),
                     self::POINTS2    => array("MaxSets"=>1,"GamesPerSet"=>6,"MustWinBy"=>2,"PointsPerWin"=>2),
                     self::POINTS3    => array("MaxSets"=>2,"GamesPerSet"=>4,"MustWinBy"=>2,"PointsPerWin"=>2),
-                    self::TEAMTENNIS => array("MaxSets"=>1,"GamesPerSet"=>99,"MustWinBy"=>1,"PointsPerWin"=>2),
+                    self::TEAMTENNIS => array("MaxSets"=>4,"GamesPerSet"=>99,"MustWinBy"=>1,"PointsPerWin"=>2),
                 );
                 
 

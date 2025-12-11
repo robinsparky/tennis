@@ -3,7 +3,7 @@
 	Plugin Name: Tennis Events
 	Plugin URI: grayware.ca/tennisevents
 	Description: Tennis Events Management
-	Version: 1.0
+	Version: 1.1.0
 	Author: Sparky
 	Author URI: grayware.ca
 */
@@ -39,18 +39,18 @@ if (isset($tennisEvents) && is_object($tennisEvents) && is_a($tennisEvents, 'Ten
  * Main Plugin class.
  *
  * @class TennisEvents
- * @version	1.0.0
+ * @version	1.1.0
 */
 class TennisEvents {
 
 	/**
 	 * Plugin version
-	 * @since   1.0.0
+	 * @since   1.1.0
 	 * @var     string
 	 */
 	
 	public const OPTION_NAME_VERSION = 'tennis_version';
-	public const VERSION = '1.0.1';
+	public const VERSION = '1.1.0';
 	public const OPTION_NAME_SEEDED  = 'data_seeded';
 	public const OPTION_HISTORY_RETENTION_DEFAULT = 5;
     public const OPTION_HISTORY_RETENTION = 'gw_tennis_event_history';
@@ -393,9 +393,11 @@ class TennisEvents {
 		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisEvents::VERSION ) {
 			try {
 				$version = TennisEvents::VERSION;
-				$path = $this->getPluginPath() . 'versions\\' . "{$version}" . '\versionUpgrader.php';
+				$path = $this->getPluginPath() . 'versions\\' . "{$version}" .  '\\versionUpgrader.php';
 				$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+				$this->log->error_log("$loc: version upgrade path='{$path}'");
 				if(file_exists($path)) {
+					$this->log->error_log("$loc: version upgrade path='{$path}' exists!");
 					require $path;
 					update_option( self::OPTION_NAME_VERSION , TennisEvents::VERSION );
 				}

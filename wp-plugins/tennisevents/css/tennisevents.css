@@ -385,11 +385,13 @@ ul.tennis-event-meta-detail > li input {
   padding-bottom: 1rem;
   border-bottom: 1px solid black;
 }
+
 .tennis-link-container {
   text-align: center;
   margin-top: 10px;
   border-top: 1px black dashed;
 }
+
 .tennis-link-container a {
   /*border: 2px black solid;*/
   border: none;
@@ -651,13 +653,6 @@ main.bracketrobin {
   grid-row-gap: 10px;
 }
 
-main.bracketrobin.ttc-team-tennis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 200px));
-  /*grid-template-rows: 1fr 1fr;*/
-  grid-column-gap: 10px;
-  grid-row-gap: 10px;
-}
 
 section.roundrobin-round {
   justify-self: center;
@@ -683,9 +678,20 @@ td.item-player > .visitorentrant {
   font-weight: bold;
 }
 
-/**
+/*-------------------------------------------------------
   * Team Tennis specific styling
-  */
+  -------------------------------------------------------*/
+/* .signupContainer.teamtennis {
+  display: none;
+} */
+
+main.bracketrobin.ttc-team-tennis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 200px));
+  grid-column-gap: 10px;
+  grid-row-gap: 10px;
+}
+
 section.roundrobin-round.ttc-team-tennis {
   border: 3px solid green;
   background-color: yellow;
@@ -696,6 +702,7 @@ section.roundrobin-round.ttc-team-tennis {
 section.roundrobin-round.ttc-team-tennis > .item-player {
   background-color: white;
 }
+
 section.roundrobin-round.ttc-team-tennis > span {
   font-size: larger;
   font-weight: bold;
@@ -706,9 +713,156 @@ section.roundrobin-round.ttc-team-tennis > span {
   margin: 0 auto;
   width: 50%;
 }
-/**  
+
+.teamRegistrationSection {
+  display: none;
+  border: 2px solid green;
+  border-radius: 8px;
+  background-color: lightyellow;
+}
+
+.teamRegistrationHeader.editable {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-rows: 4fr 4fr 1fr;
+  grid-template-areas:
+    "s a aa aaa aaaa"
+    "s b bb bbb bbbb"
+    "s . close reset save";
+}
+
+.teamRegistrationHeader {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-rows: 4fr 4fr 1fr;
+  grid-template-areas:
+    "a aa aaa aaaa"
+    "b bb bbb bbbb"
+    ". close . .";
+}
+
+button.closeTeamRegistration {
+  border-radius: 8px;
+  background-color: black;
+  color: white;
+  height: 50px;
+  grid-area: close;
+  width: 75%;
+}
+
+button.saveTeamRegistration {
+  border-radius: 8px;
+  background-color: black;
+  color: white;
+  height: 50px;
+  width: 75%;
+  grid-area: save;
+}
+
+button.resetTeamRegistration {
+  border-radius: 8px;
+  background-color: black;
+  color: white;
+  height: 50px;
+  width: 75%;
+  grid-area: reset;
+}
+
+button:disabled {
+  background-color: dimgrey;
+  color: linen;
+  opacity: 1;
+}
+
+#team1A {
+  grid-area: a;
+}
+#team2A {
+  grid-area: aa;
+}
+#team3A {
+  grid-area: aaa;
+}
+#team4A {
+  grid-area: aaaa;
+}
+#team1B {
+  grid-area: b;
+}
+#team2B {
+  grid-area: bb;
+}
+#team3B {
+  grid-area: bbb;
+}
+#team4B {
+  grid-area: bbbb;
+}
+
+.registeredPlayersList {
+  grid-area: s;
+  list-style-type: none;
+  border: 1px solid green;
+  padding: 0px 0px 0px 10px;
+  margin-right: 1em;
+  margin-left: 1em;
+  height: 750px;
+  overflow-y: scroll;
+  border-radius: 8px;
+}
+.registeredPlayersList > li {
+  cursor: pointer;
+}
+
+.teamNameList {
+  list-style-type: none;
+  border: 1px solid green;
+  overflow-y: auto;
+  padding: 0;
+  height: 350px;
+  max-width: 200px;
+  margin-left: 10px;
+  border-radius: 8px;
+}
+.teamNameList > li {
+  padding-left: 10px;
+  cursor: pointer;
+}
+
+.team-name-count {
+  display:grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr 1fr;
+  font-weight: bold;
+}
+.team-name {
+  text-align: right;
+}
+.team-count {
+  text-align: left;
+}
+.cloned {
+  animation-name: rollDown;
+  animation-duration: 1s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+  background-color: lightyellow;
+}
+@keyframes rollDown {
+  0% {
+    transform: translateY(-50%);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/*-------------------------------------------------------
   * End Team Tennis specific styling
-  */  
+  -------------------------------------------------------*/  
 
 article.item-player {
   margin-top: 3px;
@@ -1475,6 +1629,7 @@ button.link-to-draw {
   .site-title {
     display: none !important;
   }
+
   .tennis-link-container {
     display: none;
   }

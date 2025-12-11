@@ -10,8 +10,11 @@ use datalayer\Event;
 use datalayer\EventType;
 use datalayer\Bracket;
 use datalayer\Club;
+use datalayer\InvalidBracketException;
 use datalayer\InvalidEntrantException;
 use datalayer\Player;
+use datalayer\TennisTeam;
+use InvalidArgumentException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -170,6 +173,12 @@ class ManageSignup
                 break;
             case 'addBulk':
                 $mess = $this->bulkAdd( $data );
+                break;
+            case 'saveTeamRegistration':
+                $mess = $this->saveTeamRegistration( $data );
+                break;
+            case 'resetTeamRegistration':
+                $mess = $this->resetTeamRegistration( $data );
                 break;
             default:
                 wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
@@ -455,9 +464,9 @@ class ManageSignup
         $this->log->error_log("{$loc}");
 
         $this->eventId = $data["eventId"];
-        $this->bracketName = $data["bracketName"];
+        $bracketName = $data["bracketName"];
         $event   = Event::get( $this->eventId );
-        $bracket = $event->getBracket( $this->bracketName );
+        $bracket = $event->getBracket( $bracketName );
         $numFailed = 0;
         $numTotal = 0;
         foreach($data['entrants'] as $entrant) {
@@ -501,7 +510,6 @@ class ManageSignup
         return $mess;
     }
 
-    
     /**
      * Create preliminary rounds for this event/bracket
      * @param array $data Associative array containing the entrant's data; passed by reference so data can be returned.
@@ -528,6 +536,106 @@ class ManageSignup
         }
 
         return $mess;
+    }
+
+    /**
+     * Replaces existing team members with the team compositions provided by the user.
+     * Avoids incremental adding and removing.
+     */
+    private function saveTeamRegistration(&$data) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+
+        $this->eventId = $data["eventId"];
+        try {            
+            $event   = Event::get( $this->eventId );
+            $bracketName = $data["bracketName"];
+            $this->log->error_log("{$loc} with bracketName='{$bracketName}'");
+            $bracket = $event->getBracket( $bracketName );
+            if(!isset($bracket)) {
+                $mess = __("Invalid bracket for name '{$bracketName}'",TennisEvents::TEXT_DOMAIN);
+                throw new InvalidBracketException($mess);
+            }
+            $teamDefinitions = $data['teamDefinitions'];
+            if(!isset($teamDefinitions)) {
+                $mess = __("No team definitions were given.",TennisEvents::TEXT_DOMAIN);
+                throw new InvalidArgumentException($mess);
+            }
+
+            //First remove all members from all teams
+            $allTeams = TennisTeam::find(["event_ID"=>$event->getID(),"bracket_num"=>$bracket->getBracketNumber()]);
+            $numRemoved = 0;
+            foreach($allTeams as $team) {
+                $numRemoved += $team->removeAllTeamMembers();
+            }
+            $this->log->error_log("{$loc}: Removed {$numRemoved} members.");
+
+            //Next load add all the players to teams defined by the user
+            $teampat = "/.*(\d+)([AB])$/i";
+            $playerpat = "/\d+$/";
+            foreach($teamDefinitions as $teamId => $members) {
+                $this->log->error_log("Team id='{$teamId}'");
+                $matches = [];
+                preg_match($teampat,$teamId,$matches);
+                $teamNum = $matches[1];
+                $division = $matches[2];
+                $this->log->error_log("teamNum='{$teamNum}'; division='{$division}'");
+                $team = TennisTeam::get($event->getID(), $bracket->getBracketNumber(), $teamNum, $division);
+                foreach($members as $playerKey) {
+                    $this->log->error_log("playerKey='{$playerKey}'");
+                    $matches=[];
+                    preg_match($playerpat,$playerKey,$matches);
+                    $playerId = $matches[0];
+                    $this->log->error_log("PlayerId='{$playerId}'");
+                    $player = Player::get($playerId);
+                    $team->addMember($player);
+                }
+                $team->save();
+            }
+ 
+            $mess =  __("Saved team registrations for '$bracketName' bracket.", TennisEvents::TEXT_DOMAIN );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $this->log->error_log("{$loc}:{$mess}");
+        }
+
+        return $mess;
+
+    }
+    
+    private function resetTeamRegistration(&$data) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("$loc");
+
+        $this->eventId = $data["eventId"];
+        try {            
+            $event = Event::get( $this->eventId );
+            $bracketName = $data["bracketName"];
+            $this->log->error_log("{$loc} with bracketName='{$bracketName}'");
+            $bracket = $event->getBracket( $bracketName );
+            if(!isset($bracket)) {
+                $mess = __("Invalid bracket for name '{$bracketName}'",TennisEvents::TEXT_DOMAIN);
+                throw new InvalidBracketException($mess);
+            }
+            $allTeams = TennisTeam::find(['event_ID'=>$event->getID(),'bracket_num'=>$bracket->getBracketNumber()]);
+            $numDel = 0;
+            foreach($allTeams as $team) {
+                $this->log->error_log("Removing members for {$team->getName()}{$team->getSquad()}");
+                $numDel += $team->removeAllTeamMembers();
+            }
+ 
+            $mess =  __("Reset team registrations({$numDel}) for '$bracketName' bracket.", TennisEvents::TEXT_DOMAIN );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+            $this->log->error_log("{$loc}:{$mess}");
+        }
+
+        return $mess;
+
     }
 
     /**

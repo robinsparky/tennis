@@ -848,6 +848,7 @@ class TE_Install {
 			  `phoneHome`     VARCHAR(45),
 			  `phoneMobile`   VARCHAR(45),
 			  `phoneBusiness` VARCHAR(45),
+			  `is_spare`      TINYINT DEFAULT 0,
 			  PRIMARY KEY (`ID`)) ENGINE=MyISAM,
 			  INDEX event_bracket_idx (`event_ID`,`bracket_num`);";
 		if( $newSchema ) {
@@ -879,6 +880,7 @@ class TE_Install {
 				`team_num`  INT NOT NULL,
 				`division`  VARCHAR(2) NOT NULL,
 				`player_ID` INT NOT NULL,
+				`is_captain` TINYINT DEFAULT 0,
 				INDEX event_team_idx (event_ID, bracket_num, team_num, division),
     			INDEX player_idx (player_ID)
 				) ENGINE=MyISAM;";	

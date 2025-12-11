@@ -183,12 +183,14 @@ class TTCTeamTennisUmpire extends ChairUmpire
             if( 1 === $earlyEnd ) {
                 //Home defaulted
                 $andTheWinnerIs = $visitor;
+                $visitorPointsWon += $this->PointsPerWin * $this->getMaxSets();
                 $finalSet = $setNumEarly;
                 break;
             }
             elseif( 2 === $earlyEnd ) {
                 //Visitor defaulted
                 $andTheWinnerIs = $home;
+                $homePointsWon += $this->PointsPerWin * $this->getMaxSets();
                 $finalSet = $setNumEarly;
                 break;
             }

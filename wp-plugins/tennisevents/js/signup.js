@@ -7,6 +7,12 @@
     var longtimeout = 60000;
     var shorttimeout = 5000;
     var minNameLength = 3;
+    if(tennis_signupdata_obj.showTeams === 'true') {
+       setDisplayMembers()
+    }
+    else {
+        clearDisplayMembers(); 
+    }
 
     var signupDataMask = {
       task: "",
@@ -112,6 +118,14 @@
         window.location = $("a.link-to-draw").attr("href");
       }
       else if (data.task.startsWith("addBulk")) {
+        window.location.reload();
+        return
+      }
+      else if(data.task.startsWith('saveTeamRegistration')) {
+        // window.location.reload();
+        return
+      }
+      else if(data.task.startsWith('resetTeamRegistration')) {
         window.location.reload();
         return
       }
@@ -344,13 +358,13 @@
 
     function isDuplicate(name) {
       console.log("isDuplicate(%s)", name);
-      $find = findEntrant(name);
+      let $find = findEntrant(name);
       return $find.length > 0;
     }
 
     function findEntrant(name) {
       console.log("findEntrant(%s)", name);
-      test = name.trim().replace(/ /g, "_").replace(/'/g, "").replace(/&/g, "").replace(/\//,"");
+      let test = name.trim().replace(/ /g, "_").replace(/'/g, "").replace(/&/g, "").replace(/\//,"");
       console.log("test=#li%s", test);
       $found = $("li#" + test);
       return $found;
@@ -473,6 +487,217 @@
       });
     });
     
+    //Display the team definition portion of the page
+    $('#defineTeams').on('click', function(event) {
+      $('.teamRegistrationSection').show();
+      $('.signupContainer').hide();
+    });
+
+    //On mouse enter show the team members for this team entrant (i.e. 1A, 2B, etc)
+    $('.entrantName.teamName').on('mouseenter',function(event) {
+      console.log("mouseenter")
+      let name = event.target.textContent;
+      let re = /(\d+)([A,B])/
+      let teamSymbols = re.exec(name)
+      let team = document.querySelector(`#team${teamSymbols[0]}`)
+      if(!team) return;
+
+      let members = team.querySelectorAll('li')
+      if(members.length < 1) return;
+
+      let cloneId = team.id + 'cloned'
+      let cloned = team.cloneNode(true)
+      cloned.id = cloneId
+      let cmembers = cloned.querySelectorAll('li')
+      cmembers.forEach((m)=>{m.setAttribute("draggable","false")})
+      let style = `position: relative; display:block; top: 0%;left: 5%; height: inherit;z-index: -1;overflow-y: hidden;`
+      cloned.setAttribute("style",style)
+      cloned.setAttribute("draggable","true")
+      cloned.classList.add('cloned')
+      let container = event.target.parentNode
+      container.appendChild(cloned)
+      // setTimeout(() => {
+      //   eraseNode(cloned)
+      // }, 5000);
+
+    });
+    $('.entrantName.teamName').on('mouseleave',function(event) {
+      eraseAllNodes()
+    });
+
+    function eraseAllNodes() {
+      let test = document.querySelectorAll('.cloned')
+      if(test) {
+        test.forEach((t)=>{
+          eraseNode(t)
+        });
+      }
+    }
+    function eraseNode(n) {
+      if(n) {
+        if (n.parentNode) {
+          n.parentNode.removeChild(n);
+        }
+        else n.remove()
+      }
+    }
+
+    //Hide the team definition portion of the page
+    $('.closeTeamRegistration').on('click', function(event) {
+      // console.log("Close Team Registration fired!");
+      clearDisplayMembers()
+      let url = window.location.href
+      let re = /&?showteams=true|false/
+      let matches = url.match(re)
+      console.log(matches)
+      if(matches) { 
+        url = url.replace(matches[0],'')
+        console.log(`url=${url}`)
+        window.location.replace(url);
+      }
+      else {
+        window.location.reload()
+      }
+      
+      // setTimeout(() => {
+      //   window.location.reload();
+      // }, 0);
+    });
+
+    //Save the team compositions given so far
+    $('.saveTeamRegistration').on('click', function(event) {
+      // console.log("Save Team Registration fired!");
+      $(event.target).prop("disabled", true);
+
+      let clubId = $(".signupContainer").attr("data-clubid"); 
+      let eventId = $(".signupContainer").attr("data-eventid");
+      let bracketName = $(".signupContainer").attr("data-bracketname");
+      let teamLists = document.querySelectorAll('.teamNameList');
+      let teamMembers = {}
+      teamLists.forEach((el)=>{
+        if(!teamMembers[el.id]) {
+          teamMembers[el.id] = [];
+        }
+        let ctr = 0;
+        for (const child of el.children) {
+          if(child.tagName === 'LI') {
+            ++ctr;
+            teamMembers[el.id].push(child.id);
+          }
+        }
+        console.log('Team id: %s; has %d members',el.id,ctr)
+      });
+
+      console.log(teamMembers)
+
+      if(confirm("Are you sure you want to save all team definitions?")) {
+        setDisplayMembers()
+        ajaxFun({
+          task: "saveTeamRegistration",
+          clubId: clubId,
+          eventId: eventId,
+          bracketName: bracketName,
+          teamDefinitions: teamMembers
+        });
+      }
+    });
+    
+    //Reset the team compositions given so far
+    $('.resetTeamRegistration').on('click', function(event) {
+      // console.log("Reset Team Registration fired!");
+      let clubId = $(".signupContainer").attr("data-clubid"); 
+      let eventId = $(".signupContainer").attr("data-eventid");
+      let bracketName = $(".signupContainer").attr("data-bracketname");
+      if(confirm("Are you sure you want to undo all team definitions?")) {
+        setDisplayMembers()
+        ajaxFun({
+          task: "resetTeamRegistration",
+          clubId: clubId,
+          eventId: eventId,
+          bracketName: bracketName
+        });    
+      }
+    });
+
+    //Add drag listeners to the given item
+    function addDragListeners(item) {
+      item.addEventListener('dragstart', handleDragStart);
+    }
+
+    //Handler for the start of a drag operation
+    function handleDragStart(e) {
+      // console.log("handleDragStart"); 
+      //console.log(e)
+      console.log(e.target.id)
+      $("#saveTeams").prop("disabled", false);
+      //e.dataTransfer.setData("text/plain", e.target.innerText);
+      e.currentTarget.classList.add("dragging");
+      e.dataTransfer.effectAllowed = 'move'; // Specify the effect (move, copy, link)
+      e.dataTransfer.clearData();
+      e.dataTransfer.setData('text/plain', e.target.id);
+      console.log(e)
+
+      setTimeout(() => {
+        e.target.style.display.opacity = '0.4';
+      }, 0);
+    }
+
+    function countMembers(container) {
+        // console.log("countMembers:")
+        //console.log(container)
+        let countNode = container.querySelector('.team-count');
+        if(!countNode) return;
+
+        let sz = container.querySelectorAll('li').length
+        let oldText = countNode.textContent
+        let newText = oldText.replace(/\(\d+\)/,`(${sz})`)
+        countNode.textContent = newText
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move'; // Explicitly show the move effect
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove("dragging");
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      // console.log("handleDrop");
+      const id = e.dataTransfer.getData('text/plain');
+      //console.log("id:");
+      //console.log(id);
+      const draggableElement = document.getElementById(id);
+      //console.log("draggableElement:");
+      //console.log(draggableElement);
+      let srcContainer = draggableElement.closest('.list-container')
+    
+      // Append the dragged element to the target list
+      // e.target is the element the item was dropped onto.
+      // We need to find the actual <ul> element to append to, in case the user drops it on the container div
+      let dropTarget = e.target;
+      // console.log("drop target before:");
+      // console.log(dropTarget);
+      while (dropTarget.tagName !== 'UL' && dropTarget.id !== 'teamList' && dropTarget.id !== 'sourceListContainer') {
+          dropTarget = dropTarget.parentNode;
+      }
+      // console.log("dropTarget: after");
+      // console.log(dropTarget);
+
+      if (dropTarget.tagName === 'UL') {
+          dropTarget.appendChild(draggableElement);
+          countMembers(dropTarget)
+          countMembers(srcContainer)
+      }
+
+
+      //Reset visual feedback
+      draggableElement.style.opacity = '1';
+      
+    }
+
     /***********XML File ******************************************************/
     $("#entrant_uploads_file").css("opacity","0")
     let bulkEntrants = []
@@ -587,9 +812,85 @@
         fr.readAsText(this.files[0]);
     })
     };
+    
+    /**
+     * Stores whether or not to stay on the members section of the page into local storage
+     */
+    function setDisplayMembers() {
+        localStorage.setItem('stayOnMembers', "members")
+    }
+
+    function clearDisplayMembers() {
+        localStorage.setItem('stayOnMembers', "")
+    }
+    
+    /**
+     * Gets whether or not to stay on the members section of the page from local storage
+     * @returns {bool}
+     */
+    function getDisplayMembers() {
+      let ans = localStorage.getItem('stayOnMembers')
+        if(ans === "members") {
+          return true;
+        }
+        return false;
+    }
+
+    //Test for storage
+    if (storageAvailable("localStorage")) {
+        console.log("Yippee! We can use localStorage awesomeness");
+    } else {
+        console.log("Too bad, no localStorage for us");
+    }
+
+    function storageAvailable(type) {
+    var storage;
+    try {
+      storage = window[type];
+      var x = "__storage_test__";
+      storage.setItem(x, x);
+      storage.removeItem(x);
+      return true;
+    } catch (e) {
+      return (
+        e instanceof DOMException &&
+        // everything except Firefox
+        (
+          // test name field too, because code might not be present
+          // everything except Firefox
+          e.name === "QuotaExceededError" ||
+          // Firefox
+          e.name === "NS_ERROR_DOM_QUOTA_REACHED") &&
+        // acknowledge QuotaExceededError only if there's something already stored
+        storage &&
+        storage.length !== 0
+      );
+    }
+  }
 
     /**************************************************************************/
 
+    // Add drag listeners to the initial items in the source list
+    document.querySelectorAll('#sourceList li').forEach(addDragListeners);
+    document.querySelectorAll('.teamNameList li').forEach(addDragListeners);
+
+    // Add drop listeners to both the source and the team list containers
+    document.querySelectorAll('.list-container').forEach(container => {
+        container.addEventListener('dragover', handleDragOver);
+        container.addEventListener('dragend', handleDragEnd);
+        container.addEventListener('drop', handleDrop);
+    });
+
+    if(getDisplayMembers()) {
+      console.log("Stay on members is TRUE")
+      $('.teamRegistrationSection').show();
+      $('.signupContainer').hide();
+    }
+    else {
+      console.log("Stay on members is FALSE")
+      $('.teamRegistrationSection').hide();
+      $('.signupContainer').show();
+    }
     //toggleButtons(tennis_signupdata_obj.numPreliminary);
   });
 })(jQuery);

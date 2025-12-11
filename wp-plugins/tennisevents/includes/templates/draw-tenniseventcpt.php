@@ -4,11 +4,15 @@ use datalayer\Event;
 use datalayer\EventType;
 use datalayer\Bracket;
 use datalayer\Format;
+use datalayer\TennisTeam;
+use datalayer\Player;
 ?>
 <div id="post-<?php the_ID(); ?>"> <!-- post -->
 	<?php
 		$mode = isset($_GET['mode']) ? $_GET['mode'] : '';
 		$bracketName = isset($_GET['bracket']) ? $_GET['bracket'] : '';
+		$showTeams = isset($_GET['showteams']) ? $_GET['showteams'] : '';
+		error_log(__FILE__);
 		//Get $args
 		$args = wp_parse_args(
 				$args,
@@ -16,8 +20,10 @@ use datalayer\Format;
 					'season' => ''
 				)
 			);
+
 		$season = $args['season'];
-		error_log(__FILE__ . ": season={$season}");
+		error_log("season={$season}");
+		error_log("showteams={$showTeams}");
 	?>
 		<!-- tennis event content -->
 		<div class="tennis-event-content">
@@ -47,7 +53,14 @@ use datalayer\Format;
 					echo "<h3>Invalid season</h3>";
 					$okToProceed = false;
 				}
-
+				 $eventType = $event->getParent()->getEventType();
+				 $bracket = null;
+				 foreach( $event->getBrackets() as $b ) {
+					if( $b->getName() === $bracketName ) {
+						$bracket = $b;
+						break;
+					}	
+				 }
 			if($okToProceed) {
 				// Get template file
 				$path = TE()->getPluginPath() . 'includes\templates\controls\searchDialog.php';
@@ -61,16 +74,34 @@ use datalayer\Format;
 				if($event->getParent()->getEventType() === EventType::TEAMTENNIS ) {
 					$titlePrefix = 'Week';
 				}
-				$bn = urlencode( $bracketName );
+				$bn = urlencode( $bracketName );		
+				//echo "<div><a class='link-to-events' href='{$eventsUrl}'>Event Descriptions</a></div>";
+
 				if( $mode === "signup" ) {
 					//Include the search button to find entrants
-					$buttonTitle="Find an Entrant"; $container="ul.eventSignup";$target=".entrantName";require( $path );
-					echo do_shortcode("[manage_signup eventid={$event->getID()} bracketname={$bn}]");
+					//$buttonTitle="Find an Entrant"; $container="ul.eventSignup";$target=".entrantName";require( $path );
+					echo do_shortcode("[manage_signup eventid={$event->getID()} bracketname={$bn} showteams={$showTeams}]");
 					$drawUrl = get_permalink() . "?mode=draw&bracket=" . $bn . "&season={$season}";
-					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					//echo "<div class='tennis-link-container'><button class='button link-to-draw' onClick={$onClick}>Go to Draw</button></div>";
-					echo "<div class='tennis-link-container'><a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Draw</a>&nbsp;";
-					echo "<div><a class='link-to-events' href='{$eventsUrl}'>Event Descriptions</a>&nbsp;";
+					echo "<div class='tennis-link-container'>";
+					echo "<a class='link-to-draw' href='{$drawUrl}'>{$bracketName} Draw</a></br>";
+					echo "<a class='link-to-events' href='{$eventsUrl}'>Event Descriptions</a>";
+					echo "</div>";					
+					//TeamTennis only
+					if( $eventType === EventType::TEAMTENNIS) {
+					$numPrelimMatches = count( $bracket->getMatchesByRound(1) );
+						//This section is for team tennis team assignments
+						if(current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$event->isClosed() && isset( $bracket ) & $numPrelimMatches < 1) {
+							//Editable
+							$path = TE()->getPluginPath() . 'includes\templates\teamRegistrationEditable.php';
+							$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+							require($path);
+							} else {
+							//Readonly
+							$path = TE()->getPluginPath() . 'includes\templates\teamRegistrationReadOnly.php';
+							$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+							require($path);
+						}
+					} //TeamTennis
 				}
 				elseif( $mode === "draw" ) {
 					//Include the search button to find players
@@ -85,16 +116,16 @@ use datalayer\Format;
 						break;
 					}
 					$drawUrl = get_permalink() . "?mode=signup&bracket=" . $bn . "&season=$season";
-					$onClick = "\"window.location.href='" . $drawUrl . "';\"";
-					echo "<div class='tennis-link-container'><a class='link-to-signup' href='{$drawUrl}'>{$bracketName} Signup</a>&nbsp;";
+					echo "<div class='tennis-link-container'>";
+					echo "<a class='link-to-signup' href='{$drawUrl}'>{$bracketName} Signup</a></br>";
 				
 					foreach( $event->getBrackets() as $bracket) {
 						if( $bracketName !== $bracket->getName() ) {
 							$drawUrl = get_permalink() . "?mode=draw&bracket=" . urlencode($bracket->getName()) . "&season=$season";
-							echo "<a class='link-to-draw' href='{$drawUrl}'>{$bracket->getName()}</a>&nbsp;";
+							echo "<a class='link-to-draw' href='{$drawUrl}'>{$bracket->getName()}&nbsp;Draw</a></br>";
 						}
 					}
-					echo "<div><a class='link-to-events' href='{$eventsUrl}'>Event Descriptions</a>&nbsp;";
+					echo "<a class='link-to-events' href='{$eventsUrl}'>Event Descriptions</a>";
 					echo "</div>";
 				}
 				else {
@@ -104,5 +135,5 @@ use datalayer\Format;
 				</div> <!-- /tennis event schedule -->
 		</div> <!-- /event event content -->
 </div> <!-- /post -->
-<?php } //ok to proceed ?>
-
+<?php } //ok to proceed
+?>

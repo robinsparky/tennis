@@ -10,6 +10,7 @@ use api\TournamentDirector;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\Player;
+use datalayer\TennisTeam;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -107,7 +108,8 @@ class RenderSignup
         $my_shorts = shortcode_atts( array(
             'clubname' => '',
             'eventid' => 0,
-            'bracketname' => Bracket::WINNERS
+            'bracketname' => Bracket::WINNERS,
+            'showteams' => false
         ), $atts, 'manage_signup' );
 
         $club = null;
@@ -130,6 +132,7 @@ class RenderSignup
         if( $this->eventId < 1 ) return __('Invalid event Id', TennisEvents::TEXT_DOMAIN );
 
         $this->log->error_log($my_shorts, "$loc: My Shorts" );   
+        $showTeams = $my_shorts['showteams'];
 
         //TODO: Put all references into functions in TD
         $evts = Event::find( array( "club" => $club->getID() ) );
@@ -167,7 +170,7 @@ class RenderSignup
         $numPrelimMatches = count( $bracket->getMatchesByRound(1) );
         //Get the signup for this bracket
         $this->signup = $bracket->getSignup();
-        $this->log->error_log( $this->signup, "$loc: Signup");
+        // $this->log->error_log( $this->signup, "$loc: Signup");
         $numSignedUp = count( $this->signup );
 
         $jsData = $this->get_ajax_data();
@@ -178,21 +181,29 @@ class RenderSignup
         $jsData["numPreliminary"] = $numPrelimMatches;
         $jsData["isBracketApproved"] = $isApproved ? 1:0;
         $jsData["matchType"] = $target->getMatchType();
+        $jsData["eventType"] = $eventType;
+        $jsData["showTeams"] = $showTeams;
         wp_enqueue_script( 'manage_signup' );   
         wp_localize_script( 'manage_signup', 'tennis_signupdata_obj', $jsData );
         
         //Signup
         $out = '';
-        $out .= '<div class="signupContainer" data-eventid="' . $this->eventId . '" ';
-        $out .= 'data-clubid="' . $this->clubId . '" data-bracketname="' . $bracketName . '">' . PHP_EOL;
+        $out .= "<div class='signupContainer {$eventType}' data-eventid='{$this->eventId}'";
+        $out .= " 'data-clubid='{$this->clubId}' data-bracketname='{$bracketName}' data-eventtype='{$eventType}'>" . PHP_EOL;
         $out .= "<h2 class='tennis-signup-title'>{$parentName}</h2>" . PHP_EOL;
         $out .= "<h3 class='tennis-signup-title'>{$eventName}&#58;&nbsp;&lsquo;{$bracketName} Bracket&rsquo;&nbsp;Sign Up Sheet</h3>" . PHP_EOL;
-        $out .= '<ul class="eventSignup tennis-event-signup">' . PHP_EOL;
+        $out .= "<ul class='eventSignup tennis-event-signup'>" . PHP_EOL;
         
-        $templr = <<<EOT
+    $templr = <<<EOT
 <li id="%s" class="entrantSignupReadOnly">
 <div class="entrantPosition">%d.</div>
 <div class="entrantName">%s</div>
+</li>
+EOT;    
+    $templrtt = <<<EOT
+<li id="%s" class="entrantSignupReadOnly">
+<div class="entrantPosition">%d.</div>
+<div class="entrantName teamName">%s</div>
 </li>
 EOT;
        
@@ -203,7 +214,7 @@ EOT;
 </li>
 EOT;
 
-        $templw = <<<EOT
+    $templw = <<<EOT
 <li id="%s" class="entrantSignup" data-currentpos="%d">
 <div class="entrantPosition">%d.</div>
 <input name="entrantName" type="text" maxlength="35" size="15" class="entrantName" data-oldname="%s" value="%s">
@@ -227,15 +238,18 @@ EOT;
             $nameId = str_replace( [' ',"\'","'",'&'], ['_','','',''], $entrant->getName() );
             $seed = $entrant->getSeed();
             $rname = ( $seed > 0 ) ? $name . '(' . $seed . ')' : $name;
-            if( $numPrelimMatches > 0 ) 
+            if( $numPrelimMatches > 0 ) {
                 if( current_user_can( 'manage_options' ) && !$target->isClosed() && $eventType !== EventType::TEAMTENNIS ) {
                     $htm = sprintf( $templu, $nameId, $pos, $pos, $name, $name );
+                }
+                elseif($eventType === EventType::TEAMTENNIS) {
+                    $htm = sprintf( $templrtt, $nameId, $pos, $rname );
                 }
                 else {
                     $htm = sprintf( $templr, $nameId, $pos, $rname );
                 }
-            else if($target->isClosed() || $eventType === EventType::TEAMTENNIS ) {
-                $htm = sprintf( $templr, $nameId, $pos, $rname );
+            } else if($eventType === EventType::TEAMTENNIS ) {
+                $htm = sprintf( $templrtt, $nameId, $pos, $rname );
             }
             else {
                 $htm = sprintf( $templw, $nameId, $pos, $pos, $name, $name, $seed, $nameId );
@@ -255,22 +269,18 @@ EOT;
         else if( $numPrelimMatches < 1 && $eventType === EventType::TEAMTENNIS && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() ) { 
             $out .= '<label class="button addentrant" for="entrant_uploads_file">Upload Registrants</label>' . PHP_EOL;
             $out .= '&nbsp;<a class="download" id="downloadtennisfile" href="' . $link . '?moniker=signupschema">(Download schema)</a><br>' . PHP_EOL;            
-            $out .= '<button class="button resequence" type="button" id="defineTeams">Define Teams</button><br/>' . PHP_EOL;          
+            $out .= '<button class="button resequence" type="button" id="defineTeams">Team Members</button><br/>' . PHP_EOL;          
             $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
             $out .= $templfile . PHP_EOL;
-            $players = Player::find( array( "event_ID" => $this->eventId, "bracket_num" => $bracket->getBracketNumber() ) );
-            $out .= '<div class="teamRegistrationInfo">';
-            $out .= '<h4>Registered Players:</h4><ul>';
-            foreach( $players as $player ) {
-                $out .= '<li>' . $player->getName() . '</li>';
-            }
-            $out .= '</ul></div>';
+        }
+        else if( $eventType === EventType::TEAMTENNIS ) {       
+            $out .= '<button class="button resequence" type="button" id="defineTeams">Team Members</button><br/>' . PHP_EOL; 
+            $out .= $templfile . PHP_EOL;
         }
 
         $out .= '</div>'; //container
         $out .= '<div id="tennis-event-message"></div>';
-
         return $out;
     }
 

@@ -1165,7 +1165,7 @@ class Event extends AbstractData
 	 */
 	public function getBracket( $bracketId = Bracket::WINNERS ) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
-		$this->log->error_log("$loc({$bracketId})");
+		$this->log->error_log("$loc('{$bracketId}')");
 		$result = null;
 
 		if( is_numeric( $bracketId ) ) {
