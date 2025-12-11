@@ -984,60 +984,61 @@ table.tennis-display-scores td {
 
 table.tennis-modify-scores {
   display: none;
-  background-color: lightblue;
+  background-color: lightyellow;
   border-collapse: collapse;
-  border: 1px solid blue;
-  box-shadow: 10px 10px blue;
-  color: white;
+  border: 1px solid green;
+  box-shadow: 8px 8px green;
+  color: black;
 }
 
 table.tennis-modify-scores caption {
   display: table-caption;
   text-align: center;
   font-weight: bold;
-  background-color: blue;
-  color: white;
+  background-color: lightyellow;
+  color: black;
   font-size: small;
   padding-top: 1px;
   padding-bottom: 1px;
+  border: 1px solid green;
 }
 
 table.tennis-modify-scores th {
-  background-color: blue;
+  background-color: lightyellow;
   margin: 0;
-  border: 1pt solid white;
+  border: 1pt solid green;
   font-size: small;
   padding: 0;
 }
 
 table.tennis-modify-scores td {
   margin: 0;
-  border: 1pt solid blue;
+  border: 1pt solid green;
   font-size: small;
   padding: 0;
-  color: blue;
+  color: black;
 }
 table.tennis-modify-scores input {
-  color: blue;
+  color: black;
 }
 
 table.tennis-modify-scores td:nth-child(odd) {
   padding: 1px 2px 1px 2px !important;
-  border: 1pt solid blue;
-  color: blue;
+  border: 1pt solid green;
+  color: black;
 }
 
 table.tennis-modify-scores td:nth-child(even) {
   padding: 1px 1px 1px 1px !important;
-  border: 1pt solid blue;
-  color: blue;
+  border: 1pt solid green;
+  color: black;
 }
 
 input.modifymatchscores {
-  background: lightblue;
+  background: lightyellow;
   box-sizing: border-box;
   width: 100%;
-  color: white;
+  color: black;
   padding: 1px 0 0 1px;
   width: 3em;
 }
@@ -1211,22 +1212,21 @@ div.modifymatchscores.save-cancel-buttons {
 
 .matchaction {
   display: none;
-  background-color: blue;
+  background-color: green;
   border: 1px solid white;
   list-style-type: none;
-  max-width: 70%;
+  max-width: 90%;
   position: absolute;
-  top: 100%;
-  left: 20%;
+  top: 0em;
+  left: 10%;
   font-size:.700em !important;
   padding-left: 1px;
   padding-right: 1px;
-  /*opacity: 0.7;*/
 }
 
 .matchaction > li {
   color: white;
-  display:inline-block;
+  display:block;
   position:relative;
 }
 
