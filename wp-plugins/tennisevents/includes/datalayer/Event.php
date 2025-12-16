@@ -378,7 +378,7 @@ class Event extends AbstractData
 	/**
 	 * Constructor ... including sneaky copy constructor
 	 */
-	public function __construct( string $name = null, string $eventType = EventType::TOURNAMENT, Event $copyMe = null ) {
+	public function __construct( ?string $name = null, string $eventType = EventType::TOURNAMENT, ?Event $copyMe = null) {
         $loc = __CLASS__ . "::" . __FUNCTION__;
 
 		parent::__construct( true );
@@ -527,7 +527,12 @@ class Event extends AbstractData
      * Get the name of this Event
      */
     public function getName():string {
-        return $this->name;
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$this->log->error_log("{$loc}: input name='{$this->name}'");
+		$output = preg_replace("/(&amp;)/", "&", $this->name);
+		$output = preg_replace("/(&?#0*39;)/", "'", $output);
+		$this->log->error_log("{$loc}: modified name='{$output}'");
+        return $output;
     }
 
 	/**

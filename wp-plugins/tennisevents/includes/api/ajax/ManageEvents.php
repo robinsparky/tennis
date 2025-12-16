@@ -235,7 +235,7 @@ class ManageEvents
         $task = $data["task"];
         $mess = "";
         try {
-            $data["title"] =  htmlspecialchars(strip_tags($data["title"]));
+            $data["title"] =  strip_tags($data["title"]);
             if(empty($data['title'])) {
                 throw new InvalidArgumentException(__("Event name is required.",TennisEvents::TEXT_DOMAIN));
             }
@@ -363,9 +363,9 @@ class ManageEvents
                 $this->log->error_log("{$loc}: Different postIds: given '{$postId}' vs database '{$postId2}'");
                 throw new InvalidEventException(__( "Different postIds: given '{$postId}' vs database '{$postId2}'", TennisEvents::TEXT_DOMAIN ));
             }
-            $data['newTitle'] = htmlspecialchars(strip_tags($data['newTitle']));
+            $data['newTitle'] = strip_tags($data['newTitle']);
             $newTitle = $data['newTitle'];
-            $data['oldTitle'] = htmlspecialchars(strip_tags($data['oldTitle']));
+            $data['oldTitle'] = strip_tags($data['oldTitle']);
             $oldTitle = $data['oldTitle'];
             if(!$event->setName($newTitle)) throw new InvalidArgumentException(__("Could not change event name from '{$oldTitle}' to '{$newTitle}'", TennisEvents::TEXT_DOMAIN));
 
@@ -757,8 +757,8 @@ class ManageEvents
             if( !isset($homeClub) ) {				
                 throw new InvalidEventException(__( 'Home club is not set.', TennisEvents::TEXT_DOMAIN ));
             }
+            $data['title'] = strip_tags($data['title']);
             $event = new Event($data["title"]);
-            $data['title'] = htmlspecialchars(strip_tags($data['title']));
 			//Set the parent event of the Event before setting other props
 			$event->setParent($parentEvent);
             $event->addClub($homeClub);
