@@ -15,6 +15,7 @@ use datalayer\Format;
 use datalayer\Bracket;
 use datalayer\Club;
 use datalayer\TennisTeam;
+use datalayer\TennisSquad;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidEventException;
 use cpt\TennisEventCpt;
@@ -1268,28 +1269,37 @@ class ManageEvents
                 throw new InvalidBracketException(__("Bracket not created or found", TennisEvents::TEXT_DOMAIN) );
             }
 
-            $club = empty($event->getClubs()) ? null : $event->getClubs()[0];
-            $numCourts = is_null($club) ? 0 : $club->getNumCourts();
-            $numCourts = $numCourts < 1 ? 4 : $numCourts;
-            $numNewEntrants = 0;
-            //Special handling for team tennis; add teams as entrants
+            //Special handling for team tennis; add teams/squads as entrants
             if($event->getParent()->getEventType() === EventType::TEAMTENNIS) {
+                $club = empty($event->getClubs()) ? null : $event->getClubs()[0];
+                $numCourts = is_null($club) ? 0 : $club->getNumCourts();
+                $numCourts = $numCourts < 1 ? 4 : $numCourts;
+                $numNewEntrants = 0;
+                $this->log->error_log("$loc: Adding tennis teams bracket with {$numCourts} courts.");
                 try {
                     foreach( range(1,$numCourts) as $teamNum) {
-                        $td->addEntrant( "Team {$teamNum}A",0,$newBracketName );
-                        $numNewEntrants++;
                         $tname = "Team {$teamNum}";
                         $team = new TennisTeam( $tname, $event->getID(), $bracket->getBracketNumber(), $teamNum );
-                        $team->save();
+                        $team->save(); //NOTE: squads are added automatically on save
                     }
-                    foreach( range(1,$numCourts) as $teamNum) {
-                        $td->addEntrant( "Team {$teamNum}B",0,$newBracketName );
-                        $numNewEntrants++;
+                    $allTeams = TennisTeam::find( ['event_ID' => $event->getID(), 'bracket_num' => $bracket->getBracketNumber()] );
+                    $this->log->error_log("$loc: Found " . count($allTeams) . " teams after creation.");
+                    foreach( $allTeams as $team ) {
+                        foreach( $team->getSquads() as $squad ) {
+                            $this->log->error_log("$loc: Team {$team->getTeamNum()} has squad '{$squad->getName()}'");
+                            $entrantName = "Team {$team->getTeamNum()}{$squad->getName()}";
+                            $td->addEntrant( $entrantName,0,$newBracketName );
+                            $numNewEntrants++;
+                        }
                     }
+                    $this->log->error_log("$loc: Added {$numNewEntrants} new entrants for team tennis.");
                 } catch (Exception $e) {
-                    $this->log->error_log($e->getMessage(), "{$loc}: Exception caught");
+                    $mess = "Error adding tennis teams and squads for bracket '{$newBracketName}': " . $e->getMessage();
+                    $this->log->error_log($mess, $loc);
+                    throw new InvalidEventException( $mess );
                 }
             }
+            
             $data["bracketNum"] = $bracket->getBracketNumber();
             $data["bracketName"] = $bracket->getName();
             $data["imgsrc"] = TE()->getPluginUrl() . 'img/removeIcon.gif';

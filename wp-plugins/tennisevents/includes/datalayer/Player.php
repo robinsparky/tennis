@@ -36,6 +36,7 @@ ID
 ,phoneHome
 ,phoneMobile
 ,phoneBusiness
+,is_spare
 EOD;
 
     public const pCOLUMNS = <<<EOD
@@ -52,6 +53,7 @@ p.ID
 ,p.phoneHome
 ,p.phoneMobile
 ,p.phoneBusiness
+,p.is_spare
 EOD;
 
     /*************** Instance Variables ****************/
@@ -67,6 +69,7 @@ EOD;
     private $businessPhone;
     private $homeEmail;
     private $businessEmail;
+    private $isSpare = false;
 
     /**
      * Search for Players that have a name 'like' the provided criteria
@@ -104,13 +107,13 @@ EOD;
     }
     
     /**
-     * Find all Players belonging to a specific event and/or bracket
-     * @param array $fk_criteria Associative array of foreign key criteria:
-     *                           'event_ID' => int,
-     *                           'bracket_num' => int
-     *                           'team_num' => int when getting members of a team
-     *                           'unassigned' => any value
-     *                           'division' => ''A or 'B'
+     * Find all Players based on foreign key criteria.
+     * 1. Find all team members assigned to all teams in a bracket
+     * 2. Find all team members in a specific squad
+     * 3. Find all team members in a specific team
+     * 4. Find all players in an event/bracket/round/match
+     * 5. Find all players in an event/bracket/round
+     * @param array $fk_criteria Associative array of foreign key criteria
      * @return array Array of Player objects
      */
     public static function find(...$fk_criteria) {
@@ -121,62 +124,95 @@ EOD;
 
 		global $wpdb;
 		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
-        $intersection = TennisEvents::getInstaller()->getDBTablenames()['player_team'];
+        $squadPlayerTable = TennisEvents::getInstaller()->getDBTablenames()['squad_player'];
+        $matchPlayerTable = TennisEvents::getInstaller()->getDBTablenames()['match_team_player'];
 
 		$columns = self::pCOLUMNS;
 
         if( isset( $fk_criteria[0] ) && is_array( $fk_criteria[0]) ) $fk_criteria = $fk_criteria[0];
 
-        if( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) && array_key_exists('assigned',$fk_criteria)) {            
-            //find all the players assigned to any team
-            $event_ID = $fk_criteria['event_ID'];
-            $bracket_num = $fk_criteria['bracket_num'];
-            $sql = "SELECT  {$columns}
-                    FROM {$table} as p inner join {$intersection} j on p.event_ID=j.event_ID and p.bracket_num=j.bracket_num and p.ID = j.player_ID
-                    where p.event_ID=%d and p.bracket_num=%d";
-            error_log("Find all players assigned to ANY team: event_ID={$event_ID} bracket_num={$bracket_num}");
-            $safe = $wpdb->prepare($sql, $event_ID, $bracket_num);
+        $is_spare = 0;
+        if(array_key_exists( 'spares', $fk_criteria )) {
+            $is_spare = 1;
         }
-        elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) && array_key_exists('team_num',$fk_criteria) && array_key_exists('division',$fk_criteria)) {
-            //find all the players in a team and squad (called division)
-            $event_ID = $fk_criteria['event_ID'];
-            $bracket_num = $fk_criteria['bracket_num'];
-            $team_num = $fk_criteria['team_num'];
-            $division = $fk_criteria['division'];
+
+        //find all the players in a team's squad
+        if( array_key_exists('squad',$fk_criteria)) {
+            $squad = $fk_criteria['squad'];
             $sql = "SELECT  {$columns}
-                    FROM {$table} as p inner join {$intersection} j on p.event_ID=j.event_ID and p.bracket_num=j.bracket_num and p.ID = j.player_ID
-                    where p.event_ID=%d and p.bracket_num=%d and j.team_num=%d and j.division='%s'";
-            error_log("Find all players in a team and squad. event_ID={$event_ID} bracket_num={$bracket_num} team_num={$team_num} squad={$division}");
-            $safe = $wpdb->prepare($sql, $event_ID,$bracket_num,$team_num,$division);
+                    FROM {$table} as p inner join {$squadPlayerTable} s on p.ID = s.player_ID
+                    where s.squad_ID=%d";
+            error_log("Find all players in squadID={$squad}");
+            $safe = $wpdb->prepare($sql,$squad);
         }
+        //find all the players in a team
         elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) && array_key_exists('team_num',$fk_criteria)) {
-            //find all the players in a team
             $event_ID = $fk_criteria['event_ID'];
             $bracket_num = $fk_criteria['bracket_num'];
             $team_num = $fk_criteria['team_num'];
             $sql = "SELECT  {$columns}
-                    FROM {$table} as p inner join {$intersection} j on p.event_ID=j.event_ID and p.bracket_num=j.bracket_num and p.ID = j.player_ID
+                    FROM {$table} as p inner join {$squadPlayerTable} j on p.ID = j.player_ID
                     where p.event_ID=%d and p.bracket_num=%d and j.team_num=%d";
             error_log("Find all players in a team. event_ID={$event_ID} bracket_num={$bracket_num} team_num={$team_num}");
-            $safe = $wpdb->prepare($sql, $event_ID, $bracket_num, $team_num);
+            $safe = $wpdb->prepare($sql, $event_ID, $bracket_num, $team_num,$is_spare);
         }
-        elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) ) {
-            //All players in event/bracket
+        //Find all players in event/bracket/round/match
+        elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) 
+             && array_key_exists( 'roundnum', $fk_criteria) && array_key_exists( 'matchnum', $fk_criteria))  {
+            $event_ID = $fk_criteria['event_ID'];
+            $bracket_num = $fk_criteria['bracket_num'];
+            $roundnum = $fk_criteria['roundnum'];
+            $matchnum = $fk_criteria['matchnum'];
+            $sql = "SELECT  {$columns}
+                    FROM {$table} as p 
+                    inner join {$squadPlayerTable} j on p.ID = j.player_ID
+                    inner join {$matchPlayerTable} m on m.player_ID=j.player_ID and m.squad_ID=j.squad_ID
+                    where p.event_ID=%d and p.bracket_num=%d and m.round_num=%d and m.match_num=%d";
+            error_log("Find all players in an event and bracket. event_ID={$event_ID} bracket_num={$bracket_num} roundnum={$roundnum} matchnum={$matchnum}");
+            $safe = $wpdb->prepare($sql,$event_ID,$bracket_num,$roundnum,$matchnum);
+        }
+        //Find all players in event/bracket/round
+        elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) 
+             && array_key_exists( 'roundnum', $fk_criteria) && !array_key_exists( 'matchnum', $fk_criteria))  {
+            $event_ID = $fk_criteria['event_ID'];
+            $bracket_num = $fk_criteria['bracket_num'];
+            $roundnum = $fk_criteria['roundnum'];
+            $sql = "SELECT  {$columns}
+                    FROM {$table} as p 
+                    inner join {$squadPlayerTable} j on p.ID = j.player_ID
+                    inner join {$matchPlayerTable} m on m.player_ID=j.player_ID and m.squad_ID=j.squad_ID
+                    where p.event_ID=%d and p.bracket_num=%d and m.round_num=%d and m.match_num=%d";
+            error_log("Find all players in an event and bracket. event_ID={$event_ID} bracket_num={$bracket_num} roundnum={$roundnum}");
+            $safe = $wpdb->prepare($sql,$event_ID,$bracket_num,$roundnum);
+        }         
+        //find all the players assigned to ANY team in an event/bracket
+        elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) && array_key_exists('isAssignedToTeam',$fk_criteria)) {    
             $event_ID = $fk_criteria['event_ID'];
             $bracket_num = $fk_criteria['bracket_num'];
             $sql = "SELECT  {$columns}
-                    FROM {$table} as p left join {$intersection} j on p.event_ID=j.event_ID and p.bracket_num=j.bracket_num and p.ID = j.player_ID
+                    FROM {$table} as p 
+                    inner join {$squadPlayerTable} s on p.ID = s.player_ID
                     where p.event_ID=%d and p.bracket_num=%d";
-            error_log("Find all players in an event and bracket. event_ID={$event_ID} bracket_num={$bracket_num}");
-            $safe = $wpdb->prepare($sql,$event_ID,$bracket_num);
-        }
+            error_log("Find all players assigned to ANY team: event_ID={$event_ID} bracket_num={$bracket_num}");
+            $safe = $wpdb->prepare($sql, $event_ID, $bracket_num,$is_spare);
+        }     
+        //find all the players or all the spares in an event/bracket
+        elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) ) {    
+            $event_ID = $fk_criteria['event_ID'];
+            $bracket_num = $fk_criteria['bracket_num'];
+            $sql = "SELECT  {$columns}
+                    FROM {$table} as p 
+                    where p.event_ID=%d and p.bracket_num=%d and p.is_spare=%d";
+            error_log("Find all players or all spares: event_ID={$event_ID} bracket_num={$bracket_num}");
+            $safe = $wpdb->prepare($sql, $event_ID, $bracket_num,$is_spare);
+        } 
         else {
             $mess = "{$loc}: Invalid foreign key criteria provided.";
             throw new \InvalidArgumentException($mess);
         }  
 
-        // error_log("{$loc}:");
-        // error_log(print_r($safe,true));
+        error_log("{$loc}:");
+        error_log(print_r($safe,true));
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
 		error_log("{$loc}: {$wpdb->num_rows} rows returned");
@@ -206,7 +242,7 @@ EOD;
 
         //Delete related data first
         //...player-team-squad
-        $table = TennisEvents::getInstaller()->getDBTablenames()['player_team'];
+        $table = TennisEvents::getInstaller()->getDBTablenames()['squad_player'];
         $values = ['player_ID'=>$player_ID];    
         $formats_values = ['%d'];
         $wpdb->delete( $table, $values, $formats_values );
@@ -460,6 +496,16 @@ EOD;
         return $this->businessEmail ?? '';
     }
 
+    public function setIsSpare( bool $isp = false) {
+		$loc = __CLASS__ . "::" . __FUNCTION__;
+        $this->isSpare = $isp;
+        return $this->setDirty();
+    }
+
+    public function isSpare() : bool {
+        return $this->isSpare;
+    }
+
     public function isValid() {
         $isvalid = TRUE;
         if($this->getEventID() <= 0) $isvalid = FALSE;
@@ -483,7 +529,13 @@ EOD;
         return self::deletePlayer($this->getID());
     }
 
-    private function checkExists(string $fname, string $lname) : bool {
+    /**
+     * Check if a Player with the same first and last name already exists
+     * @param string $fname First name
+     * @param string $lname Last name
+     * @return bool True if exists, false otherwise
+     */
+    public function checkExists(string $fname, string $lname) : bool {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("{$loc}");
 
@@ -496,6 +548,11 @@ EOD;
 
         return $exists;
     }
+
+    /**
+     * Create a new player in the db
+     * Checks for duplicates based on first and last name.
+     */
 	protected function create() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("{$loc}");
@@ -524,8 +581,9 @@ EOD;
                         ,'phoneMobile' => $this->getMobilePhone()                               
                         ,'emailHome' => $this->getHomeEmail()                              
                         ,'emailBusiness' => $this->getBusinessEmail()
+                        ,'is_spare' => $this->isSpare() ? 1 : 0
                         );
-		$formats_values = array('%s','%s','%d','%d','%f','%s','%s','%s','%s','%s','%s');
+		$formats_values = array('%s','%s','%d','%d','%f','%s','%s','%s','%s','%s','%s','%d');
 		$result = $wpdb->insert($table, $values, $formats_values);
         
 		if( $result === false || $result === 0 ) {
@@ -564,8 +622,9 @@ EOD;
                         ,'phoneMobile' => $this->getMobilePhone()                               
                         ,'emailHome' => $this->getHomeEmail()                              
                         ,'emailBusiness' => $this->getBusinessEmail()
+                        ,'is_spare' => $this->isSpare() ? 1 : 0
                         );
-        $formats_values = array('%s','%s','%d','%d','%f','%s','%s','%s','%s','%s','%s');
+        $formats_values = array('%s','%s','%d','%d','%f','%s','%s','%s','%s','%s','%s','%d');
 		$where          = array('ID' => $this->getID());
 		$formats_where  = array('%d');
 		$result = $wpdb->update($table, $values, $where, $formats_values, $formats_where);
@@ -609,6 +668,7 @@ EOD;
         $obj->homePhone        = $row["phoneHome"];
         $obj->mobilePhone      = $row["phoneMobile"];
         $obj->businessPhone    = $row["phoneBusiness"];
+        $obj->isSpare          = $row["is_spare"] ? ($row["is_spare"] == 1 ? true : false) : false;
     }
 
     /**

@@ -21,7 +21,6 @@ use datalayer\InvalidBracketException;
 
 use api\events\EventManager;
 use api\events\OverloadedConstructors;
-use templates\DrawTemplateGenerator;
 
 WP_CLI::add_command( 'tennis tourney', 'commandline\TournamentCommands' );
 
@@ -949,7 +948,6 @@ class TournamentCommands extends WP_CLI_Command {
         /**
          * 4. Template generator
          */
-        // $tempGen = new DrawTemplateGenerator( "Test Generation", $n );
         // $template = $tempGen->generateTable( );
         // WP_CLI::line($template);
 

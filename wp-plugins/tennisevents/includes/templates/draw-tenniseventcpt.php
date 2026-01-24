@@ -92,12 +92,12 @@ use datalayer\Player;
 						//This section is for team tennis team assignments
 						if(current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$event->isClosed() && isset( $bracket ) & $numPrelimMatches < 1) {
 							//Editable
-							$path = TE()->getPluginPath() . 'includes\templates\teamRegistrationEditable.php';
+							$path = TE()->getPluginPath() . 'includes\templates\teams\teamRegistrationEditable.php';
 							$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
 							require($path);
 							} else {
 							//Readonly
-							$path = TE()->getPluginPath() . 'includes\templates\teamRegistrationReadOnly.php';
+							$path = TE()->getPluginPath() . 'includes\templates\teams\teamRegistrationReadOnly.php';
 							$path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
 							require($path);
 						}

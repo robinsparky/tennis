@@ -12,11 +12,14 @@ use api\TournamentDirector;
 use datalayer\InvalidTennisOperationException;
 use datalayer\Event;
 use datalayer\Bracket;
-use datalayer\Club;
-use datalayer\Format;
+// use datalayer\Club;
+// use datalayer\Format;
 use datalayer\ScoreType;
 use datalayer\MatchStatus;
 use datalayer\EventType;
+use datalayer\TennisMatch;
+use datalayer\TennisTeam;
+use datalayer\Player;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -168,6 +171,16 @@ class ManageRoundRobin
             case 'undomatch':
                 $mess = $this->undoMatch( $data );
                 $returnData = $data;
+                break;
+            case 'getAvailableTeamPlayers':
+                $mess = $this->getAvailableTeamPlayers( $data );
+                $returnData = $data;
+                break;
+            case 'scheduleTeamPlayers':
+                // $mess = $this->scheduleTeamPlayers( $data );
+                // $returnData = $data;
+                $mess =  __( 'Scheduling team players not yet implemented.', TennisEvents::TEXT_DOMAIN );
+                $this->errobj->add( $this->errcode++, $mess );
                 break;
             default:
                 $mess =  __( 'Illegal task.', TennisEvents::TEXT_DOMAIN );
@@ -685,7 +698,7 @@ class ManageRoundRobin
     /**
      * Approve the preliminary round
      */
-    private function approvePreliminary( $data ) {
+    private function approvePreliminary( &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -712,7 +725,7 @@ class ManageRoundRobin
     /**
      * Delete the preliminary round
      */
-    private function removePreliminary( $data ) {
+    private function removePreliminary( &$data ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
         $this->log->error_log("$loc");
 
@@ -728,6 +741,98 @@ class ManageRoundRobin
             $td->removeMatches( $bracketName );
             $numAffected = $event->save();
             $mess =  __("Removed all matches for {$evtName} - {$bracketName} Bracket.", TennisEvents::TEXT_DOMAIN );
+        }
+        catch( Exception $ex ) {
+            $this->errobj->add( $this->errcode++, $ex->getMessage() );
+            $mess = $ex->getMessage();
+        }
+
+        return $mess;
+    }
+
+    private function getAvailableTeamPlayers( &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log( $loc );
+
+        $this->eventId = $data["eventId"];
+        try {                      
+            if( !current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+                throw new Exception("Insufficient privileges");
+            }
+            $event = Event::get( $this->eventId );
+            $td = new TournamentDirector( $event );
+            $bracketNum = $data["bracket_number"];
+            $bracket = $td->getBracket($bracketNum);
+            $roundNum = $data["round_number"];
+            $matchNum = $data["match_number"];
+            $teamNum = $data["team_number"];
+            $division = $data["division"];
+            $match = TennisMatch::get($this->eventId, $bracketNum, $roundNum, $matchNum );
+            if( is_null( $match ) ) {
+                throw new InvalidMatchException(__("No such match", TennisEvents::TEXT_DOMAIN) );
+            }   
+            $homeTeam = $match->getHomeEntrant();
+            $visitorTeam = $match->getVisitorEntrant();
+            $team = TennisTeam::get($this->eventId,$bracketNum,$teamNum);
+            if( is_null( $team ) ) {
+                throw new InvalidEntrantException(__("No such team", TennisEvents::TEXT_DOMAIN) );
+            }
+            $this->log->error_log( $team, "$loc: team:");
+
+            //Get all players already assigned to this match
+            $assignedPlayers = Player::find( array( "event_ID" => $event->getID(), "bracket_num" => $bracket->getBracketNumber(),"roundnum"=>$roundNum,"matchnum"=>$matchNum ) );
+
+            //Now get all players on this team not already assigned to this match
+            $availablePlayers = array();
+            foreach( $team->getSquads() as $squad ) {
+                $mess = sprintf( __("Team '%d' has squad '%s'.", TennisEvents::TEXT_DOMAIN ), $teamNum, $squad->getName());
+                $this->log->error_log( $mess );
+            
+                $teamPlayers = $squad->getMembers();
+
+                foreach( $teamPlayers as $player ) {
+                    if( !in_array( $player, $assignedPlayers ) ) {
+                        $availablePlayers[] = ['ID'=>$player->getID()
+                                            ,'division'=>$squad->getName()
+                                            ,'name'=>$player->getName()
+                                            ,'homeEmail'=>$player->getHomeEmail()
+                                            ,'isSpare'=>$player->isSpare()?'yes':'no'];
+                        $mess = sprintf( __("Team '%s' Squad '%s' Player '%s'added to available players.", TennisEvents::TEXT_DOMAIN ),
+                                             $team->getName(), $squad->getName(), $player->getName());
+                        $this->log->error_log( $mess );
+                    }
+                }
+            }
+            
+            //Now get all spares for this bracket not already assigned to this match
+            $allSpares = Player::find( array( "event_ID" => $event->getID(), "bracket_num" => $bracket->getBracketNumber(),'spares'=>'yes' ) );
+            usort($allSpares,function( $a, $b ) {return strcmp( $a->getLastName(), $b->getLastName() );});
+            foreach( $allSpares as $spare ) {
+                if( !in_array( $spare, $assignedPlayers ) ) {
+                    $availablePlayers[] = ['ID'=>$spare->getID()
+                                        ,'division'=>'Spares'
+                                        ,'name'=>$spare->getName()
+                                        ,'homeEmail'=>$spare->getHomeEmail()
+                                        ,'isSpare'=>$spare->isSpare()?'yes':'no'];
+                    $mess = sprintf( __("Spare Player '%s' added to available players.", TennisEvents::TEXT_DOMAIN ), $spare->getName());
+                    $this->log->error_log( $mess );
+                }
+            }   
+
+            //Now prepare the list of already assigned players
+            $assignedPlayersList = array();
+            foreach( $assignedPlayers as $player ) {
+                $mess = sprintf( __("Team '%s' Player '%s' is already assigned to match.", TennisEvents::TEXT_DOMAIN ), $team->getName(), $player->getName());
+                $this->log->error_log( $mess );
+                $assignedPlayersList[] = ['ID'=>$player->getID()
+                                    ,'division'=>'???'
+                                    ,'name'=>$player->getName()
+                                    ,'homeEmail'=>$player->getHomeEmail()
+                                    ,'isSpare'=>$player->isSpare()?'yes':'no'];
+            }
+            $data["availablePlayers"] = json_encode($availablePlayers);
+            $data["assignedPlayers"] = json_encode($assignedPlayersList);
+            $mess =  __("Retrieved team players.", TennisEvents::TEXT_DOMAIN );
         }
         catch( Exception $ex ) {
             $this->errobj->add( $this->errcode++, $ex->getMessage() );

@@ -721,6 +721,28 @@ section.roundrobin-round.ttc-team-tennis > span {
   background-color: lightyellow;
 }
 
+.teamListSection {
+  display: none;
+  position: absolute;
+  border: 2px solid green;
+  border-radius: 8px;
+  background-color: lightyellow;
+  margin-top: 1rem;
+}
+
+.teamSparesSection {
+  display: none;
+  position: absolute;
+  border: 2px solid green;
+  border-radius: 8px;
+  background-color: lightyellow;
+  margin-top: 1rem;
+}
+
+.ttc-team-tennis > .item-player > .homeentrant, .visitorentrant{
+  cursor:pointer;
+}
+
 .teamRegistrationHeader.editable {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
@@ -824,6 +846,19 @@ button:disabled {
   margin-left: 10px;
   border-radius: 8px;
 }
+
+.teamListSection.teamNameList {
+  list-style-type: none;
+  overflow-y: auto;
+  padding: 0;
+  height: 200px;
+  max-width: 300px;
+  margin-left: 10px;
+  border: 2px solid green;
+  border-radius: 8px;
+  background-color: lightyellow;
+}
+
 .teamNameList > li {
   padding-left: 10px;
   cursor: pointer;
@@ -860,9 +895,52 @@ button:disabled {
   }
 }
 
+.teamScheduleSection {
+  display: block;
+  border: 2px solid green;
+  border-radius: 8px;
+  background-color: lightyellow;
+  margin-top: 1rem;
+}
+
+.teamScheduleHeader {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 4fr 1fr;
+  grid-template-areas:
+    "a aa"
+    "close save";
+}
+button.tennis-save-team-schedule {
+  border-radius: 8px;
+  background-color: black;
+  color: white;
+  height: 50px;
+  grid-area: save;
+  width: 75%;
+  margin-left: 10px;
+}
+
+button.tennis-close-team-schedule {
+  border-radius: 8px;
+  background-color: black;
+  color: white;
+  height: 50px;
+  grid-area: close;
+  width: 75%;
+  margin-left: 10px;
+}
+.schedule-player-note {
+  font-style: italic;
+  color: red;
+  margin-left: 0px;
+  margin-bottom: 2px;
+}
+
 /*-------------------------------------------------------
-  * End Team Tennis specific styling
-  -------------------------------------------------------*/  
+  End Team Tennis specific styling
+  -------------------------------------------------------
+*/  
 
 article.item-player {
   margin-top: 3px;

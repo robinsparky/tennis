@@ -49,8 +49,10 @@ $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
     $title = $match->toString();
     $this->log->error_log("render-RoundRobin: {$title}");
 
-    $eventId = $match->getBracket()->getEvent()->getID();
-    $bracketNum = $match->getBracket()->getBracketNumber();
+    $bracket = $match->getBracket();
+    $event = $bracket->getEvent();
+    $eventId = $event->getID();
+    $bracketNum = $bracket->getBracketNumber();
     $roundNum = $match->getRoundNumber();
     $matchNum = $match->getMatchNumber();
     
@@ -145,7 +147,18 @@ $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
 </section>
 <?php } //end rounds ?>
 </main>
-
+<?php
+// if( $event->getParent()->getEventType() === EventType::TEAMTENNIS ) {
+//     //Teams
+//     $path = TE()->getPluginPath() . 'includes\templates\teams\teamListsReadOnly.php';
+//     $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+//     require($path);
+//     //Spares
+//     $path = TE()->getPluginPath() . 'includes\templates\teams\teamSparesReadOnly.php';
+//     $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+//     require($path);
+// }
+?>
 <div class='bracketDrawButtons'>
 <?php 
     if(!current_user_can( TE_Install::MANAGE_EVENTS_CAP )) {
@@ -163,3 +176,5 @@ $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
 <?php }} ?>
 </div>
 <div id="tennis-event-message"></div>
+<div id="tennis-assignments" class="tennis-team-players-assignment">
+</div>

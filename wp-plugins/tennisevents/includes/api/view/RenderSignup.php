@@ -9,8 +9,8 @@ use \TE_Install;
 use api\TournamentDirector;
 use datalayer\Bracket;
 use datalayer\Club;
-use datalayer\Player;
-use datalayer\TennisTeam;
+// use datalayer\Player;
+// use datalayer\TennisTeam;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -229,6 +229,11 @@ $templfile = <<<EOT
       id="entrant_uploads_file"
       name="entrant_uploads_file"
       accept=".xml"/>
+    <input
+      type="file"
+      id="spares_uploads_file"
+      name="spares_uploads_file"
+      accept=".xml"/>
 EOT;
 
         $ctr = 1;
@@ -259,7 +264,8 @@ EOT;
         $out .= '</ul>' . PHP_EOL;
         $link = get_bloginfo('url');
         if( $numPrelimMatches < 1 && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() && $eventType !== EventType::TEAMTENNIS ) {
-            $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button> <label class="button addentrant" for="entrant_uploads_file">Upload Entrants</label>' . PHP_EOL;
+            $out .= '<button class="button addentrant" type="button" id="addEntrant">Add Entrant</button>' . PHP_EOL;
+            $out .= '<label class="button addentrant" for="entrant_uploads_file">Upload Entrants</label>' . PHP_EOL;
             $out .= '&nbsp;<a class="download" id="downloadtennisfile" href="' . $link . '?moniker=signupschema">(Download schema)</a><br>' . PHP_EOL;
             $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button randomize" type="button" id="createPrelimRandom">Randomize and Initialize Draw</button>' . PHP_EOL;
@@ -267,14 +273,16 @@ EOT;
             $out .= $templfile . PHP_EOL;
         }
         else if( $numPrelimMatches < 1 && $eventType === EventType::TEAMTENNIS && current_user_can( TE_Install::MANAGE_EVENTS_CAP ) && !$target->isClosed() ) { 
-            $out .= '<label class="button addentrant" for="entrant_uploads_file">Upload Registrants</label>' . PHP_EOL;
-            $out .= '&nbsp;<a class="download" id="downloadtennisfile" href="' . $link . '?moniker=signupschema">(Download schema)</a><br>' . PHP_EOL;            
+            $out .= '<label class="button addentrant" for="entrant_uploads_file">Upload Team Members</label>' . PHP_EOL;
+            $out .= '&nbsp;<a class="download" id="downloadtennisfile" href="' . $link . '?moniker=signupschema">(Download schema)</a><br>' . PHP_EOL; 
+            $out .= '<label class="button addspares" for="spares_uploads_file">Upload Spares</label>' . PHP_EOL;
+            $out .= '&nbsp;<a class="download" id="downloadsparesfile" href="' . $link . '?moniker=waitlistschema">(Download schema)</a><br>' . PHP_EOL;                       
             $out .= '<button class="button resequence" type="button" id="defineTeams">Team Members</button><br/>' . PHP_EOL;          
             $out .= '<button class="button resequence" type="button" id="reseqSignup">Resequence Signup</button><br/>' . PHP_EOL;
             $out .= '<button class="button initialize" type="button" id="createPrelimNoRandom">Initialize Draw</button>' . PHP_EOL;
             $out .= $templfile . PHP_EOL;
         }
-        else if( $eventType === EventType::TEAMTENNIS ) {       
+        else if( $eventType === EventType::TEAMTENNIS ) { 
             $out .= '<button class="button resequence" type="button" id="defineTeams">Team Members</button><br/>' . PHP_EOL; 
             $out .= $templfile . PHP_EOL;
         }

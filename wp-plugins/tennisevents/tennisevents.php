@@ -3,7 +3,7 @@
 	Plugin Name: Tennis Events
 	Plugin URI: grayware.ca/tennisevents
 	Description: Tennis Events Management
-	Version: 1.1.0
+	Version: 1.2.0
 	Author: Sparky
 	Author URI: grayware.ca
 */
@@ -45,12 +45,12 @@ class TennisEvents {
 
 	/**
 	 * Plugin version
-	 * @since   1.1.0
+	 * @since   1.2.0
 	 * @var     string
 	 */
 	
 	public const OPTION_NAME_VERSION = 'tennis_version';
-	public const VERSION = '1.1.0';
+	public const VERSION = '1.2.0';
 	public const OPTION_NAME_SEEDED  = 'data_seeded';
 	public const OPTION_HISTORY_RETENTION_DEFAULT = 5;
     public const OPTION_HISTORY_RETENTION = 'gw_tennis_event_history';
@@ -385,12 +385,21 @@ class TennisEvents {
 		
 	/**
 	 * Check version and run the updater if required.
-	 * This check is done on all requests but only runs if the versions do not match.
+	 * This check is done on all requests but only runs the upgrader 
+	 * if the current version is numerically less than the new version.
 	 */
 	private function check_version() {
 		$loc = __FILE__ . '::' . __FUNCTION__;
 		$this->log->error_log("{$loc}");
-		if ( get_option( self::OPTION_NAME_VERSION ) !== TennisEvents::VERSION ) {
+		$curVersion = get_option( self::OPTION_NAME_VERSION );
+		$curVersionArr = explode( '.', $curVersion );
+		$curVersionNum = $curVersionArr[0] * 100 + $curVersionArr[1] * 10 + $curVersionArr[2];
+		$this->log->error_log("$loc: current version='{$curVersion}' ({$curVersionNum})");
+		$newVersionArr = explode( '.', TennisEvents::VERSION );
+		$newVersionNum = $newVersionArr[0] * 100 + $newVersionArr[1] * 10 + $newVersionArr[2];
+		$this->log->error_log("$loc: new version='" . TennisEvents::VERSION . "' ({$newVersionNum})");
+
+		if ( $curVersionNum < $newVersionNum ) {
 			try {
 				$version = TennisEvents::VERSION;
 				$path = $this->getPluginPath() . 'versions\\' . "{$version}" .  '\\versionUpgrader.php';
@@ -503,6 +512,7 @@ function tennis_send_file( $moniker = 'signupschema') {
 	$path = '';
 	switch($moniker) {
 		case 'signupschema':
+		case 'waitlistschema':
 			$path = wp_normalize_path(plugin_dir_path( __FILE__ ) . "{$moniker}.xsd");
 			break;
 	}
@@ -521,7 +531,7 @@ function tennis_send_file( $moniker = 'signupschema') {
 		wp_die("Invalid tennisevents file!");
 	}
 
-	if(in_array(strtolower($file_extension),['php','html','css','js'])) {
+	if(in_array(strtolower($file_extension),['php','html','css','js','htm','json','svg','pl','cs','exe','bin','bat','cmd','sh','cmd','cmdscript'])) {
 		wp_die("Invalid extension!");
 	}
 	

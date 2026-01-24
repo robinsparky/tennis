@@ -13,6 +13,7 @@ use datalayer\Club;
 use datalayer\InvalidBracketException;
 use datalayer\InvalidEntrantException;
 use datalayer\Player;
+use datalayer\TennisSquad;
 use datalayer\TennisTeam;
 use InvalidArgumentException;
 
@@ -171,9 +172,15 @@ class ManageSignup
             case "reseqSignup":
                 $mess = $this->reseqSignup( $data );
                 break;
-            case 'addBulk':
-                $mess = $this->bulkAdd( $data );
-                break;
+            case 'addEntrantBulk':
+                 $mess = $this->addEntrantBulk( $data );
+                 break;
+            case 'addPlayersBulk':
+                 $mess = $this->addPlayersBulk( $data );
+                 break;
+             case 'addSparesBulk':
+                 $mess = $this->addSparesBulk( $data );
+                 break;
             case 'saveTeamRegistration':
                 $mess = $this->saveTeamRegistration( $data );
                 break;
@@ -181,6 +188,11 @@ class ManageSignup
                 $mess = $this->resetTeamRegistration( $data );
                 break;
             default:
+                // if(method_exists($this,$task)) {
+                //     $mess = $this->$task( $data );
+                // } else {
+                //     wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
+                // }
                 wp_die(__( 'Illegal task.', TennisEvents::TEXT_DOMAIN ));
         }
 
@@ -384,21 +396,6 @@ class ManageSignup
 
         return $mess;
     }
-    
-    private function bulkAdd( array &$data ) {
-        $loc = __CLASS__ . '::' . __FUNCTION__;
-        $this->log->error_log("$loc");
-        
-        $this->eventId = $data["eventId"];
-        $event   = Event::get( $this->eventId );
-        $eventType = $event->getParent()->getEventType();
-        switch( $eventType ) {
-            case EventType::TEAMTENNIS:
-                return $this->addPlayersBulk( $data );
-            default:
-                return $this->addEntrantBulk( $data );
-        }   
-    }
 
     /**
      * Add array of new entrants to the signup for an event
@@ -481,6 +478,11 @@ class ManageSignup
                 if( empty($homeEmail) ) {
                     throw new InvalidEntrantException(__( "Player '{$name}' must have a home email address.", TennisEvents::TEXT_DOMAIN) );
                 }
+
+                if(count(Player::search($lname,$fname)) > 0) {
+                    throw new InvalidEntrantException(__( "Player '{$name}' already exists.", TennisEvents::TEXT_DOMAIN) );
+                }
+
                 $birthDate = $entrant["birthDate"] ?? '';
                 $gender = $entrant["gender"] ?? 'o';
                 $cellPhone = $entrant["cellPhone"] ?? '';
@@ -506,6 +508,68 @@ class ManageSignup
         }
         else {
             $mess = __("{$loc}: added {$numTotal} players.",TennisEvents::TEXT_DOMAIN); 
+        }
+        return $mess;
+    }
+
+        /**
+     * Add array of new players available for a team tennis event
+     * @param array $data Associative array containing the player's data
+     * @return string message describing result of the operation
+     */
+    private function addSparesBulk( array &$data ) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
+        $this->log->error_log("{$loc}");
+
+        $this->eventId = $data["eventId"];
+        $bracketName = $data["bracketName"];
+        $event   = Event::get( $this->eventId );
+        $bracket = $event->getBracket( $bracketName );
+        $numFailed = 0;
+        $numTotal = 0;
+        foreach($data['spares'] as $entrant) {
+            ++$numTotal;
+
+            $name = $entrant["name"];
+            $lname = explode(',',$name,2)[0];
+            $fname = explode(',',$name,2)[1];
+            try {            
+                $homeEmail = $entrant["email"];
+                if( empty($homeEmail) ) {
+                    throw new InvalidEntrantException(__( "Spare '{$name}' must have a home email address.", TennisEvents::TEXT_DOMAIN) );
+                }
+
+                if(count(Player::search($lname,$fname)) > 0) {
+                    throw new InvalidEntrantException(__( "Spare '{$name}' already exists.", TennisEvents::TEXT_DOMAIN) );
+                }
+
+                $birthDate = $entrant["birthDate"] ?? '';
+                $gender = $entrant["gender"] ?? 'm';
+                $cellPhone = $entrant["cellPhone"] ?? '';
+                $homePhone = $entrant["homePhone"] ?? '';
+                $spare = new Player($event->getID(), $bracket->getBracketNumber());
+                $spare->setIsSpare(true);
+                $spare->setFirstName( $fname );
+                $spare->setLastName( $lname );
+                $spare->setHomeEmail( $homeEmail );
+                $spare->setSkillLevel( Player::MINSKILL ); // default skill level
+                $spare->setBirthDateStr( $birthDate );
+                $spare->setGender( $gender );
+                $spare->setHomePhone( $cellPhone );
+                $spare->save();
+            }
+            catch( Exception $ex ) {
+                ++$numFailed;
+                $this->errobj->add( $this->errcode++, $ex->getMessage() );
+                $mess = $ex->getMessage();
+                $this->log->error_log($mess);
+            }
+        }
+        if($numFailed > 0) {
+            $mess = __("{$loc}: {$numFailed} failed out of {$numTotal}.",TennisEvents::TEXT_DOMAIN);
+        }
+        else {
+            $mess = __("{$loc}: added {$numTotal} spares.",TennisEvents::TEXT_DOMAIN); 
         }
         return $mess;
     }
@@ -578,18 +642,20 @@ class ManageSignup
                 $matches = [];
                 preg_match($teampat,$teamId,$matches);
                 $teamNum = $matches[1];
-                $division = $matches[2];
-                $this->log->error_log("teamNum='{$teamNum}'; division='{$division}'");
-                $team = TennisTeam::get($event->getID(), $bracket->getBracketNumber(), $teamNum, $division);
+                $squadName = $matches[2];
+                $this->log->error_log("teamNum='{$teamNum}'; squadName='{$squadName}'");
+                $team = TennisTeam::get($event->getID(), $bracket->getBracketNumber(), $teamNum);
+                $squad = $team->getSquad($squadName);
                 foreach($members as $playerKey) {
-                    $this->log->error_log("playerKey='{$playerKey}'");
+                    $this->log->error_log("{$loc}: playerKey='{$playerKey}'");
                     $matches=[];
                     preg_match($playerpat,$playerKey,$matches);
                     $playerId = $matches[0];
-                    $this->log->error_log("PlayerId='{$playerId}'");
+                    $this->log->error_log("{$loc}: PlayerId='{$playerId}'");
                     $player = Player::get($playerId);
-                    $team->addMember($player);
+                    $squad->addMember($player);
                 }
+                $squad->save();
                 $team->save();
             }
  
@@ -622,7 +688,7 @@ class ManageSignup
             $allTeams = TennisTeam::find(['event_ID'=>$event->getID(),'bracket_num'=>$bracket->getBracketNumber()]);
             $numDel = 0;
             foreach($allTeams as $team) {
-                $this->log->error_log("Removing members for {$team->getName()}{$team->getSquad()}");
+                $this->log->error_log("Removing members for {$team->getName()}");
                 $numDel += $team->removeAllTeamMembers();
             }
  

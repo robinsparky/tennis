@@ -69,7 +69,7 @@ $rows = $wpdb->get_results( $sql, ARRAY_A );
 handleDBError();
 
 // Player-Team-Squad intersection
-$joinTable = TennisEvents::getInstaller()->getDBTablenames()['player_team'];
+$joinTable = TennisEvents::getInstaller()->getDBTablenames()['squad_player'];
 $sql = "DROP TABLE IF EXISTS $joinTable;";
 $rows = $wpdb->get_results( $sql, ARRAY_A );
 handleDBError();

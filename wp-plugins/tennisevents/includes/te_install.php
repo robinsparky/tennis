@@ -13,7 +13,7 @@ use datalayer\Event;
  * @author   Robin Smith
  * @category Admin
  * @package  Tennis Events
- * @version  1.0.0
+ * @version  1.2.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -62,7 +62,7 @@ class TE_Install {
     * TE_Install Singleton
     *
     * @return   TE_Install
-    * @since    1.0.0
+    * @since    1.2.0
     */
     public static function get_instance()
     {
@@ -86,9 +86,10 @@ class TE_Install {
 								   ,"player"				=> $wpdb->prefix . "tennis_player"
 								   ,"team"					=> $wpdb->prefix . "tennis_team"
 								   ,"squad"					=> $wpdb->prefix . "tennis_squad"
-								   ,"player_team"			=> $wpdb->prefix . "tennis_player_team_squad"
+								   ,"squad_player"			=> $wpdb->prefix . "tennis_team_squad_player"
 								   ,"player_entrant"		=> $wpdb->prefix . "tennis_player_entrant"
 								   ,"match_entrant"			=> $wpdb->prefix . "tennis_match_entrant"
+								   ,"match_team_player"		=> $wpdb->prefix . "tennis_match_team_squad_player"
 								   ,"court_booking"			=> $wpdb->prefix . "tennis_court_booking"
 								   ,"match_court_booking"	=> $wpdb->prefix . "tennis_match_court_booking"
 								   ,"club_event"			=> $wpdb->prefix . "tennis_club_event"
@@ -101,9 +102,6 @@ class TE_Install {
         add_action( 'wp_enqueue_scripts', array( $this,'enqueue_script' ) );
 
         add_action( 'wp_enqueue_scripts', array( $this,'enqueue_style' ) );
-
-        // Action hook to create the shortcode
-        //add_shortcode('tennis_shorts', array( $this,'do_shortcode'));
 
 	}
 
@@ -413,9 +411,10 @@ class TE_Install {
 		$player_table 				= $this->dbTableNames["player"];
 		$team_table 				= $this->dbTableNames["team"];
 		$squad_table 				= $this->dbTableNames["squad"];
-		$team_squad_player_table 	= $this->dbTableNames["player_team"];
+		$team_squad_player_table 	= $this->dbTableNames["squad_player"];
 		$player_entrant_table 		= $this->dbTableNames["player_entrant"];
 		$match_entrant_table 		= $this->dbTableNames["match_entrant"];
+		$match_player_table 		= $this->dbTableNames["match_team_player"];
 		$booking_table 				= $this->dbTableNames["court_booking"];
 		$booking_match_table 		= $this->dbTableNames["match_court_booking"];
 		$club_event_table			= $this->dbTableNames["club_event"];
@@ -807,8 +806,6 @@ class TE_Install {
 
 		/**
 		 * Teams can be divided into squads
-		 * This supports things like Team 1 with 'a' and 'b' divisions for example.
-		 * OR Team "Adrie and Robin"
 		 * CONSTRAINT `fk_squad_team`
 		 *	  FOREIGN KEY (`event_ID`,`bracket_num`,`team_num`)
 		 *		REFERENCES `$team_table` (`event_ID`,`bracket_num`,`team_num`)
@@ -816,11 +813,13 @@ class TE_Install {
 		 *		ON UPDATE CASCADE
 		 */
 		$sql = "CREATE TABLE `$squad_table` (
+				`ID` INT NOT NULL AUTO_INCREMENT,
 				`event_ID` INT NOT NULL,
 				`bracket_num` INT NOT NULL,
 			  	`team_num` INT NOT NULL,
-			  	`division` VARCHAR(25) NOT NULL,
-			  PRIMARY KEY (`event_ID`,`bracket_num`,`team_num`,`division`)
+			  	`name` VARCHAR(25) NOT NULL,
+			  Primary KEY (`ID`),
+			  INDEX event_team_idx (`event_ID`,`bracket_num`,`team_num`)
 			) ENGINE=MyISAM;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
@@ -861,28 +860,13 @@ class TE_Install {
 		}
 		
 		/**
-		 * This table maps players to a team's squads
-		 * ,
-				CONSTRAINT `fk_squad_player`
-				FOREIGN KEY (`player_ID`)
-					REFERENCES $player_table (`ID`)
-					ON DELETE CASCADE
-					ON UPDATE CASCADE,
-				CONSTRAINT `fk_player_squad`
-				FOREIGN KEY (`event_ID`,`team_num`,`division`)
-					REFERENCES $squad_table (`event_ID`,`team_num`,`division`)
-					ON DELETE CASCADE
-					ON UPDATE CASCADE
+		 * This table maps players to a team's squad
 		 */
 		$sql = "CREATE TABLE `$team_squad_player_table` ( 
-				`event_ID`  INT NOT NULL,
-				`bracket_num` INT NOT NULL,
-				`team_num`  INT NOT NULL,
-				`division`  VARCHAR(2) NOT NULL,
+				`squad_ID`  INT NOT NULL,
 				`player_ID` INT NOT NULL,
 				`is_captain` TINYINT DEFAULT 0,
-				INDEX event_team_idx (event_ID, bracket_num, team_num, division),
-    			INDEX player_idx (player_ID)
+    			PRIMARY KEY (`squad_ID`,`player_ID`)
 				) ENGINE=MyISAM;";	
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
@@ -896,6 +880,7 @@ class TE_Install {
 		/**
 		 * The player_entrant table is an intersection
 		 * between an an entrant in a draw and the player
+		 * NOT USED; probably can be removed
 		 * ,
 				CONSTRAINT `fk_entrant_player`
 				FOREIGN KEY (`player_ID`)
@@ -908,19 +893,42 @@ class TE_Install {
 					ON DELETE CASCADE
 					ON UPDATE CASCADE
 		 */
-		$sql = "CREATE TABLE `$player_entrant_table` (
-				`player_ID`  INT NOT NULL,
-				`event_ID`   INT NOT NULL,
-				`bracket_num`   INT NOT NULL,
-				`position`  INT NOT NULL 
-				) ENGINE=MyISAM;";
+		// $sql = "CREATE TABLE `$player_entrant_table` (
+		// 		`player_ID`  INT NOT NULL,
+		// 		`event_ID`   INT NOT NULL,
+		// 		`bracket_num`   INT NOT NULL,
+		// 		`position`  INT NOT NULL 
+		// 		) ENGINE=MyISAM;";
+		// if( $newSchema ) {
+		// 	$res = $wpdb->query( $sql );
+		// 	$res = false === $res ? $wpdb->last_error . " when creating $player_entrant_table" : "Created table '$player_entrant_table'";
+		// 	$this->log->error_log( $res );
+		// }
+		// else {			
+		// 	$this->log->error_log( dbDelta( $sql ), "$player_entrant_table");
+		// }
+
+		/**
+		 * The match_team_player table is the intersection
+		 * between a tennis match, team, squad and a player
+		 * It supports the scheduling of team's members for a match
+		 * It could also be used to track performance of pairs of players within a team
+		 * NOTE: that the entrant for a team tennis match is still the team and squad, not individual players
+		 */
+		$sql = "CREATE TABLE `$match_player_table` (
+				`squad_ID`  int(11) NOT NULL,
+				`player_ID` int(11) NOT NULL,
+				`round_num` int(11) NOT NULL,
+				`match_num` int(11) NOT NULL,
+				PRIMARY KEY (`squad_ID`,`player_ID`,`round_num`,`match_num`)
+				) ENGINE=MyISAM DEFAULT CHARSET=utf8;";
 		if( $newSchema ) {
 			$res = $wpdb->query( $sql );
-			$res = false === $res ? $wpdb->last_error . " when creating $player_entrant_table" : "Created table '$player_entrant_table'";
+			$res = false === $res ? $wpdb->last_error . " when creating $match_player_table" : "Created table '$match_player_table'";
 			$this->log->error_log( $res );
 		}
 		else {			
-			$this->log->error_log( dbDelta( $sql ), "$player_entrant_table");
+			$this->log->error_log( dbDelta( $sql ), "$match_player_table");
 		}
 
 		/**
@@ -969,9 +977,10 @@ class TE_Install {
 		$sql = "DROP TABLE IF EXISTS ";
 		$sql = $sql       . $this->dbTableNames["match_court_booking"];
 		$sql = $sql . "," . $this->dbTableNames["court_booking"];
-		$sql = $sql . "," . $this->dbTableNames["player_entrant"];
+		$sql = $sql . "," . $this->dbTableNames["match_team_player"];
+		$sql = $sql . "," . $this->dbTableNames["player_entrant"]; //NOT USED
 		$sql = $sql . "," . $this->dbTableNames["match_entrant"];
-		$sql = $sql . "," . $this->dbTableNames["player_team"];
+		$sql = $sql . "," . $this->dbTableNames["squad_player"];
 		$sql = $sql . "," . $this->dbTableNames["club_event"];
 		$sql = $sql . "," . $this->dbTableNames["external_event"];
 		$sql = $sql . "," . $this->dbTableNames["external_club"];

@@ -261,7 +261,7 @@ class TTCTeamTennisUmpire extends ChairUmpire
         } //foreach set
         
         $winnerName = empty( $andTheWinnerIs) ? 'unknown' : $andTheWinnerIs;
-        $this->log->error_log("$loc: The winner is '{$winnerName}' with points won: home={$homePointsWon} and visitor={$visitorPointsWon}");
+        // $this->log->error_log("$loc: The winner is '{$winnerName}' with points won: home={$homePointsWon} and visitor={$visitorPointsWon}");
 
         $result = [  "matchId"         => $match->toString()
                     ,"andTheWinnerIs"  => $andTheWinnerIs
@@ -277,7 +277,7 @@ class TTCTeamTennisUmpire extends ChairUmpire
                     ,"visitorPointsWon"=> $visitorPointsWon];
 
         //$this->log->error_log( sprintf("%s: %0.6f", "{$loc} Elapsed Time", commonlib\micro_time_elapsed( $startTime )));
-        $this->log->error_log($result, "$loc: TennisMatch Summary Result");
+        // $this->log->error_log($result, "$loc: TennisMatch Summary Result");
 
         return $result;
     }

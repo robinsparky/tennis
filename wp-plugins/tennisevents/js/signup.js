@@ -117,7 +117,15 @@
         //toggleButtons( data.numPreliminary );
         window.location = $("a.link-to-draw").attr("href");
       }
-      else if (data.task.startsWith("addBulk")) {
+      else if (data.task.startsWith("addEntrantBulk")) {
+        window.location.reload();
+        return
+      }
+      else if (data.task.startsWith("addPlayersBulk")) {
+        window.location.reload();
+        return
+      }
+      else if (data.task.startsWith("addSparesBulk")) {
         window.location.reload();
         return
       }
@@ -698,10 +706,12 @@
       
     }
 
-    /***********XML File ******************************************************/
-    $("#entrant_uploads_file").css("opacity","0")
+    /********************************************************
+     * XML File for uploading entrants
+     * ******************************************************/
     let bulkEntrants = []
     let uploadInput = document.getElementById('entrant_uploads_file')
+    uploadInput.style.opacity = 0;
     if(null !== uploadInput) {
           uploadInput.addEventListener('change', function (event) {
           let fr = new FileReader();
@@ -797,13 +807,91 @@
                   }
                 console.log("slimEntrants.length=%d",slimEntrants.length)
                 signupData = {"task": '', 'name':'bulk', 'clubId': 0, 'eventId':0, 'bracketName': '', 'entrants': []}
-                signupData.task = "addBulk";
+                
+                if(tennis_signupdata_obj.eventType === 'teamtennis') {
+                  signupData.task = "addPlayersBulk";
+                }
+                else {
+                  signupData.task = "addEntrantBulk";
+                }
                 signupData.name = 'bulk'
                 signupData.clubId = $(".signupContainer").attr("data-clubid");
                 signupData.eventId = $(".signupContainer").attr("data-eventid");
                 signupData.bracketName = $(".signupContainer").attr("data-bracketname");
                 slimEntrants.forEach(element => {
                   signupData.entrants.push(element);          
+                });
+                console.log(signupData)
+                ajaxFun(signupData);
+          }
+        }
+        fr.readAsText(this.files[0]);
+    })
+    };
+    
+
+    /********************************************************
+     * XML File for uploading spares for Team Tennis
+     * TODO: Figure out the .xsd file for spares!!
+     * ******************************************************/
+    let bulkSpares = []
+    let uploadSpares = document.getElementById('spares_uploads_file')
+    console.log('uploadSpares')
+    console.log(uploadSpares)
+    uploadSpares.style.opacity = 0;
+    if(null !== uploadSpares) {
+          uploadSpares.addEventListener('change', function (event) {
+          let fr = new FileReader();
+          fr.onload = function () {
+              let xmlContent = fr.result;
+              let parser = new DOMParser();
+              let xmlDoc = parser.parseFromString(xmlContent,'text/xml');
+              const errorNode = xmlDoc.querySelector("parsererror");
+              if (errorNode) {
+                // parsing failed
+                console.log(errorNode.nodeValue)
+              } else {
+                // parsing succeeded
+                console.log(xmlDoc)
+                let players = xmlDoc.getElementsByTagName('player');
+                console.log("players.length=%d",players.length)
+                console.log(players)
+                for (i = 0; i < players.length; i++) {
+                  let player = players[i];
+                  //console.log(player)
+                  let playerName = 'unknown'
+                  let email = ''
+                  let cellphone = ''
+                  let homephone = ''
+                  for (j = 0; j < player.children.length; j++) {
+                    switch(player.children[j].nodeName) {
+                      case 'name':
+                        playerName = player.children[j].textContent;
+                        break;
+                      case 'email':
+                        email = player.children[j].textContent;
+                        break;
+                      case 'cellphone':
+                        cellphone = player.children[j].textContent;
+                        break;
+                      case 'dayphone':
+                        homephone = player.children[j].textContent;
+                        break;
+                    }
+                  }
+                  let newSpare = {'name': playerName,'email': email,'cellPhone': cellphone, 'homePhone': homephone  }
+                  bulkSpares.push(newSpare)
+                }
+
+                console.log("bulkSpares.length=%d",bulkSpares.length)
+                signupData = {"task": '', 'name':'bulk', 'clubId': 0, 'eventId':0, 'bracketName': '', 'spares': []}
+                signupData.task = "addSparesBulk";
+                signupData.name = 'bulkSpares'
+                signupData.clubId = $(".signupContainer").attr("data-clubid");
+                signupData.eventId = $(".signupContainer").attr("data-eventid");
+                signupData.bracketName = $(".signupContainer").attr("data-bracketname");
+                bulkSpares.forEach(element => {
+                  signupData.spares.push(element);          
                 });
                 console.log(signupData)
                 ajaxFun(signupData);

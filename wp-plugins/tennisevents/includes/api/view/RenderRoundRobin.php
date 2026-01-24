@@ -65,6 +65,9 @@ class RenderRoundRobin
         
         $jsurl =  TE()->getPluginUrl() . 'js/matches.js';
         wp_register_script( 'manage_rr', $jsurl, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
+
+        $jsurlteams =  TE()->getPluginUrl() . 'js/teams.js';
+        wp_register_script( 'manage_teams', $jsurlteams, array('jquery','jquery-ui-draggable','jquery-ui-droppable', 'jquery-ui-sortable'), TennisEvents::VERSION, true );
         
         $cturl =  TE()->getPluginUrl() . 'js/digitalclock.js';
         wp_register_script( 'digital_clock', $cturl, array('jquery'), TennisEvents::VERSION, true );
@@ -225,6 +228,7 @@ class RenderRoundRobin
         $this->log->error_log($arrData, "$loc: arrData...");
         $jsData["matches"] = $arrData;
         wp_enqueue_script( 'digital_clock' );  
+        wp_enqueue_script( 'manage_teams' );
         wp_enqueue_script( 'manage_rr' );         
         wp_localize_script( 'manage_rr', 'tennis_draw_obj', $jsData );        
         
@@ -301,10 +305,12 @@ class RenderRoundRobin
         $jsData["isBracketApproved"] = $bracket->isApproved() ? 1:0;
         $jsData["numSets"] = $umpire->getMaxSets();
         $jsData["matchType"] = $td->getEvent()->getMatchType();
+        $jsData["eventType"] = $td->getEvent()->getParent()->getEventType() ;
         $arrData = $this->getMatchesAsArray( $td, $bracket );
         $this->log->error_log($arrData, "$loc: arrData...");
         $jsData["matches"] = $arrData; 
         wp_enqueue_script( 'digital_clock' );  
+        wp_enqueue_script( 'manage_teams' );
         wp_enqueue_script( 'manage_rr' );         
         wp_localize_script( 'manage_rr', 'tennis_draw_obj', $jsData );        
         
@@ -343,8 +349,12 @@ class RenderRoundRobin
     /**
      * Get the path to the menu template file for Round Robins
      */
-    private function getMenuPath( int $majorStatus ) {
+    private function getMenuPath( int $majorStatus, ?string $eventType = null) : string {
         $menupath = '';
+        $pathPart = 'includes\templates\menus\roundrobin-menu-template.php';
+        // if(!is_null( $eventType ) && $eventType === EventType::TEAMTENNIS ) {
+        //     $pathPart = 'includes\templates\menus\teamtennis-menu-template.php';
+        // }
         
         if( current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
         || current_user_can( TE_Install::RESET_MATCHES_CAP )
@@ -354,7 +364,7 @@ class RenderRoundRobin
                 case MatchStatus::InProgress:
                 case MatchStatus::Completed:
                 case MatchStatus::Retired:
-                    $menupath = TE()->getPluginPath() . 'includes\templates\menus\roundrobin-menu-template.php';
+                    $menupath = TE()->getPluginPath() . $pathPart;
                     $menupath = str_replace( '\\', DIRECTORY_SEPARATOR, $menupath );
                     break;
                 case MatchStatus::Bye:
@@ -491,11 +501,23 @@ class RenderRoundRobin
     private function get_ajax_data()
     {        
         $mess = '';
-        return array ( 
-             'ajaxurl' => admin_url( 'admin-ajax.php' )
-            ,'action' => self::ACTION
-            ,'security' => wp_create_nonce( self::NONCE )
-            ,'message' => $mess
+        if(current_user_can( TE_Install::MANAGE_EVENTS_CAP ) ) {
+            $mess = __('You have permission to manage this event.', TennisEvents::TEXT_DOMAIN );
+            return array ( 
+                'ajaxurl' => admin_url( 'admin-ajax.php' )
+                ,'action' => self::ACTION
+                ,'security' => wp_create_nonce( self::NONCE )
+                ,'message' => $mess
+            );
+        }
+        else {
+            $mess = __('You do NOT have permission to manage this event.', TennisEvents::TEXT_DOMAIN );
+            return array ( 
+                 'ajaxurl' => admin_url( 'admin-ajax.php' )
+                // ,'action' => self::ACTION
+                ,'security' => '' //wp_create_nonce( self::NONCE )
+                ,'message' => $mess
         );
+        }   
     }
 }

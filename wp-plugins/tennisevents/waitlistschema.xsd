@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<xs:complexType name="spare">
+    <xs:sequence>
+        <xs:element name="name" type="xs:string"/>
+        <xs:element name="familymember" type="xs:string"/>
+        <xs:element name="appliedtime" type="xs:dateTime"/>
+        <xs:element name="email" type="xs:string"/>
+        <xs:element name="dayphone" type="xs:string"/>
+        <xs:element name="cellphone" type="xs:string"/>
+    </xs:sequence>
+</xs:complexType>
+<xs:complexType name="spareType">
+    <xs:sequence>
+        <xs:element name="player" maxOccurs="unbounded" type="spare"/>
+    </xs:sequence>
+</xs:complexType>
+<xs:element name="wailtlist" type="spareType"/>
+</xs:schema>

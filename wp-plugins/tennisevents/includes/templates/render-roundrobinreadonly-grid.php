@@ -1,10 +1,12 @@
-<?php $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
+<?php use datalayer\EventType;
+$now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php 
     echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>(<?php echo $scoreRuleDesc; ?>)</h3>
 <h5 class='tennis-draw-caption-dates'><span>Starts On</span>&nbsp;<span><?php echo $strEventStartDate;?></span>&semi;&nbsp;<span>Ends On</span>&nbsp;<span><?php echo $strEventEndDate;?></span>&semi;&nbsp;<span id='digiclock'></span></h5>
 
 <main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
+
 <?php 
     $winnerClass = "matchwinner";
     foreach( $loadedMatches as $roundnum => $matches ) {
@@ -17,7 +19,8 @@
     $title = $match->toString();
     $this->log->error_log("render-RoundRobinReadOnly: {$title}");
     
-    $eventId = $bracket->getEvent()->getID();
+    $event = $bracket->getEvent();
+    $eventId = $event->getID();
     $bracketNum = $bracket->getBracketNumber();
     $roundNum = $match->getRoundNumber();
     $matchNum = $match->getMatchNumber();
@@ -92,4 +95,17 @@
 </section>
 <?php } //end rounds ?>
 </main>
+<?php
+$event = $bracket->getEvent();
+// if( $event->getParent()->getEventType() === EventType::TEAMTENNIS ) {
+//     //Teams
+//     $path = TE()->getPluginPath() . 'includes\templates\teams\teamRegistrationReadOnly.php';
+//     $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+//     require($path);
+//     //Spares
+//     $path = TE()->getPluginPath() . 'includes\templates\teams\teamSparesReadOnly.php';
+//     $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );
+//     require($path);
+// }
+?>
 <div id="tennis-event-message"></div>
