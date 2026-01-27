@@ -1,6 +1,8 @@
 <?php
 namespace datalayer;
 use \TennisEvents;
+use \commonlib\BaseLogger;
+use \datalayer\TennisMatch;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -46,8 +48,9 @@ class Set extends AbstractData
      */
     public static function find( ...$fk_criteria ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $logger = new BaseLogger(true);
 		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+        $logger->error_log("{$loc} ... called by {$calledBy}");
         
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -68,7 +71,7 @@ class Set extends AbstractData
 		$safe = $wpdb->prepare( $sql, $fk_criteria );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 		
-        error_log( sprintf("Set::find(%d,%d,%d,%d) -> %d rows returned"
+        $logger->error_log( sprintf("Set::find(%d,%d,%d,%d) -> %d rows returned"
                           , $fk_criteria[0]
                           , $fk_criteria[1]
                           , $fk_criteria[2]
@@ -89,8 +92,9 @@ class Set extends AbstractData
 	 */
     static public function get( int ...$pks ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $logger = new BaseLogger(true);
 		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+        $logger->error_log("{$loc} ... called by {$calledBy}");
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -110,7 +114,7 @@ class Set extends AbstractData
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		error_log( "Set::get(id) $wpdb->num_rows rows returned." );
+		$logger->error_log( "Set::get(id) $wpdb->num_rows rows returned." );
 
 		if( count( $rows) === 1 ) {
             $obj = new Set;

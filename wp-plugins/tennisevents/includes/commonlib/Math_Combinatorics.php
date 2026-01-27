@@ -1,25 +1,5 @@
 <?php
 namespace commonlib;
-/* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
-
-/**
- * Math_Combinatorics
- *
- * Math_Combinatorics provides the ability to find all combinations and
- * permutations given an set and a subset size.  Associative arrays are
- * preserved.
- *
- * PHP version 5
- *
- * @category   Math
- * @package    Combinatorics
- * @author     David Sanders <shangxiao@php.net>
- * @license    http://www.gnu.org/copyleft/lesser.html  LGPL License 2.1
- * @version    Release: @package_version@
- * @link       http://pyrus.sourceforge.net/Math_Combinatorics.html
- */
-
-
 /**
  * Math_Combinatorics
  *

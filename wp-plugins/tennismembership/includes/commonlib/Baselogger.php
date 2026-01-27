@@ -1,11 +1,6 @@
 <?php
 namespace commonlib;
 
-/* Uncomment to turn off logging
-$TennisEventNoLog = true;
-$GLOBALS['TennisEventNoLog'] = $TennisEventNoLog;
-*/
-
 /** 
  * Type for classes to compose to conditionally log errors
  * @class  BaseLogger
@@ -20,9 +15,13 @@ class BaseLogger {
     public $recipient = "robin.sparky@gmail.com";
     
 	public function __construct( $log = true ) {
-        global $TennisEventNoLog;
-        if( isset( $TennisEventNoLog) ) $log = false;
-        $this->writelog = $log;
+        global $TennisEventErrorLogOn;
+        if( !$TennisEventErrorLogOn ) {
+            $this->writelog= false;
+        }
+        else {
+            $this->writelog = $log;
+        }
     }
 
     public function error_log() {

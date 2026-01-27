@@ -1,5 +1,6 @@
 <?php
 namespace datalayer;
+use \commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -53,6 +54,10 @@ class Entrant extends AbstractData
      * Search for Entrants that have a name 'like' the provided criteria
      */
     public static function search( $criteria ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$logger = new BaseLogger( false );
+		$logger->error_log("{$loc} ... criteria='$criteria'");
+
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
 		
@@ -62,7 +67,7 @@ class Entrant extends AbstractData
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("Entrant::search $wpdb->num_rows rows returned using criteria: $criteria");
+		$logger->error_log("{$loc} $wpdb->num_rows rows returned using criteria: $criteria");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -82,8 +87,9 @@ class Entrant extends AbstractData
      */
     public static function find(...$fk_criteria) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-        // error_log("{$loc}: fk_criteria ... ");
-        // error_log(print_r($fk_criteria,true));
+		$logger = new BaseLogger( true );
+        $logger->error_log("{$loc}: fk_criteria ... ");
+        $logger->error_log(print_r($fk_criteria,true));
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -159,7 +165,7 @@ class Entrant extends AbstractData
 			$format = "%s(%d,%d) -> %d rows returned.";
 		}
 		else {
-			error_log( sprintf("%s -> incorrect number of args=%d, so 0 rows returned.", $loc, count( $fk_criteria) ) );
+			$logger->error_log( sprintf("%s -> incorrect number of args=%d, so 0 rows returned.", $loc, count( $fk_criteria) ) );
 			return $col;
 		}
 
@@ -167,10 +173,10 @@ class Entrant extends AbstractData
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
 		if( count( $where) > 2 ) {
-			error_log( sprintf($format, $loc, $where[0], $where[1], $where[2], $where[3], $wpdb->num_rows ) );
+			$logger->error_log( sprintf($format, $loc, $where[0], $where[1], $where[2], $where[3], $wpdb->num_rows ) );
 		}
 		else {
-			error_log( sprintf($format, $loc, $where[0], $where[1], $wpdb->num_rows ) );
+			$logger->error_log( sprintf($format, $loc, $where[0], $where[1], $wpdb->num_rows ) );
 		}
 		
 		foreach($rows as $row) {
@@ -186,11 +192,12 @@ class Entrant extends AbstractData
 	 */
     static public function get( int ...$pks ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+		$logger = new BaseLogger( true );
+		$logger->error_log("{$loc}: pks ... ");
+		$logger->error_log(print_r($pks,true));
 		
 		// $strTrace = GW_Debug::get_debug_trace_Str(5);	
-		// error_log("{$loc}: {$strTrace}");
+		// $logger->error_log("{$loc}: {$strTrace}");
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -203,7 +210,7 @@ class Entrant extends AbstractData
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		error_log( sprintf("%s(%d,%d,%d) -> %d rows returned.", $loc, $pks[0], $pks[1], $pks[2], $wpdb->num_rows ) );
+		$logger->error_log( sprintf("%s(%d,%d,%d) -> %d rows returned.", $loc, $pks[0], $pks[1], $pks[2], $wpdb->num_rows ) );
 
 		if(count($rows) === 1) {
 			$obj = new Entrant( ...$pks );

@@ -114,6 +114,13 @@ function gw_tennis_custom_settings() {
                     ,'sanitize_callback'=>'gw_sanitize_lockdown_previous'
                     ,'description' => __('Lock down events from previous seasons (yes or no)', TennisEvents::TEXT_DOMAIN)]
                 );
+                
+    register_setting( 'gw-tennis-settings-group' //Options group
+                    , TennisEvents::OPTION_ERROR_LOG_MODE //Option name used in get_option
+                    , ['type'=>'string'
+                    ,'sanitize_callback'=>'gw_sanitize_error_log_mode'
+                    ,'description' => __('Error log mode (yes or no)', TennisEvents::TEXT_DOMAIN)]
+                );
 
 
     add_settings_section( 'gw-tennis-options' //id
@@ -182,6 +189,14 @@ function gw_tennis_custom_settings() {
     add_settings_field( 'gw_tennis_lockdown_previous' // id
                     , __('Lockdown old events', TennisEvents::TEXT_DOMAIN) // title
                     , 'gw_tennisLockdown' // callback
+                    , 'gwtennissettings' // page
+                    , 'gw-tennis-options' // section
+                    //,  array of args
+                ); 
+
+    add_settings_field( 'gw_tennis_error_log_mode' // id
+                    , __('Turn on error log', TennisEvents::TEXT_DOMAIN) // title
+                    , 'gw_errorlogmode' // callback
                     , 'gwtennissettings' // page
                     , 'gw-tennis-options' // section
                     //,  array of args
@@ -273,6 +288,38 @@ function gw_tennisLockdown() {
         <div>
             <input type="radio" id="tennis_no_lockdown" name="{$optName}" value="no" {$noChecked} />
             <label for="tennis_no_lockdown">No</label>
+        </div>
+        <div>{$txt}</div>
+        </fieldset>
+    EOT;
+    echo $templ;
+
+}
+function gw_errorlogmode() {
+    $errormode = esc_attr( get_option(TennisEvents::OPTION_ERROR_LOG_MODE, 'no') );
+    $yesChecked = '';
+    $noChecked = '';
+    if($errormode == 'yes') {
+        $yesChecked = 'checked';
+    }
+    else {
+        $noChecked = 'checked';
+    }
+    
+    $optName = TennisEvents::OPTION_ERROR_LOG_MODE;
+
+    $txt = __("Turn on error logging?",TennisEvents::TEXT_DOMAIN);
+    $templ = <<<EOT
+        <fieldset>
+        <legend>Choose:</legend>
+        <div>
+            <input type="radio" id="tennis_yes_error_mode" name="{$optName}" value="yes" {$yesChecked} />
+            <label for="tennis_yes_error_mode">Yes</label>
+        </div>
+
+        <div>
+            <input type="radio" id="tennis_no_error_mode" name="{$optName}" value="no" {$noChecked} />
+            <label for="tennis_no_error_mode">No</label>
         </div>
         <div>{$txt}</div>
         </fieldset>
@@ -493,6 +540,33 @@ function gw_sanitize_lockdown_previous( $input ) {
     }
 
     add_settings_error('gw_tennisLockdown', esc_attr('main_tennis_lockdown_previous_updated'), $message, $type);
+
+    return $output;
+}
+
+function gw_sanitize_error_log_mode( $input ) {
+    $message = null;
+    $type = null;
+    $output = 'no';
+
+    if( !is_null( $input ) ) {
+        $input = trim(strtolower($input));
+        if( is_string( $input ) && in_array($input,['yes','no'])  ) {
+            $output = $input;
+            $type = 'success';
+            $message = __('Tennis error log mode updated', TennisEvents::TEXT_DOMAIN );
+        }
+        else {
+            $type = 'error';
+            $message = __('Tennis error log mode setting must be a string', TennisEvents::TEXT_DOMAIN );
+        }
+    }
+    else {
+        $type = 'error';
+        $message = __('Tennis error log mode setting must not be empty', TennisEvents::TEXT_DOMAIN );
+    }
+
+    add_settings_error('gw_tennisErrorLogMode', esc_attr('main_tennis_error_log_mode_updated'), $message, $type);
 
     return $output;
 }

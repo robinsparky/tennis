@@ -71,6 +71,7 @@ class TennisMatch extends AbstractData
      * Search not used
      */
     public static function search($criteria) {
+        $loc = __CLASS__ . '::' . __FUNCTION__;
         
 		$criteria .= strpos($criteria,'%') ? '' : '%';
 		$col = array();
@@ -82,8 +83,9 @@ class TennisMatch extends AbstractData
      */
     public static function find( ...$fk_criteria ) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $logger = new \commonlib\BaseLogger( false );
 		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+        $logger->error_log("{$loc} ... called by {$calledBy}");
 
         //$args = print_r( $fk_criteria, true );
         //error_log("$loc: args=$args");
@@ -131,7 +133,7 @@ class TennisMatch extends AbstractData
         
         $rows = $wpdb->get_results( $safe, ARRAY_A );
         
-        error_log("$loc: found {$wpdb->num_rows} matches");
+        $logger->error_log("$loc: found {$wpdb->num_rows} matches");
 
 		foreach( $rows as $row ) {
             $obj = new TennisMatch( $eventId, $bracket, $round );
@@ -146,8 +148,9 @@ class TennisMatch extends AbstractData
 	 */
     static public function get( int ...$pks ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;		
+        $logger = new \commonlib\BaseLogger( false );   
 		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+        $logger->error_log("{$loc} ... called by {$calledBy}");
         
 		global $wpdb;
         $table = $wpdb->prefix . self::$tablename;
@@ -206,7 +209,8 @@ class TennisMatch extends AbstractData
 
         $wpdb->delete( $table, $where, $formats_where );
         $result += $wpdb->rows_affected;
-        error_log( sprintf( "%s -> deleted %d row(s)", $loc, $result ) );
+        $logger = new \commonlib\BaseLogger( false );
+        $logger->error_log( sprintf( "%s -> deleted %d row(s)", $loc, $result ) );
 
         return $result;
     }
@@ -226,7 +230,7 @@ class TennisMatch extends AbstractData
 
         $wpdb->delete( $table, $where, $formats_where );
         $result = $wpdb->rows_affected;
-        error_log( sprintf( "%s -> deleted %d row(s)", $loc, $result ) );
+        //error_log( sprintf( "%s -> deleted %d row(s)", $loc, $result ) );
 
         return $result;
     }

@@ -54,8 +54,9 @@ class RenderSignup
      */
     public static function register() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log( $loc );
-        
+        $logger = new BaseLogger(true);
+        $logger->error_log( $loc );
+
         $handler = new self();
         add_action( 'wp_enqueue_scripts', array( $handler, 'registerScripts' ) );
         $handler->registerHandlers();

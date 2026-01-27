@@ -1,6 +1,7 @@
 <?php
 namespace datalayer;
 use commonlib\GW_Debug;
+use commonlib\BaseLogger;
 use \TennisEvents;
 use \DateTime;
 
@@ -68,7 +69,8 @@ class Event extends AbstractData
 		$safe = $wpdb->prepare($sql,$criteria);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		//error_log("Event::search $wpdb->num_rows rows returned using criteria: $criteria");
+		// $logger = new BaseLogger(true);
+		// $logger->error_log("Event::search $wpdb->num_rows rows returned using criteria: $criteria");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -94,7 +96,8 @@ class Event extends AbstractData
 		        FROM $table WHERE `parent_ID` is null";
 		$rows = $wpdb->get_results($sql, ARRAY_A);
 		
-		//error_log("Event::allParentEvents $wpdb->num_rows rows returned using criteria: $criteria");
+		// $logger = new BaseLogger(true);
+		// $logger->error_log("Event::allParentEvents $wpdb->num_rows rows returned using criteria: $criteria");
 
 		$col = array();
 		foreach($rows as $row) {
@@ -111,8 +114,10 @@ class Event extends AbstractData
      */
     public static function find( ...$fk_criteria ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;	
-		// $strTrace = GW_Debug::get_debug_trace_Str(3);	
-		// error_log("{$loc}: {$strTrace}");
+		$logger = new BaseLogger(true);	
+		$logger->error_log("{$loc} ... called by " . debug_backtrace()[1]['function']);	
+		$strTrace = GW_Debug::get_debug_trace_Str(3);	
+		$logger->error_log("{$loc}: {$strTrace}");
 
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -126,7 +131,7 @@ class Event extends AbstractData
 		if( array_key_exists( 'parent_ID', $fk_criteria ) ) {
 			//All events who are children of specified Event
 			$col_value = $fk_criteria["parent_ID"];
-			error_log("Event::find using parent_ID=$col_value");
+			$logger->error_log("Event::find using parent_ID=$col_value");
 			$sql = "SELECT ce.ID, ce.event_type, ce.name, ce.format, ce.match_type, ce.score_type, ce.gender_type, ce.age_max, ce.age_min, ce.parent_ID, ce.num_brackets 
 			 			  ,ce.signup_by,ce.start_date,ce.end_date  
 					FROM $table ce
@@ -135,7 +140,7 @@ class Event extends AbstractData
 		elseif( array_key_exists( 'club', $fk_criteria ) ) {
 			//All events belonging to specified club
 			$col_value = $fk_criteria["club"];
-			error_log( "Event::find using club_ID=$col_value" );
+			$logger->error_log( "Event::find using club_ID=$col_value" );
 			$sql = "SELECT e.ID, e.event_type, e.name, e.format, e.match_type, e.score_type, e.gender_type, e.age_max, e.age_min, e.parent_ID, e.num_brackets 
 						  ,e.signup_by,e.start_date,e.end_date 
 					from $table e 
@@ -144,7 +149,7 @@ class Event extends AbstractData
 					WHERE c.ID = %d;";
 		} elseif( !isset( $fk_criteria ) ) {
 			//All events
-			error_log( "Event::find all events" );
+			$logger->error_log( "Event::find all events" );
 			$col_value = 0;
 			$sql = "SELECT `ID`,`event_type`,`name`,`format`, `match_type`, `score_type`,`gender_type`, `age_max`, `age_min`,`parent_ID`,`num_brackets`,`signup_by`,`start_date`,`end_date` 
 					FROM $table;";
@@ -156,7 +161,7 @@ class Event extends AbstractData
 		$safe = $wpdb->prepare( $sql, $col_value );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		//error_log( "Event::find $wpdb->num_rows rows returned." );
+		// $logger->error_log( "Event::find $wpdb->num_rows rows returned." );
 
 		foreach( $rows as $row ) {
             $obj = new Event();
@@ -174,13 +179,17 @@ class Event extends AbstractData
 	 *         Or Null if not found
 	 */
 	static public function getEventByExtRef( $extReference ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;	
 		global $wpdb;
 		$table = $wpdb->prefix . 'tennis_external_event';		
 		$sql = "SELECT `event_ID`
 				FROM $table WHERE `external_ID`='%s'";
 		$safe = $wpdb->prepare( $sql, $extReference );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
-		error_log( sprintf("Event::getEventByExtRef(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
+
+		// $logger = new BaseLogger(true);	
+		// $logger->error_log("{$loc} ... called by " . debug_backtrace()[1]['function']);
+		// $logger->error_log( sprintf("{$loc}(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
 		
 		$result = null;
 		if( count( $rows ) > 1) {
@@ -203,13 +212,16 @@ class Event extends AbstractData
 	 *         Or 0 if not found
 	 */
 	static public function getEventIdByExtRef( $extReference ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;	
 		global $wpdb;
 		$table = $wpdb->prefix . 'tennis_external_event';		
 		$sql = "SELECT `event_ID`
 				FROM $table WHERE `external_ID`='%s'";
 		$safe = $wpdb->prepare( $sql, $extReference );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
-		error_log( sprintf("Event::getEventIdByExtRef(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
+		
+		// $logger = new BaseLogger(true);	
+		// $logger->error_log( sprintf("{$loc}(%d) -> %d rows returned.", $extReference, $wpdb->num_rows ) );
 		
 		$result = 0;
 		if( count( $rows ) > 1) {
@@ -230,13 +242,17 @@ class Event extends AbstractData
 	 * @return string external reference or array of external refs or '' if not found
 	 */
 	static public function getExtEventRefByEventId( int $id ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;	
+
 		global $wpdb;
 		$table = $wpdb->prefix . 'tennis_external_event';		
 		$sql = "SELECT `external_ID`
 				FROM $table WHERE `event_ID`='%d'";
 		$safe = $wpdb->prepare( $sql, $id );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
-		error_log( sprintf("Event::getExtEventRefByEventId(%d) -> %d rows returned.", $id, $wpdb->num_rows ) );
+
+		// $logger = new BaseLogger(true);
+		// $logger->error_log( sprintf("{$loc}(%d) -> %d rows returned.", $id, $wpdb->num_rows ) );
 		
 		$result = '';
 		if( count( $rows ) > 1) {
@@ -255,9 +271,10 @@ class Event extends AbstractData
 	 * Get instance of a Event using it's primary key: ID
 	 */
     static public function get( int ...$pks ) {
-		$loc = __CLASS__ . '::' . __FUNCTION__;		
-        error_log("{$loc}: pks ... ");
-        error_log(print_r($pks,true));	
+		$loc = __CLASS__ . '::' . __FUNCTION__;	
+		$logger = new BaseLogger(true);	
+        $logger->error_log("{$loc}: pks ... ");
+        $logger->error_log(print_r($pks,true));	
 
 		// $strTrace = GW_Debug::get_debug_trace_Str(3);
 		// error_log("{$loc}: Trace {$strTrace}");
@@ -286,16 +303,17 @@ class Event extends AbstractData
 	 */
 	static public function removeOldEvents() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$logger = new BaseLogger(true);	
 		
 		$history_retention = esc_attr( get_option( TennisEvents::OPTION_HISTORY_RETENTION,  TennisEvents::OPTION_HISTORY_RETENTION_DEFAULT ));
 		$currentYear = date('Y');
 		$cutoff = $currentYear - $history_retention + 1;
-		error_log( sprintf("%s -> cutoff year is %d ", $loc, $cutoff ) );
+		$logger->error_log( sprintf("%s -> cutoff year is %d ", $loc, $cutoff ) );
 		$numDeleted = 0;
 		$rowsDeleted = 0;
 		
 		$parentEvents = Event::getAllParentEvents();
-		error_log( sprintf("%s -> %d Parent events ", $loc, count($parentEvents) ) );
+		$logger->error_log( sprintf("%s -> %d Parent events ", $loc, count($parentEvents) ) );
 
 		foreach( $parentEvents as $evt ) {
 			error_log( sprintf("%s -> evt->ID=%d season=%d ", $loc, $evt->getID(),  $evt->getSeason()) );
@@ -306,7 +324,7 @@ class Event extends AbstractData
 			}
 		}
 
-		error_log( sprintf("%s -> %d event(s) deleted; %d row(s) deleted", $loc, $numDeleted, $rowsDeleted ) );
+		$logger->error_log( sprintf("%s -> %d event(s) deleted; %d row(s) deleted", $loc, $numDeleted, $rowsDeleted ) );
 		return $numDeleted;
 	}
 	
@@ -316,6 +334,7 @@ class Event extends AbstractData
 	 */
 	static public function deleteEvent( int $eventId ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
+		$logger = new BaseLogger(true);
 
 		$result = 0;
 		global $wpdb;
@@ -346,7 +365,7 @@ class Event extends AbstractData
 		$wpdb->delete( $table, array( 'ID'=>$eventId ), array( '%d' ) );
 		$result += $wpdb->rows_affected;
 
-		error_log( sprintf("%s(%d) -> deleted %d row(s)", $loc, $eventId, $result ) );
+		$logger->error_log( sprintf("%s(%d) -> deleted %d row(s)", $loc, $eventId, $result ) );
 		return $result;
 	}
 	
@@ -358,15 +377,15 @@ class Event extends AbstractData
 	 */
 	public static function getEventRecursively( Event $evt, int $descendantId ) {
 		$loc = __CLASS__ . ":" . __FUNCTION__;
-
-		error_log("$loc: comparing {$evt->getID()} to {$descendantId}");
+		$logger = new BaseLogger(true);
+		$logger->error_log("$loc: comparing {$evt->getID()} to {$descendantId}");
 
 		if( $descendantId === $evt->getID() ) return $evt;
 
 		foreach( $evt->getChildEvents() as $child ) {
 			$event =  self::getEventRecursively( $child, $descendantId );
 			if( !is_null( $event ) && $event->getID() === $descendantId ) {
-				error_log("$loc: found descendant with Id = $descendantId");
+				$logger->error_log("$loc: found descendant with Id = $descendantId");
 				return $event;
 			}
 		}

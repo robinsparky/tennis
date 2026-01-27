@@ -56,7 +56,8 @@ class TennisEventCpt {
 	 */
 	public static function register() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log($loc);
+		$logger = new BaseLogger(true);
+		$logger->error_log($loc);
 
 		$tennisEvt = new TennisEventCpt();
 
@@ -112,7 +113,7 @@ class TennisEventCpt {
 	 * Copy constructor
 	 * @param TennisEventCpt $copyMe The optional custom post type to be copied.
 	 */
-	public function __construct( TennisEventCpt $copyMe = null ) {
+	public function __construct( ?TennisEventCpt $copyMe = null ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->log = new BaseLogger(true);
 

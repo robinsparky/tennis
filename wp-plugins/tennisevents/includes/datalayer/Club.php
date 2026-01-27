@@ -2,6 +2,7 @@
 namespace datalayer;
 
 use TennisEvents;
+use commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -73,6 +74,7 @@ class Club extends AbstractData
 	 */
 	static public function find(...$fk_criteria) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$logger = new BaseLogger(true);
 		global $wpdb;
 
 		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
@@ -83,7 +85,7 @@ class Club extends AbstractData
 		if(is_array($fk_criteria) && count($fk_criteria) === 1) {
 			//All clubs belonging to specified Event
 			$eventId = $fk_criteria[0];
-			error_log("Club::find using eventId=$eventId");
+			$logger->error_log("Club::find using eventId=$eventId");
 			$sql = "SELECT c.ID, c.name, e.ID as event_ID, e.name as Event_Name 
 					FROM $table c 
 					INNER JOIN $joinTable as j on j.club_ID = c.ID 
@@ -94,12 +96,10 @@ class Club extends AbstractData
 		}
 		else {
 			//All clubs
-			error_log("Club:find all clubs");
+			$logger->error_log("Club:find all clubs");
 			$sql = "SELECT `ID`, `name` FROM $table;";
 			$rows = $wpdb->get_results($sql, ARRAY_A);
 		}
-
-		error_log("Club::find $wpdb->num_rows rows returned.");
 
 		foreach($rows as $row) {
             $obj = new Club(null);
@@ -115,6 +115,8 @@ class Club extends AbstractData
 	 */
     static public function get(int ...$pks) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$logger = new BaseLogger(true);
+
 		global $wpdb;
 		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
 		
@@ -123,7 +125,7 @@ class Club extends AbstractData
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 
 		$id = $pks[0];
-		error_log("Club::get($id) $wpdb->num_rows rows returned.");
+		$logger->error_log("Club::get($id) $wpdb->num_rows rows returned.");
 		$obj = NULL;
 		if( count($rows) === 1 ) {
 			$obj = new Club(null);
@@ -187,6 +189,8 @@ class Club extends AbstractData
 	 */
 	public static function deleteClub( int $clubId = 0 ) : int {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
+		$logger = new BaseLogger(true);
+		$logger->error_log( "$loc: Deleting Club ID={$clubId}" );
 		$result = 0;
 
 		if( 0 < $clubId ) {

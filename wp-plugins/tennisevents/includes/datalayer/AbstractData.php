@@ -54,7 +54,7 @@ abstract class AbstractData
     public function save():int {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+        $this->log->error_log("{$loc} ... called by {$calledBy}");
         
         $result = 0;
 		if($this->isNew()) $result = $this->create();

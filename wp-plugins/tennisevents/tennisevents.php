@@ -22,8 +22,9 @@ use api\ajax\ManageEvents;
 use api\rest\TennisControllerManager;
 use special\PickleballSurvey;
 
-//-----------------Uncomment this to turn off all logging in this plugin----------------
-//$GLOBALS['TennisEventNoLog'] = 1;
+/* turn on or off error logging*/
+$TennisEventErrorLogOn = get_option(TennisEvents::OPTION_ERROR_LOG_MODE, 'no') === 'yes';
+error_log("Tennis Events Plugin loaded. Error logging is " . ($TennisEventErrorLogOn ? "ON" : "OFF") );
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -59,6 +60,7 @@ class TennisEvents {
 	public const OPTION_MINIMUM_LEADTIME = 'gw_tennis_event_min_leadtime';
 	public const OPTION_MINIMUM_DURATION_SUGGESTIONS = 'gw_tennis_event_min_days_suggestions';
 	public const OPTION_LOCK_PREVIOUS_SEASONS = 'gw_tennis_lock_previous_seasons';
+	public const OPTION_ERROR_LOG_MODE = 'gw_tennis_error_log_mode';
 	
 	/**
 	 * Unique identifier for the plugin.

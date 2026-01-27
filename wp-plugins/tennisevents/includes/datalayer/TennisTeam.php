@@ -170,43 +170,6 @@ class TennisTeam extends AbstractData
         self::mapData($obj,$rows[0]);
         return $obj;
 	}
-    
-	/**
-	 * Delete the team and related squad_player, squad
-     * @param int $eventId The ID of the event
-     * @param int $bracketNum The bracket number 
-     * @param int $teamNum The team number
-     * @return int Number of rows affected
-	 */
-	// public static function deleteTeam( int $eventId = 0, int $bracketNum = 0, int $teamNum = 0 ) : int {
-    //     $loc = __CLASS__ . '::' . __FUNCTION__;
-
-    //     global $wpdb;
-	// 	$result = 0;
-    //     if( 0 === $eventId || 0 === $bracketNum || 0 === $teamNum ) return $result;
-        
-    //     foreach($this->getSquads() as $squad) {
-    //         $squad->removeAllMembers( $squad );
-    //     }
-    //     $values = ['event_ID' => $eventId, 'bracket_num' => $bracketNum, 'team_num' => $teamNum];
-    //     $formats_values = ['%d','%d','%d'];
-    //     $table = TennisEvents::getInstaller()->getDBTablenames()['squad_player'];
-    //     $wpdb->delete( $table, $values, $formats_values );
-    //     $result += $wpdb->rows_affected;
-
-    //     $result += TennisSquad::deleteAllSquads( $eventId, $bracketNum, $teamNum );
-
-    //     $table = TennisEvents::getInstaller()->getDBTablenames()['squad'];
-    //     $wpdb->delete( $table, $values, $formats_values );
-    //     $result += $wpdb->rows_affected;
-        
-    //     $table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
-    //     $result += $wpdb->rows_affected;
-        
-    //     error_log("{$loc} {$result} rows affected.");
-
-	// 	return $result;
-    // }
 
     /**
      * Delete all Teams and related squad_player, squads for the specified event and bracket

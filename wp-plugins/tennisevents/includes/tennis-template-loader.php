@@ -4,6 +4,7 @@
  */
 
 use cpt\TennisEventCpt;
+use \commonlib\BaseLogger;
 
 /**
  * Locate template.
@@ -24,6 +25,7 @@ use cpt\TennisEventCpt;
 
 function tennis_template_locate( $template_name, $template_path = '', $default_path = '' ) {
 	$loc = __FUNCTION__;
+	$logger = new BaseLogger(true);
 	
 	// Set variable to search in tennisevents-plugin-templates folder of THEME.
 	if ( ! $template_path ) :
@@ -34,7 +36,7 @@ function tennis_template_locate( $template_name, $template_path = '', $default_p
 	if ( ! $default_path ) :
 		$default_path = plugin_dir_path( __FILE__ ) . 'templates/'; // Path to the template folder
 	endif;
-	error_log("$loc: template_name='{$template_name}', template_path='{$template_path}', default_path='{$default_path}'");
+	$logger->error_log("$loc: template_name='{$template_name}', template_path='{$template_path}', default_path='{$default_path}'");
 
 	// Search template file in theme folder.
 	$template = locate_template( array( $template_path . $template_name, $template_name	) );
@@ -66,14 +68,15 @@ function tennis_template_locate( $template_name, $template_path = '', $default_p
  */
 function tennis_get_template( $template_name, $args = null, $template_path = '', $default_path = '' ) {
 	$loc = __FUNCTION__;
+	$logger = new BaseLogger(true);
 
 	if ( isset( $args ) && is_array( $args ) ) :
 		extract( $args );
 	endif;
-	error_log("$loc: template_name='{$template_name}', template_path='{$template_path}', default_path='{$default_path}'");
+	$logger->error_log("$loc: template_name='{$template_name}', template_path='{$template_path}', default_path='{$default_path}'");
 
 	$template_file = tennis_template_locate( $template_name, $template_path, $default_path );
-	error_log("$loc: template_file='{$template_file}'");
+	$logger->error_log("$loc: template_file='{$template_file}'");
 
 	if ( ! file_exists( $template_file ) ) :
 		_doing_it_wrong( __FUNCTION__, sprintf( '<code>%s</code> does not exist.', $template_file ), '1.0.0' );
@@ -99,7 +102,8 @@ function tennis_get_template( $template_name, $args = null, $template_path = '',
  */
 function tennis_get_template_part( $slug, $name = null, $args = null ) {
 	$loc = __FUNCTION__;
-	error_log( "$loc: slug='{$slug}', name='{$name}'" );
+	$logger = new BaseLogger(true);
+	$logger->error_log( "$loc: slug='{$slug}', name='{$name}'" );
 
 	$template_name = "{$slug}.php";
     $name  = (string) $name;
@@ -124,14 +128,15 @@ function tennis_get_template_part( $slug, $name = null, $args = null ) {
  */
 function tennis_template_loader( $template ) {
 	$loc =  __FUNCTION__;	
-	error_log( "$loc: template='$template'" );
+	$logger = new BaseLogger(true);
+	$logger->error_log( "$loc: template='$template'" );
 
 	$file = '';
 
 	$my_post_types = array( TennisEventCpt::CUSTOM_POST_TYPE );
 
 	if( ! is_singular( $my_post_types) && ! is_post_type_archive( $my_post_types ) ) {
-		error_log("$loc: you're not my type!");
+		$logger->error_log("$loc: you're not my type!");
 	  return $template;
 	}
 
@@ -144,12 +149,12 @@ function tennis_template_loader( $template ) {
 	elseif( is_singular( $my_post_types ) ) {
 		$file = 'single-tenniseventcpt.php';
 	}
-	error_log("$loc: looking for file='$file'");
+	$logger->error_log("$loc: looking for file='$file'");
 
 	$template = tennis_template_locate( $file );
 
 	if ( ! file_exists( $template ) ) :
-		error_log("$loc: file not exists '$template'");
+		$logger->error_log("$loc: file not exists '$template'");
 		_doing_it_wrong( __FUNCTION__, sprintf( '<code>%s</code> does not exist.', $template ), '1.0.0' );
 		return;
 	endif;

@@ -27,7 +27,7 @@ class TennisClubCpt {
 	const CUSTOM_POST_TYPE_TAX = 'tennisclubcategory';
 	const CUSTOM_POST_TYPE_TAG = 'tennisclubtag';
 
-    const CLUB_NAME                = '_tennisclub_name';
+    const CLUB_NAME            = '_tennisclub_name';
 	
     //Only emit on this page
 	private $hooks = array('post.php', 'post-new.php');
@@ -39,7 +39,8 @@ class TennisClubCpt {
 	 */
 	public static function register() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-		error_log( $loc );
+		$logger = new BaseLogger(true);
+		$logger->error_log( $loc );
 		
 		$tennisClub = new TennisClubCpt();
 

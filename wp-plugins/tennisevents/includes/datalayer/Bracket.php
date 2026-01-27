@@ -54,8 +54,9 @@ class Bracket extends AbstractData
 	static public function find( ...$fk_criteria ) {
 		global $wpdb;
         $loc = __CLASS__ . '::' .  __FUNCTION__;
-        error_log("{$loc}: fk_criteria ... ");
-        error_log(print_r($fk_criteria,true));
+        $logger = new \commonlib\BaseLogger( false );
+        $logger->error_log("{$loc}: fk_criteria ... ");
+        $logger->error_log(print_r($fk_criteria,true));
 		// $strTrace = GW_Debug::get_debug_trace_Str(5);	
 		// error_log("{$loc}: {$strTrace}");
 
@@ -70,10 +71,10 @@ class Bracket extends AbstractData
         $safe = $wpdb->prepare( $sql, $eventId );
         $rows = $wpdb->get_results( $safe, ARRAY_A );
 
-        error_log("$loc: Sql ...");
-        error_log($safe);
+        $logger->error_log("$loc: Sql ...");
+        $logger->error_log($safe);
 
-		error_log( sprintf("%s(E(%d)) -> %d rows returned.", $loc, $eventId, $wpdb->num_rows ) );
+		$logger->error_log( sprintf("%s(E(%d)) -> %d rows returned.", $loc, $eventId, $wpdb->num_rows ) );
 
 		foreach( $rows as $row ) {
             $obj = new Bracket;
@@ -88,8 +89,9 @@ class Bracket extends AbstractData
 	 */
     static public function get( int ... $pks ) {
         $loc = __CLASS__ . '::' .  __FUNCTION__;
-        error_log("{$loc}: pks ... ");
-        error_log(print_r($pks,true));	
+        $logger = new \commonlib\BaseLogger( false );
+        $logger->error_log("{$loc}: pks ... ");
+        $logger->error_log(print_r($pks,true));	
 		// $strTrace = GW_Debug::get_debug_trace_Str(3);	
 		// error_log("{$loc}: {$strTrace}");
         
@@ -100,7 +102,7 @@ class Bracket extends AbstractData
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-        error_log( sprintf( "%s(B(%d,%d)) -> %d rows returned.", $loc, $pks[0], $pks[1], $wpdb->num_rows ) );
+        $logger->error_log( sprintf( "%s(B(%d,%d)) -> %d rows returned.", $loc, $pks[0], $pks[1], $wpdb->num_rows ) );
         
 		$obj = NULL;
 		if( count($rows) === 1 ) {
@@ -213,20 +215,9 @@ class Bracket extends AbstractData
 
     public static function deleteAllTeams( int $eventId = 0, int $bracketNum = 0 ) : int {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("$loc($eventId,$bracketNum)");
 
-        TennisTeam::deleteTeam($eventId, $bracketNum);
-        $result = 0;
-        if( 0 === $eventId || 0 === $bracketNum ) return $result;
-        global $wpdb;
-        $table = TennisEvents::getInstaller()->getDBTablenames( TennisTeam::$tablename );
-        $where = array( 'event_ID' => $eventId, 'bracket_num' => $bracketNum );
-        $formats_where = array( '%d', '%d' );
-        $wpdb->delete( $table, $where, $formats_where );
-        $result = $wpdb->rows_affected;
+        return TennisTeam::deleteAllTeams($eventId, $bracketNum);
 
-        error_log("$loc: $result rows affected.");
-        return $result;
     }   
     
     /**
@@ -239,7 +230,8 @@ class Bracket extends AbstractData
      */
     public static function deleteEntrant( int $eventId = 0, int $bracketNum = 0, $position = 0 ) : int {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("$loc($eventId,$bracketNum,$position)");
+        $logger = new \commonlib\BaseLogger( false );
+        $logger->error_log("$loc($eventId,$bracketNum,$position)");
 
 		$result = 0;
         if( 0 === $eventId || 0 === $bracketNum || 0 === $position ) return $result;
