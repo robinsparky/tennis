@@ -130,6 +130,8 @@
         return
       }
       else if(data.task.startsWith('saveTeamRegistration')) {
+        let button = document.querySelector('.saveTeamRegistration')
+        button.disabled = false;
         // window.location.reload();
         return
       }
