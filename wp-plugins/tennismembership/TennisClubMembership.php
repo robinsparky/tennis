@@ -23,6 +23,9 @@ use datalayer\Person;
 use datalayer\appexceptions\InvalidPersonException;
 use datalayer\Genders;
 
+/* Global variable for error logging */
+$TennisEventErrorLogOn = false;
+
 // use \WP_CLI;
 // use \WP_CLI_Command;
 
@@ -187,7 +190,11 @@ class TennisClubMembership {
 	 */
 	public function init() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log( ">>>>>>>>>>>$loc start>>>>>>>>>" );
+		error_log( ">>>>>>>>>>>$loc start>>>>>>>>>" );
+
+		global $TennisEventErrorLogOn;
+		$TennisEventErrorLogOn = get_option(TennisEvents::OPTION_ERROR_LOG_MODE, 'off') === 'on' ? true : false;
+		error_log("Error logging is " . ($TennisEventErrorLogOn ? "ON" : "OFF") );
 
 		//Register custom post types 
 		ClubMembershipCpt::register();
@@ -205,7 +212,7 @@ class TennisClubMembership {
 
 		flush_rewrite_rules(); //necessary to make permlinks work for clubmembership templates
 		$this->seedData();
-		$this->log->error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
+		error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
 	}
 
 	

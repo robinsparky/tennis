@@ -8,6 +8,7 @@ use datalayer\Genders;
 use cpt\ClubMembershipCpt;
 use cpt\TennisMemberCpt;
 use commonlib\GW_Support;
+use commonlib\BaseLogger;
 use datalayer\appexceptions\InvalidPersonException;
 
 
@@ -84,7 +85,7 @@ class Person extends AbstractMembershipData
 	 */
 	static public function search(string $lname, string $fname = '%') {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
-
+		$logger = new BaseLogger();
 		$col = array();
 		if(empty($lname)) {
 			return $col;
@@ -101,7 +102,7 @@ class Person extends AbstractMembershipData
 		$safe = $wpdb->prepare($sql,$lname,$fname);
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("{$loc}: {$wpdb->num_rows} rows returned for name search: '$lname' and '$fname'");
+		$logger->error_log("{$loc}: {$wpdb->num_rows} rows returned for name search: '$lname' and '$fname'");
 
 		foreach($rows as $row) {
 			$obj = new Person;
@@ -121,7 +122,8 @@ class Person extends AbstractMembershipData
 	 */
 	static public function find(...$fk_criteria) : array {
 		$loc = __CLASS__ . '::'. __FUNCTION__;
-		error_log("{$loc}...");
+		$logger = new BaseLogger();
+		$logger->error_log("{$loc}...");
 
 		global $wpdb;
 
@@ -134,21 +136,21 @@ class Person extends AbstractMembershipData
 		if( array_key_exists( 'sponsoredBy', $fk_criteria ) ) {
 			//All Persons who are sponsored by the given Person's ID
 			$col_value = $fk_criteria["sponsoredBy"];
-			error_log("{$loc}: sponsoredBy ID=$col_value");
+			$logger->error_log("{$loc}: sponsoredBy ID=$col_value");
 			$sql = "SELECT {$columns}
 					FROM $table 
 					WHERE sponsor_ID = %d;";
 		} elseif( array_key_exists('mySponsor',$fk_criteria) ) {
 			//Get the Person who sponsors the given Person's ID
 			$col_value = $fk_criteria["mySponsor"];
-			error_log("{$loc}: mySponsor ID=$col_value");
+			$logger->error_log("{$loc}: mySponsor ID=$col_value");
 			$sql = "SELECT {$columns}
 					FROM $table 
 					WHERE ID = %d;";
 		} elseif( array_key_exists('email',$fk_criteria) ) {
 			//Get the Person with given email address
 			$col_value = $fk_criteria["email"];
-			error_log("{$loc}: home email=$col_value");
+			$logger->error_log("{$loc}: home email=$col_value");
 			$sql = "SELECT {$columns}
 					FROM $table 
 					WHERE emailHome = '%s';";
@@ -157,7 +159,7 @@ class Person extends AbstractMembershipData
 			$col_value = $fk_criteria["external"];
 			$mapTable = TennisClubMembership::getInstaller()->getDBTablenames()['externalmap'];
 			$subject = self::$tablename;
-			error_log("{$loc}: external={$col_value}");
+			$logger->error_log("{$loc}: external={$col_value}");
 			$sql = "SELECT {$columns}
 					FROM {$table} 
 					INNER JOIN {$mapTable}
@@ -167,7 +169,7 @@ class Person extends AbstractMembershipData
 					ORDER BY ID;";
 		} elseif( !isset( $fk_criteria ) ) {
 			//All persons
-			error_log( "{$loc}: all persons" );
+			$logger->error_log( "{$loc}: all persons" );
 			$col_value = 0;
 			$sql = "SELECT {$columns}
 					FROM $table
@@ -180,7 +182,7 @@ class Person extends AbstractMembershipData
 		$safe = $wpdb->prepare( $sql, $col_value );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		error_log("{$loc}: {$wpdb->num_rows} rows returned.");
+		$logger->error_log("{$loc}: {$wpdb->num_rows} rows returned.");
 
 		foreach($rows as $row) {
             $obj = new Person;

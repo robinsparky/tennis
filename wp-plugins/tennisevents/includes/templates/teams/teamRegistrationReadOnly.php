@@ -23,6 +23,6 @@ foreach($allTeams  as $team ) {
    <?php } ?>
 </ul>
 <?php }} ?>
-<button class="button closeTeamRegistration" type="button" id="cancelTeams">Teams</button>
+<button class="button closeTeamRegistration" type="button" id="cancelTeams">Close</button>
 </div>
 </section>

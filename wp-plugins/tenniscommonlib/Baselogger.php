@@ -15,6 +15,7 @@ class BaseLogger {
     public $recipient = "robin.sparky@gmail.com";
     
 	public function __construct( $log = true ) {
+		$loc = __CLASS__ . '::' . __FUNCTION__;	
         global $TennisEventErrorLogOn;
         if( !$TennisEventErrorLogOn ) {
             $this->writelog= false;

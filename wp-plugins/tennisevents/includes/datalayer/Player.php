@@ -194,7 +194,7 @@ EOD;
                     inner join {$squadPlayerTable} s on p.ID = s.player_ID
                     where p.event_ID=%d and p.bracket_num=%d";
             error_log("Find all players assigned to ANY team: event_ID={$event_ID} bracket_num={$bracket_num}");
-            $safe = $wpdb->prepare($sql, $event_ID, $bracket_num,$is_spare);
+            $safe = $wpdb->prepare($sql, $event_ID, $bracket_num);
         }     
         //find all the players or all the spares in an event/bracket
         elseif( array_key_exists( 'event_ID', $fk_criteria ) && array_key_exists( 'bracket_num', $fk_criteria ) ) {    

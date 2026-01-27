@@ -272,12 +272,12 @@ class Event extends AbstractData
 	 */
     static public function get( int ...$pks ) {
 		$loc = __CLASS__ . '::' . __FUNCTION__;	
-		$logger = new BaseLogger(true);	
-        $logger->error_log("{$loc}: pks ... ");
-        $logger->error_log(print_r($pks,true));	
+		// $logger = new BaseLogger(true);	
+        // $logger->error_log("{$loc}: pks ... ");
+        // $logger->error_log(print_r($pks,true));	
 
 		// $strTrace = GW_Debug::get_debug_trace_Str(3);
-		// error_log("{$loc}: Trace {$strTrace}");
+		// $logger->error_log("{$loc}: Trace {$strTrace}");
 		
 		global $wpdb;
 		$table = $wpdb->prefix . self::$tablename;
@@ -286,7 +286,7 @@ class Event extends AbstractData
 		$safe = $wpdb->prepare( $sql, $pks );
 		$rows = $wpdb->get_results( $safe, ARRAY_A );
 
-		//error_log( sprintf("Event::get(%d) -> %d rows returned.", $pks, $wpdb->num_rows ) );
+		//$logger->error_log( sprintf("Event::get(%d) -> %d rows returned.", $pks, $wpdb->num_rows ) );
 
 		$obj = NULL;
 		if( count( $rows ) === 1 ) {

@@ -22,9 +22,8 @@ use api\ajax\ManageEvents;
 use api\rest\TennisControllerManager;
 use special\PickleballSurvey;
 
-/* turn on or off error logging*/
-$TennisEventErrorLogOn = get_option(TennisEvents::OPTION_ERROR_LOG_MODE, 'no') === 'yes';
-error_log("Tennis Events Plugin loaded. Error logging is " . ($TennisEventErrorLogOn ? "ON" : "OFF") );
+/* Global variable for error logging */
+$TennisEventErrorLogOn = false;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -135,9 +134,7 @@ class TennisEvents {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$this->includes();
 		$this->log = new BaseLogger( true );
-		$this->log->error_log("$loc: created logger!");
 		$support = new GW_Support();
-		$this->log->error_log("$loc: created GW Support!");
 
 		$this->check_version();
 
@@ -257,7 +254,13 @@ class TennisEvents {
 	 */
 	public function init() {
 		$loc = __CLASS__ . '::' . __FUNCTION__;
-		$this->log->error_log( ">>>>>>>>>>>$loc start>>>>>>>>>" );
+
+
+		error_log( ">>>>>>>>>>>$loc start>>>>>>>>>" );
+
+		global $TennisEventErrorLogOn;
+		$TennisEventErrorLogOn = get_option(TennisEvents::OPTION_ERROR_LOG_MODE, 'off') === 'on' ? true : false;
+		error_log("Error logging is " . ($TennisEventErrorLogOn ? "ON" : "OFF") );
 
 		//Register custom post types
 		TennisEventCpt::register();
@@ -291,7 +294,7 @@ class TennisEvents {
 		// $magicmess = strpos($pngData, "\x89PNG\r\n\x1a\n") === 0 ? 'ImageMagick Ok' : 'ImageMagick Failed';
 		// $this->log->error_log("$loc: $magicmess"); 
 
-		$this->log->error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
+		error_log( "<<<<<<<<<<<$loc end<<<<<<<<<<<" );
 	}
 	
 	/**
@@ -391,8 +394,7 @@ class TennisEvents {
 	 * if the current version is numerically less than the new version.
 	 */
 	private function check_version() {
-		$loc = __FILE__ . '::' . __FUNCTION__;
-		$this->log->error_log("{$loc}");
+		$loc = __CLASS__ . '::' . __FUNCTION__;
 		$curVersion = get_option( self::OPTION_NAME_VERSION );
 		$curVersionArr = explode( '.', $curVersion );
 		$curVersionNum = $curVersionArr[0] * 100 + $curVersionArr[1] * 10 + $curVersionArr[2];

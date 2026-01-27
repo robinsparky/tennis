@@ -296,30 +296,30 @@ function gw_tennisLockdown() {
 
 }
 function gw_errorlogmode() {
-    $errormode = esc_attr( get_option(TennisEvents::OPTION_ERROR_LOG_MODE, 'no') );
-    $yesChecked = '';
-    $noChecked = '';
-    if($errormode == 'yes') {
-        $yesChecked = 'checked';
+    $errormode = esc_attr( get_option(TennisEvents::OPTION_ERROR_LOG_MODE, 'off') );
+    $onChecked = '';
+    $offChecked = '';
+    if($errormode == 'on') {
+        $onChecked = 'checked';
     }
     else {
-        $noChecked = 'checked';
+        $offChecked = 'checked';
     }
     
     $optName = TennisEvents::OPTION_ERROR_LOG_MODE;
 
-    $txt = __("Turn on error logging?",TennisEvents::TEXT_DOMAIN);
+    $txt = __("Error Logging",TennisEvents::TEXT_DOMAIN);
     $templ = <<<EOT
         <fieldset>
         <legend>Choose:</legend>
         <div>
-            <input type="radio" id="tennis_yes_error_mode" name="{$optName}" value="yes" {$yesChecked} />
-            <label for="tennis_yes_error_mode">Yes</label>
+            <input type="radio" id="tennis_on_error_mode" name="{$optName}" value="on" {$onChecked} />
+            <label for="tennis_on_error_mode">On</label>
         </div>
 
         <div>
-            <input type="radio" id="tennis_no_error_mode" name="{$optName}" value="no" {$noChecked} />
-            <label for="tennis_no_error_mode">No</label>
+            <input type="radio" id="tennis_off_error_mode" name="{$optName}" value="off" {$offChecked} />
+            <label for="tennis_off_error_mode">Off</label>
         </div>
         <div>{$txt}</div>
         </fieldset>
@@ -547,11 +547,11 @@ function gw_sanitize_lockdown_previous( $input ) {
 function gw_sanitize_error_log_mode( $input ) {
     $message = null;
     $type = null;
-    $output = 'no';
+    $output = 'off';
 
     if( !is_null( $input ) ) {
         $input = trim(strtolower($input));
-        if( is_string( $input ) && in_array($input,['yes','no'])  ) {
+        if( is_string( $input ) && in_array($input,['on','off'])  ) {
             $output = $input;
             $type = 'success';
             $message = __('Tennis error log mode updated', TennisEvents::TEXT_DOMAIN );

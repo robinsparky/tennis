@@ -2,6 +2,7 @@
 namespace datalayer;
 
 use TennisEvents;
+use commonlib\BaseLogger;
 
 //use \TennisEvents;
 
@@ -89,6 +90,14 @@ class ScoreType {
                               ,self::TEAMTENNIS =>''
                             ];
    
+    /**
+     * Log an error message
+     * Accepts variable number of arguments:
+     * 1 arg: message
+     * 2 args: label, message
+     * 3 args: something, label, backtrace(boolean)
+     */
+    private $log;
 	//This class's singleton
 	private static $_instance;
 
@@ -114,6 +123,7 @@ class ScoreType {
 		if ( isset( self::$_instance ) ) {
 			wp_die( sprintf( esc_html__( '%s is a singleton class and you cannot create a second instance.', TennisEvents::TEXT_DOMAIN ),get_class( $this ) ) );
 		}
+        $this->log = new BaseLogger();
     }
 
     /*
@@ -145,14 +155,12 @@ class ScoreType {
      */
     public function getScoringRules( string $key ): array {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("{$loc}('{$key}')");
 
         if( array_key_exists( $key, $this->ScoreRules ) ) {
             // error_log("$loc: returning ...{$key}=>");            
             // error_log(print_r($this->ScoreRules[$key], true ) );
             return $this->ScoreRules[$key];
         }
-        // error_log("$loc: returning empty array");
         return [];
     }
 
@@ -170,10 +178,10 @@ class ScoreType {
             $elimOnly = array_diff_key($this->ScoreRules, $this->RoundRobinOnly);
             $rrOnly = array_diff_key($this->ScoreRules, $elimOnly );
 
-            error_log("{$loc}: Elimination rules:");
-            error_log(print_r($elimOnly,true));
-            error_log("{$loc}: Round Robin rules:");
-            error_log(print_r($rrOnly,true));
+            $this->log->error_log("{$loc}: Elimination rules:");
+            $this->log->error_log(print_r($elimOnly,true));
+            $this->log->error_log("{$loc}: Round Robin rules:");
+            $this->log->error_log(print_r($rrOnly,true));
 
             switch($format) {
                 case Format::ELIMINATION:
