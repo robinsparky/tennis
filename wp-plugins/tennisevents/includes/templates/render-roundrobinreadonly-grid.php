@@ -1,18 +1,47 @@
-<?php use datalayer\EventType;
-$now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
+<?php 
+use datalayer\EventType;
+$now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
+$eventType = $td->getEvent()->getParent()->getEventType();
+$teamTennisClass = '';
+if($eventType === EventType::TEAMTENNIS) {
+    $teamTennisClass = 'ttc-team-tennis';
+}
+?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php 
     echo $tournamentName;?>&#58;&nbsp;<?php echo $bracketName; ?>(<?php echo $scoreRuleDesc; ?>)</h3>
 <h5 class='tennis-draw-caption-dates'><span>Starts On</span>&nbsp;<span><?php echo $strEventStartDate;?></span>&semi;&nbsp;<span>Ends On</span>&nbsp;<span><?php echo $strEventEndDate;?></span>&semi;&nbsp;<span id='digiclock'></span></h5>
-
-<main id="<?php echo $bracketName;?>" class="bracketrobin" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
-
+<h5><a class="tennis-summary-link" href="#tennis-score-summary-id">Team Standings</a><br/>
+<?php if($eventType === EventType::TEAMTENNIS) { 
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    $mode = $_GET["mode"];
+    $seasonArg = $_GET["season"];
+    $bracketArg = $_GET['bracket'];
+    $requestUri = $_SERVER['REQUEST_URI'];
+    $requestUriSignup = str_replace('mode=draw','mode=signup',$requestUri) . '&showteams=true';
+    $signupUrl = $protocol . $host . $requestUriSignup;
+    ?>
+    <a id='teams-members-link' class="tennis-members-link" href='<?php echo $signupUrl;?>'>Teams and Members</a>
+<?php }?>
+</h5>
+<main id="<?php echo $bracketName;?>" class="bracketrobin <?php echo $teamTennisClass;?>" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 <?php 
     $winnerClass = "matchwinner";
+    $beginDate = clone $td->getEvent()->getStartDate();
+    $endDate = clone $td->getEvent()->getEndDate();
     foreach( $loadedMatches as $roundnum => $matches ) {
-        $this->log->error_log("render-RoundRobinReadOnly: round number {$roundnum}" . PHP_EOL)
+        $roundTitle = "{$titlePrefix} {$roundnum}";
+        $this->log->error_log("render-RoundRobinReadOnly: round title {$roundTitle}" . PHP_EOL);
+        
+        //Let's sort matches by start date/time
+        usort( $matches, function( $a, $b ) {
+            $keyA = $a->getMatchDate_Str() . ' ' . $a->getMatchTime_Str();
+            $keyB = $b->getMatchDate_Str() . ' ' . $b->getMatchTime_Str();
+            return strcmp( $keyA, $keyB );
+        });
 ?>
-<section class="roundrobin-round"><span>Round <?php echo $roundnum; ?></span>
+<section class="roundrobin-round <?php echo $teamTennisClass;?>"><span><?php echo $roundTitle; ?></span>
 
 <?php foreach( $matches as $match ) { 
     $begin = microtime( true );
@@ -69,14 +98,18 @@ $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
     $minorStatus = $statusObj->getMinorStatus();
     $status = $statusObj->toString();
 
-    $startDate = $match->getMatchDate_Str(3);
+    $strStartDate = $match->getMatchDate_Str(3);
+    $startDate = $match->getMatchDate_Str();
     $startTime = $match->getMatchTime_Str(2);
+    $startTimeVal = $match->getMatchTime_Str();
     $startedMess = '';
+    $this->log->error_log("$loc: {$match->toString()} start date: '{$startDate}'; start time: '{$startTime}'");
     // if( strlen( $startDate ) > 0 ) {
     //     $startedMess = __("Started:", TennisEvents::TEXT_DOMAIN);
     // }
 ?>
 <article class="item-player" data-eventid="<?php echo $eventId;?>" 
+ data-eventtype="<?php echo $eventType;?>" 
  data-bracketnum="<?php echo $bracketNum;?>" 
  data-roundnum="<?php echo $roundNum;?>" 
  data-matchnum="<?php echo $matchNum?>" 
@@ -84,7 +117,7 @@ $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a") ?>
  data-minorstatus="<?php echo $minorStatus?>" >
 <!--<div class="matchinfo matchtitle"><span><?php //echo $title;?></span></div>-->
 <div class="matchinfo matchstatus"><span><?php echo $status; ?></span></div>
-<div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $startDate;?>&nbsp;<?php echo $startTime; ?></div>
+<div class="matchinfo matchstart"><?php echo $startedMess; ?>&nbsp;<?php echo $strStartDate;?>&nbsp;<?php echo $startTime; ?></div>
 <div class="matchinfo matchcomments"><?php echo $cmts; ?></div>
 <div class="homeentrant <?php echo $homeWinner; ?>"><?php echo $hname; ?></div>
 <div class="displaymatchscores"><!-- Display Scores Container -->

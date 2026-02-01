@@ -3,12 +3,12 @@ use datalayer\MatchStatus;
 use datalayer\EventType;
 
 $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
-    $eventType = $td->getEvent()->getParent()->getEventType();
-    $isClosed = $td->getEvent()->isClosed();
-    $teamTennisClass = '';
-    if($eventType === EventType::TEAMTENNIS) {
-        $teamTennisClass = 'ttc-team-tennis';
-    }
+$eventType = $td->getEvent()->getParent()->getEventType();
+$isClosed = $td->getEvent()->isClosed();
+$teamTennisClass = '';
+if($eventType === EventType::TEAMTENNIS) {
+    $teamTennisClass = 'ttc-team-tennis';
+}
 ?>
 <h2 id="parent-event-name"><?php echo $parentName ?></h2>
 <h3 id="bracket-name"><?php echo $tournamentName;?>&colon;&nbsp;<?php echo $bracketName; ?>(<?php echo $scoreRuleDesc; ?>)</h3>
@@ -24,7 +24,8 @@ $now = (new DateTime('now', wp_timezone() ))->format("Y-m-d g:i a");
     $requestUriSignup = str_replace('mode=draw','mode=signup',$requestUri) . '&showteams=true';
     $signupUrl = $protocol . $host . $requestUriSignup;
     ?>
-    <a id='teams-members-link' class="tennis-members-link" href='<?php echo $signupUrl;?>'>Teams and Members</a><?php }?>
+    <a id='teams-members-link' class="tennis-members-link" href='<?php echo $signupUrl;?>'>Teams and Members</a>
+<?php }?>
 </h5>
 <main id="<?php echo $bracketName;?>" class="bracketrobin <?php echo $teamTennisClass;?>" data-format="" data-eventid="<?php echo $this->eventId;?>" data-bracketname="<?php echo $bracketName;?>">
 <?php 

@@ -1,5 +1,7 @@
 <?php
 namespace datalayer;
+
+use commonlib\BaseLogger;
 use \TennisEvents;
 use \datalayer\InvalidTennisOperationException;
 
@@ -74,9 +76,10 @@ class TennisSquad extends AbstractData
      */
     public static function find(...$fk_criteria) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
+        $logger = new BaseLogger();
         $ids = print_r($fk_criteria,true);
-        error_log("{$loc}:");
-        error_log($ids);
+        $logger->error_log("{$loc}:");
+        $logger->error_log($ids);
 
 		global $wpdb;
 
@@ -89,17 +92,16 @@ class TennisSquad extends AbstractData
         if( array_key_exists( 'event_ID', $fk_criteria) && array_key_exists( 'bracket_num', $fk_criteria) && array_key_exists( 'team_num', $fk_criteria)) {
 			//All squads belonging to specified team
 			$sql = "SELECT {$columns} from $table WHERE event_ID = %d AND bracket_num = %d AND team_num = %d order by name;";
-            error_log("Find all squads where event_ID={$fk_criteria["event_ID"]} bracket_num={$fk_criteria["bracket_num"]} team_num={$fk_criteria["team_num"]}");
+            $logger->error_log("Find all squads where event_ID={$fk_criteria["event_ID"]} bracket_num={$fk_criteria["bracket_num"]} team_num={$fk_criteria["team_num"]}");
 		    $safe = $wpdb->prepare($sql,$fk_criteria["event_ID"], $fk_criteria["bracket_num"], $fk_criteria["team_num"]);
         } else {
 			return $col;
 		}
 
-        error_log("{$loc}:" . print_r($safe,true));
+        $logger->error_log("{$loc}:" . print_r($safe,true));
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("{$loc} {$wpdb->num_rows} rows returned");
-
+		$logger->error_log("{$loc} {$wpdb->num_rows} rows returned");
 		foreach($rows as $row) {
             $obj = new TennisSquad();
             self::mapData($obj,$row);
@@ -115,8 +117,9 @@ class TennisSquad extends AbstractData
 	 */
     static public function get(...$pks) : TennisSquad | null {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
+        $logger = new BaseLogger();
         $ids = print_r($pks,true);
-        error_log("{$loc}({$ids})");
+        $logger->error_log("{$loc}({$ids})");
 
 		global $wpdb;
 		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
@@ -139,17 +142,17 @@ class TennisSquad extends AbstractData
             return null;
         }
 
-        error_log("{$loc}:" . print_r($safe,true));
+        $logger->error_log("{$loc}:" . print_r($safe,true));
         $rows = $wpdb->get_results($safe, ARRAY_A);
         if(is_null($rows) || count($rows) < 1 ) {
-            error_log("{$loc}: No squad rows returned.");
+            $logger->error_log("{$loc}: No squad rows returned.");
             return null;
         }
         else if( count($rows) > 1 ) {
-            error_log("{$loc}: More than one squad row returned.");
+            $logger->error_log("{$loc}: More than one squad row returned.");
             throw new InvalidTennisOperationException("More than one squad row returned.");
         }   
-        error_log("{$loc}: {$wpdb->rows_affected} returned.");
+        $logger->error_log("{$loc}: {$wpdb->rows_affected} returned.");
 
 
         $obj = new TennisSquad();
@@ -541,7 +544,6 @@ EOS;
      */
     protected static function mapData($obj,$row) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("{$loc}");
 
         parent::mapData($obj,$row);
         $obj->event_ID    = $row["event_ID"];

@@ -2,6 +2,9 @@
 use datalayer\Event;
 use datalayer\TennisTeam;
 use datalayer\Player;
+use commonlib\BaseLogger;
+
+$logger = new BaseLogger();
 $title = __('Assign Team Members',TennisEvents::TEXT_DOMAIN);
 ?>
 <section class="teamRegistrationSection">
@@ -30,7 +33,7 @@ foreach( $availablePlayers as $player ) { ?>
 $allTeams = TennisTeam::find( array( "event_ID" => $event->getID(), "bracket_num" => $bracket->getBracketNumber() ) );
 foreach($allTeams  as $team ) {
     foreach($team->getSquads() as $squad ) {
-        error_log("Rendering team {$team->getName()} squad {$squad->getName()}");
+        $logger->error_log("Rendering team {$team->getName()} squad {$squad->getName()}");
         $members = $squad->getMembers();
         $memCount = count($members);
         usort($members,function( $a, $b ) {return strcmp( $a->getLastName(), $b->getLastName() );});

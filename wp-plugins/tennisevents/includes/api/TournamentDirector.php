@@ -487,7 +487,7 @@ class TournamentDirector
     public function save() {
         $loc = __CLASS__ . '::' . __FUNCTION__;
 		$calledBy = debug_backtrace()[1]['function'];
-        error_log("{$loc} ... called by {$calledBy}");
+        $this->log->error_log("{$loc} ... called by {$calledBy}");
 
         //TODO: This should spiral down thru all brackets, matches and sets.
         //      Needs to be tested and fixed.

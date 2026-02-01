@@ -20,7 +20,8 @@ use api\ajax\ManageDraw;
 use api\ajax\ManageRoundRobin;
 use api\ajax\ManageEvents;
 use api\rest\TennisControllerManager;
-use special\PickleballSurvey;
+// use special\PickleballSurvey;
+use special\ProgramsSurvey;
 
 /* Global variable for error logging */
 $TennisEventErrorLogOn = false;
@@ -634,17 +635,18 @@ function handleExtraChars() {
 //Temporary functionality for Pickleball
 add_action('admin_menu', 'create_tools_submenu');
 function create_tools_submenu() {
-    add_management_page( 'Pickleball', 'Pickleball Survey', 'manage_options', 'pickleball', 'generate_page_survey_content' );
+    // add_management_page( 'Pickleball', 'Pickleball Survey', 'manage_options', 'pickleball', 'generate_page_survey_content' );
+    add_management_page( 'Programs', 'Programs Survey', 'manage_options', 'programs', 'generate_page_survey_content' );
 }
 
 function generate_page_survey_content() {
 
-	$psurvey = new PickleballSurvey();
+	$psurvey = new ProgramsSurvey();
 	$psurvey->run();
 
-	echo '<div>';
-	echo $psurvey->getSurvey();
-	echo '</div>';
+	// echo '<div>';
+	// echo $psurvey->getSurvey();
+	// echo '</div>';
 	
 }
 

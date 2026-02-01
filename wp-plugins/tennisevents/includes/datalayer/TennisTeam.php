@@ -1,5 +1,7 @@
 <?php
 namespace datalayer;
+
+use commonlib\BaseLogger;
 use \TennisEvents;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -81,9 +83,10 @@ class TennisTeam extends AbstractData
      */
     public static function find(...$fk_criteria) {
 		$loc = __CLASS__ . "::" . __FUNCTION__;
+        $logger = new BaseLogger();
         $ids = print_r($fk_criteria,true);
-        error_log("{$loc}:");
-        error_log($ids);
+        $logger->error_log("{$loc}:");
+        $logger->error_log($ids);
 
 		global $wpdb;
 
@@ -97,24 +100,24 @@ class TennisTeam extends AbstractData
 		//All teams belonging to specified event and bracket
         if( array_key_exists( 'event_ID', $fk_criteria) && array_key_exists( 'bracket_num', $fk_criteria)) {
 			$sql = "SELECT {$columns} from $table WHERE event_ID = %d AND bracket_num = %d;";
-            error_log("Find all teams where event_ID={$fk_criteria["event_ID"]} bracket_num={$fk_criteria["bracket_num"]}");
+            $logger->error_log("Find all teams where event_ID={$fk_criteria["event_ID"]} bracket_num={$fk_criteria["bracket_num"]}");
 		    $safe = $wpdb->prepare($sql,$fk_criteria["event_ID"], $fk_criteria["bracket_num"]);
         }
         //All teams belonging to specified event    
         else if( array_key_exists( 'event_ID', $fk_criteria) ) {
             $sql = "SELECT {$columns}
                     from $table WHERE event_ID = %d;";
-            error_log("Find all teams where event_ID={$fk_criteria["event_ID"]}");
+            $logger->error_log("Find all teams where event_ID={$fk_criteria["event_ID"]}");
             $safe = $wpdb->prepare($sql,$fk_criteria["event_ID"]);
         } else {
 			return $col;
 		}
 
-        error_log("{$loc}:");
-        error_log(print_r($safe,true));
+        $logger->error_log("{$loc}:");
+        $logger->error_log(print_r($safe,true));
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("{$loc} {$wpdb->num_rows} rows returned");
+		$logger->error_log("{$loc} {$wpdb->num_rows} rows returned");
 
 		foreach($rows as $row) {
             $obj = new TennisTeam(null);
@@ -172,13 +175,15 @@ class TennisTeam extends AbstractData
 	}
 
     /**
-     * Delete all Teams and related squad_player, squads for the specified event and bracket
+     * Delete all Teams and players, squads, squad_player mappings for the specified event and bracket
      * @param int $eventId The ID of the event
      * @param int $bracketNum The bracket number 
      * @return int Number of rows affected
      */
     public static function deleteAllTeams( int $eventId = 0, int $bracketNum = 0 ) : int    {
         $loc = __CLASS__ . '::' . __FUNCTION__;
+        $logger = new BaseLogger();
+        $logger->error_log("{$loc}: Deleting all teams for event_ID={$eventId} bracket_num={$bracketNum}");
         
         $result = 0;
         if( 0 === $eventId || 0 === $bracketNum ) return $result;
@@ -188,7 +193,14 @@ class TennisTeam extends AbstractData
         $formats_values = ['%d','%d'];
 
         $table = TennisEvents::getInstaller()->getDBTablenames()['squad_player'];
-        $wpdb->delete( $table, $values, $formats_values );
+        $ptable = TennisEvents::getInstaller()->getDBTablenames()['player'];
+        $sql = <<<EOD
+delete s 
+FROM $ptable as p inner join $table as s on p.ID = s.player_ID 
+where p.event_ID = %d and p.bracket_num = %d;
+EOD;
+        $safe = $wpdb->prepare($sql,$eventId,$bracketNum);
+        $wpdb->query($safe);
         $result += $wpdb->rows_affected;
 
         $table = TennisEvents::getInstaller()->getDBTablenames()['squad'];
@@ -204,7 +216,7 @@ class TennisTeam extends AbstractData
         $wpdb->delete( $table, $values, $formats_values );
         $result += $wpdb->rows_affected;
         
-        error_log("{$loc} {$result} rows affected.");
+        $logger->error_log("{$loc} {$result} rows affected.");
 
         return $result;
     }
@@ -516,7 +528,7 @@ class TennisTeam extends AbstractData
 
         $result += $this->createRelatedData();
 
-		error_log("{$loc} {$result} rows affected.");
+		$this->log->error_log("{$loc} {$result} rows affected.");
 
 		return $result;
 	}
@@ -571,7 +583,6 @@ class TennisTeam extends AbstractData
      */
     protected static function mapData($obj,$row) {
         $loc = __CLASS__ . '::' . __FUNCTION__;
-        error_log("{$loc}");
 
         parent::mapData($obj,$row);
         $obj->event_ID    = $row["event_ID"];

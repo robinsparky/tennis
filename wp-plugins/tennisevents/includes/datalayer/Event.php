@@ -1671,7 +1671,7 @@ class Event extends AbstractData
 
 		$result += $this->manageRelatedData();
 		
-		error_log( sprintf( "%s(%s) -> %d rows updated.",$loc, $this->toString(), $result ) );
+		$this->log->error_log( sprintf( "%s(%s) -> %d rows updated.",$loc, $this->toString(), $result ) );
 		
 		return $result;
 	}

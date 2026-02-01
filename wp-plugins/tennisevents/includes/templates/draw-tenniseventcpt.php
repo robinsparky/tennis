@@ -6,13 +6,16 @@ use datalayer\Bracket;
 use datalayer\Format;
 use datalayer\TennisTeam;
 use datalayer\Player;
+use commonlib\BaseLogger;
+
 ?>
 <div id="post-<?php the_ID(); ?>"> <!-- post -->
 	<?php
+	$logger = new BaseLogger();
 		$mode = isset($_GET['mode']) ? $_GET['mode'] : '';
 		$bracketName = isset($_GET['bracket']) ? $_GET['bracket'] : '';
 		$showTeams = isset($_GET['showteams']) ? $_GET['showteams'] : '';
-		error_log(__FILE__);
+		$logger->error_log(__FILE__);
 		//Get $args
 		$args = wp_parse_args(
 				$args,
@@ -22,8 +25,8 @@ use datalayer\Player;
 			);
 
 		$season = $args['season'];
-		error_log("season={$season}");
-		error_log("showteams={$showTeams}");
+		$logger->error_log("season={$season}");
+		$logger->error_log("showteams={$showTeams}");
 	?>
 		<!-- tennis event content -->
 		<div class="tennis-event-content">

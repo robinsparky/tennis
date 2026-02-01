@@ -307,7 +307,7 @@ class RenderRoundRobin
         $jsData["matchType"] = $td->getEvent()->getMatchType();
         $jsData["eventType"] = $td->getEvent()->getParent()->getEventType() ;
         $arrData = $this->getMatchesAsArray( $td, $bracket );
-        $this->log->error_log($arrData, "$loc: arrData...");
+        // $this->log->error_log($arrData, "$loc: arrData...");
         $jsData["matches"] = $arrData; 
         wp_enqueue_script( 'digital_clock' );  
         wp_enqueue_script( 'manage_teams' );
@@ -317,11 +317,14 @@ class RenderRoundRobin
 	    // Start output buffering we don't output to the page
         ob_start();
 
-        // Get template file to render the round robin matches
-        $path = TE()->getPluginPath() . 'includes\templates\render-roundrobin-grid.php';
-        if( $td->getEvent()->isClosed() ) {
-            $path = TE()->getPluginPath() . 'includes\templates\render-roundrobinreadonly-grid.php';
-        }   
+        // Get template file to render the round robin matches        
+        $path = TE()->getPluginPath() . 'includes\templates\render-roundrobinreadonly-grid.php';
+        if( (current_user_can( TE_Install::MANAGE_EVENTS_CAP ) 
+        || current_user_can( TE_Install::RESET_MATCHES_CAP )
+        || current_user_can( TE_Install::SCORE_MATCHES_CAP ))
+        && !$td->getEvent()->isClosed() ) {
+            $path = TE()->getPluginPath() . 'includes\templates\render-roundrobin-grid.php';
+        }
         $pathn = wp_normalize_path($path); //this fails to open on HostPapa
         $this->log->error_log("Requiring round robin template from normalized path: $pathn");
         $path = str_replace( '\\', DIRECTORY_SEPARATOR, $path );

@@ -269,7 +269,7 @@ class MatchTieBreakerUmpire extends ChairUmpire
                     , "earlyEnd"       => $earlyEnd
                     , "comments"       => $cmts ];
 
-        error_log( sprintf("%s: %0.6f", "{$loc} Elapsed Time", GW_Debug::micro_time_elapsed( $startTime )));
+        $this->log->error_log( sprintf("%s: %0.6f", "{$loc} Elapsed Time", GW_Debug::micro_time_elapsed( $startTime )));
         $this->log->error_log($result, "$loc: TennisMatch Summary Result");
 
         return $result;

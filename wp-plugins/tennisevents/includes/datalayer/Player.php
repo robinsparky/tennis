@@ -3,6 +3,7 @@ namespace datalayer;
 
 use DateTime;
 use \TennisEvents;
+use commonlib\BaseLogger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -117,10 +118,11 @@ EOD;
      * @return array Array of Player objects
      */
     public static function find(...$fk_criteria) {
-		$loc = __CLASS__ . "::" . __FUNCTION__;        
+		$loc = __CLASS__ . "::" . __FUNCTION__; 
+        $logger = new BaseLogger();       
         $ids = print_r($fk_criteria,true);
-        error_log("{$loc}:");
-        error_log($ids);
+        $logger->error_log("{$loc}:");
+        $logger->error_log($ids);
 
 		global $wpdb;
 		$table = TennisEvents::getInstaller()->getDBTablenames()[self::$tablename];
@@ -142,7 +144,7 @@ EOD;
             $sql = "SELECT  {$columns}
                     FROM {$table} as p inner join {$squadPlayerTable} s on p.ID = s.player_ID
                     where s.squad_ID=%d";
-            error_log("Find all players in squadID={$squad}");
+            $logger->error_log("Find all players in squadID={$squad}");
             $safe = $wpdb->prepare($sql,$squad);
         }
         //find all the players in a team
@@ -153,7 +155,7 @@ EOD;
             $sql = "SELECT  {$columns}
                     FROM {$table} as p inner join {$squadPlayerTable} j on p.ID = j.player_ID
                     where p.event_ID=%d and p.bracket_num=%d and j.team_num=%d";
-            error_log("Find all players in a team. event_ID={$event_ID} bracket_num={$bracket_num} team_num={$team_num}");
+            $logger->error_log("Find all players in a team. event_ID={$event_ID} bracket_num={$bracket_num} team_num={$team_num}");
             $safe = $wpdb->prepare($sql, $event_ID, $bracket_num, $team_num,$is_spare);
         }
         //Find all players in event/bracket/round/match
@@ -168,7 +170,7 @@ EOD;
                     inner join {$squadPlayerTable} j on p.ID = j.player_ID
                     inner join {$matchPlayerTable} m on m.player_ID=j.player_ID and m.squad_ID=j.squad_ID
                     where p.event_ID=%d and p.bracket_num=%d and m.round_num=%d and m.match_num=%d";
-            error_log("Find all players in an event and bracket. event_ID={$event_ID} bracket_num={$bracket_num} roundnum={$roundnum} matchnum={$matchnum}");
+            $logger->error_log("Find all players in an event and bracket. event_ID={$event_ID} bracket_num={$bracket_num} roundnum={$roundnum} matchnum={$matchnum}");
             $safe = $wpdb->prepare($sql,$event_ID,$bracket_num,$roundnum,$matchnum);
         }
         //Find all players in event/bracket/round
@@ -182,7 +184,7 @@ EOD;
                     inner join {$squadPlayerTable} j on p.ID = j.player_ID
                     inner join {$matchPlayerTable} m on m.player_ID=j.player_ID and m.squad_ID=j.squad_ID
                     where p.event_ID=%d and p.bracket_num=%d and m.round_num=%d and m.match_num=%d";
-            error_log("Find all players in an event and bracket. event_ID={$event_ID} bracket_num={$bracket_num} roundnum={$roundnum}");
+            $logger->error_log("Find all players in an event and bracket. event_ID={$event_ID} bracket_num={$bracket_num} roundnum={$roundnum}");
             $safe = $wpdb->prepare($sql,$event_ID,$bracket_num,$roundnum);
         }         
         //find all the players assigned to ANY team in an event/bracket
@@ -193,7 +195,7 @@ EOD;
                     FROM {$table} as p 
                     inner join {$squadPlayerTable} s on p.ID = s.player_ID
                     where p.event_ID=%d and p.bracket_num=%d";
-            error_log("Find all players assigned to ANY team: event_ID={$event_ID} bracket_num={$bracket_num}");
+            $logger->error_log("Find all players assigned to ANY team: event_ID={$event_ID} bracket_num={$bracket_num}");
             $safe = $wpdb->prepare($sql, $event_ID, $bracket_num);
         }     
         //find all the players or all the spares in an event/bracket
@@ -203,7 +205,7 @@ EOD;
             $sql = "SELECT  {$columns}
                     FROM {$table} as p 
                     where p.event_ID=%d and p.bracket_num=%d and p.is_spare=%d";
-            error_log("Find all players or all spares: event_ID={$event_ID} bracket_num={$bracket_num}");
+            $logger->error_log("Find all players or all spares: event_ID={$event_ID} bracket_num={$bracket_num}");
             $safe = $wpdb->prepare($sql, $event_ID, $bracket_num,$is_spare);
         } 
         else {
@@ -211,11 +213,11 @@ EOD;
             throw new \InvalidArgumentException($mess);
         }  
 
-        error_log("{$loc}:");
-        error_log(print_r($safe,true));
+        $logger->error_log("{$loc}:");
+        $logger->error_log(print_r($safe,true));
 		$rows = $wpdb->get_results($safe, ARRAY_A);
 		
-		error_log("{$loc}: {$wpdb->num_rows} rows returned");
+		$logger->error_log("{$loc}: {$wpdb->num_rows} rows returned");
 
 		$col = array();
 		foreach($rows as $row) {
